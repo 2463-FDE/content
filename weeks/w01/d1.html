@@ -47,8 +47,12 @@
         or about four characters. "Tokenization" is one token; a long or rare word might split into three or four. The
         window has a hard ceiling (say 8K, 128K, or 200K tokens depending on the model), and <em>nothing outside it
         exists</em> from the model's point of view. There is no "it sort of remembers" — either a fact is in the window
-        for this call, or it is gone. Get a feel for the conversion before we keep going:</p>
-        <div class="ix-tokens" data-sample="Summarize this 40-page RFP for a non-technical reader and return the three biggest risks as JSON."></div>
+        for this call, or it is gone. See it for real — ask something answerable, then ask for a fact that was never placed in the window:</p>
+        <div class="ix-run"
+             data-id="w01-d1-call"
+             data-system="Answer in one sentence."
+             data-examples='["What is the context window of a large language model?","What is the employee ID I gave you earlier in this conversation?"]'
+             data-placeholder="Ask a normal question — then ask for a fact the model has no way to know."></div>
         <p>Here's the sentence to tattoo on your brain for the program: <strong>capabilities and limits both come from
         the window.</strong> "Can it summarize this contract?" "Why did it forget what I told it?" "Why did it
         confidently make something up?" — those feel like different problems, but they are the same question wearing
