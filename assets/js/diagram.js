@@ -68,7 +68,20 @@
       g.appendChild(t);
     });
     g._rect = rect; g._perim = perim;
+    if (n.detail) {
+      g.setAttribute("class", g.getAttribute("class") + " d-clickable");
+      g.addEventListener("click", (ev) => { ev.stopPropagation(); showDetail(n); });
+    }
     return g;
+  }
+
+  function showDetail(n) {
+    const stage = (root.closest && root.closest(".side-diagram")) || root.parentNode;
+    if (!stage) return;
+    let pop = stage.querySelector(".dgm-pop");
+    if (!pop) { pop = document.createElement("div"); pop.className = "dgm-pop"; stage.appendChild(pop); }
+    pop.innerHTML = `<span class="dp-close">✕</span><b>${String(n.label).replace(/\n/g, " ")}</b><br>${n.detail}`;
+    pop.querySelector(".dp-close").addEventListener("click", () => pop.remove());
   }
 
   function buildEdge(e) {

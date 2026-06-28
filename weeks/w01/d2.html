@@ -656,38 +656,39 @@ window.DIAGRAMS = [
   },
   {
     title: "Part 2 · Resilient API call",
-    width: 470, height: 380,
+    width: 650, height: 560,
     nodes: [
-      { id:"client",  step:0, x:40,  y:30,  w:290, h:42, label:"CLIENT request" },
-      { id:"stream",  step:1, x:40,  y:90,  w:290, h:36, label:"Stream tokens back (low TTFT)" },
-      { id:"batch",   step:2, x:348, y:88,  w:108, h:52, label:"or BATCH\nasync · −50%" },
-      { id:"throt",   step:3, x:40,  y:144, w:290, h:36, label:"Throttle ≤ RPM / TPM" },
-      { id:"call",    step:4, x:40,  y:196, w:290, h:50, label:"API CALL\n(timeout set)" },
-      { id:"retry",   step:5, x:348, y:194, w:108, h:54, label:"retry:\nbackoff + jitter" },
-      { id:"idem",    step:6, x:348, y:282, w:108, h:54, label:"idempotency key\n→ safe retry" },
-      { id:"done",    step:7, x:40,  y:286, w:140, h:50, label:"✓ result → ship" },
-      { id:"fb",      step:7, x:192, y:286, w:138, h:54, label:"exhausted/4xx →\nfail safe" }
+      { id:"client", step:0, kind:"example", x:30,  y:22,  w:330, h:104,
+        label:"POST /v1/messages\n{\"model\":\"claude-...\",\n \"stream\": true,\n \"messages\":[{\"role\":\"user\",\n  \"content\":\"Summarize the RFP\"}]}" },
+      { id:"stream", step:1, x:45,  y:156, w:300, h:42, label:"① Stream tokens — low TTFT" },
+      { id:"batch",  step:2, x:410, y:150, w:200, h:46, label:"or BATCH — async · −50%" },
+      { id:"throt",  step:3, x:45,  y:224, w:300, h:42, label:"② Throttle ≤ RPM / TPM" },
+      { id:"call",   step:4, x:45,  y:298, w:300, h:54, label:"③ API CALL · timeout set" },
+      { id:"retry",  step:5, x:410, y:296, w:200, h:58, label:"④ Retry — backoff + jitter\n(429 / 5xx only)" },
+      { id:"idem",   step:6, x:290, y:388, w:190, h:52, label:"⑤ Idempotency key\nsafe to repeat" },
+      { id:"done",   step:7, x:45,  y:472, w:260, h:58, label:"✓ 200 → ship result" },
+      { id:"fb",     step:7, x:350, y:472, w:260, h:58, label:"exhausted / 4xx →\nsafe fallback" }
     ],
     edges: [
-      { id:"e_cs", step:1, from:"client", to:"stream", label:"response" },
-      { id:"e_b",  step:2, from:"client", to:"batch",  label:"bulk", bend:24 },
+      { id:"e_cs", step:1, from:"client", to:"stream", label:"response", ly:-1 },
+      { id:"e_b",  step:2, from:"client", to:"batch",  label:"bulk", ly:-4 },
       { id:"e_st", step:3, from:"stream", to:"throt" },
       { id:"e_tc", step:4, from:"throt",  to:"call" },
-      { id:"e_rt", step:5, from:"call",   to:"retry",  label:"429/5xx" },
-      { id:"e_rc", step:5, from:"retry",  to:"call",   label:"re-try", bend:-34 },
-      { id:"e_ic", step:6, from:"idem",   to:"call",   label:"safe", dir:"-" },
-      { id:"e_ok", step:7, from:"call",   to:"done",   label:"200" },
-      { id:"e_fb", step:7, from:"retry",  to:"fb",     label:"give up" }
+      { id:"e_rt", step:5, from:"call",   to:"retry",  label:"429 / 5xx", bend:22,  ly:14 },
+      { id:"e_rc", step:5, from:"retry",  to:"call",   label:"re-try",    bend:-22, ly:-10 },
+      { id:"e_ik", step:6, from:"idem",   to:"call",   label:"safe to retry", dir:"-", lx:18, ly:6 },
+      { id:"e_ok", step:7, from:"call",   to:"done",   label:"200 ✓", lx:-4 },
+      { id:"e_fb", step:7, from:"retry",  to:"fb",     label:"give up", lx:22 }
     ],
     captions: [
-      "A single <b>client request</b> — now treated as what it is: a network call to a shared, metered, fallible service.",
+      "A real <b>client request</b> — JSON over the network to a shared, metered, fallible service. <code>stream:true</code> already sets up Pattern 1.",
       "<b>Stream</b> the response so the user sees tokens immediately. Time-to-first-token, not total time, is what they feel.",
-      "Work nobody's waiting on? <b>Batch</b> it — async, often ~50% cheaper, and it sidesteps the live rate-limit dance.",
-      "<b>Throttle</b> yourself under the provider's RPM/TPM caps. Cheaper to not send a doomed request than to handle the 429.",
-      "Make the <b>call</b> with a deliberate <b>timeout</b> — LLM calls are slow and variable; the library default is wrong.",
-      "Transient failure (429/5xx)? <b>Retry</b> with exponential backoff + jitter, bounded — never a tight loop. 4xx is NOT retried.",
-      "An <b>idempotency key</b> on every attempt means a retry can't double a side effect. Retry + idempotency are a pair.",
-      "Ends in exactly two places: a <b>result you ship</b>, or a <b>fallback you chose</b>. Never an exception the user sees."
+      "Work nobody's waiting on? <b>Batch</b> it — async, often ~50% cheaper, and it sidesteps the live rate-limit dance entirely.",
+      "<b>Throttle</b> yourself under the provider's RPM/TPM caps — a gate in front of the call. Cheaper to not send a doomed request than to handle the 429.",
+      "Make the <b>call</b> with a deliberate <b>timeout</b> — LLM calls are slow and variable, so the library default is wrong.",
+      "Transient failure (429 / 5xx)? <b>Retry</b> on a side-branch: exponential backoff + jitter, bounded, then loop back. 4xx is NOT retried.",
+      "An <b>idempotency key</b> on every attempt means a retry can't double a side effect. Retry + idempotency are a pair — note it on the call.",
+      "Ends in exactly two places: a <b>result you ship</b> (200), or a <b>fallback you chose</b> (exhausted / 4xx). Never an exception the user sees."
     ]
   }
 ];
