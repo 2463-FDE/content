@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W1·D4·Part 1 — Token Optimization | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 1 · Day 4 · Part 1 · Token Optimization</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Token Optimization: Trim the Window Before You Call</h1>
+        <div class="meta">
+          <span><b>Week 1</b> · Day 4 · Part 1</span>
+          <span>Cost Engineering</span>
+          <span><b>~17 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Day 1 gave you the mental model: the context window is a <strong>finite budget</strong>, and
+        every token in and out is metered. Today you turn that model into the first discipline a Forward Deployed Engineer
+        gets paid for — making each call <strong>cost less</strong> without losing quality. Four levers do it: prompt
+        caching, context compression, dynamic prompt assembly, and the cost tracking that proves any of it worked. Scroll
+        the reading; the panel on the right builds one pipeline — raw context entering at the top and physically
+        <em>shrinking</em> step by step until a lean, cheap call falls out the bottom. Part 2 (next page) takes what
+        comes back and makes it <em>trustworthy</em>.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>Cost comes from the window, just like capability did</h2>
+        <p>On Day 1 we said the same sentence until it stuck: <strong>capabilities and limits both come from the
+        window.</strong> Today there's a sequel, and it's the one that shows up on the client's invoice:
+        <strong>cost comes from the window too.</strong> Every token you place in the window is a token you pay for and a
+        token that can be spent well or wasted. Every token the model generates back is a token you pay for. The base unit
+        never changes — <strong>cost ≈ (input tokens + output tokens) × price-per-token</strong> — so spending fewer
+        tokens for the same answer is, quite literally, the whole game of Part 1.</p>
+        <p>So far this week you've been getting things to <em>work</em>. Today is about getting them to work
+        <strong>affordably</strong> — a different bar. A prototype that answers correctly in the playground and a feature
+        that runs ten thousand times a day for a paying client are separated almost entirely by this page. The prototype
+        ignores cost because it runs twice; production lives and dies by cost because it runs constantly, and at that
+        volume a two-cent call becomes a line item with a year's worth of zeros behind it.</p>
+        <p>Four levers, taught together because they interact. <strong>Prompt caching</strong> — stop paying for the same
+        prefix twice. <strong>Context compression</strong> — carry a smaller representation of what you must carry.
+        <strong>Dynamic assembly</strong> — include only what <em>this</em> call needs. And <strong>cost
+        management</strong> — measure all three, because you can't optimize what you don't track. The diagram on the right
+        is the pipeline: everything you <em>could</em> send enters wide at the top, and each lever trims it narrower until
+        the metered call is lean. Walk the levers one at a time.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Lever 1 · Prompt caching</div>
+        <h2>Prompt caching: stop paying for the same prefix twice</h2>
+        <p>Recall the Day 1 picture: the system prompt, the few-shot examples, and a big chunk of retrieved context are
+        <em>the same on almost every call</em>. Your support bot's 1,500-token system prompt doesn't change between
+        requests. The product manual you paste in for grounding doesn't change. Yet by default you pay full price to send
+        and re-process that identical text on every single request. That's the waste prompt caching exists to kill.</p>
+        <p><strong>Prompt caching</strong> lets the provider remember a chunk of your prompt — a <em>prefix</em> — so that
+        on the next call it can reuse the already-processed version instead of re-reading it from scratch. You mark where
+        the stable part ends, and subsequent requests that share that exact prefix get it served from cache. The economics
+        are the whole point: a cached read costs only a fraction of the normal input price, while the first write costs
+        slightly more than normal to populate the cache. As of <span class="nowrap">June 2026</span>, on Anthropic's API a
+        cache <strong>read</strong> is billed at roughly <strong>0.1×</strong> the base input price — about a 90% discount
+        on the cached portion — while the cache <strong>write</strong> costs about <strong>1.25×</strong> for the short
+        (5-minute) lifetime or <strong>2×</strong> for the one-hour lifetime. <span class="src">[source: Anthropic
+        prompt-caching docs, platform.claude.com/docs/en/build-with-claude/prompt-caching, verified 2026-06-28]</span></p>
+        <p>Run the arithmetic and the discipline becomes obvious. Cache a 10,000-token stable prefix. The first call pays
+        ~1.25× to write it; every call after pays ~0.1× to read it instead of 1×. With the 5-minute cache you break even
+        after just <strong>two</strong> requests (1.25 + 0.1 = 1.35 versus 2.0 if you hadn't cached), and from the third
+        request on it's nearly free. For a feature handling thousands of requests an hour against a fixed manual, caching
+        routinely cuts the input bill by the better part of an order of magnitude.</p>
+        <p>But there is one rule you must internalize, because it is the source of nearly every "why isn't my cache
+        working?" bug: <strong>caching is a prefix match, and any byte change anywhere in the prefix invalidates everything
+        after it.</strong> Put a <code>datetime.now()</code> timestamp, a per-request UUID, or the user's name near the
+        <em>top</em> of your system prompt and the prefix differs on every call — so nothing ever caches, you pay the write
+        premium forever, and you get zero reads.</p>
+        <div class="ix-spot"
+          data-snippet="SYSTEM_PROMPT = f&quot;&quot;&quot;
+Current time: {datetime.now()}          # &lt;-- top of the prefix
+Session: {uuid4()}
+You are a support assistant for ACME.
+[ ...1,500 tokens of fixed rules... ]
+[ ...3,000-token product manual... ]
+&quot;&quot;&quot;
+resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
+          data-q="Caching is enabled, but the cache-read token count is zero on every call. Why — and what's the one-line fix?"
+          data-a="The <code>datetime.now()</code> and <code>uuid4()</code> sit at the <b>top</b> of the prefix, so the prefix is byte-different every call → the cache never matches, you pay the ~1.25× write premium forever, and get <b>zero reads</b>. The fix is <b>structural, not a flag</b>: keep the stable content first (fixed rules + manual), and push everything volatile — the timestamp, the session ID, the user's question — to the <em>end</em>, after the cache boundary. Confirm it worked by reading the cache-read usage field the API returns: if it's still zero across identical-prefix calls, a silent invalidator is hiding up top.">
+        </div>
+        <p>The fix is structural: keep stable content first (frozen system prompt, deterministic tool list, the manual),
+        and push anything volatile — the user's question, the timestamp, the session ID — to the <em>end</em>, after the
+        cache boundary. You confirm it's working by reading the cache-read usage field the API returns; if that number is
+        zero across repeated identical-prefix calls, a silent invalidator is hiding in your prefix.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Lever 2 · Context compression</div>
+        <h2>Context compression: shrink what you carry</h2>
+        <p>Day 1's "silent leak" was conversation history: every turn re-sends the entire prior conversation, so a long
+        chat gets slower and more expensive the longer it runs, and eventually the oldest tokens — often your rules — fall
+        out of the window. <strong>Context compression</strong> is the family of techniques that fights this directly. The
+        idea is simple: don't carry raw history verbatim when a smaller representation would do.</p>
+        <p>The most common move is <strong>summarization</strong>. After a conversation grows past some threshold, replace
+        the oldest N turns with a compact summary — "User is troubleshooting a failed payment on order #4471; card
+        confirmed valid; agent has checked the gateway log" — and keep only the recent turns verbatim. Twenty turns that
+        cost 4,000 tokens to resend become a 300-token summary plus the last two turns. The model keeps the thread without
+        you paying to re-transmit every word on every turn. Providers increasingly offer this <em>server-side</em>, but
+        the principle is yours to own whether the platform does it for you or not.</p>
+        <p>Compression also applies to <strong>retrieved context</strong>, which Day 1 flagged as usually the biggest
+        consumer in the window. If retrieval pulls back a 5,000-token document but the answer lives in two paragraphs,
+        sending the whole document pays for 4,600 useless tokens <em>and</em> buries the signal in noise. Get a feel for
+        how the token count moves as you trim text down:</p>
+        <div class="ix-tokens" data-sample="The applicant requests a no-cost extension. Per the cooperative agreement, extensions up to 12 months are permitted once, provided the recipient submits justification 30 days prior to the period-of-performance end date and no additional funds are required."></div>
+        <p>The FDE judgment call with any compression is <strong>fidelity versus cost</strong>. Summarize too aggressively
+        and you drop a detail the model needed three turns later — now you've saved tokens and broken the feature. The
+        skill is choosing <em>what</em> is safe to compress (resolved sub-topics, pleasantries, redundant confirmations)
+        and what must stay verbatim (the user's stated constraints, IDs, numbers, the active task). Remember the Day 1
+        line: <em>more retrieved text is not more intelligence; it's more budget spent.</em> A good summary is lossy on
+        purpose, but lossy in the right places.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Lever 3 · Dynamic assembly</div>
+        <h2>Dynamic prompt assembly: include only what this call needs</h2>
+        <p>The beginner builds one giant prompt template — every instruction, every tool description, every example, every
+        possible piece of context — and sends it on every request because it's easier than deciding. The practitioner
+        assembles the prompt <strong>dynamically</strong>, deciding per request what actually belongs in the window
+        <em>this time</em>. This is the same instinct as Day 1's "precision of retrieval," applied to the whole prompt
+        rather than just the documents.</p>
+        <p>Concretely: if the user's question is about billing, you don't need the 800 tokens of shipping-policy
+        instructions in the window — route them out. If the model has fifteen tools available but this request can only
+        plausibly use two, sending all fifteen tool schemas pays for thirteen the model will never call — and worse, gives
+        it more ways to pick wrong. If a few-shot example is only useful for one kind of request, include it only for that
+        kind. Dynamic assembly means the prompt is built from parts, and you select the parts the current request actually
+        justifies.</p>
+        <div class="ix-predict"
+          data-q="You enable both prompt caching AND dynamic assembly on the same feature, and your cache-read rate quietly drops near zero. What collided — and how do you keep both?"
+          data-a="They pull against each other: <b>caching wants the prefix byte-identical</b> across requests, while <b>dynamic assembly wants the prompt to vary</b> per request. If you do your per-request selection inside the cached prefix, you change the prefix every call and kill the cache. The resolution is <b>layering</b>: keep a genuinely stable core (system prompt + always-offered tools) at the <em>front</em> where it caches, and do all dynamic selection <em>after</em> the cache boundary, in the per-request section. You get the cache discount on the stable part and the leanness of dynamic assembly on the variable part. Knowing where to draw that line is the real skill.">
+        </div>
+        <p>There's a tension you have to hold, and it's why this comes <em>after</em> caching in the day:
+        <strong>dynamic assembly and prompt caching pull against each other.</strong> Caching wants the prefix
+        byte-for-byte identical so it can be reused; dynamic assembly wants the prompt to vary per request. The resolution
+        is layering — keep a stable core (system prompt, the tools you always offer) at the front where it caches, and do
+        your dynamic selection <em>after</em> the cache boundary. You get the cache discount on the stable part and the
+        leanness of dynamic assembly on the variable part. That's why these levers are taught together, not in isolation.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Lever 4 · Cost management</div>
+        <h2>Cost management: you can't optimize what you don't measure</h2>
+        <p>All three levers above are guesses until you measure them. <strong>Cost management</strong> is the discipline of
+        actually tracking what your AI features spend — the one that turns "the AI feature is expensive" (a vibe) into "the
+        summarization endpoint costs $0.018 per call and runs 40,000 times a day, which is $720/day, and 60% of that is the
+        uncached manual" (an action item). Clients ask the vibe question constantly. Your value is answering with the
+        number. Run a feature's math yourself:</p>
+        <div class="ix-cost"></div>
+        <p>The base unit never changes from Day 1: <strong>cost ≈ (input + output tokens) × price-per-token</strong>, with
+        input and output billed at different rates and output usually the pricier. As of <span class="nowrap">June
+        2026</span>, a mid-tier model like Claude Sonnet 4.6 runs about <strong>$3 / M input and $15 / M output</strong>,
+        while a top-tier Opus model is roughly <strong>$5 / $25</strong>. <span class="src">[source: Anthropic model
+        pricing, claude-api reference catalog, cached 2026-06-04]</span> Those exact numbers will drift — always re-verify
+        — but the <em>shape</em> is durable: output costs several times more than input, so a feature that generates long
+        responses has a very different cost profile than one that extracts a single label.</p>
+        <p>The non-obvious part is the <strong>granularity</strong> of your tracking. A single aggregate "we spent $1,200
+        last month" tells you nothing actionable. The numbers that drive decisions are sliced three ways. <strong>Per
+        feature</strong>: which endpoint is the cost center? Often one feature is 80% of the bill, and that's where every
+        optimization dollar should go. <strong>Per user</strong> (or per tenant): is one power user or enterprise account
+        driving spend? This is what makes usage-based pricing and rate limits possible, and what catches a runaway loop
+        before it becomes a five-figure surprise. <strong>Per run</strong>: for an agent or multi-step pipeline, how much
+        did <em>this one task</em> cost across all its internal calls? A single user request that fans out into twelve
+        model calls can cost 50× what the user assumes.</p>
+        <p>You get these numbers from the <strong>usage data the API returns on every response</strong> — input tokens,
+        output tokens, and crucially the cached-versus-uncached breakdown. Log them, tag each call with the feature and
+        user it belongs to, and you have a cost dashboard. That dashboard is what lets you say, with a straight face, "we
+        cut this feature's cost 70% by caching the manual" — and prove it. Cost management isn't a finance chore bolted on
+        at the end; it's the feedback loop that tells you whether the other three levers actually worked.</p>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="4">
+        <div class="tag">Your tools</div>
+        <h2>The $20 plan rewards exactly these habits</h2>
+        <p>Everything in Part 1 maps directly onto how you'll actually work this program. You're on a <strong>$20 Claude
+        Pro plan with a budget measured in roughly 40 hours of focused work a week</strong>, and that constraint isn't an
+        inconvenience — it's the same discipline a client pays an FDE to bring, just with you holding the bill. The habits
+        are identical at both scales.</p>
+        <p>When you point Claude Code at the three files that matter instead of re-indexing the whole repo, that's
+        <strong>dynamic assembly</strong> — including only what the task needs. When you keep a tight, stable set of
+        project instructions Claude Code can reuse across a session, you're leaning on <strong>caching</strong>. When you
+        summarize a long debugging thread instead of letting it balloon, that's <strong>compression</strong>. Working like
+        an engineer makes the $20 plan plenty; working like a slot machine — re-running giant agent loops to fix a typo —
+        burns your week by Tuesday.</p>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When a client asks "why is this AI feature so expensive?", they expect a hand-wave. Your value is the
+          opposite: a per-feature, per-user, per-run number, and a named lever for each. <strong>Cost engineering is just
+          disciplined management of the window</strong> — cache the stable part, compress the bulky part, assemble only
+          what's needed, and measure all of it. The FDE who can show the client the cost number <em>and</em> the change
+          that moved it is the one who gets the next contract. Carry the lean call into Part 2, where you make what it
+          returns trustworthy.</p>
+        </div>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Caching math &amp; a per-feature cost model</div>
+          <div class="ac-meta">optional · +6 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on the four cost levers</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="d3b.html">◂ Back</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 1 Day 4 · Part 1</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the cost math behind the levers</h2>
+    <p class="quiz-sub">Optional. ~6 minutes. The numbers under today's picture.</p>
+
+    <p><strong>1 · What caching actually saves.</strong> Caching is a prefix match billed in two parts: a cache
+    <em>write</em> (slightly more than normal input price) and cache <em>reads</em> (a small fraction of it). As of
+    <span class="nowrap">June 2026</span> on Anthropic's API, a read is ~<strong>0.1×</strong> base input price and a
+    write is ~<strong>1.25×</strong> (5-min cache) or ~<strong>2×</strong> (1-hour cache). <span class="src">[Anthropic
+    prompt-caching docs, verified 2026-06-28]</span> Caching only kicks in above a minimum prefix size (roughly
+    1,024–4,096 tokens depending on model) — shorter prefixes silently won't cache.</p>
+
+    <div class="model-answer show">
+      <div class="ma-k">Worked example — caching a 10,000-token stable prefix (5-min cache)</div>
+      <ul class="deliv-list">
+        <li>Uncached: every call pays <b>1×</b> → 10 calls = <b>10.0</b> prefix-equivalents</li>
+        <li>Cached: 1 write (1.25×) + 9 reads (0.1× each = 0.9) = <b>2.15</b> for the same 10 calls</li>
+        <li>That's a <b>~78%</b> cut on the prefix across 10 calls — and savings only grow with volume</li>
+      </ul>
+      <p style="margin:8px 0 0">Break-even is fast: by call 2, cached (1.25 + 0.1 = 1.35) already beats uncached (2.0).
+      The one rule: a timestamp/UUID/username near the <em>top</em> of the prefix changes it every call → 0 reads, and you
+      pay the write premium forever. Keep volatile content <em>after</em> the cache boundary.</p>
+    </div>
+
+    <p style="margin-top:14px"><strong>2 · A per-feature cost model.</strong> Base unit unchanged from Day 1:
+    cost = (input × in_price) + (output × out_price). Take a support-bot turn at Sonnet-class pricing (~$3 / M input,
+    $15 / M output as of <span class="nowrap">June 2026</span> <span class="src">[claude-api catalog, cached
+    2026-06-04]</span>):</p>
+    <div class="model-answer show">
+      <div class="ma-k">One turn, then at scale</div>
+      <ul class="deliv-list">
+        <li>System prompt 1,500 + manual 3,000 + history 1,200 + question 100 = <b>5,800 input</b></li>
+        <li>Answer = <b>400 output</b></li>
+        <li>Input 5,800 → $0.0174 · Output 400 → $0.0060 · <b>≈ $0.023 / turn</b></li>
+        <li>× 40,000 turns/day = <b>~$920/day</b>. Cache the 4,500-token system+manual prefix and the input bill on
+        cached calls drops ~90% of that portion → roughly <b>$300–$400/day saved</b>.</li>
+      </ul>
+      <p style="margin:8px 0 0">Now slice it: <b>per feature</b> (this endpoint is 80% of the bill), <b>per user</b> (one
+      tenant driving 40% of turns), <b>per run</b> (an agent task that fans out to 12 calls costs ~$0.28, not $0.023). You
+      get every number from the usage fields on each response — log them, tag them, and you have a dashboard you can defend
+      to the client.</p>
+    </div>
+
+    <p style="margin-top:14px">The four levers compose: caching kills the repeated-prefix bill, compression shrinks the
+    bulky middle, dynamic assembly drops what this call doesn't need, and cost tracking proves which one moved the number.
+    The lean call that falls out the bottom is the one you make resilient in Part 2.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 4 · Part 1 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of Part 1 you can</div>
+    <ul class="goals-list">
+      <li>Explain how prompt caching, context compression, and dynamic assembly each cut token cost — and why caching and dynamic assembly pull against each other</li>
+      <li>Diagnose a dead cache (a volatile value above the cache boundary) and fix it structurally</li>
+      <li>Estimate a feature's cost and slice it per-feature, per-user, and per-run from the API's usage data</li>
+      <li>Treat cost management as the feedback loop that proves the other three levers worked</li>
+    </ul>
+    <div class="ma-k">Deliverable — add to your <code>NOTES.md</code></div>
+    <ul class="deliv-list check">
+      <li><b>①</b> one feature where prompt caching would cut the bill, and the silent invalidator you'd watch for</li>
+      <li><b>②</b> a per-call cost estimate for one feature, plus which slice (feature / user / run) you'd track first</li>
+    </ul>
+    <p class="goals-foot">Carry the lean call into Part 2, where you make what comes back trustworthy.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 4 · Part 2 — Output guardrails →", href: "d4b.html" };
+window.DIAGRAM = {
+  title: "Trim the window before you call",
+  width: 600, height: 560,
+  nodes: [
+    { id:"ex", step:0, kind:"example", x:18, y:14, w:564, h:92,
+      label:"BLOATED  system+manual+15 tools+all history+Q  ≈ 12,000 tok\nTRIMMED  cached prefix + 300-tok summary + 2 tools + Q  ≈ 2,400 tok",
+      detail:"Same task, two prompts. BLOATED re-sends a 1,500-tok system prompt, a 3,000-tok manual, all 15 tool schemas, and 20 turns of verbatim history every call — ~12,000 tokens, nearly all of it repeated or irrelevant. TRIMMED caches the fixed system+manual prefix (≈0.1× on reuse), replaces old turns with a 300-tok summary, sends only the 2 tools this request could use, and appends the question after the cache boundary — ~2,400 tokens, and most of it cached. Same answer, a fraction of the bill." },
+    { id:"raw",      step:0, x:50,  y:124, w:500, h:48, label:"RAW CONTEXT — everything you *could* send  ·  ~12,000 tok" },
+    { id:"cache",    step:1, x:95,  y:200, w:410, h:46, label:"① Cache stable prefix  →  ~0.1× on reuse" },
+    { id:"compress", step:2, x:140, y:276, w:320, h:46, label:"② Compress history + retrieved" },
+    { id:"assemble", step:3, x:185, y:352, w:230, h:46, label:"③ Assemble only what's needed" },
+    { id:"call",     step:4, x:210, y:430, w:180, h:58, label:"API CALL  ~2,400 tok\n$ = (in + out) × price" }
+  ],
+  edges: [
+    { id:"e1", step:1, from:"raw",      to:"cache",    label:"prefix cached → 7k", ly:-1 },
+    { id:"e2", step:2, from:"cache",    to:"compress", label:"− history → 4k" },
+    { id:"e3", step:3, from:"compress", to:"assemble", label:"− noise → 2.4k" },
+    { id:"e4", step:4, from:"assemble", to:"call",     label:"send lean" }
+  ],
+  captions: [
+    "Day 1's budget made operational. The window holds everything you <b>could</b> send — ~12,000 tokens here, nearly all repeated or irrelevant. Part 1 is deciding what's actually worth sending; each lever below trims it. <span style='opacity:.7'>(tap the top card)</span>",
+    "<b>① Prompt caching</b>: the stable prefix (system + manual) is reused at ~0.1× input price instead of full price every call. The bar narrows — you stop paying to re-send the unchanged part. Keep volatile content <i>after</i> the cache boundary or it caches nothing.",
+    "<b>② Compress</b>: replace 20 verbatim turns with a 300-token summary; extract only the relevant slice of retrieved docs. More text is not more intelligence — it's more budget spent. The window shrinks again.",
+    "<b>③ Dynamic assembly</b>: include only the instructions, tools, and examples <b>this</b> request needs — do the selecting <i>after</i> the cache boundary so the prefix still caches. Down to ~2,400 tokens.",
+    "The window is lean, so the <b>metered call</b> costs a fraction of the bloated one: cost = (input + output) × price. Track it per feature, per user, per run — you can't optimize what you don't measure."
+  ]
+};
+window.QUIZ = {
+  id: "w01-d4a",
+  title: "Check your understanding · Part 1",
+  questions: [
+    { type: "scq",
+      stem: "You added prompt caching to a support bot, but the response's cache-read token count is zero on every call. Most likely cause?",
+      options: [
+        "The model is too small to support caching",
+        "Something volatile (a timestamp or the user's question) sits near the TOP of the prefix, so the prefix differs every call",
+        "Output tokens are billed separately from input tokens",
+        "The temperature is set too high" ],
+      answer: 1,
+      explain: "Caching is a prefix match — any byte change in the prefix invalidates the cache. A timestamp/UUID/username near the top makes every prefix unique, so nothing ever reads from cache. Keep stable content first, volatile content after the cache boundary, and verify with the cache-read usage field." },
+    { type: "scq",
+      stem: "Your retrieval step returns a 5,000-token document, but the answer lives in two short paragraphs. Which lever directly addresses the wasted tokens?",
+      options: [
+        "Prompt caching — the document is the same every call",
+        "Context compression — extract the relevant passages and drop the rest before sending",
+        "A bigger context window — just fit the whole document in",
+        "Lowering the temperature so the model reads faster" ],
+      answer: 1,
+      explain: "Sending the whole 5,000-token document to answer from two paragraphs pays for ~4,600 useless tokens and buries the signal in noise. Compression — extracting the relevant slice, stripping boilerplate, dropping near-duplicates — is the lever. (Caching only helps if the exact document repeats across calls; a bigger window costs more, not less.)" },
+    { type: "tf",
+      stem: "Prompt caching and dynamic prompt assembly always work together with no conflict.",
+      answer: false,
+      explain: "They pull against each other: caching wants the prefix byte-identical across calls, while dynamic assembly wants the prompt to vary per call. The fix is layering — a stable cached core at the front, dynamic selection after the cache boundary — but they do conflict if you vary content inside the cached prefix." },
+    { type: "mcq",
+      stem: "Which of these reduce the token cost of an LLM feature? (select all that apply)",
+      options: [
+        "Caching a stable system-prompt + manual prefix",
+        "Summarizing old conversation turns instead of re-sending them verbatim",
+        "Always sending all 15 tool schemas so the model has every option",
+        "Routing out instructions the current request doesn't need",
+        "Putting a fresh timestamp at the top of every prompt" ],
+      answer: [0, 1, 3],
+      explain: "Caching the stable prefix, compressing history, and dynamically assembling only what's needed all cut tokens. Sending all 15 tool schemas pays for the ones the model will never call (and invites wrong picks); a fresh timestamp at the top breaks the cache, raising cost. " },
+    { type: "match",
+      stem: "Match each cost lever to what it does.",
+      pairs: [
+        { l: "Prompt caching", r: "reuse a stable prefix at ~0.1× input price" },
+        { l: "Context compression", r: "replace bulky history/docs with a smaller representation" },
+        { l: "Dynamic assembly", r: "include only the parts this request needs" },
+        { l: "Cost management", r: "measure spend per feature / user / run" } ],
+      explain: "Caching kills the repeated-prefix bill; compression shrinks what you must carry; dynamic assembly drops what this call doesn't need; cost management is the feedback loop that proves any of it worked." },
+    { type: "open",
+      stem: "In two or three sentences: a client asks why an AI feature is so expensive. Why is 'cost' really a window-management problem, and what would you actually hand them?",
+      hint: "Four levers, three slices, and the equation cost = (in + out) × price.",
+      model: "Cost ≈ (input + output tokens) × price, so spend is set by how many tokens you put in the window and how many you let the model generate back — it's a window-management problem, not a model problem. I'd hand the client a per-feature / per-user / per-run cost breakdown built from the API's usage fields, plus the lever for each line: cache the repeated prefix, compress bulky history and retrieved context, and dynamically assemble only what each call needs. Then I'd show the before/after number proving which lever moved the bill." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

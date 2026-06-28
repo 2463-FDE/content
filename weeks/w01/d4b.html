@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W1·D4·Part 2 — Output Guardrails | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 1 · Day 4 · Part 2 · Output Guardrails</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Output Guardrails: Never Trust the Response Raw</h1>
+        <div class="meta">
+          <span><b>Week 1</b> · Day 4 · Part 2</span>
+          <span>Reliability Engineering</span>
+          <span><b>~16 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Part 1 made each call <em>cost less</em>. Part 2 makes each response
+        <strong>trustworthy</strong>. The hard truth about LLM output is that it's <strong>generated text, not a guaranteed
+        data structure</strong> — and in production it flows straight into a database, an email, or another system with
+        nobody reading every word. Four guardrails stand between the model and the user: schema validation, bounded
+        retry-on-invalid, hallucination mitigation, and a safe fallback for when nothing worked. Scroll the reading; the
+        panel on the right builds one loop — output in, validated, and ending in exactly two places: shipped, or safely
+        caught.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>Cross from cost to trust: the output is not a contract</h2>
+        <p>Part 1 was about the tokens going <em>in</em>. Part 2 is about the tokens coming <em>back</em>, and a different,
+        harder bar: <strong>safe enough to put in front of a real user.</strong> A prototype trusts the model's output
+        because a human is reading every word; production has to assume nobody is watching and the output flows straight
+        into a database, an email, or another system. The amateur calls the model and uses what it returns. The
+        professional treats every response as <strong>untrusted input</strong> until a guardrail says otherwise.</p>
+        <p>The hard truth is that LLM output is <strong>generated text, not a guaranteed structure</strong>. You ask for
+        JSON; most of the time you get clean JSON; some of the time you get JSON wrapped in a chatty preamble, or with a
+        trailing comma, or a renamed field, or a string where you needed a number — or a perfectly-formed object that's
+        missing the one field your downstream code requires. And even when the shape is flawless, the <em>facts</em> can be
+        invented. In a prototype a human notices and shrugs. In production that response corrupts a record or reaches a
+        customer.</p>
+        <p>Four guardrails, in order. <strong>Schema validation</strong> — never trust the shape. <strong>Retry on
+        invalid</strong> — give the model a second, bounded chance. <strong>Hallucination mitigation</strong> — defend
+        against confident wrongness that passes the schema. And <strong>refusal &amp; fallback</strong> — decide in
+        advance what happens when nothing worked. The diagram on the right is the loop: model output enters, the gates
+        check it, and it ends only as a shipped result or a safe fallback — never as a raw exception on the user's screen.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Guardrail 1 · Schema validation</div>
+        <h2>Schema validation: never trust the shape of the output</h2>
+        <p><strong>Schema validation</strong> is the first gate: you define, in code, the exact shape the output must take
+        — these fields, these types, these required keys, these allowed values — and you validate every response against it
+        <em>before</em> you act on it. If it conforms, proceed. If it doesn't, you've caught the problem at the boundary
+        instead of three systems downstream. This is the single highest-value reliability habit on this page, because it
+        converts a silent, intermittent data-corruption bug into a loud, immediate, catchable error.</p>
+        <div class="ix-spot"
+          data-snippet="resp = model.call(&quot;Extract the invoice as JSON: total, due_date, vendor&quot;)
+data = json.loads(resp.text)          # trust the shape
+record.total   = data[&quot;total&quot;]        # ... straight into the DB
+record.due     = data[&quot;due_date&quot;]
+db.save(record)
+
+# the model actually returned:
+# Sure! Here's the invoice data:
+# {&quot;total&quot;: &quot;1,250.00&quot;, &quot;vendor&quot;: &quot;ACME&quot;}"
+          data-q="This 'works' in the demo. Name the failures that hit the moment it runs in production."
+          data-a="<b>(1) The chatty preamble</b> (&quot;Sure! Here's…&quot;) makes <code>json.loads()</code> throw — the text isn't pure JSON. <b>(2) <code>due_date</code> is missing</b>, so <code>data[&quot;due_date&quot;]</code> raises a <code>KeyError</code> — a required field your code assumed was always there. <b>(3) <code>total</code> is the string <code>&quot;1,250.00&quot;</code></b>, not a number — it'll either crash on arithmetic or, worse, silently corrupt a money field. The fix is a <b>schema check before you act</b>: a Pydantic/Zod model that requires <code>total:number</code>, <code>due_date:date</code>, <code>vendor:str</code> and validates the whole response first. Conform → proceed; fail → catch it at the boundary, not three systems downstream.">
+        </div>
+        <p>You have two complementary tools. The first is <strong>structured-output features</strong> the provider gives you
+        — telling the API up front "responses must match this JSON schema," so the model is constrained to produce
+        conforming output. This dramatically raises the hit rate. The second, which you keep <em>even when you use the
+        first</em>, is your own <strong>validation layer</strong> — a schema check in your code (a Pydantic model, a Zod
+        schema, a JSON-schema validator) that re-verifies every response. Belt and suspenders is the correct posture,
+        because "almost always conforms" is not "always conforms," and the cost of the one bad response slipping through is
+        paid by your client's data integrity. Validate the shape before you trust the content.</p>
+        <p>Think about the asymmetry that makes this the highest-value habit on the page. Without validation, a malformed
+        response doesn't announce itself — it parses into something subtly wrong and quietly corrupts a record, and you
+        find out weeks later when a customer notices their data is off. With validation, the same bad response throws at the
+        boundary, on the very call that produced it, with the exact field and type that failed. You've converted a silent,
+        intermittent, expensive-to-diagnose data bug into a loud, immediate, trivially-loggable error you can route to a
+        retry or a fallback. One schema check buys you that trade on every single call, forever — which is why an FDE adds
+        it before anything else and never takes it out.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Guardrail 2 · Retry on invalid</div>
+        <h2>Retry-on-invalid: a second chance, but a bounded one</h2>
+        <p>Catching a bad response answers "is this output usable?" The next question is "what do I do when it isn't?" The
+        first-line answer is <strong>retry-on-invalid-output</strong>: when validation fails, ask again. But <em>how</em>
+        you retry separates the amateur from the engineer.</p>
+        <div class="ix-predict"
+          data-q="Two retry strategies after a schema failure: (A) re-send the exact same request and hope; (B) re-send it with 'your last reply was missing the required total field — return only valid JSON matching this schema.' Which is far more likely to fix it, and what TWO rules make either one safe in production?"
+          data-a="<b>(B) wins decisively.</b> A naive re-send (A) only works if temperature randomness happens to land differently; the smart retry <b>feeds the specific failure back into the prompt</b>, so the model knows exactly what to fix and is far likelier to conform. Two non-negotiable rules: <b>(1) bound it</b> — retry once, maybe twice or three times, never an unbounded loop, and treat 'still invalid after N tries' as a real failure; and <b>(2) account for the cost</b> — every retry is another full billable call, so a 30% retry rate costs noticeably more than the happy-path math (this is exactly why per-run cost tracking from Part 1 matters).">
+        </div>
+        <p>A naive retry just re-sends the identical request and hopes the dice land differently. That sometimes works —
+        especially above temperature zero, where randomness alone may produce a conforming answer. But the <strong>smart
+        retry feeds the failure back into the prompt</strong>: "Your previous response was not valid JSON — it was missing
+        the required <code>total</code> field. Return only valid JSON matching this schema." Now the model knows
+        specifically what went wrong and is far likelier to fix it. The error message becomes context that steers the next
+        attempt.</p>
+        <p>Two non-negotiable rules make retry safe in production. First, <strong>bound it.</strong> Retry once, maybe
+        twice or three times — never in an unbounded loop. An LLM that keeps producing invalid output will happily do so
+        forever while you burn tokens and stall the user; cap the attempts and treat "still invalid after N tries" as a
+        real failure with its own handling. Second, <strong>account for the cost.</strong> Every retry is another full
+        billable call — a feature with a 30% retry rate costs noticeably more than its happy-path math suggests, which is
+        exactly why the per-run cost tracking from Part 1 matters. A bounded, feedback-driven retry loop is one of the most
+        reliable patterns you'll build all program.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Guardrail 3 · Hallucination</div>
+        <h2>Hallucination mitigation: defend against confident wrongness</h2>
+        <p>Schema validation catches malformed output. It does <em>not</em> catch the more insidious failure: output that
+        is perfectly well-formed and completely wrong. A <strong>hallucination</strong> — Day 1's confident, fluent,
+        fabricated answer — sails straight through a JSON validator because the JSON is valid; only the <em>facts</em> are
+        invented. So hallucination needs its own layer, and Day 1 already told you where to aim it: <em>the model
+        hallucinates most when the fact it needed was never in the window.</em></p>
+        <div class="ix-spot"
+          data-snippet="schema.validate(resp.text)   # ✓ passes — perfectly valid JSON
+# {
+#   &quot;account&quot;: &quot;4471&quot;,
+#   &quot;balance&quot;: &quot;$3,902.16&quot;,     &lt;-- never appeared in the source docs
+#   &quot;status&quot;: &quot;current&quot;
+# }
+return resp.text             # straight to the customer"
+          data-q="The schema check passed and the JSON is flawless. Why is shipping this still dangerous, and what would have caught it?"
+          data-a="The output is <b>well-formed but fabricated</b>: <code>balance: $3,902.16</code> was never in the source documents — the model filled a gap in the window with a confident guess. Schema validation can't catch this; the JSON is valid, only the <i>fact</i> is invented, and a wrong account balance harms the customer and exposes your client. The defenses are window-level, not schema-level: <b>ground</b> the answer in source material and instruct 'answer only from the provided documents,' <b>demand a citation</b> for each claim (a claim it can't cite is one to distrust), and <b>permit 'I don't know'</b> so the model isn't forced to guess. For a number that matters, a cheap second check — does this value actually appear in the source? — catches it before the user sees it.">
+        </div>
+        <p>That diagnosis drives the mitigations, and they're mostly about the window, not the model.
+        <strong>Grounding</strong> is the biggest lever: put the source material <em>in</em> the window and instruct the
+        model to answer only from it — "using only the provided documents, answer the question; if the answer isn't in
+        them, say so." This is the heart of RAG, all of Week 2. <strong>Demand citations</strong>: require the model to
+        point to <em>where</em> each claim came from — asking for citations measurably reduces fabrication because the model
+        has to ground each statement rather than free-associate. <strong>Give it an exit</strong>: explicitly permit "I
+        don't know," because the model has no built-in way to say "I wasn't given that," so it guesses unless you tell it
+        silence is acceptable. And <strong>verify the high-stakes claims</strong>: for a number, a name, a policy, a cheap
+        second check catches fabrications before they reach the user. The mindset: you'll fix far more hallucinations by
+        managing the window than by swapping in a bigger model.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Guardrail 4 · last line</div>
+        <h2>Refusal &amp; fallback: fail safe, never ship garbage</h2>
+        <p>Even with validation, retries, and grounding, some requests still end in a bad place — the model refuses on
+        safety grounds, every retry still returns invalid output, or the grounded context genuinely doesn't contain the
+        answer. The final guardrail is deciding, deliberately and in advance, <strong>what happens when nothing
+        worked.</strong> The wrong answer is to ship the broken response and hope. The right answer is to <strong>fail
+        safe</strong>.</p>
+        <p>First, <strong>handle refusals as a real outcome.</strong> Models can decline to answer — a safety refusal is a
+        distinct, expected response type, not an error, and modern APIs surface it explicitly with a reason. Your code must
+        check for it <em>before</em> it reads the content, or it'll trip over an empty or partial response and crash. Treat
+        a refusal as a branch in your logic: detect it, log it, and route to your fallback — never let it masquerade as a
+        normal answer.</p>
+        <p>Second, <strong>define the fallback path</strong> for "we couldn't produce a trustworthy answer." Depending on
+        the feature, that might be a graceful "I'm not able to help with that right now — let me connect you to a human," a
+        handoff to a deterministic non-AI code path, a safe default, or an escalation to a person. Some platforms even let
+        you specify an automatic <em>model fallback</em>. The unifying principle is that <strong>"no answer, cleanly
+        handled" always beats "a wrong answer, confidently delivered."</strong> A user who's told the system can't help is
+        mildly disappointed; a user who's given a fabricated account balance is harmed, and your client is liable.</p>
+        <p>The discipline here is choosing the fallback <em>per feature, in advance</em> — not improvising it inside an
+        exception handler at 2 a.m. A customer-facing chatbot's fallback is a warm handoff to a human; a backend
+        enrichment job's fallback might be to leave the field null and flag the row for review; a code generator's fallback
+        is to surface the error and let the engineer write the function. What they share is that the failure mode is a
+        <em>designed</em> outcome with its own path, logged so you can measure how often you hit it — a rising fallback
+        rate is an early signal that something upstream (the prompt, the grounding, the model) has drifted and needs
+        attention before users feel it.</p>
+        <p>Step back and see the whole loop: output comes back; you <em>validate</em> its shape; invalid output triggers a
+        <em>bounded retry</em> that feeds the error back; well-formed output is checked for <em>hallucination</em>; and
+        anything that still can't be trusted — a refusal, an exhausted retry budget, an ungrounded claim — hits a
+        <em>safe fallback</em> instead of the user. That loop is the diagram on the right, and it's the difference between a
+        demo and a production feature.</p>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="3">
+        <div class="tag">Your tools</div>
+        <h2>You already run these guardrails by hand</h2>
+        <p>Both days map onto how you actually work. On your <strong>$20 Claude Pro plan</strong>, when you read Claude
+        Code's output critically before pasting it into your codebase — does it actually compile, does that function exist,
+        is that API real — you're doing <strong>output validation and hallucination mitigation</strong> by hand. When you
+        re-prompt with "that import doesn't exist, here's the actual error" instead of blindly re-running, that's
+        <strong>feedback-driven retry</strong>. And when a generated approach is clearly wrong and you fall back to writing
+        the function yourself, that's your <strong>safe fallback</strong>. The instinct to never trust generated output raw
+        is the same one a client pays an FDE to bring to production.</p>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When a client asks "why is this AI feature so expensive — and why can't we trust it?", those feel like two
+          problems. They're one. Both answers live in how the window is spent (Part 1) and how the output is handled (Part
+          2). <strong>Cost engineering and reliability engineering are the same discipline wearing two hats</strong> — and
+          an FDE who can show the client the per-feature cost number <em>and</em> the validation layer that keeps a
+          fabricated answer out of their database is the one who gets the next contract.</p>
+        </div>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">A bounded, feedback-driven guardrail loop</div>
+          <div class="ac-meta">optional · +6 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on the four guardrails</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="d4a.html">◂ Back</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 1 Day 4 · Part 2</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the guardrail loop</h2>
+    <p class="quiz-sub">Optional. ~6 minutes. Validation, retry, and fallback assembled into one function.</p>
+
+    <p>A bounded, feedback-driven loop that ties the four guardrails together — validate the shape, feed failures back,
+    cap the attempts, check refusals before reading content, and end every untrusted path in a safe fallback:</p>
+    <pre style="background:#f1efe9; border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.5; margin:10px 0 0;"><code>def call_guarded(prompt, schema, max_tries=3):
+    err = None
+    for attempt in range(max_tries):
+        msg = prompt if err is None else (
+            prompt + f"\nYour last reply was invalid: {err}. "
+                     f"Return ONLY valid output matching the schema.")
+        resp = model.call(msg)            # 1 billable call each loop
+        if resp.refused:                  # check refusal BEFORE reading content
+            return fallback("model declined")
+        try:
+            data = schema.validate(resp.text)   # shape guardrail
+            return data                          # ✓ valid → ship
+        except ValidationError as e:
+            err = str(e)                         # feed the failure back
+    return fallback("invalid after retries")     # fail safe, never ship garbage</code></pre>
+    <p style="margin:8px 0 0">Three things make it production-grade: the retry <em>feeds the specific error back</em> so
+    the next attempt is steered, not just re-rolled; the loop is <strong>bounded</strong> (no infinite token burn); and
+    every exit that isn't a clean validated result lands in <code>fallback()</code> — a refusal, an exhausted retry budget,
+    anything untrusted — so a malformed answer never reaches the user.</p>
+    <p style="margin-top:14px"><strong>What this loop doesn't catch:</strong> a well-formed but <em>fabricated</em> value
+    passes <code>schema.validate</code> cleanly. Hallucination is a separate layer — grounding, demanded citations, an "I
+    don't know" exit, and a cheap source-check on high-stakes facts — bolted on around this loop, not inside it. Schema
+    guards the shape; grounding guards the facts.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 4 · Part 2 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of Part 2 you can</div>
+    <ul class="goals-list">
+      <li>Treat every LLM response as untrusted input and validate its shape against a schema before acting on it</li>
+      <li>Design a bounded, feedback-driven retry that feeds the validation error back — and explain why it must be capped and costed</li>
+      <li>Diagnose hallucination as a window problem and name the mitigations (grounding, citations, an "I don't know" exit, source-checks)</li>
+      <li>Define a safe fallback so a refusal or exhausted retry never reaches the user as a raw error</li>
+    </ul>
+    <div class="ma-k">Deliverable — add to your <code>NOTES.md</code></div>
+    <ul class="deliv-list check">
+      <li><b>①</b> the guardrail you'd put on one untrusted output — schema, retry budget, and fallback path</li>
+      <li><b>②</b> one feature where a hallucination would do real harm, and the two mitigations you'd ground it with</li>
+    </ul>
+    <p class="goals-foot">Bring both halves of Day 4 to tomorrow's session. Day 5 you build the LLM API client these habits live inside.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 5 — Build the LLM API Client →", href: "d5.html" };
+window.DIAGRAM = {
+  title: "Validate the output, end in two places",
+  width: 600, height: 470,
+  nodes: [
+    { id:"ex", step:0, kind:"example", x:18, y:14, w:564, h:88,
+      label:"INVALID OUTPUT  (asked for JSON {total, due_date, vendor})\nSure! Here's the data:  {\"total\": \"1,250.00\", \"vendor\": \"ACME\"}",
+      detail:"A real failing response. THREE problems: (1) the chatty preamble 'Sure! Here's the data:' means it isn't pure JSON — json.loads() throws; (2) due_date is missing — a KeyError downstream on a field your code required; (3) total is the STRING \"1,250.00\", not a number — it'll crash on arithmetic or silently corrupt a money field. A schema check (total:number, due_date:date, vendor:str required) catches all three at the boundary instead of three systems downstream." },
+    { id:"out",    step:0, x:50,  y:120, w:360, h:50, label:"MODEL OUTPUT\n(generated text, not guaranteed)" },
+    { id:"schema", step:0, x:50,  y:190, w:360, h:46, label:"① Validate shape (schema check)",
+      detail:"Define the exact shape in code — fields, types, required keys, allowed values — and validate EVERY response before acting on it. Conform → proceed; fail → caught here, not downstream. Keep your own validation layer even when you use the provider's structured-output feature: 'almost always conforms' is not 'always conforms.'" },
+    { id:"retry",  step:1, x:448, y:186, w:132, h:56, label:"retry\n(feed error back)",
+      detail:"On invalid shape, re-ask with the SPECIFIC error fed back ('missing required total field — return only valid JSON'). Bounded to ~1–3 tries, never an infinite loop. Each retry is another billable call, so a high retry rate shows up in per-run cost." },
+    { id:"halluc", step:2, x:50,  y:256, w:360, h:48, label:"② Grounded &amp; cited? (hallucination)",
+      detail:"A valid SHAPE can still carry invented FACTS — a fabricated balance passes the JSON check. This gate is window-level: ground the answer in source, demand citations, permit 'I don't know,' and source-check high-stakes values. You fix more hallucinations by managing the window than by swapping models." },
+    { id:"pass",   step:3, x:50,  y:336, w:170, h:56, label:"✓ PASS → ship" },
+    { id:"fb",     step:3, x:250, y:334, w:200, h:60, label:"refuse / exhausted →\nsafe fallback" }
+  ],
+  edges: [
+    { id:"e_eo", step:0, from:"ex",     to:"out",    label:"a real response", ly:-1 },
+    { id:"e_os", step:0, from:"out",    to:"schema", label:"validate" },
+    { id:"e_sr", step:1, from:"schema", to:"retry",  label:"invalid" },
+    { id:"e_rs", step:1, from:"retry",  to:"schema", label:"re-ask", bend:-40 },
+    { id:"e_sh", step:2, from:"schema", to:"halluc", label:"valid shape" },
+    { id:"e_hp", step:3, from:"halluc", to:"pass",   label:"grounded" },
+    { id:"e_hf", step:3, from:"halluc", to:"fb",     label:"can't trust", lx:6 },
+    { id:"e_rf", step:3, from:"retry",  to:"fb",     label:"exhausted", lx:14 }
+  ],
+  captions: [
+    "Cross from cost to trust. <b>Model output is generated text, not a guaranteed structure</b> — the concrete card up top is a real failing response. The first gate is a <b>schema check</b> on its shape before you act on it. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Invalid shape? <b>Retry</b> with the specific validation error fed back in — bounded (1–3 tries), never an infinite loop. Each retry is another billable call; an exhausted budget falls through to the fallback.",
+    "Valid shape isn't valid <i>facts</i>: a well-formed answer can still be a <b>hallucination</b>. Defend with grounding, demanded citations, and an 'I don't know' exit — it's a window problem, not a model problem. <span style='opacity:.7'>(tap)</span>",
+    "Ends in exactly two places: a grounded answer you <b>ship</b>, or — on refusal, exhausted retries, or untrustworthy output — a <b>safe fallback</b>. Never ship a wrong answer confidently."
+  ]
+};
+window.QUIZ = {
+  id: "w01-d4b",
+  title: "Check your understanding · Part 2",
+  questions: [
+    { type: "scq",
+      stem: "A model returns perfectly valid JSON, but one field contains a fabricated account balance that wasn't in the source documents. Which guardrail addresses this?",
+      options: [
+        "Schema validation — the JSON is malformed",
+        "A bigger model — the small one is the problem",
+        "Hallucination mitigation — grounding in source, citations, and an 'I don't know' exit",
+        "Prompt caching — to reduce cost" ],
+      answer: 2,
+      explain: "Schema validation passes here because the JSON is well-formed — only the fact is invented. Hallucination is a window problem: the needed fact wasn't grounded, so the model filled the gap. Fix it by grounding, demanding citations, permitting 'I don't know,' and source-checking high-stakes values — not by swapping models." },
+    { type: "scq",
+      stem: "What makes a retry-on-invalid-output loop production-grade rather than dangerous?",
+      options: [
+        "It retries forever until the output is valid",
+        "It re-sends the exact same request unchanged each time",
+        "It feeds the specific validation error back into the prompt AND is bounded to a few attempts with a fallback",
+        "It lowers the price per token on each retry" ],
+      answer: 2,
+      explain: "Feed the error back so the next attempt is steered, not just re-rolled; bound the attempts so you don't burn tokens forever; and route 'still invalid after N tries' to a safe fallback. Unbounded retries are a cost and reliability hazard." },
+    { type: "tf",
+      stem: "Schema validation will catch a hallucination, because a fabricated value makes the output invalid.",
+      answer: false,
+      explain: "No. A hallucination is well-formed — a fabricated balance can be perfectly valid JSON of the right shape, so it sails through a schema check. Schema validation guards the SHAPE; hallucination is a facts problem, defended at the window level with grounding, citations, and an 'I don't know' exit." },
+    { type: "mcq",
+      stem: "Which belong in a production output-guardrail pipeline? (select all that apply)",
+      options: [
+        "A schema check that validates every response before you act on it",
+        "A bounded retry that feeds the specific validation error back",
+        "Trusting any response as long as it parses as JSON",
+        "Grounding + demanded citations to reduce fabrication",
+        "A safe fallback for refusals and exhausted retries" ],
+      answer: [0, 1, 3, 4],
+      explain: "Schema validation, a bounded feedback-driven retry, hallucination mitigation (grounding + citations), and a safe fallback are the four guardrails. Trusting anything that merely parses as JSON is the trap — valid shape can still carry fabricated facts, and you should branch on refusals rather than read them blindly." },
+    { type: "match",
+      stem: "Match each failure to the guardrail that handles it.",
+      pairs: [
+        { l: "JSON wrapped in a chatty preamble", r: "schema validation" },
+        { l: "Valid JSON, invented account balance", r: "grounding + citations" },
+        { l: "First reply missing a required field", r: "bounded retry with error fed back" },
+        { l: "Safety refusal / retries exhausted", r: "safe fallback" } ],
+      explain: "Malformed shape → schema check; well-formed but fabricated → hallucination mitigation; fixable-on-re-ask → bounded retry; nothing worked → a fallback the user can live with, never a raw error." },
+    { type: "open",
+      stem: "In two or three sentences: why does an FDE design every untrusted output to end in 'no answer, cleanly handled' rather than risk shipping a wrong one?",
+      hint: "Compare the cost of a graceful fallback to the cost of a confident, fabricated answer reaching the user.",
+      model: "Because LLM output is generated text, not a guaranteed structure or guaranteed fact, so some responses will be malformed, fabricated, or refused — and in production they flow straight to a user or a database with nobody watching. 'No answer, cleanly handled' (a graceful message, a non-AI fallback, a human handoff) merely disappoints; 'a wrong answer, confidently delivered' (a fabricated balance, a corrupted record) harms the customer and makes the client liable. So every path that isn't a clean, validated, grounded result is routed to a deliberate safe fallback instead of an exception on the user's screen." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

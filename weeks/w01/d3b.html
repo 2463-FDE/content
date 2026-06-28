@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W1·D3·Part 2 — Requirements Synthesis | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 1 · Day 3 · Part 2 · Requirements Synthesis</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Requirements Synthesis: Turning a Vague Ask Into a Spec</h1>
+        <div class="meta">
+          <span><b>Week 1</b> · Day 3 · Part 2</span>
+          <span>FDE Situation · the synthesis move</span>
+          <span><b>~19 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Part 1 assumed you already knew what you were building. In the field you almost never do — not
+        at first. A stakeholder hands you a sentence ("can the AI just handle the intake forms?"), not a spec, and the
+        first, hardest, most valuable move a Forward Deployed Engineer makes is turning that sentence into requirements
+        precise enough to build against. This is <strong>FDE Situation day</strong>. Scroll the reading; the panel on the
+        right builds the funnel that converts a vague ask into a buildable spec — interrogating it along three lenses:
+        what must be <em>structured</em>, what must be <em>deterministic</em>, what must be <em>grounded</em>. Get those
+        right and the Part-1 prompt practically writes itself.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">FDE Situation · the ask</div>
+        <h2>Clients hand you a sentence, not a spec</h2>
+        <p>Everything in Part 1 assumed you already knew what you were building. In the field, you almost never do. A
+        stakeholder pulls you aside and says some version of: <em>"We've got analysts spending hours reading incoming
+        contract solicitations. Can the AI just, you know, read them and pull out the important stuff?"</em> That's it.
+        That's the requirements document. One sentence, three vague nouns ("the important stuff"), and an implied promise
+        that you'll figure out the rest.</p>
+        <div class="ix-spot"
+          data-snippet="# client: &quot;can the AI read solicitations and pull
+#          out the important stuff?&quot;
+prompt = &quot;Summarize the important parts of this &quot; \
+         &quot;solicitation:\n&quot; + doc
+resp = model.call(prompt)"
+          data-q="A junior engineer hears the ask and writes this in five minutes. What did they skip — and why will it solve the wrong problem?"
+          data-a="They skipped the <b>requirements synthesis</b>. 'The important stuff' was never pinned to a field list, so there's no schema; nobody asked whether the output feeds a dashboard (structured data) or a human reading over coffee (prose); determinism and grounding were never decided. The ask is a symptom; the requirements are the diagnosis. A beautifully crafted summarize-prompt answers a question the client didn't actually ask — they needed a structured extractor, run repeatably, grounded in each document.">
+        </div>
+        <p>The instinct of a junior engineer is to nod and immediately start writing a prompt — "Summarize the important
+        parts of this solicitation." The instinct of a Forward Deployed Engineer is to recognize that <strong>the ask is a
+        symptom, and the requirements are the diagnosis.</strong> "Read them and pull out the important stuff" contains at
+        least a dozen unstated decisions, and every one of them is a fork that leads to a different system. Which fields,
+        exactly? In what format — prose for a human, or structured data for a database? How accurate does it need to be,
+        and what's the cost of being wrong? Does it need to be repeatable run-to-run? Where do the facts come from — the
+        document in front of it, or some reference the model has to look up?</p>
+        <p>Notice these questions are exactly the parts of a prompt you spent Part 1 learning. That's not a coincidence —
+        it's the point. <strong>You can only engineer a prompt for requirements you've actually pinned down.</strong> The
+        vague-ask conversation isn't a soft "discovery" preamble before the real work; it <em>is</em> the real work,
+        because it's where the prompt's system instructions, output schema, grounding strategy, and determinism settings
+        are actually decided. An FDE who skips it builds a confident, well-crafted answer to a question nobody asked.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">FDE Situation · the skill</div>
+        <h2>Problem identification through structured questioning</h2>
+        <p>The skill — and it is a learnable, nameable skill, not a personality trait — is <strong>problem identification
+        through structured questioning.</strong> You turn the vague ask into a spec by interrogating it along a few
+        reliable axes. <em>What does "important stuff" mean concretely?</em> Push until you have a list: solicitation
+        number, agency, due date, estimated value, set-aside type, key requirements. <em>Who or what consumes the
+        output?</em> An analyst skimming, or a tracking system ingesting? That single answer decides prose versus JSON.
+        <em>What's the cost of an error?</em> A missed due date that loses a bid is catastrophic; a slightly-off summary is
+        a shrug. The blast radius sets your accuracy and review requirements. <em>How variable can the answer be?</em> If
+        two analysts running it on the same document must see the same extraction, you need determinism. <em>What does the
+        model need to know that it can't?</em> Anything client-specific or current must be grounded, not recalled.</p>
+        <p>There's a human dimension the technical framing can hide. The stakeholder who said "pull out the important
+        stuff" isn't being lazy or deliberately vague — they're an expert in <em>their</em> domain (federal acquisitions)
+        who has never had to write a software spec, and "the important stuff" is genuinely obvious to <em>them</em> because
+        they do it every day on autopilot. Part of your job is to make that tacit expertise explicit, and the way you do it
+        is by asking concrete, almost annoyingly specific questions: "Show me the last solicitation you triaged — walk me
+        through exactly what you looked at, and in what order." Watching an expert do the task, and narrating it back as a
+        list to confirm, surfaces requirements no abstract conversation ever would.</p>
+        <p>This is why FDE work is <em>forward deployed</em>: you can't synthesize a good spec over email from a one-line
+        ticket. You sit next to the people doing the work, watch the real thing, and turn what they do without thinking
+        into something a system can be told. The engineers who treat that as a chore and hurry back to their keyboard are
+        exactly the ones who build the wrong thing beautifully. The next three sections distill the interrogation into
+        three questions you ask of every vague ask — and they map one-to-one onto the prompt decisions from Part 1.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Lens ① · structured</div>
+        <h2>What must be structured?</h2>
+        <p>Anything a downstream system consumes has to come back as data with a known shape, not prose. "Pull out the
+        solicitation number, agency, and due date" is a screaming signal for a JSON schema: <code>solicitation_number</code>
+        (string), <code>agency</code> (string), <code>due_date</code> (date or null), <code>estimated_value_usd</code>
+        (number or null). The moment you write that schema, half the ambiguity in the original ask evaporates — you've
+        forced "the important stuff" to become a finite, named, typed list.</p>
+        <p>The deciding question behind this lens is the one from Part 1's tooling discussion: <em>who or what consumes the
+        output?</em> A triage dashboard the analysts sort and filter? Then the output must be structured data — you're
+        building an extractor, not a summarizer. Had the answer been "an analyst reads it over coffee," prose might have
+        been fine. Same ask, different system. The consumer decides the shape, and the shape decides whether you reach for
+        a schema at all.</p>
+        <p>This lens is also a fast readiness check. If the stakeholder can't tell you the fields, you're not ready to
+        build — and the schema conversation is how you find that out in the first meeting instead of three weeks in.
+        Writing the schema first is the same powerful design act you saw in Part 1: it forces both of you to decide exactly
+        what's needed before a single line of prompt gets written. A nullable field gives the model a sanctioned way to say
+        "not in the document"; a required field forces it to commit; an enum makes a free-text answer impossible. The
+        schema has encoded half your rules before you've touched the system prompt.</p>
+        <p>Be alert, too, that "structured" is rarely uniform. Some fields in the same extraction are mission-critical and
+        belong in the schema's <code>required</code> list; others are nice-to-have and can stay nullable. Some are clean
+        primitives (a date, a dollar amount); others are themselves small structures (a list of key requirements, each with
+        a label and a weight). The act of typing every field — string, number, date, enum, boolean, array — is where you
+        discover the questions the stakeholder never thought to answer: <em>does estimated value include options years?
+        Is "set-aside" one value or several?</em> Those discoveries are the whole point. The schema isn't paperwork you
+        produce after the thinking; it <em>is</em> the thinking, written in a form a machine and a stakeholder can both
+        check.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Lens ② · deterministic</div>
+        <h2>What must be deterministic?</h2>
+        <p>Ask: if we run this twice on the same document, must we get the same answer? For extraction the answer is almost
+        always yes — two analysts must not see two different due dates — which means low temperature, a tight schema, and an
+        eval set that checks for exactly that stability. For genuinely generative tasks ("draft a friendly rejection
+        email") some variation is fine or even desirable.</p>
+        <div class="ix-predict"
+          data-q="Two analysts run the triage tool on the same solicitation and must see the same due date, or trust collapses. Which of the three lenses is that — and what does it imply for how you build?"
+          data-a="<b>Determinism.</b> Same input → same output. It implies a low temperature, a tight schema that constrains the output, and an eval check that the same document yields the same extraction. Determinism is a requirement you <i>elicit</i>, not a default you assume — and getting it wrong is the root cause of most 'the AI is flaky / inconsistent / sometimes works' complaints you'll be called in to fix.">
+        </div>
+        <p><strong>Determinism is a requirement you elicit, not a default you assume.</strong> Getting it wrong is the root
+        cause of a huge share of the "the AI is flaky / inconsistent / sometimes works" complaints you'll be called in to
+        fix — and the fix is usually not a better model but a temperature near zero, a tighter schema, and an eval that
+        actually checks run-to-run stability. The cost-of-error question from the interrogation feeds straight in here: a
+        wrong or missed <em>due date</em> can lose a bid worth millions, so it needs near-certainty, determinism, and human
+        review; a slightly-off one-line <em>description</em> is a minor annoyance and can be best-effort. Accuracy
+        requirements are <em>not uniform across fields</em>, and that asymmetry shapes both the schema and the eval set.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Lens ③ · grounded</div>
+        <h2>What must be grounded?</h2>
+        <p>Separate, ruthlessly, what the model can answer from general knowledge versus what it must answer from <em>this
+        client's facts</em>. The format of a federal solicitation? General pattern — fine to lean on training. This
+        specific solicitation's due date? Must come from the document in the window — never from the model's memory, which
+        has no way to know it and every incentive to invent something plausible. Grounding requirements drive your whole
+        retrieval strategy and feed directly into Week 2's RAG curriculum.</p>
+        <p>The rule of thumb: <strong>if being wrong about a fact has real consequences, that fact must be grounded and the
+        model must be allowed to say "not found."</strong> This is Part 1's hallucination cure stated as a requirement
+        rather than a technique — every field that comes from the document is nullable, and the system prompt says "answer
+        only from the document provided; if a field is absent, return null — never infer or guess." An honest miss beats a
+        confident fabrication, especially at a federal client where a wrong contract number has downstream consequences.</p>
+        <p>Grounding is also where you decide <em>how</em> the facts reach the window, and that decision sizes the rest of
+        the engagement. If every needed fact lives in the one document in front of the model, grounding is easy — you drop
+        the document in the user slot and you're done. But the moment the answer depends on facts spread across many
+        documents the model can't all hold at once — "which of our 4,000 past solicitations is this a re-compete of?" — you
+        need <em>retrieval</em>: a way to find the relevant few and place only those in the window. That is the entire
+        subject of Week 2, and the grounding lens is what tells you, in the first conversation, whether this is a
+        drop-it-in-the-prompt job or a retrieval job. Naming that early is the difference between an accurate scope and a
+        nasty surprise in week three.</p>
+        <p>These three lenses generalize far past extraction, so keep them in your pocket as a literal checklist. Building a
+        chatbot? <em>Structured:</em> probably its actions and tool calls, not its prose. <em>Deterministic:</em> the
+        policy answers must be, the small talk needn't be. <em>Grounded:</em> anything about the client's accounts, orders,
+        or rules — never from memory. Drafting documents? <em>Structured:</em> the metadata and section headings.
+        <em>Deterministic:</em> the legal boilerplate. <em>Grounded:</em> every factual claim. The three lenses are a
+        portable instrument for converting any "can the AI just..." into a spec.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">FDE Situation · the synthesis</div>
+        <h2>Synthesize the answers into a buildable spec</h2>
+        <p>Run those three questions and the vague sentence has become a buildable spec: a system prompt encoding the role
+        and the "answer only from the provided document; return null for missing fields" rule; an output schema naming
+        every field and its type; a temperature near zero for repeatability; a grounding plan for what gets retrieved into
+        the window; and a small eval set of real solicitations with known-correct extractions to measure against.
+        <em>That</em> is the deliverable of the vague-ask conversation — and it's worth far more to the client than any
+        single clever prompt, because it makes every subsequent prompt-engineering decision obvious. The clever prompt was
+        never the hard part; the synthesis was.</p>
+        <div class="ix-predict"
+          data-q="A shipped extractor starts returning a hallucinated agency name on some documents. Using the three lenses as a triage tool, which gap is that — and what about a parse error, or a different answer every run?"
+          data-a="A hallucinated fact is a <b>grounding</b> gap (answer from the document; allow 'not found'). A parse error is a <b>structure</b> gap (enforce the schema). A different answer each run is a <b>determinism</b> gap (lower temperature, tighten the schema). Most AI failures you're called in to fix are one of the three wearing a costume — naming which one is half the fix.">
+        </div>
+        <p>The three lenses double as a triage tool when something's already broken: a flaky output is usually a determinism
+        gap, a hallucinated fact is a grounding gap, and a parse error is a structure gap. Most of the AI failures you'll be
+        called in to fix at a client are one of those three wearing a costume, and naming which one is half the fix. Run the
+        checklist out loud in front of the stakeholder and you'll often watch them realize, in real time, that they hadn't
+        decided half of these either — which is exactly the value you were brought in to provide. The full end-to-end
+        version of this — one real vague ask carried all the way to a schema — is in today's deep dive. Do it; it's the rep
+        that matters most this week.</p>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="5">
+        <div class="tag">Your tools</div>
+        <h2>Claude Code is where you practice the loop</h2>
+        <p>Everything across both halves of today has a home in <strong>Claude Code</strong>. Your system prompts, few-shot
+        examples, and output schemas aren't ephemeral things you type into a chat box and lose — they're <em>artifacts you
+        keep in your repo</em>, version, and iterate on like any other source file. A prompt that lives in a file, with an
+        eval set next to it, is a prompt you can improve over ten weeks. A prompt that lives in your chat history is gone by
+        Thursday.</p>
+        <p>This is also the most token-efficient way to work on a <strong>$20 Pro plan across a 40-hour week.</strong> The
+        requirements-synthesis move <em>saves</em> tokens, not just makes better software: every hour you spend pinning
+        down what "the important stuff" means is an hour you don't spend re-running a vague prompt and squinting at why the
+        output keeps drifting. Tight schema, low temperature, a small eval set you run deliberately — that's a few cents and
+        a few minutes. "Keep poking at the prompt in chat until it feels right" is how you hit your daily limit by lunch
+        with nothing reusable to show. Token discipline and engineering discipline are, once again, the same discipline.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When a client hands you "can the AI just handle this," the value you add isn't a clever prompt — it's the
+          conversation that turns that sentence into a spec. <strong>What must be structured? What must be deterministic?
+          What must be grounded?</strong> Answer those three and the prompt practically writes itself; skip them and the
+          best prompt in the world solves the wrong problem. Synthesize the requirements before you engineer the prompt.</p>
+        </div>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">A vague ask → a real schema, worked end to end</div>
+          <div class="ac-meta">optional · +12 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on requirements synthesis</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="d3a.html">◂ Back</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 1 Day 3 · Part 2</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: a vague ask, carried all the way to a schema</h2>
+    <p class="quiz-sub">Optional. ~12 minutes. The rep that matters most this week — watch the synthesis happen.</p>
+
+    <p><strong>The ask, as you'd actually hear it.</strong> A program manager at a federal acquisitions client says:
+    <em>"Our analysts spend hours reading incoming solicitations to figure out which ones we should bid on. Can the AI just
+    read them and pull out the important stuff so they can triage faster?"</em> That is the entire brief. Watch how an FDE
+    turns it into a spec — by interrogation, not by jumping to a prompt.</p>
+
+    <p><strong>Question 1 — what is "the important stuff," concretely?</strong> You don't guess; you ask, and you keep
+    asking until you have a list. After ten minutes with the PM and one analyst it's: solicitation number, issuing agency,
+    response due date, estimated contract value, set-aside type (e.g. small business), the NAICS code, and a one-line
+    description of the work. "Important stuff" just became seven named things — and you discovered that "is this a
+    re-compete of an existing contract" matters to them too, which the original ask never hinted at.</p>
+
+    <p><strong>Question 2 — who consumes the output?</strong> A triage dashboard the analysts sort and filter. That single
+    answer is decisive: the output must be <em>structured data</em>, not a prose summary. You're building an extractor, not
+    a summarizer. (Had the answer been "an analyst reads it over coffee," prose might have been fine — same ask, different
+    system.)</p>
+
+    <p><strong>Question 3 — what's the cost of an error?</strong> A wrong or missed <em>due date</em> can cause them to
+    miss a bid worth millions — catastrophic. A slightly-off description is a minor annoyance. So accuracy requirements are
+    <em>not uniform across fields</em>: due date and solicitation number need near-certainty and human review; the
+    description can be best-effort. That asymmetry shapes both the schema and the eval set.</p>
+
+    <p><strong>Question 4 — deterministic?</strong> Yes. Two analysts running triage on the same solicitation must see the
+    same extracted due date, or trust collapses. → low temperature, tight schema, and an eval check that the same input
+    yields the same output.</p>
+
+    <p><strong>Question 5 — grounded?</strong> Every field must come from <em>the document in front of the model</em>. The
+    model must never infer a due date from "documents like this usually." If a field isn't in the document, the correct
+    answer is <code>null</code> — an honest miss, not a confident guess.</p>
+
+    <div class="model-answer show">
+      <div class="ma-k">The synthesized output schema (JSON Schema, abbreviated)</div>
+<pre style="white-space:pre-wrap;font-size:13px;line-height:1.5;margin:6px 0 0">{
+  "type": "object",
+  "properties": {
+    "solicitation_number": { "type": ["string","null"] },
+    "agency":              { "type": ["string","null"] },
+    "due_date":            { "type": ["string","null"], "format": "date" },
+    "estimated_value_usd": { "type": ["number","null"] },
+    "set_aside":           { "type": "string",
+                             "enum": ["small_business","8a","sdvosb","none","unknown"] },
+    "naics_code":          { "type": ["string","null"] },
+    "is_recompete":        { "type": ["boolean","null"] },
+    "description":         { "type": ["string","null"] }
+  },
+  "required": ["solicitation_number","due_date","set_aside"]
+}</pre>
+    </div>
+
+    <p style="margin-top:14px"><strong>Read what the schema is doing for you.</strong> Every fact field is
+    <em>nullable</em> — that's the sanctioned "not found in the document" that kills hallucinated values. The high-stakes
+    fields (<code>solicitation_number</code>, <code>due_date</code>, <code>set_aside</code>) are <em>required</em>, forcing
+    the model to commit to a value or an explicit null rather than silently omitting them. <code>set_aside</code> is an
+    <em>enum</em>, so it physically cannot come back as freeform prose. The schema has already encoded half your rules
+    before you wrote a line of system prompt.</p>
+
+    <p><strong>And now the system prompt practically writes itself:</strong> "You are a solicitation-extraction assistant.
+    Extract the fields in the schema <em>only</em> from the document provided below. If a field is not present in the
+    document, return null — never infer or guess. Respond with JSON matching the schema and nothing else." Pair it with
+    temperature ≈ 0, one or two few-shot examples drawn from real solicitations (especially a tricky one where the due
+    date is buried), and a 15-document eval set with known-correct extractions. That bundle — schema + system prompt +
+    temperature + grounding rule + eval set — is the deliverable. The clever prompt was never the hard part;
+    <strong>the synthesis was.</strong></p>
+
+    <p style="margin-top:14px"><strong>Note on API specifics.</strong> Exactly how you attach a schema (a
+    structured-output / JSON-mode parameter, a tool/function definition, or a response-format field) is a per-provider,
+    per-model detail that shifts over time — confirm it against current docs the day you wire it up. The durable skill is
+    the one practiced here: decide the shape, the determinism, and the grounding <em>first</em>; the mechanism is the easy
+    part once the spec is right.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 3 · Part 2 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of Part 2 you can</div>
+    <ul class="goals-list">
+      <li>Recognize that a client hands you a <em>sentence, not a spec</em> — the ask is a symptom, the requirements are the diagnosis</li>
+      <li>Run problem identification through structured questioning: pin the field list, the consumer, the cost of error, the variability, and what the model can't know</li>
+      <li>Apply the three lenses — what must be <em>structured</em>, <em>deterministic</em>, and <em>grounded</em> — to convert any "can the AI just..." into a buildable spec</li>
+      <li>Use the same three lenses as a triage tool: a flaky output is a determinism gap, a hallucination a grounding gap, a parse error a structure gap</li>
+    </ul>
+    <div class="ma-k">Deliverable — add to your <code>NOTES.md</code></div>
+    <ul class="deliv-list check">
+      <li>Take any real-sounding vague ask (yours or the deep-dive's solicitation example)</li>
+      <li><b>①</b> the field list you'd extract, written as a JSON schema (names + types + which are required/nullable)</li>
+      <li><b>②</b> one sentence each: what must be <em>structured</em>, what must be <em>deterministic</em>, what must be <em>grounded</em></li>
+      <li><b>③</b> three eval inputs you'd test it against — include at least one ugly edge case</li>
+    </ul>
+    <p class="goals-foot">Bring it to Wednesday's FDE Situation session. This is the synthesis rep you'll run at every client for the rest of your career.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 4 · Part 1 — Token optimization →", href: "d4a.html" };
+window.DIAGRAM = {
+  title: "Requirements synthesis · the funnel",
+  width: 500, height: 470,
+  nodes: [
+    // the vague ask — dark payload card, wide at the top of the funnel
+    { id:"ask", step:0, kind:"example", x:20, y:14, w:460, h:74,
+      label:"VAGUE CLIENT ASK\n\"can the AI just read these solicitations and\n pull out the important stuff so we triage faster?\"",
+      detail:"One sentence, three vague nouns ('the important stuff'), a dozen unstated decisions hiding inside it. The ask is a SYMPTOM; the requirements are the diagnosis. The junior move is to write a 'summarize' prompt; the FDE move is to interrogate the sentence before touching a prompt." },
+
+    { id:"interro", step:1, x:90,  y:112, w:320, h:40,
+      label:"Problem identification — interrogate the ask" },
+
+    // the three lenses, narrowing toward the spec (the funnel)
+    { id:"q1", step:2, x:70,  y:170, w:360, h:42, label:"① Structured? — what shape must come back" },
+    { id:"q2", step:3, x:90,  y:222, w:320, h:42, label:"② Deterministic? — same input, same answer?" },
+    { id:"q3", step:4, x:110, y:274, w:280, h:42, label:"③ Grounded? — which facts from client data",
+      detail:"Separate what the model can answer from general knowledge (the format of a federal solicitation) from what it must answer from THIS client's facts (this document's due date). Rule of thumb: if being wrong about a fact has real consequences, ground it — and let the model say 'not found' instead of inventing a plausible value." },
+
+    // the spec — the point of the funnel
+    { id:"spec", step:5, x:130, y:348, w:240, h:80,
+      label:"BUILDABLE SPEC ✓\nschema · temperature · grounding · eval set",
+      detail:"system prompt ('answer only from the document; null for missing') + output schema (typed, nullable, enums) + temperature ≈ 0 + a grounding plan + a 10–20 doc eval set with known-correct extractions. THIS is the deliverable of the vague-ask conversation — worth far more than any single clever prompt, because it makes every prompt decision obvious. It IS the Part-1 prompt." }
+  ],
+  edges: [
+    { id:"e_ai", step:1, from:"ask",     to:"interro", label:"the FDE move", ly:-2 },
+    { id:"e_i1", step:2, from:"interro", to:"q1" },
+    { id:"e_12", step:3, from:"q1",      to:"q2" },
+    { id:"e_23", step:4, from:"q2",      to:"q3" },
+    { id:"e_3s", step:5, from:"q3",      to:"spec", label:"synthesize", ly:-2 }
+  ],
+  captions: [
+    "A client hands you a <b>sentence, not a spec</b> — a vague ask with a dozen unstated decisions inside it. <span style='opacity:.7'>(tap the card)</span>",
+    "The FDE move is <b>problem identification through structured questioning</b> — interrogate the ask, don't jump to a prompt.",
+    "<b>① Structured?</b> Who consumes the output decides prose vs JSON. A dashboard wants a typed schema; 'the important stuff' becomes a finite, named list.",
+    "<b>② Deterministic?</b> Must the same document give the same answer? For extraction, almost always — low temperature, tight schema, an eval that checks stability. You elicit it, never assume it.",
+    "<b>③ Grounded?</b> Which facts must come from THIS client's data, never the model's memory? <span style='opacity:.7'>(tap)</span>",
+    "Synthesize the three answers into a <b>buildable spec</b> — schema, temperature, grounding plan, eval set. That spec IS the Part-1 prompt. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w01-d3b",
+  title: "Check your understanding · Part 2",
+  questions: [
+    { type: "scq",
+      stem: "A client says: 'Can the AI just read our intake forms and pull out the key info?' What's the FDE's FIRST move?",
+      options: [
+        "Write a prompt that says 'summarize the key info' and test it",
+        "Pick the biggest available model so nothing gets missed",
+        "Synthesize requirements: which exact fields, what output shape, how accurate, deterministic?, grounded in what?",
+        "Turn temperature up so the model is more thorough" ],
+      answer: 2,
+      explain: "The vague ask is a symptom; the requirements are the diagnosis. You can't engineer a prompt for fields you haven't pinned down — the synthesis conversation IS the work, and it's where the schema, determinism, and grounding decisions are actually made." },
+    { type: "scq",
+      stem: "Two analysts must see the SAME extracted due date when they run the tool on the same document. Which requirement is that, and what does it imply?",
+      options: [
+        "Grounding — retrieve the document into the window",
+        "Determinism — low temperature, tight schema, and an eval that checks stability",
+        "Few-shot — add more examples until it stabilizes",
+        "Chain-of-thought — make it reason step by step" ],
+      answer: 1,
+      explain: "Same input → same output is determinism. You elicit it (don't assume it), then implement it with low temperature + a constrained schema, and verify it in your eval set." },
+    { type: "tf",
+      stem: "Determinism is a safe default you can assume for any extraction task without having to ask the stakeholder.",
+      answer: false,
+      explain: "No. Determinism is a requirement you ELICIT, not a default you assume. Some tasks need it (two analysts must see the same due date); genuinely generative tasks tolerate or even want variation. Assuming wrong is the root cause of most 'the AI is flaky' complaints." },
+    { type: "mcq",
+      stem: "Which decisions does the requirements-synthesis conversation actually settle? (select all that apply)",
+      options: [
+        "The output shape — structured data vs prose — based on who consumes it",
+        "Whether the task must be deterministic (same input, same answer)",
+        "Which facts must be grounded in the client's data vs answered from general knowledge",
+        "The exact API parameter name for attaching a JSON schema",
+        "The cost of an error per field, which sets accuracy and review needs" ],
+      answer: [0, 1, 2, 4],
+      explain: "Synthesis decides the shape (structured?), the determinism, the grounding, and the per-field cost of error. The exact API parameter for a schema is a per-provider mechanism detail you confirm against current docs — it's the easy part once the spec is right, not what the conversation is for." },
+    { type: "match",
+      stem: "Match each situation to the lens (or the decision it points to).",
+      pairs: [
+        { l: "A dashboard ingests the output", r: "structured — return a typed schema" },
+        { l: "Same document must give the same answer", r: "deterministic — low temperature + eval" },
+        { l: "This document's specific due date", r: "grounded — answer from the document, allow null" },
+        { l: "The general format of a federal solicitation", r: "fine to lean on the model's training" } ],
+      explain: "Consumer decides shape; run-to-run stability is determinism; client-specific facts must be grounded with a sanctioned 'not found'; and genuinely general knowledge can come from the model's training." },
+    { type: "open",
+      stem: "In two or three sentences: why is the vague-ask conversation the real work rather than a soft 'discovery' preamble before the real engineering?",
+      hint: "Think about where the schema, temperature, grounding, and system instructions actually get decided.",
+      model: "The vague-ask conversation is where the prompt's output schema, determinism settings, grounding strategy, and system instructions are actually decided — you literally can't engineer a prompt for requirements you haven't pinned down. The clever prompt is downstream and easy once the spec exists; the synthesis is the hard, valuable part. An FDE who treats it as a preamble and hurries to the keyboard builds a confident, well-crafted answer to a question nobody asked." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>
