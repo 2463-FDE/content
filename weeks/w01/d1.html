@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W1·D1 — How an LLM Spends Its Attention | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><b>2463</b>·FDE</span>
+  <span class="crumb">Week 1 · Day 1 · LLM Engineering for Production</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<div class="wrap">
+  <div class="lede">
+    <h1>How an LLM Actually Spends Its Attention</h1>
+    <div class="meta">
+      <span><b>Week 1</b> · Day 1 (Mon)</span>
+      <span>Phase: <b>Foundation AI Engineering</b></span>
+      <span><b>~60–75 min</b> incl. diagram + check</span>
+      <span>Topics: context windows · token budgets · sampling · hallucination · AI coding</span>
+    </div>
+    <p class="summary">Every superpower and every failure of an LLM traces back to one finite resource: the
+    <strong>context window</strong>. Today you learn to think like the model's accountant — because that is
+    what a Forward Deployed Engineer does on day one at a client: figure out what the system can actually
+    <em>see</em>, and what it's quietly missing.</p>
+  </div>
+
+  <div class="reading">
+    <article class="prose">
+
+      <section class="step" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>One window holds everything</h2>
+        <p>An LLM has no memory between calls and no live access to your databases. For a single request,
+        <strong>everything it can reason over must fit inside one finite context window</strong> — measured in
+        <strong>tokens</strong> (≈ ¾ of a word in English). Nothing outside that window exists, as far as the
+        model is concerned.</p>
+        <p>This is the most important sentence in the course: <strong>capabilities and limits both come from the
+        window.</strong> "Can it summarize this contract?" "Why did it forget what I said?" "Why did it make
+        that up?" — all the same question wearing different clothes. How is the window being spent?</p>
+      </section>
+
+      <section class="step" data-step="1">
+        <div class="tag">Slice 1</div>
+        <h2>The system prompt always goes first</h2>
+        <p>The <strong>system prompt</strong> sets the model's role and rules. It is prepended to <em>every</em>
+        request, so its cost is paid on every call. A 2,000-token system prompt on a million-request feature is
+        a real line item — both latency and dollars.</p>
+      </section>
+
+      <section class="step" data-step="2">
+        <div class="tag">Slice 2</div>
+        <h2>Few-shot examples buy quality with tokens</h2>
+        <p>Showing the model a handful of <strong>examples</strong> ("few-shot") is the cheapest way to lock in a
+        format or tone — no fine-tuning required. But each example is more tokens in the window, every time. The
+        FDE question is never "do examples help?" (they do) but "how few can I get away with?"</p>
+      </section>
+
+      <section class="step" data-step="3">
+        <div class="tag">Slice 3</div>
+        <h2>Retrieved context can dominate</h2>
+        <p>When you paste in documents, code, or RAG results, that retrieved context is usually the
+        <strong>biggest</strong> consumer of the window. This is the lever you'll spend Week 2 learning to pull
+        precisely. For now: more retrieved text is not more intelligence — it's more <em>budget spent</em>, and
+        it can crowd out everything else.</p>
+      </section>
+
+      <section class="step" data-step="4">
+        <div class="tag">Slice 4 · the silent leak</div>
+        <h2>Conversation history grows every turn</h2>
+        <p>In a chat, the entire prior conversation is usually re-sent on each turn so the model "remembers."
+        That means token cost <strong>grows with every message</strong> — quietly, until a long session gets slow,
+        expensive, or starts dropping the earliest instructions off the front. Most "the assistant forgot the
+        rules" bugs are really history eviction.</p>
+      </section>
+
+      <section class="step" data-step="5">
+        <div class="tag">Slice 5</div>
+        <h2>The user's question is just one more slice</h2>
+        <p>Notice how late the actual <strong>user input</strong> arrives. By the time real intent enters the
+        window, system prompt + examples + context + history may already have consumed most of it. The user's
+        question is rarely the expensive part — but it competes for the same finite space as everything else.</p>
+      </section>
+
+      <section class="step" data-step="6">
+        <div class="tag">Token budget</div>
+        <h2>What's left is room to answer</h2>
+        <p>The window is shared between <strong>input and output</strong>. Whatever you don't spend on input is
+        the <strong>room left for the answer</strong>. Overstuff the input and the model is forced to truncate,
+        rush, or stop mid-thought. A <strong>token budget</strong> is simply deciding, in advance, how many
+        tokens each slice is allowed — so the answer always has room.</p>
+        <p>And every token is metered. Cost ≈ (input tokens + output tokens) × price-per-token. <strong>Token
+        budgeting is cost engineering.</strong> When a client asks "why is this feature so expensive to run?",
+        the answer lives in this picture.</p>
+      </section>
+
+      <section class="step" data-step="7">
+        <div class="tag">Generation</div>
+        <h2>Sampling decides how it answers</h2>
+        <p>The model produces the answer one token at a time, each drawn from a probability distribution.
+        <strong>Temperature</strong> and <strong>top-p</strong> control how that draw happens: low temperature →
+        near-deterministic, picks the most likely token (good for extraction, classification, code). High
+        temperature → more varied, sometimes more creative, less repeatable.</p>
+        <p>FDE reflex: <strong>if you need the same input to give the same output, turn temperature down.</strong>
+        Most "flaky" AI features in production are just sampling left too hot.</p>
+      </section>
+
+      <section class="step" data-step="8">
+        <div class="tag">Failure mode</div>
+        <h2>Hallucination is a window problem first</h2>
+        <p>A <strong>hallucination</strong> is a confident, fluent, wrong answer. The single most common cause:
+        the fact the model needed <strong>was never in the window</strong>, so it filled the gap with the most
+        plausible-sounding text. The model has no built-in way to say "I wasn't given that."</p>
+        <p>This reframes a whole category of client complaints. "Your AI lies" is usually "your retrieval missed"
+        or "the answer got truncated." You'll fix far more hallucinations by managing the window than by swapping
+        models.</p>
+      </section>
+
+    </article>
+
+    <aside class="stage">
+      <div class="stage-title">Live diagram</div>
+      <svg id="diagram"></svg>
+      <div class="stage-caption"></div>
+    </aside>
+  </div>
+
+  <!-- non-diagram topic: AI coding tools -->
+  <div class="prose" style="margin: 30px auto;">
+    <h2>AI vibe coding: Cursor &amp; Claude Code are window managers</h2>
+    <p>You'll work all 10 weeks inside AI coding tools — Cursor and Claude Code. Here's the mental model that
+    makes you good at them fast: <strong>they are context-window managers wearing an IDE.</strong> When the tool
+    indexes your repo, opens files, or pulls in errors, it is deciding <em>what goes in the window</em> for the
+    model behind it. Great results come from curating that context, not from longer prompts.</p>
+    <p>That's also why a <strong>$20 Claude Pro plan</strong> is plenty for this program if you work like an
+    engineer and wasteful if you work like a slot machine. Re-running a huge agent loop over your whole repo to
+    fix a typo burns budget. Giving the model the three relevant files and a precise ask does not. <strong>Token
+    discipline is the same skill whether you're paying the bill or the client is.</strong></p>
+
+    <div class="callout mindset">
+      <div class="k">FDE mindset</div>
+      <p style="margin:0">An FDE shows up at a client and the first real question is never "what model should we
+      use?" It's <strong>"what does the system actually have in front of it when it answers — and what is it
+      missing?"</strong> You diagnose the window before you touch the model. Hold onto that; it's the throughline
+      of the whole program.</p>
+    </div>
+
+    <details class="deep">
+      <summary>Go deeper (optional, +15 min): tokens, pricing math, and a worked budget</summary>
+      <p>Tokens aren't words. "tokenization" might be 1 token; "antidisestablishmentarianism" several. Rule of
+      thumb: <strong>1 token ≈ 4 characters ≈ 0.75 words</strong> in English; code and rare words run higher.</p>
+      <p><strong>Worked example.</strong> Say a model bills $3 per million input tokens and $15 per million output
+      tokens. A support-bot turn with a 1,500-token system prompt, 2,000 tokens of retrieved help-center docs,
+      1,200 tokens of chat history, a 100-token question, and a 400-token answer costs:
+      input = 4,800 tokens → $0.0144; output = 400 tokens → $0.0060; ≈ <strong>$0.02 per turn.</strong> Trivial
+      once — until you multiply by 50,000 turns/day. Now the 1,200-token history you never trimmed is a budget
+      line, and Week 1 Thursday's "context compression" topic is a cost-savings project.</p>
+      <p><strong>Determinism caveat.</strong> Even at temperature 0, outputs are not <em>guaranteed</em>
+      identical across hardware/batching — "more deterministic," not "perfectly deterministic." Design eval
+      checks for that.</p>
+    </details>
+  </div>
+
+  <!-- comprehension check -->
+  <section class="quiz" id="quiz"></section>
+
+  <div class="prose">
+    <div class="callout">
+      <div class="k">Today's deliverable</div>
+      <p style="margin:0 0 6px"><strong>Pass the check above (≥4/5)</strong>, then in your project repo start a
+      <code>NOTES.md</code> and write three sentences: (1) one capability you now understand as a context-window
+      consequence, (2) one failure you'd now diagnose as a window problem before blaming the model, (3) one place
+      a token budget would save the client money. Bring it to tomorrow's session.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="foot">
+  2463-FDE · Forward Deployed Engineer Program · Week 1 Day 1 — reading + live diagram + comprehension check
+</footer>
+
+<!-- diagram + quiz specs -->
+<script>
+window.DIAGRAM = {
+  width: 460, height: 620,
+  nodes: [
+    { id:"win",   step:0, x:30,  y:64,  w:400, h:398, label:"THE CONTEXT WINDOW  (finite tokens)" },
+    { id:"sys",   step:1, x:50,  y:96,  w:360, h:46,  label:"System prompt" },
+    { id:"shots", step:2, x:50,  y:150, w:360, h:46,  label:"Few-shot examples" },
+    { id:"ctx",   step:3, x:50,  y:204, w:360, h:46,  label:"Retrieved context (RAG / docs)" },
+    { id:"hist",  step:4, x:50,  y:258, w:360, h:46,  label:"Conversation history (grows each turn)" },
+    { id:"q",     step:5, x:50,  y:312, w:360, h:46,  label:"User question" },
+    { id:"ans",   step:6, x:50,  y:366, w:360, h:80,  label:"← room left for the ANSWER" },
+    { id:"temp",  step:7, x:40,  y:506, w:175, h:60,  label:"sampling\ntemp / top-p" },
+    { id:"hall",  step:8, x:250, y:502, w:180, h:66,  label:"needed fact\nNOT in window" }
+  ],
+  edges: [
+    { id:"e_temp", step:7, from:"temp", to:"ans", label:"how it answers" },
+    { id:"e_hall", step:8, from:"hall", to:"ans", label:"guess → hallucination", bend:-30 }
+  ],
+  captions: [
+    "Everything the model can reason over for one request lives in <b>one finite window</b>.",
+    "The <b>system prompt</b> takes the first slice — paid on every single request.",
+    "<b>Few-shot examples</b> teach format by example — powerful, but they cost tokens.",
+    "<b>Retrieved context</b> usually dwarfs everything else in the window.",
+    "<b>Conversation history</b> grows every turn — a silent budget leak.",
+    "Only now does the user's actual <b>question</b> enter.",
+    "What's left is the <b>room to answer</b>. Overfill the input → no room to think. This is the <b>token budget</b>.",
+    "Generation samples token-by-token; <b>temperature / top-p</b> set deterministic vs creative.",
+    "Fact never in the window? The model <b>guesses confidently</b> — that's a hallucination."
+  ]
+};
+window.QUIZ = {
+  id: "w01-d1",
+  title: "Check your understanding",
+  pass: 0.8,
+  questions: [
+    { stem: "A client says 'your AI keeps forgetting the formatting rules halfway through long chats.' What's the most likely cause?",
+      options: [
+        "The model is too small and should be upgraded",
+        "Temperature is set too low",
+        "Conversation history filled the window and pushed the early system instructions out",
+        "The system prompt was never sent" ],
+      answer: 2,
+      explain: "History grows every turn and competes for the finite window; the earliest tokens (your rules) get evicted first. A window problem, not a model problem." },
+    { stem: "Why does turning temperature down help a data-extraction feature?",
+      options: [
+        "It makes the model faster",
+        "Lower temperature makes token selection more deterministic, so the same input tends to give the same output",
+        "It increases the context window size",
+        "It removes the system prompt overhead" ],
+      answer: 1,
+      explain: "Extraction needs repeatability. Low temperature picks the most likely tokens, reducing run-to-run variation." },
+    { stem: "Roughly, 1 token is about…",
+      options: [ "1 full sentence", "1 character", "¾ of an English word (≈4 characters)", "1 paragraph" ],
+      answer: 2,
+      explain: "≈ 4 characters / 0.75 words in English. Code and rare words tokenize higher." },
+    { stem: "An FDE's FIRST diagnostic question about a misbehaving AI feature should be:",
+      options: [
+        "Which foundation model is it using?",
+        "What is actually in the context window when it answers, and what's missing?",
+        "How many GPUs are provisioned?",
+        "What programming language is the backend?" ],
+      answer: 1,
+      explain: "Diagnose the window before the model. Most issues are context/budget problems, not model-choice problems." },
+    { stem: "Most hallucinations are best understood as…",
+      options: [
+        "The model intentionally lying",
+        "A bug in the sampling code",
+        "The needed fact never being in the window, so the model fills the gap plausibly",
+        "Too low a temperature setting" ],
+      answer: 2,
+      explain: "No fact in the window → confident guess. You fix more hallucinations by managing context/retrieval than by swapping models." }
+  ]
+};
+</script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+</body>
+</html>
