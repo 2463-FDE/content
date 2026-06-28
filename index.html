@@ -46,7 +46,7 @@ window.PHASES = {
 window.WEEKS = [
   { w:1, phase:"found", title:"LLM Engineering for Production", days:[
     { t:"LLM fundamentals", s:"context windows · tokens · sampling · hallucination · AI coding", href:"weeks/w01/d1.html" },
-    { t:"Model selection + API patterns", s:"Claude/GPT/Gemini · streaming · batching · retries", href:"weeks/w01/d2.html" },
+    { t:"Model selection & API patterns", s:"Claude/GPT/Gemini · streaming · retries", parts:[{t:"1 · Model selection",href:"weeks/w01/d2a.html"},{t:"2 · API patterns",href:"weeks/w01/d2b.html"}] },
     { t:"Prompt engineering", s:"zero/few-shot · CoT · structured output", fde:true, href:"weeks/w01/d3.html" },
     { t:"Token optimization", s:"caching · compression · cost mgmt · guardrails", href:"weeks/w01/d4.html" },
     { t:"Code review + LLM API Client", s:"prompt library · project milestone", star:true, href:"weeks/w01/d5.html" } ]},
@@ -130,10 +130,13 @@ window.WEEKS = [
       if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}">🎯 Sys-design · start</a>`;
       if (week.w <= 8 && di === 2) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}">🔬 Alt research</a>`;
       if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}">🎯 Sys-design · due</a>`;
+      const partsHtml = day.parts
+        ? `<div class="cell-parts">` + day.parts.map(p => `<a href="${p.href}">${p.t}</a>`).join("") + `</div>`
+        : "";
       const el = document.createElement("div");
-      el.className = "cal-cell" + (day.href ? " live" : " soon");
+      el.className = "cal-cell" + (day.href ? " live" : (day.parts ? " parts" : " soon"));
       el.style.setProperty("--pc", ph.c);
-      el.innerHTML = `<div class="ct">${title}</div><div class="cs">${day.s || ""}</div>` +
+      el.innerHTML = `<div class="ct">${title}</div><div class="cs">${day.s || ""}</div>` + partsHtml +
         `<div class="cmark">${marks}</div>` + (rituals ? `<div class="ritual-row">${rituals}</div>` : "");
       cal.appendChild(el);
     });

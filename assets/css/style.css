@@ -167,6 +167,12 @@ details.deep[open] summary { border-bottom: 1px solid var(--line); margin-bottom
 .rl-row { padding:5px 9px; border-radius:6px; margin:4px 0; }
 .rl-row.fail { background:#fff5f5; color:#c0392b; } .rl-row.ok { background:#ebfbee; color:#2f7d3a; }
 .rl-tot { margin-top:8px; font-size:13px; color:var(--ink-soft); font-family:var(--font); }
+/* consistent interaction legend (same vocabulary every reading) */
+.ix-legend { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:16px 0 4px; font-size:13px; }
+.ixl-lead { color:var(--ink-soft); font-weight:600; }
+.ixl-chip { background:#fff; border:1px solid var(--line); border-radius:20px; padding:3px 11px; color:var(--ink-soft); }
+/* inline source citation */
+.src { display:inline; font-size:13.5px; color:var(--ink-soft); }
 
 /* ---------- quiz ---------- */
 .quiz { max-width: var(--maxprose); margin: 50px auto 30px; background:#fff; border:1px solid var(--line); border-radius:14px; padding: 26px; }
@@ -476,6 +482,10 @@ body.is-trainer .trainer-only { display:block; }
 .cal-cell.soon { opacity:.6; }
 .cal-cell.soon:after { content:"soon"; position:absolute; top:10px; right:11px; font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.06em; }
 .cal-cell.live:after { content:"open →"; position:absolute; top:10px; right:11px; font-size:10px; color:var(--accent); font-weight:700; }
+.cal-cell.parts { border-top:3px solid var(--pc); }
+.cell-parts { display:flex; flex-direction:column; gap:5px; margin-top:9px; }
+.cell-parts a { font-size:12.5px; font-weight:600; color:var(--accent); text-decoration:none; }
+.cell-parts a:hover { text-decoration:underline; }
 .cal-foot { display:flex; gap:24px; flex-wrap:wrap; margin-top:22px; font-size:13px; color:var(--ink-soft); }
 .cal-cell .ct-link { color:inherit; text-decoration:none; }
 .cal-cell.live .ct-link:hover { color:var(--accent); text-decoration:underline; }

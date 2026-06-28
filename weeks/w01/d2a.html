@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W1·D2·Part 1 — Model Selection | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 1 · Day 2 · Part 1 · Model Selection</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Model Selection: A Framework, Not a Leaderboard</h1>
+        <div class="meta">
+          <span><b>Week 1</b> · Day 2 · Part 1</span>
+          <span>Choosing a Foundation Model</span>
+          <span><b>~20 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Day 1 gave you the context window — what an LLM can and can't do, and why. Today is the first
+        decision every Forward Deployed Engineer makes on every engagement: <strong>which foundation model do you build
+        on — Claude, GPT, Gemini, or a self-hosted open-weight model — and how do you defend that choice to a client?</strong>
+        The answer is a framework on six axes, not a leaderboard pick. Scroll the reading; the panel on the right builds
+        the decision funnel one axis at a time, around one concrete task: <em>summarize a 40-page RFP, return JSON, 50,000
+        calls a day.</em> Part 2 (next page) takes the model you pick and makes the call survive production.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>"Which model should we use?" is a framework, not a leaderboard</h2>
+        <p>The first question a client asks an FDE is almost always "which AI should we use?" — and they usually expect a
+        one-word answer, the way "which database?" resolves to a name. The amateur answer names whatever model topped a
+        benchmark last week. The professional answer is: <strong>it depends on what you're building, and here's how I'll
+        decide.</strong> Model selection isn't a contest with a single winner. It's a constrained optimization across six
+        axes that pull against each other, and the right model is the one that fits <em>this</em> task, <em>this</em>
+        budget, and <em>this</em> client's rules — frequently <em>not</em> the most capable model on the market.</p>
+        <p>The landscape, as of <span class="nowrap">June 2026</span>, is four broad options. <strong>Anthropic's
+        Claude</strong> family (Opus, Sonnet, Haiku tiers). <strong>OpenAI's GPT</strong> family (the GPT-5 line, topping
+        out at GPT-5.5 on the API). <strong>Google's Gemini</strong> family (the 3.x and 2.5 lines, Pro and Flash tiers).
+        And the <strong>open-weight / self-hosted</strong> world — Llama, Mistral, DeepSeek, Qwen — where you download the
+        weights and run inference on hardware you control. <span class="src">[sources: Anthropic model catalog (claude-api
+        reference, cached 2026-06-04); OpenAI API docs, platform.openai.com (verified 2026-06-28); Google Gemini API
+        pricing, ai.google.dev (verified 2026-06-28)]</span> The version names will have moved by the time you read this —
+        which is exactly why you learn the <em>axes</em>, not the names.</p>
+        <p>The six axes: <strong>capability</strong>, <strong>cost</strong>, <strong>latency</strong>, <strong>context
+        window</strong>, <strong>tooling &amp; ecosystem</strong>, and <strong>data residency / compliance</strong>. The
+        diagram is the funnel: a task and its constraints enter at the top, each axis narrows the field, and a defensible
+        pick falls out the bottom — with one rule attached. Walk the axes one at a time.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Axis 1 · Capability</div>
+        <h2>Capability: fit to the task, not the top of the chart</h2>
+        <p>Capability is the axis everyone over-weights. The instinct is to grab the smartest model and stop thinking. But
+        "smartest" is expensive and slow, and most production tasks don't need it. The discipline is to match the model's
+        capability tier to the <em>hardest thing the task actually requires</em> — and no higher. Every major vendor ships
+        a <strong>tiered family</strong> precisely so you can: Anthropic's Opus / Sonnet / Haiku, Google's Pro / Flash /
+        Flash-Lite, OpenAI's larger and smaller GPT-5 variants. The vendor is telling you, in pricing, not to run
+        everything on the flagship.</p>
+        <p>The FDE move is to <strong>decompose the workload</strong>. A support feature might use a small cheap model to
+        classify an inbound message ("billing, shipping, or technical?") and escalate only the genuinely hard
+        conversations to a top tier. A document pipeline extracts structured fields with a mid-tier model and reserves the
+        flagship for the final summary a human reads. This cheap-first, expensive-only-when-needed pattern is a
+        <strong>model router</strong> or <strong>cascade</strong>, and you'll build a primitive version into nearly every
+        engagement.</p>
+        <div class="ix-predict"
+          data-q="A support inbox classifies every message as billing / shipping / technical — 200,000 messages a day, simple labels. Which capability tier do you reach for, and why?"
+          data-a="The <b>smallest, cheapest tier</b> (Haiku / Flash-Lite class). Classification into three known buckets is an easy task; a flagship would be correct <i>and</i> 10–20× more expensive and slower, for no quality gain at this volume. Match the tier to the hardest thing the task needs — here, almost nothing. Save the flagship for the rare hard escalations.">
+        </div>
+        <p>How do you judge capability for <em>your</em> task? Not from a public leaderboard — those measure generic
+        benchmarks that may have nothing to do with the client's domain. You judge it with a small <strong>eval
+        set</strong>: ten or twenty real examples from the client's actual data, with known-good answers, run against two
+        or three candidates. The model that gets <em>your</em> examples right is more capable for you than whatever won an
+        abstract benchmark. Capability is the first axis, but the one you measure last and most concretely.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Axis 2 · Cost</div>
+        <h2>Cost: input and output are priced differently, and it compounds</h2>
+        <p>Day 1's equation returns: <strong>cost ≈ (input tokens + output tokens) × price-per-token</strong> — but input
+        and output bill at <em>different</em> rates, and output is almost always the more expensive. As of
+        <span class="nowrap">June 2026</span>, on Anthropic's API, Opus 4.8 runs about <strong>$5 / $25</strong> per
+        million input / output tokens, Sonnet 4.6 about <strong>$3 / $15</strong>, Haiku 4.5 about <strong>$1 / $5</strong>.
+        <span class="src">[source: Anthropic model catalog, claude-api reference, cached 2026-06-04]</span> Gemini 3.5
+        Flash sits lower (~<strong>$1.50 / $9</strong>), the Pro tier higher (~<strong>$2.70 / $16</strong>).
+        <span class="src">[source: Google Gemini API pricing, ai.google.dev, verified 2026-06-28]</span> The numbers
+        drift; the <em>shape</em> is durable — output costs several times input, and the cheapest tier is often an order
+        of magnitude below the flagship.</p>
+        <p>That asymmetry drives design. A feature that reads a lot and answers briefly (classify, extract, label) is
+        dominated by <em>input</em> cost — a cheap-input, big-context model wins. A feature that generates long output
+        (write the report, draft the email) is dominated by <em>output</em> cost, where one step down the tier ladder
+        saves real money. Two features both labeled "AI" can differ 20× in cost profile. And it
+        <strong>compounds with volume</strong> — which is where prototypes lie to you. Run the numbers for the RFP task
+        on the right yourself:</p>
+        <div class="ix-cost"></div>
+        <p>A feature that costs two cents a call is free in a demo that runs it ten times; at 50,000 calls a day it's a
+        line item with a year's worth of zeros behind it — and the gap between Opus and Haiku becomes the gap between a
+        viable product and a deal-breaker. The FDE who can say "this endpoint costs $0.02 a call, runs 50,000 times a day,
+        and we cut it 70% by moving the classification step to Haiku" is the one who keeps the engagement. For high-volume
+        features, cost isn't a footnote to the model choice — it often <em>is</em> the model choice.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Axis 3 · Latency</div>
+        <h2>Latency: how fast does the answer need to arrive?</h2>
+        <p>Capability and cost get the headlines; latency quietly decides whether users tolerate the feature at all. A
+        brilliant answer that arrives in nineteen seconds is the wrong answer for a chat box where the user expects two.
+        Latency is a first-class axis, and like cost it splits the world cleanly in two.</p>
+        <p><strong>Interactive</strong> workloads — a chatbot, an autocomplete, a "summarize this page" button — live or
+        die on perceived speed, and the metric that matters is <strong>time-to-first-token</strong> (TTFT): how long
+        until <em>something</em> appears. Part 2 shows streaming is the lever that turns a slow total response into a
+        fast-feeling one, but the tier still sets the floor — smaller models (Haiku, Flash) aren't just cheaper, they're
+        <em>faster</em>, often dramatically. For interactive features, the smallest model that's <em>capable enough</em>
+        usually wins on latency and cost at once. <strong>Batch / asynchronous</strong> workloads — overnight processing
+        of ten thousand documents, a nightly report — invert the priority: nobody's watching a spinner, so per-call
+        latency barely matters and throughput plus cost dominate (Part 2's batch API does the same work at roughly half
+        price for results in hours, not seconds).</p>
+        <p>The FDE habit is to <strong>ask "who is waiting, and for how long?"</strong> before anything else about the
+        model. That sort eliminates whole columns of the options table before you've compared a single benchmark. The
+        classic expensive mistake: a flagship model on a synchronous user-facing path "because it's the best," then a
+        feature that feels broken because every interaction takes eight seconds. The best model that arrives too late is
+        the wrong model.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Axis 4 · Context window</div>
+        <h2>Context window: how much can you hand it, and what does that cost?</h2>
+        <p>The context window — Day 1's central idea — is also a selection axis, because models differ in window size and
+        the size you need is set by the task. As of <span class="nowrap">June 2026</span> the frontier tiers have
+        converged on very large windows: Claude's current models offer up to <strong>1 million tokens</strong>, the
+        smaller Haiku tier <strong>200K</strong>; Gemini's Pro tier sits in the same 1M-class range.
+        <span class="src">[source: Anthropic model catalog, claude-api reference, cached 2026-06-04]</span> A million
+        tokens is a few thousand pages — an entire codebase, a long contract, a quarter of support transcripts in one
+        call.</p>
+        <p>But a bigger window is not automatically better, and treating "1M context" as a pure win is a beginner error.
+        Two costs ride along. First, <strong>dollars</strong>: you pay per token for everything in the window, so stuffing
+        the whole document set into every call means paying for tens of thousands of tokens you don't need — Day 1's
+        lesson that <em>more retrieved text is not more intelligence; it's more budget spent.</em> Second,
+        <strong>attention</strong>: models can lose precision on facts buried in the middle of an enormous context, so a
+        smaller, well-chosen window often produces a <em>more</em> accurate answer than a giant noisy one.</p>
+        <p>So the context question is really two. <strong>Does the model's max window comfortably exceed the largest input
+        this task will realistically send?</strong> If the task is "answer questions about a 300-page manual," you need
+        room for the manual plus the conversation plus the answer — and if no single model fits, that's a strong signal
+        you need retrieval (RAG, all of Week 2), not a bigger model. And <strong>what will it cost to fill the window you
+        actually use?</strong> A huge window with expensive input can lose to a smaller window with cheap input, if your
+        real inputs fit the smaller one. Size the window to the task, then price the tokens you'll really send.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Axis 5 · Tooling &amp; ecosystem</div>
+        <h2>Tooling &amp; ecosystem: the model is half of what you're buying</h2>
+        <p>Here's the axis junior engineers forget entirely: you're not just choosing a model, you're choosing the
+        <strong>platform around it</strong>. Two equally capable models can be worlds apart in how much engineering it
+        takes to ship a reliable feature, because the surrounding tooling differs — and for an FDE on a deadline, that
+        tooling is often the deciding factor.</p>
+        <p>What's in the ecosystem? <strong>Structured output</strong> — can you say "return JSON matching this exact
+        schema" and have it guaranteed, rather than parse-and-pray? <strong>Tool / function calling</strong> — how cleanly
+        the model calls out to your code and APIs, the entire foundation of the agentic systems you build in Week 3.
+        <strong>Prompt caching</strong> — reusing a stable prefix at a fraction of the price (Anthropic prices cache reads
+        at roughly a tenth of normal input). <strong>Batch APIs</strong> for async work. The maturity of the
+        <strong>SDKs</strong> in your client's language. And whether mainstream <strong>agent frameworks</strong> and
+        observability tools support the model first-class.</p>
+        <p>This is where the biggest vendors earn their keep beyond raw model quality. A model with mediocre benchmarks but
+        a rock-solid SDK, native structured output, reliable tool calling, and prompt caching can get a working,
+        affordable feature into production a week faster than a marginally smarter model with a thinner ecosystem — and a
+        week is the entire budget on many FDE engagements. When you evaluate candidates, build a tiny end-to-end slice on
+        each (one structured call, one tool call) and notice <em>how much friction</em> there was. That friction,
+        multiplied across a project, is real cost the benchmark never shows. The model is maybe half of what you're
+        buying; the ecosystem is the other half.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Axis 6 · Data residency &amp; compliance</div>
+        <h2>Data residency, BAA &amp; self-hosting: the axis that overrules the rest</h2>
+        <p>The final axis frequently <strong>vetoes every other axis at once</strong>. It doesn't matter that a model is
+        smartest, cheapest, and fastest if the client is legally forbidden from sending it their data. For a
+        federal-acquisitions client — or healthcare, financial, or defense anywhere — "where does our data go, and who can
+        see it?" comes <em>before</em> "which model is best," and it eliminates options the leaderboard ranked first.</p>
+        <div class="ix-predict"
+          data-q="A federal-acquisitions client says their data legally cannot leave their own network boundary. Which axis decides the choice — and what option does it point to?"
+          data-a="<b>Data residency / compliance</b> — and it can overrule the other five at once. When even a compliant public API isn't allowed, it points to an <b>open-weight, self-hosted model</b> (Llama, Mistral, DeepSeek, Qwen) running inside the client's boundary, where no data ever leaves. You trade some raw capability for absolute data control — on this engagement, the only acceptable answer.">
+        </div>
+        <p>The compliance vocabulary you need: a <strong>BAA</strong> (Business Associate Agreement) is the contract that
+        lets a vendor process protected health information under HIPAA — no BAA, no PHI, full stop. <strong>Data
+        residency</strong> guarantees data is processed and stored in a specific geography (a US region for federal work).
+        <strong>FedRAMP</strong> authorization and government-cloud regions are what let a vendor touch federal systems at
+        all. And "<strong>no training on your data</strong>" is the baseline that your client's proprietary content won't
+        leak into a future model.</p>
+        <p>The major API vendors have responded to exactly this pressure. Anthropic offers BAAs and runs Claude through
+        enterprise channels — Amazon Bedrock, Google Vertex AI, a dedicated Claude-on-AWS path — that bring it inside a
+        client's existing cloud-governance and data-residency boundary. <span class="src">[source: Anthropic platform
+        docs, claude-api reference, cached 2026-06-04]</span> OpenAI offers BAAs to eligible customers, a
+        no-training-by-default posture, and residency across roughly ten regions; Google delivers Gemini through Vertex AI
+        with the full Google Cloud compliance stack. <span class="src">[sources: OpenAI pricing &amp; API docs,
+        platform.openai.com, verified 2026-06-28; Google Vertex AI docs]</span> And when even a compliant public API is
+        off-limits — air-gapped networks, classified systems, FedRAMP-High and beyond — this axis is the entire reason
+        <strong>open-weight, self-hosted models</strong> are in your toolkit. For a Karsun federal engagement, this isn't
+        a tiebreaker; it's often the first filter, settling the decision before capability, cost, or latency get a vote.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Putting it together</div>
+        <h2>Walk the funnel — and never marry one model</h2>
+        <p>Now run the funnel top to bottom. A <strong>task with its constraints</strong> enters. Compliance and data
+        residency usually filter first and hardest — knocking out whole vendors before anything else. What survives gets
+        sorted by <strong>latency</strong> (who's waiting?) into interactive or batch, pruning tiers. <strong>Context
+        window</strong> checks the model holds the real inputs. Then you weigh <strong>capability</strong> against
+        <strong>cost</strong> on the survivors — with a small eval set on real client data, not a benchmark — and confirm
+        the <strong>tooling</strong> won't fight you. A defensible pick falls out: not "the best model," but <em>the right
+        model for this task, this budget, and this client's rules,</em> with the reasoning written down beside it.</p>
+        <p>That written reasoning is half the deliverable. Clients don't just want a recommendation — they want to
+        understand the trade-off: what you gave up and why. An FDE who can produce a one-page model-selection rationale
+        (the scorecard in today's deep-dive is a template) is doing the consulting half of the job, not just the coding
+        half.</p>
+        <div class="ix-spot"
+          data-snippet="# called from 12 places across the codebase
+resp = openai.chat.completions.create(
+    model=&quot;gpt-5.5&quot;,
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}],
+)
+answer = resp.choices[0].message.content"
+          data-q="The model aced the scorecard. Six weeks in, the client mandates a self-hosted model for compliance. What does this code cost you — and what was the real mistake?"
+          data-a="The vendor's SDK shape (<code>openai.chat...</code>, <code>resp.choices[0]...</code>) is hard-coded at <b>12 call sites</b>, so a model swap is a hunt-and-replace across the codebase plus a re-test of every one. The pick was never the risk — the missing <b>seam</b> was. The fix is the rule attached to every pick: put the model behind <b>one thin interface</b> (build request → send → parse) so swapping is a config change and a re-run of your eval set, not a rewrite.">
+        </div>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>Attach one rule to every pick: <strong>keep it swappable.</strong> Models leapfrog each other every few
+          months, prices fall, a new compliance region opens, a client's needs shift mid-engagement. If your code
+          hard-codes one vendor's SDK and prompt quirks into every corner, switching means a rewrite. Put the model behind
+          a thin internal interface — one place that builds the request, sends it, and parses the response — and switching
+          is a config change plus a re-run of your eval set. The deliverable is never "we chose Model X." It's "we chose
+          Model X for these reasons, and here's how cheaply we can change our minds." That portability is what Part 2 makes
+          concrete: the resilient call you build there is the seam you swap models behind.</p>
+        </div>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">A model-selection scorecard you can hand a client</div>
+          <div class="ac-meta">optional · +6 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">3 quick questions on the six axes</div>
+          <div class="ac-meta">~4 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="d1.html">◂ Back</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn" href="d2b.html">Part 2 ▸</a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 1 Day 2 · Part 1</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: a model-selection scorecard</h2>
+    <p class="quiz-sub">Optional. ~6 minutes. The one-page artifact behind Part 1 — the thing you actually hand a client.</p>
+
+    <p>Score each candidate 1–5 on every axis, weight the axes for <em>this</em> task, and the choice — plus the
+    reasoning — is on the page. Sample numbers are illustrative current-state anchors, not a verdict; pricing drifts, so
+    re-verify before you ship one. <span class="src">[pricing/context sources: Anthropic catalog (claude-api, cached
+    2026-06-04); Gemini API pricing, ai.google.dev (2026-06-28); OpenAI API docs (2026-06-28)]</span></p>
+
+    <div class="model-answer show">
+      <div class="ma-k">Worked scorecard — a federal-acquisitions document-summarization feature</div>
+      <pre style="background:#f1efe9; border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.5; margin:6px 0 0;"><code>AXIS (weight)        Flagship API     Mid-tier API       Open-weight (self-host)
+                     e.g. Opus 4.8    e.g. Sonnet/Flash  e.g. Llama/Mistral
+Capability (×2)        5                4                  3
+Cost in/out ($/M)      $5 / $25  →2     $1.50-3 / $9-15 →4 infra-only     →4
+Latency (×1)           3                4                  4 (you size HW)
+Context window (×1)    1M        →5     1M / 200K     →5  varies          →3
+Tooling/ecosystem(×1)  5                5                  3 (DIY)
+Data residency (×3)    BAA+Bedrock →4   BAA+Vertex   →4   FULL control →5
+─────────────────────────────────────────────────────────────────────────
+If "data never leaves our boundary" is mandatory, the ×3 weight on the last
+row can make open-weight win even though it scores lower on capability.</code></pre>
+      <p style="margin:8px 0 0">The point isn't the exact cells — it's the <em>method</em>: explicit axes, a weight that
+      encodes <em>this</em> client's priorities, and a defensible total. For a regulated client the data-residency weight
+      is often so high it decides the table before capability gets a vote. Pair the scorecard with a 10–20 example eval
+      set on the client's real data to ground the capability row in fact, not vibes.</p>
+    </div>
+
+    <p style="margin-top:14px"><strong>Then keep it swappable.</strong> The scorecard is a snapshot; the prices and tiers
+    will move within the engagement. Put the winner behind a thin model interface so re-running the table next quarter is
+    a config change, not a rewrite — that interface is exactly the resilient call you build in Part 2.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 2 · Part 1 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of Part 1 you can</div>
+    <ul class="goals-list">
+      <li>Frame model selection as a six-axis trade-off — capability, cost, latency, context window, tooling, and data residency — instead of naming a leaderboard winner</li>
+      <li>Match a model tier to the hardest thing a task actually requires, and decompose a workload into a cheap-first / flagship-only-when-needed cascade</li>
+      <li>Explain why output costs more than input, why cost compounds with volume, and why the compliance axis often overrules the rest</li>
+      <li>Defend a pick to a client with a weighted scorecard — and keep the choice swappable behind a thin interface</li>
+    </ul>
+    <div class="ma-k">Deliverable — add to your <code>NOTES.md</code></div>
+    <ul class="deliv-list check">
+      <li><b>①</b> a 3-candidate model scorecard for one realistic feature, with the axis weights you'd defend to a client and the pick that falls out the bottom</li>
+    </ul>
+    <p class="goals-foot">Carry the pick into Part 2, where you make the call to it survive production.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 2 · Part 2 — API patterns →", href: "d2b.html" };
+window.DIAGRAM = {
+  title: "Model selection · the funnel",
+  width: 480, height: 524,
+  nodes: [
+    { id:"task", step:0, kind:"example", x:40, y:20, w:400, h:92,
+      label:"TASK  Summarize a 40-page RFP\n  → return JSON {summary, risks[]}\nCONSTRAINTS  ~50k calls/day\n  US-only data residency" },
+    { id:"cap",  step:1, x:40, y:126, w:400, h:38, label:"① Capability — fit, not max",
+      detail:"Match the tier to the hardest thing the task needs. Decompose: cheap model classifies, flagship only for the hard cases. Judge with a 10–20 example eval set on real data, not a leaderboard." },
+    { id:"cost", step:2, x:40, y:176, w:400, h:38, label:"② Cost — input ≠ output",
+      detail:"Output costs several times input, and it compounds with volume. At 50k calls/day a 2¢ call is ~$365k/yr — the gap between flagship and a cheaper tier becomes the product decision." },
+    { id:"lat",  step:3, x:40, y:226, w:400, h:38, label:"③ Latency — live vs batch" },
+    { id:"ctx",  step:4, x:40, y:276, w:400, h:38, label:"④ Context window — size & $" },
+    { id:"tool", step:5, x:40, y:326, w:400, h:38, label:"⑤ Tooling & ecosystem" },
+    { id:"data", step:6, x:40, y:376, w:400, h:44, label:"⑥ Data residency / BAA",
+      detail:"For regulated/federal work this often filters first and hardest. BAA = process PHI under HIPAA. FedRAMP / gov-cloud = touch federal systems. No public API allowed → open-weight, self-hosted." },
+    { id:"pick", step:7, x:40, y:448, w:400, h:52, label:"PICK ✓ — keep it swappable" }
+  ],
+  edges: [
+    { id:"e1", step:1, from:"task", to:"cap" },
+    { id:"e2", step:2, from:"cap",  to:"cost" },
+    { id:"e3", step:3, from:"cost", to:"lat" },
+    { id:"e4", step:4, from:"lat",  to:"ctx" },
+    { id:"e5", step:5, from:"ctx",  to:"tool" },
+    { id:"e6", step:6, from:"tool", to:"data" },
+    { id:"e7", step:7, from:"data", to:"pick" }
+  ],
+  captions: [
+    "Start from the <b>task and its constraints</b> — what it must do, for whom, under what rules. (Tap the card.) The model falls out of <i>this</i>, not a leaderboard.",
+    "<b>① Capability</b>: match the tier to the hardest thing the task needs — and no higher. Measure it with a small eval set on real data. <span style='opacity:.7'>(tap for more)</span>",
+    "<b>② Cost</b>: input and output are priced differently (output costs more), and it compounds with volume. The cheap tier is often 10× below the flagship. <span style='opacity:.7'>(tap)</span>",
+    "<b>③ Latency</b>: who's waiting? Interactive favors small/fast tiers + streaming; batch favors throughput + cost. Ask it first — it prunes whole columns.",
+    "<b>④ Context window</b>: does the model hold the real inputs — and what does filling it cost? Bigger isn't free, and isn't always more accurate.",
+    "<b>⑤ Tooling & ecosystem</b>: structured output, tool calling, caching, SDKs. The platform is half of what you're buying.",
+    "<b>⑥ Data residency / BAA</b>: for regulated/federal work this often <b>overrules</b> the rest — and is why open-weight self-hosting is in your toolkit. <span style='opacity:.7'>(tap)</span>",
+    "A <b>defensible pick</b> falls out — the right model for this task, budget, and rules. Rule attached: <b>keep it swappable.</b>"
+  ]
+};
+window.QUIZ = {
+  id: "w01-d2a",
+  title: "Check your understanding · Part 1",
+  questions: [
+    { type: "mcq",
+      stem: "A federal-acquisitions client says their data legally cannot leave their own network boundary. Which model-selection axis decides this, and what option does it point to?",
+      options: [
+        "Capability — pick whichever model scores highest on benchmarks",
+        "Cost — pick the cheapest per-token API",
+        "Data residency / compliance — it can overrule the other axes and points toward an open-weight, self-hosted model",
+        "Latency — pick the fastest model regardless of where it runs" ],
+      answer: 2,
+      explain: "For regulated/federal work the data-residency axis often filters first and hardest — it doesn't matter that a model is smartest or cheapest if the client can't legally send it the data. When even a compliant public API isn't allowed, a self-hosted open-weight model (running inside the client's boundary) is the answer, trading some capability for absolute data control." },
+    { type: "mcq",
+      stem: "Two features both get the 'AI' label: (A) classify 200k inbound messages/day into 3 buckets, (B) draft a long report a handful of times a day. What does the cost axis say about model choice?",
+      options: [
+        "Use the same flagship model for both — consistency matters more than cost",
+        "A is dominated by high-volume input cost → a cheap small tier; B is dominated by output cost but low volume → a capable tier is affordable. Match the tier to each feature's cost shape.",
+        "Both should use the cheapest possible model since cost always wins",
+        "Cost is the same for both because they both call an LLM" ],
+      answer: 1,
+      explain: "Cost ≈ (input + output tokens) × price, with output billed higher and the total compounding with volume. A is huge volume of cheap classification — a small tier saves enormous money. B generates expensive output but runs rarely, so a capable tier is affordable. Two 'AI' features can differ 20× in cost profile; you size the model to each feature's shape." },
+    { type: "open",
+      stem: "In two or three sentences: a client asks 'which AI should we use?' and expects a one-word answer. Why is the right response a framework rather than a model name, and what makes a pick 'defensible'?",
+      hint: "Six axes, a weight that encodes this client's priorities, and one rule you attach to every pick.",
+      model: "'Which AI?' isn't a contest with a single winner — it's a constrained optimization across six axes (capability, cost, latency, context window, tooling, data residency) that pull against each other, so the right model depends on this task, this budget, and this client's rules, not a leaderboard. A pick is defensible when it comes from a weighted scorecard that encodes the client's priorities (e.g. a heavy data-residency weight for federal work) plus a small eval set on real data, with the reasoning written down. And every pick carries one rule — keep it swappable behind a thin interface — because models and prices move within the engagement." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

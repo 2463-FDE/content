@@ -44,7 +44,7 @@
     elist.forEach(el => {
       const sample = el.dataset.sample || "Summarize this RFP for a non-technical reader.";
       el.innerHTML =
-        `<div class="ix-k">Token counter <span class="ix-sub">(≈ chars ÷ 4)</span></div>` +
+        `<div class="ix-k">▶ Try it <span class="ix-sub">token counter · ≈ chars ÷ 4</span></div>` +
         `<textarea class="ix-ta" rows="3"></textarea>` +
         `<div class="ix-out"><b class="t-tok">0</b> tokens · <span class="t-ch">0</span> chars · <span class="t-wd">0</span> words</div>`;
       const ta = el.querySelector(".ix-ta");
@@ -63,7 +63,7 @@
     const labels = ["approve", "review", "deny", "escalate", "defer"];
     elist.forEach(el => {
       el.innerHTML =
-        `<div class="ix-k">Temperature <span class="ix-sub">how the next token is picked</span></div>` +
+        `<div class="ix-k">▶ Try it <span class="ix-sub">temperature · how the next token is picked</span></div>` +
         `<input class="ix-range" type="range" min="0" max="150" value="20">` +
         `<div class="ix-temp-val">temperature = <b>0.20</b> · <span class="ix-temp-desc"></span></div>` +
         `<div class="ix-bars"></div>`;
@@ -91,7 +91,7 @@
   function costCalc(elist) {
     elist.forEach(el => {
       el.innerHTML =
-        `<div class="ix-k">Cost calculator</div>` +
+        `<div class="ix-k">▶ Try it <span class="ix-sub">cost calculator</span></div>` +
         `<div class="ix-grid">` +
         `<label>Input tokens<input class="c-in" type="number" value="4800"></label>` +
         `<label>Output tokens<input class="c-out" type="number" value="400"></label>` +
@@ -115,7 +115,7 @@
   function retrySim(elist) {
     elist.forEach(el => {
       el.innerHTML =
-        `<div class="ix-k">Retry with backoff + jitter</div>` +
+        `<div class="ix-k">▶ Try it <span class="ix-sub">retry with backoff + jitter</span></div>` +
         `<div class="ix-out">base 0.5s · ×2 each attempt · cap 8s · full jitter · max 5 tries</div>` +
         `<button class="ix-btn" type="button">▶ Simulate a flaky call</button>` +
         `<div class="ix-retry-log"></div>`;
@@ -137,7 +137,21 @@
     });
   }
 
+  // consistent interaction key — the same vocabulary on every reading
+  function legend(elist) {
+    elist.forEach(el => {
+      el.innerHTML =
+        `<span class="ixl-lead">This reading is interactive —</span>` +
+        `<span class="ixl-chip">Predict</span>` +
+        `<span class="ixl-chip">🔍 Spot the problem</span>` +
+        `<span class="ixl-chip">▶ Try it</span>` +
+        `<span class="ixl-chip">✓ Check</span>` +
+        `<span class="ixl-chip">click diagram nodes</span>`;
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
+    legend(document.querySelectorAll(".ix-legend"));
     predict(document.querySelectorAll(".ix-predict"));
     spot(document.querySelectorAll(".ix-spot"));
     tokenCounter(document.querySelectorAll(".ix-tokens"));

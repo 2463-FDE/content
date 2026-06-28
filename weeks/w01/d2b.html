@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W1·D2·Part 2 — API Integration Patterns | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 1 · Day 2 · Part 2 · API Integration Patterns</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>API Integration Patterns: Calling a Model Reliably</h1>
+        <div class="meta">
+          <span><b>Week 1</b> · Day 2 · Part 2</span>
+          <span>Surviving Production</span>
+          <span><b>~20 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Part 1 you picked a model and put it behind a thin interface. Now your code has to actually
+        <em>call</em> it — over the network, thousands of times a day, against a service you don't control. This is where
+        a depressing number of AI features fail: not because the model is wrong, but because the integration is naïve.
+        Part 2 is the patterns that make a call survive production — <strong>streaming, batching, rate limits, retries with
+        backoff and jitter, idempotency, timeouts, and graceful failure.</strong> Scroll the reading; the diagram on the
+        right builds one resilient call and everything wrapped around it, piece by piece.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game, again</div>
+        <h2>Picking the model was the easy part — now you have to call it</h2>
+        <p>You've chosen a model and put it behind a clean interface. Now your code has to call it, over the network,
+        thousands of times a day, against a service you don't control. The prototype made one call in a notebook, it
+        worked, everyone clapped. Production makes that call forty thousand times against a rate-limited,
+        occasionally-overloaded, sometimes-slow remote API — and every weakness the notebook hid becomes a user-facing
+        outage.</p>
+        <p>The mental shift for Part 2: <strong>an LLM API call is a network request to a shared, metered, fallible
+        service — treat it like one.</strong> Everything you know about resilient distributed systems applies. The
+        patterns aren't AI-specific; they're the same disciplines that make any third-party integration survive
+        production — streaming for responsiveness, batching for throughput, respecting rate limits, retrying transient
+        failures correctly, making retries safe, bounding how long you'll wait, and failing gracefully. LLM calls just
+        make each matter <em>more</em>, because they're slower, pricier, and flakier than the average REST call.</p>
+        <p>The diagram on the right is a single resilient call and everything around it. We'll build it piece by piece:
+        how the response comes back (stream or batch), the gate in front of the call (rate limiting), the call itself with
+        its safety equipment (timeout, retry with backoff and jitter, idempotency), and the two ways it can end (ship the
+        result, or fall back safely). Master it once and you reuse it on every engagement, behind whatever model you
+        picked in Part 1. <span class="src">[example payload card on the diagram: a real <code>POST /v1/messages</code>
+        request]</span></p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Pattern 1 · Streaming</div>
+        <h2>Streaming: don't make the user wait for the last token</h2>
+        <p>An LLM generates its answer one token at a time, left to right. By default the API waits until the
+        <em>entire</em> answer is finished, then sends it back in one lump — so for a long response the user stares at a
+        spinner for the full generation time, maybe ten or twenty seconds, before anything appears.
+        <strong>Streaming</strong> changes the delivery: the API sends each token as it's produced, so text starts
+        appearing almost immediately. Total generation time is unchanged, but <em>perceived</em> latency collapses,
+        because <strong>time-to-first-token</strong> — not total time — is what the user feels.</p>
+        <div class="ix-predict"
+          data-q="A summary takes 12 seconds to fully generate. With streaming, the first words appear in ~0.4s; without it, nothing until 12s. The total generation time is identical. Which feels faster to the user, and why does that matter more than the total?"
+          data-a="<b>Streaming feels dramatically faster</b> — the user starts reading at 0.4s instead of staring at a spinner for 12. The metric users actually feel is <b>time-to-first-token</b>, not total completion time. The work isn't any quicker, but the experience goes from 'is this broken?' to 'it's already answering.' This is the single highest-leverage UX move on any interactive AI feature.">
+        </div>
+        <p>This is why every "the AI feels slow" complaint should first be met with "are we streaming?" The familiar
+        typewriter effect in every chat interface is streaming; without it those products would feel broken. It does cost
+        some engineering: a streamed response arrives as a sequence of events over a long-lived connection rather than one
+        JSON object, so your code consumes a stream and assembles the pieces. Two consequences to internalize. First,
+        because the connection stays open for the whole generation, streaming is also how you <em>avoid request
+        timeouts</em> on long outputs — a large non-streaming response can exceed a client's HTTP timeout and get killed
+        mid-flight, which is why SDKs often <em>require</em> streaming above a certain output size. Second, streaming
+        complicates error handling: a failure can happen <em>after</em> some tokens have reached the user, so "the request
+        failed" is no longer a clean before-or-after — you may have a partial answer on screen. Hold that thought; it
+        returns at error handling.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Pattern 2 · Batching</div>
+        <h2>Batching: the opposite trade for work nobody is watching</h2>
+        <p>Streaming optimizes the case where a human is waiting. <strong>Batching</strong> optimizes the case where
+        nobody is. When you have a large volume of <em>independent</em> calls that don't need to finish right now —
+        classify ten thousand support tickets, summarize last quarter's documents, enrich a database overnight — sending
+        them one at a time through the synchronous API is the wrong tool. You'll fight rate limits, pay full price, and
+        babysit a long sequential loop.</p>
+        <p>The major providers offer a dedicated <strong>batch API</strong> for exactly this: you submit a big set of
+        requests as one job, the provider processes them asynchronously over a window (typically up to 24 hours), and you
+        collect the results when it's done — at a substantial discount, commonly around <strong>50% off</strong> the
+        normal per-token price. <span class="src">[source: provider batch-API docs — Anthropic Message Batches / OpenAI
+        Batch API, verified 2026-06]</span> You trade immediacy for throughput and cost: results in hours instead of
+        seconds, for roughly half the money and none of the rate-limit juggling.</p>
+        <p>The FDE judgment is matching the mechanism to the workload's <em>true</em> deadline. The instinct to make
+        everything synchronous and instant is expensive and often pointless — if a report is read tomorrow morning,
+        generating it in a 2 a.m. batch run for half the price is strictly better. Conversely, batching a request a user
+        is actively waiting on would be absurd. Two practical notes carry forward. First, batch results come back keyed by
+        an ID <em>in no guaranteed order</em>, so you match each result to its request by the custom ID you assigned —
+        never by position. Second, batching sidesteps the live rate-limit dance we're about to discuss, which is half its
+        appeal: you hand the provider the whole pile and let them pace it. Ask of every bulk job: does anyone need this in
+        the next few seconds? If not, batch it.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Pattern 3 · Rate limiting</div>
+        <h2>Rate limits: you are sharing a metered service</h2>
+        <p>An LLM API is a shared resource, and the provider caps how much any one account can consume. The caps come in
+        three flavors you'll see constantly: <strong>RPM</strong> (requests per minute), <strong>TPM</strong> (tokens per
+        minute), and sometimes <strong>TPD</strong> (tokens per day). Exceed any of them and the API stops serving you and
+        returns an <strong>HTTP 429, "Too Many Requests."</strong> A 429 is not a bug in your code and not an error in the
+        usual sense — it's the provider saying "slow down, you've hit your share." Treating it as fatal, or worse,
+        hammering harder when you see one, is the classic way to turn a brief throttle into a sustained outage.</p>
+        <p>You handle rate limits from both sides. <strong>Reactively</strong>, when a 429 comes back, you back off and
+        retry — and the provider usually tells you exactly how long to wait, in a <code>Retry-After</code> header.
+        Respecting that header is the single most important thing you can do; it's the difference between recovering in one
+        polite pause and flailing against the wall. (The retry mechanics are the next pattern.)
+        <strong>Proactively</strong>, you throttle <em>yourself</em> so you mostly don't hit the limit in the first place —
+        a client-side rate limiter (a token-bucket, or a simple semaphore capping concurrent requests) that paces your
+        outbound calls under the known ceiling. The diagram puts this throttle as a gate <em>in front of</em> the call for
+        a reason: it's cheaper to not send a doomed request than to send it and handle the 429.</p>
+        <p>This is also where Part 1 and Part 2 connect. Rate limits are <em>per account and per model tier</em>, so the
+        model you chose shapes your headroom — a smaller tier may have a roomier limit, and spreading load across tiers
+        (cheap model for the bulk, flagship for the hard cases) spreads load across limit pools too. For an FDE, "we're
+        getting rate-limited" should trigger a design conversation — throttle, batch, cache, or upgrade the tier — not a
+        frantic retry loop.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Pattern 4 · Retries with backoff + jitter</div>
+        <h2>Retries: the right way to handle transient failure</h2>
+        <p>Networks are unreliable and shared services have bad moments. Over thousands of calls you <em>will</em> hit
+        transient failures: a 429 rate limit, a 500 or 503 when the provider is briefly overloaded, a dropped connection.
+        The defining property is that they're <strong>temporary</strong> — the exact same request, sent again a moment
+        later, usually succeeds. So the correct response is to retry. But <em>how</em> you retry separates a resilient
+        system from one that makes outages worse.</p>
+        <p>The wrong way is to retry immediately, in a tight loop. If the service is overloaded, a flood of instant retries
+        from every client at once is precisely what keeps it overloaded — a self-inflicted denial-of-service called a
+        "retry storm." The right way has three parts. <strong>Exponential backoff</strong>: wait longer between attempts —
+        1s, then 2, then 4, then 8 — giving the service room to recover. <strong>Jitter</strong>: add a small random
+        amount to each wait, so thousands of clients that failed at the same instant don't all retry at the same instant
+        and re-create the spike. And a <strong>bounded cap</strong>: retry a fixed, small number of times — three, maybe
+        five — then give up and treat it as a real failure, because an unbounded loop burns money and stalls the user
+        forever. Run the loop and watch the waits spread:</p>
+        <div class="ix-retry"></div>
+        <p>One crucial distinction makes retries correct rather than dangerous: <strong>retry only the failures that are
+        actually transient.</strong> A 429 or a 5xx is worth retrying — the request was fine, the service just couldn't
+        serve it yet. A 400 (malformed request) or a 401 (bad credentials) is <em>not</em> — retrying a request the server
+        already rejected as invalid will fail identically every time and just waste attempts. The retry logic has to
+        branch on the error type. The good news: mature SDKs implement backoff-with-jitter on the right error classes for
+        you — but you must know what they're doing, because you'll tune it, and because the next pattern is what makes any
+        retry safe. The worked implementation is in today's deep-dive.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Pattern 5 · Idempotency</div>
+        <h2>Idempotency: making it safe to retry at all</h2>
+        <p>Retries introduce a subtle, dangerous question you must answer before you turn them on: <strong>what if the
+        request actually succeeded, but the response got lost on the way back?</strong> The server did the work and
+        charged you; the acknowledgment never arrived; your retry logic sees "no response" and sends the request again.
+        Now the work has happened <em>twice</em>. For a read-only LLM call that's merely wasteful — you paid for two
+        generations. For anything with a side effect — an agent that placed an order, sent an email, wrote a record,
+        kicked off a payment — doing it twice is a real incident.</p>
+        <p><strong>Idempotency</strong> is the property that doing an operation twice has the same effect as doing it once.
+        The standard mechanism is an <strong>idempotency key</strong>: you generate a unique ID for the logical operation
+        and attach it to the request. The first time the server sees that key it does the work and remembers the result;
+        if a retry arrives carrying the <em>same</em> key, the server recognizes a duplicate and returns the original
+        result instead of doing the work again. The retry becomes safe — at most one real execution, no matter how many
+        times the network makes you resend.</p>
+        <p>This is why idempotency sits in the diagram <em>attached to the call</em>, right beside retry: they're a pair.
+        Retry without idempotency is a loaded gun pointed at your client's data — every backoff attempt risks a duplicate
+        side effect. Many LLM APIs support an idempotency key directly on the request for exactly this reason, and where
+        the model is one step in a larger workflow, you carry the same discipline through your own services: assign each
+        logical operation an ID, dedupe on it, and design every step so replaying it is harmless. The FDE rule is blunt:
+        <strong>before you enable retries, make the thing being retried idempotent.</strong> Retries assume the operation
+        is safe to repeat; idempotency is how you make that assumption true.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Pattern 6 · Timeouts</div>
+        <h2>Timeouts: decide in advance how long you'll wait</h2>
+        <p>Every call needs a deadline. Without one, a single slow or hung request can tie up a connection, a thread, or a
+        user's patience indefinitely — and under load, a pile of stuck requests with no timeout is how one slow dependency
+        takes down an entire service. A <strong>timeout</strong> is your explicit decision: if this call hasn't returned
+        in N seconds, stop waiting and handle it as a failure. LLM calls make timeouts especially important because
+        they're <em>slow and variable</em> — a response can legitimately take many seconds, the spread between fast and
+        slow is wide, and the naïve defaults that work for a quick REST call are wrong here.</p>
+        <p>Setting the timeout is a judgment call you tune to the workload. Too short and you'll kill legitimate slow
+        responses, turning a working call into a failure and a wasted retry. Too long and a genuinely hung request blocks
+        resources far past usefulness. An interactive feature wants a tighter deadline (a user won't wait 60 seconds
+        anyway); a batch or long-generation job can afford a generous one. The key is that it's a deliberate number, not
+        whatever the library defaulted to.</p>
+        <p>Two LLM-specific traps. First, the <strong>streaming gotcha</strong> from Pattern 1: many HTTP clients implement
+        "timeout" as a <em>per-chunk</em> read timeout that resets every time a byte arrives, not a total wall-clock cap.
+        On a streamed response that trickles tokens slowly, such a timeout may never fire even though the call has dragged
+        on for minutes — so for a hard overall deadline you often track elapsed time yourself at the loop level, not trust
+        a single setting. Second, timeouts compose with retries: <strong>your true worst-case wait is the timeout
+        multiplied by the number of attempts</strong> (plus the backoff delays). A 30-second timeout with three retries
+        can mean a user waiting well over a minute — so set both numbers together, with the total experience in mind.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Pattern 7 · Graceful error handling</div>
+        <h2>Graceful failure: never let a broken call reach the user raw</h2>
+        <p>Everything so far reduces how often calls fail and how safely you retry. The last pattern decides what happens
+        when, despite all of it, a call <em>still</em> fails — because at scale, some will. The amateur integration lets
+        the exception bubble up and the user sees a stack trace, a spinner that never resolves, or a blank screen. The
+        professional integration has decided, in advance, <strong>what failure looks like to the user</strong>, and it's
+        never raw. It starts with a <strong>taxonomy</strong>, because each class is handled differently — but the
+        instinct to wrap everything in one catch-all is exactly the trap:</p>
+        <div class="ix-spot"
+          data-snippet="try:
+    resp = model.call(request)
+    return resp.text
+except Exception:
+    return model.call(request)   # just try again"
+          data-q="This 'resilient' wrapper has at least three serious bugs. What are they?"
+          data-a="<b>(1) It retries everything</b> — a 400/401 will fail identically forever; only 429/5xx are transient. <b>(2) No backoff, no jitter, no bound</b> — one immediate blind retry, and if it became a loop it'd be a retry storm. <b>(3) No idempotency key</b> — if the first call actually succeeded but the response dropped, the retry duplicates the work (and any side effect). Plus there's no timeout and no real fallback: a second failure throws raw to the user. Branch on the error <i>type</i>; back off with jitter on transient errors only; carry an idempotency key; and end in a chosen fallback, never an exception.">
+        </div>
+        <p>The classes: a <em>transient</em> error (429, 5xx, dropped connection) → retry with backoff (Pattern 4); a
+        <em>client</em> error (400, 401) → don't retry, fix the request or fail fast; a <em>timeout</em> → treat as
+        failure after the deadline (Pattern 6); a <em>content</em> outcome like a safety refusal → a real, expected
+        response type to branch on, not a crash; and <em>still-failing-after-retries</em> → the genuine dead end this
+        pattern exists for. For that dead end, you define a <strong>fallback</strong> — the deliberate "what we do when
+        nothing worked": a graceful message ("the assistant is unavailable — here's how to reach a human"), a handoff to a
+        deterministic non-AI path, a cached or default result, or <em>falling back to a different model</em> (the Part 1
+        portability seam paying off — a clean interface lets you retry on a backup model).</p>
+        <p>Two refinements for systems that call a lot: a <strong>circuit breaker</strong> that, after repeated failures,
+        stops sending requests for a cooldown instead of retrying into a wall — protecting both you and the struggling
+        provider; and, recalling Pattern 1, a plan for <strong>partial streamed output</strong>, since a failure
+        mid-stream may leave half an answer on screen that you must either complete or cleanly retract. The unifying
+        principle is Day 4's, restated for the network layer: <strong>"no answer, cleanly handled" always beats "a wrong
+        answer or a crash, delivered raw."</strong> A user told the feature is briefly unavailable is mildly annoyed; a
+        user shown a traceback, or left on a dead spinner, has lost trust in the product — and your client has lost trust
+        in you. The resilient call in the diagram ends in exactly two places: a result you ship, or a fallback you chose.
+        It never ends in an exception the user sees.</p>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="7">
+        <div class="tag">Your tools</div>
+        <h2>The $20 plan is your first resilient-integration test</h2>
+        <p>Both halves of today are things you're already living. You're on a <strong>$20 Claude Pro plan with a budget
+        measured in roughly 40 focused hours a week</strong> — so you've already made a model-selection decision under
+        constraints, and Part 2's patterns show up every day. Every time Claude Code streams a long answer you read it as
+        it arrives instead of waiting (streaming). Every time you hit a usage limit you pace yourself instead of hammering
+        retries (rate limits + backoff). Every time a long agentic run times out you decide whether to retry the whole
+        thing or fall back to doing the step by hand (timeouts + fallback). Working like an engineer — choosing the right
+        model and calling it resiliently — stretches the $20 plan across the week; working like a slot machine — flagship
+        on everything, re-running giant loops on every transient blip — burns it by Tuesday.</p>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>A client will ask two questions that sound separate: "which AI should we use?" and "why does the AI feature
+          keep breaking?" They're the two halves of Day 2. The first (Part 1) is a six-axis trade-off you decide and
+          <em>document</em>. The second is almost never the model's fault — it's a missing timeout, an unbounded retry, a
+          non-idempotent side effect, an un-throttled rate limit, or an error that reached the user raw. The FDE who can
+          pick the right model <em>and</em> wrap it in a call that survives production is delivering the whole job — the
+          consulting decision and the engineering that makes it hold.</p>
+        </div>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">A production-grade backoff-retry loop, annotated</div>
+          <div class="ac-meta">optional · +6 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">3 quick questions on resilient calls</div>
+          <div class="ac-meta">~4 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="d2a.html">◂ Back</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn" href="d3.html">Day 3 ▸</a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 1 Day 2 · Part 2</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the resilient-call loop</h2>
+    <p class="quiz-sub">Optional. ~6 minutes. Part 2's seven patterns, assembled into one function.</p>
+
+    <p>Backoff + jitter on transient errors only, bounded attempts, an idempotency key so a retry can't double a side
+    effect, a deliberate timeout, and a fallback so failure never reaches the user raw:</p>
+    <pre style="background:#f1efe9; border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.5; margin:10px 0 0;"><code>def call_model(request, *, max_tries=4, base=1.0, cap=30.0, timeout=20.0):
+    idem_key = request.idempotency_key or new_uuid()   # safe to retry
+    for attempt in range(max_tries):
+        try:
+            return model.call(request, key=idem_key,    # one logical op
+                              timeout=timeout)           # bounded wait
+        except RateLimited as e:                         # 429
+            delay = e.retry_after or backoff(attempt, base, cap)
+        except (ServerError, ConnectionDropped):         # 5xx / network
+            delay = backoff(attempt, base, cap)          # transient → retry
+        except (BadRequest, Unauthorized):               # 400 / 401
+            raise                                        # NOT transient → stop
+        sleep(delay)
+    return fallback(request)        # exhausted → fail safe, never crash
+
+def backoff(attempt, base, cap):
+    raw = min(cap, base * (2 ** attempt))    # exponential: 1,2,4,8...
+    return random.uniform(0, raw)            # full jitter — spread the herd</code></pre>
+    <p style="margin:8px 0 0">Five things make it production-grade: it retries <strong>only transient</strong> errors
+    (4xx falls straight through); it honors the server's <code>Retry-After</code> when given; backoff is
+    <strong>exponential with jitter</strong> so simultaneous failures don't re-spike together; the same
+    <strong>idempotency key</strong> rides every attempt so at most one real execution happens; and every path that isn't
+    a clean result lands in <code>fallback()</code>. Worst-case wait ≈ <code>timeout × max_tries</code> plus the backoff
+    delays — set those two numbers together, with the user's experience in mind. This is the seam from Part 1: swap the
+    model inside <code>model.call</code> and the whole resilient wrapper keeps working.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 2 · Part 2 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of Part 2 you can</div>
+    <ul class="goals-list">
+      <li>Treat an LLM API call as a network request to a shared, metered, fallible service — and name the patterns that make it survive production</li>
+      <li>Choose streaming vs batching by asking "who is waiting, and for how long?"</li>
+      <li>Explain HTTP 429 and handle it both reactively (back off, honor Retry-After) and proactively (client-side throttle)</li>
+      <li>Retry only transient errors with exponential backoff + jitter and a bounded cap — and explain why retries are unsafe without idempotency</li>
+      <li>Pair a deliberate timeout with the retry count to bound the worst-case wait, and define a fallback so failure never reaches the user raw</li>
+    </ul>
+    <div class="ma-k">Deliverable — add to your <code>NOTES.md</code></div>
+    <ul class="deliv-list check">
+      <li><b>①</b> one feature sorted into interactive-vs-batch, with the delivery mode (stream / batch) that follows from it</li>
+      <li><b>②</b> the resilient-call checklist you'd apply to one untrusted API call — timeout, retry policy (which errors, how many, backoff+jitter), idempotency, and fallback</li>
+    </ul>
+    <p class="goals-foot">Bring both halves of Day 2 to tomorrow's session. Day 3 you turn the prompt itself into the next engineering surface.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 3 — Prompt Engineering →", href: "d3.html" };
+window.DIAGRAM = {
+  title: "Resilient API call",
+  width: 650, height: 560,
+  nodes: [
+    { id:"client", step:0, kind:"example", x:30,  y:22,  w:330, h:104,
+      label:"POST /v1/messages\n{\"model\":\"claude-...\",\n \"stream\": true,\n \"messages\":[{\"role\":\"user\",\n  \"content\":\"Summarize the RFP\"}]}" },
+    { id:"stream", step:1, x:45,  y:156, w:300, h:42, label:"① Stream tokens — low TTFT",
+      detail:"Tokens arrive as generated, so the user reads at ~0.4s instead of waiting 12s. Time-to-first-token is what they feel. Also avoids HTTP timeouts on long outputs." },
+    { id:"batch",  step:2, x:410, y:150, w:200, h:46, label:"or BATCH — async · −50%",
+      detail:"Work nobody's waiting on: submit one job, collect results within ~24h at ~half price. Results keyed by your custom ID, no guaranteed order. Sidesteps the live rate-limit dance." },
+    { id:"throt",  step:3, x:45,  y:224, w:300, h:42, label:"② Throttle ≤ RPM / TPM",
+      detail:"A gate in front of the call (token-bucket / semaphore) keeps you under the provider's RPM/TPM caps. Cheaper to not send a doomed request than to send it and handle the 429." },
+    { id:"call",   step:4, x:45,  y:298, w:300, h:54, label:"③ API CALL · timeout set" },
+    { id:"retry",  step:5, x:410, y:296, w:200, h:58, label:"④ Retry — backoff + jitter\n(429 / 5xx only)",
+      detail:"Exponential backoff (1,2,4,8s) gives the service room; jitter spreads simultaneous failures so they don't re-spike; bounded to ~3-5 tries. 400/401 are NOT retried — they'd fail identically." },
+    { id:"idem",   step:6, x:290, y:388, w:190, h:52, label:"⑤ Idempotency key\nsafe to repeat",
+      detail:"A unique key per logical op. If the first call succeeded but the response dropped, the retry carries the same key and the server returns the original result — at most one real execution. Retry + idempotency are a pair." },
+    { id:"done",   step:7, x:45,  y:472, w:260, h:58, label:"✓ 200 → ship result" },
+    { id:"fb",     step:7, x:350, y:472, w:260, h:58, label:"exhausted / 4xx →\nsafe fallback" }
+  ],
+  edges: [
+    { id:"e_cs", step:1, from:"client", to:"stream", label:"response", ly:-1 },
+    { id:"e_b",  step:2, from:"client", to:"batch",  label:"bulk", ly:-4 },
+    { id:"e_st", step:3, from:"stream", to:"throt" },
+    { id:"e_tc", step:4, from:"throt",  to:"call" },
+    { id:"e_rt", step:5, from:"call",   to:"retry",  label:"429 / 5xx", bend:22,  ly:14 },
+    { id:"e_rc", step:5, from:"retry",  to:"call",   label:"re-try",    bend:-22, ly:-10 },
+    { id:"e_ik", step:6, from:"idem",   to:"call",   label:"safe to retry", dir:"-", lx:18, ly:6 },
+    { id:"e_ok", step:7, from:"call",   to:"done",   label:"200 ✓", lx:-4 },
+    { id:"e_fb", step:7, from:"retry",  to:"fb",     label:"give up", lx:22 }
+  ],
+  captions: [
+    "A real <b>client request</b> — JSON over the network to a shared, metered, fallible service. <code>stream:true</code> already sets up Pattern 1. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "<b>Stream</b> the response so the user sees tokens immediately. Time-to-first-token, not total time, is what they feel.",
+    "Work nobody's waiting on? <b>Batch</b> it — async, often ~50% cheaper, and it sidesteps the live rate-limit dance entirely.",
+    "<b>Throttle</b> yourself under the provider's RPM/TPM caps — a gate in front of the call. Cheaper to not send a doomed request than to handle the 429.",
+    "Make the <b>call</b> with a deliberate <b>timeout</b> — LLM calls are slow and variable, so the library default is wrong.",
+    "Transient failure (429 / 5xx)? <b>Retry</b> on a side-branch: exponential backoff + jitter, bounded, then loop back. 4xx is NOT retried.",
+    "An <b>idempotency key</b> on every attempt means a retry can't double a side effect. Retry + idempotency are a pair — note it on the call.",
+    "Ends in exactly two places: a <b>result you ship</b> (200), or a <b>fallback you chose</b> (exhausted / 4xx). Never an exception the user sees."
+  ]
+};
+window.QUIZ = {
+  id: "w01-d2b",
+  title: "Check your understanding · Part 2",
+  questions: [
+    { type: "mcq",
+      stem: "Your service retries failed model calls with a tight immediate loop and no idempotency key. Two things are wrong. Which pair fixes them?",
+      options: [
+        "Use a bigger model, and add more retries",
+        "Add exponential backoff with jitter (so retries don't re-spike the overloaded service), and attach an idempotency key (so a retried call that already succeeded can't double a side effect)",
+        "Stream the response, and increase the timeout",
+        "Switch to a batch API, and remove the retries entirely" ],
+      answer: 1,
+      explain: "Immediate tight-loop retries cause retry storms — exponential backoff spaces attempts out and jitter stops thousands of clients retrying in lockstep. And retries are unsafe without idempotency: if the original request actually succeeded but the response was lost, a blind retry repeats the work (and any side effect). An idempotency key makes the server dedupe the retry to a single execution." },
+    { type: "mcq",
+      stem: "You get an HTTP 429 from the model API. What is it, and how should resilient code respond?",
+      options: [
+        "A bug in your code — log it and crash",
+        "A rate limit ('too many requests') — back off and retry, ideally honoring the Retry-After header, and throttle proactively to avoid it",
+        "A malformed request — fix the JSON and do not retry",
+        "A safety refusal — route to a human" ],
+      answer: 1,
+      explain: "429 means you've hit your share of a metered, shared service — it's transient, not a code bug. Respect the Retry-After header when present, retry with bounded backoff, and proactively throttle yourself (client-side rate limiting) so you mostly stay under the cap. Contrast a 400, which is a malformed request and should NOT be retried." },
+    { type: "open",
+      stem: "In two or three sentences: a client complains 'the AI feature keeps breaking.' It's almost never the model itself. Name three integration patterns you'd check first, and what each prevents.",
+      hint: "Think about the call's safety equipment: timeout, retry policy, idempotency, fallback.",
+      model: "The breakage is almost always the integration, not the model. I'd check: (1) a deliberate timeout paired with the retry count — without it a hung call ties up resources and the worst-case wait is unbounded; (2) retries that branch on error type with exponential backoff + jitter and an idempotency key — so transient 429/5xx recover without retry storms or duplicated side effects, and 4xx isn't retried pointlessly; and (3) a defined fallback so an exhausted call ends in a graceful message or a backup model, never a raw exception on the user's screen." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>
