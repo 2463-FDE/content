@@ -121,14 +121,20 @@ window.WEEKS = [
     wc.className = "cal-week"; wc.style.setProperty("--pc", ph.c);
     wc.innerHTML = `<div class="ww">Week ${week.w}</div><div class="wt">${week.title}</div><div class="wp">${ph.label}</div>`;
     cal.appendChild(wc);
-    week.days.forEach(day => {
-      const inner = `<div class="ct">${day.t}</div><div class="cs">${day.s || ""}</div>` +
-        `<div class="cmark">${day.fde ? '<span class="mk fde">◆ FDE</span>' : ''}${day.star ? '<span class="mk star">★</span>' : ''}</div>`;
-      let el;
-      if (day.href) { el = document.createElement("a"); el.href = day.href; el.className = "cal-cell live"; }
-      else { el = document.createElement("div"); el.className = "cal-cell soon"; }
+    week.days.forEach((day, di) => {
+      const title = day.href ? `<a class="ct-link" href="${day.href}">${day.t}</a>` : day.t;
+      const marks = `${day.fde ? '<span class="mk fde">◆ FDE</span>' : ''}${day.star ? '<span class="mk star">★</span>' : ''}`;
+      // recurring weekly rituals
+      let rituals = "";
+      if (di === 0) rituals += `<a class="ritual cr" href="client-delivery.html">📋 Client request</a>`;
+      if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="system-design.html">🎯 Sys-design · start</a>`;
+      if (week.w <= 8 && di === 2) rituals += `<a class="ritual ar" href="alt-research.html">🔬 Alt research</a>`;
+      if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="system-design.html">🎯 Sys-design · due</a>`;
+      const el = document.createElement("div");
+      el.className = "cal-cell" + (day.href ? " live" : " soon");
       el.style.setProperty("--pc", ph.c);
-      el.innerHTML = inner;
+      el.innerHTML = `<div class="ct">${title}</div><div class="cs">${day.s || ""}</div>` +
+        `<div class="cmark">${marks}</div>` + (rituals ? `<div class="ritual-row">${rituals}</div>` : "");
       cal.appendChild(el);
     });
   });
