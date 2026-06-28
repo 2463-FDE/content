@@ -172,7 +172,7 @@
   <div class="prose">
     <div class="callout">
       <div class="k">Today's deliverable</div>
-      <p style="margin:0 0 6px"><strong>Pass the check above (≥4/5)</strong>, then in your project repo start a
+      <p style="margin:0 0 6px"><strong>Work through the practice check above</strong>, then in your project repo start a
       <code>NOTES.md</code> and write three sentences: (1) one capability you now understand as a context-window
       consequence, (2) one failure you'd now diagnose as a window problem before blaming the model, (3) one place
       a token budget would save the client money. Bring it to tomorrow's session.</p>
@@ -223,9 +223,9 @@ window.DIAGRAM = {
 window.QUIZ = {
   id: "w01-d1",
   title: "Check your understanding",
-  pass: 0.8,
   questions: [
-    { stem: "A client says 'your AI keeps forgetting the formatting rules halfway through long chats.' What's the most likely cause?",
+    { type: "mcq",
+      stem: "A client says 'your AI keeps forgetting the formatting rules halfway through long chats.' What's the most likely cause?",
       options: [
         "The model is too small and should be upgraded",
         "Temperature is set too low",
@@ -233,19 +233,8 @@ window.QUIZ = {
         "The system prompt was never sent" ],
       answer: 2,
       explain: "History grows every turn and competes for the finite window; the earliest tokens (your rules) get evicted first. A window problem, not a model problem." },
-    { stem: "Why does turning temperature down help a data-extraction feature?",
-      options: [
-        "It makes the model faster",
-        "Lower temperature makes token selection more deterministic, so the same input tends to give the same output",
-        "It increases the context window size",
-        "It removes the system prompt overhead" ],
-      answer: 1,
-      explain: "Extraction needs repeatability. Low temperature picks the most likely tokens, reducing run-to-run variation." },
-    { stem: "Roughly, 1 token is about…",
-      options: [ "1 full sentence", "1 character", "¾ of an English word (≈4 characters)", "1 paragraph" ],
-      answer: 2,
-      explain: "≈ 4 characters / 0.75 words in English. Code and rare words tokenize higher." },
-    { stem: "An FDE's FIRST diagnostic question about a misbehaving AI feature should be:",
+    { type: "mcq",
+      stem: "An FDE's FIRST diagnostic question about a misbehaving AI feature should be:",
       options: [
         "Which foundation model is it using?",
         "What is actually in the context window when it answers, and what's missing?",
@@ -253,14 +242,19 @@ window.QUIZ = {
         "What programming language is the backend?" ],
       answer: 1,
       explain: "Diagnose the window before the model. Most issues are context/budget problems, not model-choice problems." },
-    { stem: "Most hallucinations are best understood as…",
+    { type: "mcq",
+      stem: "Most hallucinations are best understood as…",
       options: [
         "The model intentionally lying",
         "A bug in the sampling code",
         "The needed fact never being in the window, so the model fills the gap plausibly",
         "Too low a temperature setting" ],
       answer: 2,
-      explain: "No fact in the window → confident guess. You fix more hallucinations by managing context/retrieval than by swapping models." }
+      explain: "No fact in the window → confident guess. You fix more hallucinations by managing context/retrieval than by swapping models." },
+    { type: "open",
+      stem: "In one sentence: why is a LOW temperature the right default for a data-extraction feature?",
+      hint: "Think determinism vs creativity.",
+      model: "Low temperature makes token selection near-deterministic, so the same input yields the same structured output — extraction needs repeatability, not creativity. (Crank temperature up only when you want variety.)" }
   ]
 };
 </script>

@@ -217,3 +217,21 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .daynav a:hover { text-decoration:underline; }
 .daynav .next, .daynav .prev { color:var(--dim); }
 .daynav .mid { color:var(--ink-soft); }
+
+/* ---------- quiz (formative) extras ---------- */
+.quiz-sub { color:var(--ink-soft); margin-top:-6px; font-size:15px; }
+.explain .ex-k, .model-answer .ma-k { display:inline-block; font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--accent); margin-right:6px; }
+.q-open { width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:9px; font:inherit; margin:4px 0 10px; }
+.q-open:focus { outline:none; border-color:var(--accent); }
+.btn-soft { cursor:pointer; border:1.5px solid var(--line); background:#fff; color:var(--ink); font:inherit; font-weight:600; padding:8px 14px; border-radius:9px; }
+.btn-soft:hover { border-color:var(--accent); color:var(--accent); }
+.model-answer { display:none; margin-top:12px; background:#f6f8f6; border:1px solid #d8e6d8; border-radius:9px; padding:12px 14px; font-size:15px; }
+.model-answer.show { display:block; }
+.selfrate { display:none; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; font-size:14px; color:var(--ink-soft); }
+.selfrate.show { display:flex; }
+.selfrate .sr { cursor:pointer; border:1.5px solid var(--line); background:#fff; font:inherit; font-size:13px; padding:6px 12px; border-radius:20px; }
+.selfrate .sr.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+.quiz-summary { display:none; margin-top:24px; padding-top:18px; border-top:1px solid var(--line); font-size:15px; }
+.quiz-summary.show { display:block; }
+.btn-link { background:none; border:none; color:var(--accent); font:inherit; font-weight:600; cursor:pointer; padding:0 0 0 4px; }
+.btn-link:hover { text-decoration:underline; }
