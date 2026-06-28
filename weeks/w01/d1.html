@@ -232,9 +232,9 @@ $ claude &quot;read every file in the whole repo, then find and fix the bug&quot
           data-q="Why is this the wrong way to drive an AI coding tool — in the exact terms of today's lesson?"
           data-a="It treats the window like it's free. Dumping the entire repo is the <b>'more text = more intelligence'</b> fallacy from Slice 3: you pay for ~180K tokens of irrelevant context, shrink the room left to actually reason and answer, and <b>bury the signal</b> so the model is likelier to latch onto the wrong file. The engineer's move is <b>precision of retrieval</b> — hand it the one or two files that matter (<code>services/utils.py</code> and its test) and a precise ask. Same token discipline, whether you're paying the bill or the client is.">
         </div>
-        <p>This is also why a <strong>$20 Claude Pro plan</strong> is plenty for this program if you work like an
-        engineer, and frustrating if you work like a slot machine. Re-running a giant agent loop across your whole repo to
-        fix a typo burns your daily budget; handing the model the relevant files and a precise ask costs almost nothing.
+        <p>This is also why precision beats brute force on your own tooling. You're on a <strong>$20 Claude Pro plan</strong>
+        for this program, so spend tokens deliberately: re-running a giant agent loop across your whole repo to fix a typo is
+        wasteful, while handing the model the relevant files and a precise ask costs almost nothing.
         <strong>Token discipline is the exact same skill whether you're paying the bill or the client is</strong> — which
         is the entire reason we start here.</p>
 

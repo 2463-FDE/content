@@ -5,6 +5,11 @@
    trainer view. Add a trainer by hashing their code:
      printf '%s' "CODE" | shasum -a 256
    role: "learner" | "trainer" | "tester" */
+// Backend Worker (set both after deploying ~/2463-fde/backend). Empty = live
+// "Try it" widgets degrade gracefully and progress just stays in localStorage.
+window.FDE_RUN_URL = "";
+window.FDE_TRACK_URL = "";
+
 window.ROSTER = [
   // --- learners (Cohort #1) ---
   { code: "MC-FDE!2026", name: "Mahalakshmi Chandrasekar", role: "learner" },

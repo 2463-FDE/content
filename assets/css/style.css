@@ -140,9 +140,18 @@ details.deep[open] summary { border-bottom: 1px solid var(--line); margin-bottom
 .dgm-pop b { color:#ffd8bf; }
 
 /* ============ INLINE INTERACTIVE WIDGETS ============ */
-.ix-predict, .ix-spot, .ix-tokens, .ix-temp, .ix-cost, .ix-retry {
+.ix-predict, .ix-spot, .ix-tokens, .ix-temp, .ix-cost, .ix-retry, .ix-run {
   border:1px solid var(--line); border-radius:12px; background:#fff; padding:16px 18px; margin:22px 0;
 }
+/* live "Try it" (real Claude call) */
+.ix-run .run-ex { display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 8px; }
+.ix-run .run-egbtn { font:inherit; font-size:12.5px; border:1.5px solid var(--line); background:#faf8f4; border-radius:20px; padding:4px 12px; cursor:pointer; }
+.ix-run .run-egbtn:hover { border-color:var(--accent); color:var(--accent); }
+.ix-run .run-go { margin-top:10px; }
+.ix-run .run-out { margin-top:12px; font-size:15px; line-height:1.55; white-space:pre-wrap; min-height:0; }
+.ix-run .run-out.ok { background:#f6f8f6; border:1px solid #d8e6d8; border-radius:9px; padding:12px 14px; }
+.ix-run .run-out.err { color:var(--bad); }
+.ix-run .run-out.info { color:var(--ink-soft); font-size:14px; }
 .ix-k { font-size:12px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--accent); margin-bottom:8px; }
 .ix-k.spot { color:#1c7ed6; }
 .ix-k .ix-sub { text-transform:none; letter-spacing:0; font-weight:500; color:var(--ink-soft); }

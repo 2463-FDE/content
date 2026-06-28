@@ -137,6 +137,43 @@
     });
   }
 
+  // LIVE "Try it" — actually calls Claude via the backend Worker, with hard
+  // limits enforced server-side (3 tries/user, low max_tokens). Degrades
+  // gracefully to an info note until window.FDE_RUN_URL is set.
+  function runWidget(elist) {
+    elist.forEach(el => {
+      const id = el.dataset.id || "run";
+      const sys = el.dataset.system || "";
+      let examples = []; try { examples = JSON.parse(el.dataset.examples || "[]"); } catch (e) {}
+      const url = window.FDE_RUN_URL;
+      el.innerHTML =
+        `<div class="ix-k">▶ Try it · live <span class="ix-sub">calls Claude · <b class="run-left">3</b> tries</span></div>` +
+        (examples.length ? `<div class="run-ex">${examples.map((x, i) => `<button type="button" class="run-egbtn" data-i="${i}">Example ${i + 1}</button>`).join("")}</div>` : "") +
+        `<textarea class="ix-ta run-in" rows="2" placeholder="${el.dataset.placeholder || "Type a prompt…"}"></textarea>` +
+        `<button type="button" class="btn run-go">Run</button>` +
+        `<div class="run-out"></div>`;
+      const ta = el.querySelector(".run-in"), out = el.querySelector(".run-out"), go = el.querySelector(".run-go"), left = el.querySelector(".run-left");
+      el.querySelectorAll(".run-egbtn").forEach(b => b.addEventListener("click", () => { ta.value = examples[+b.dataset.i] || ""; ta.focus(); }));
+      if (examples.length) ta.value = examples[0];
+      if (!url) { go.disabled = true; out.className = "run-out info"; out.textContent = "Live demo not enabled yet — backend pending. (Everything else on the page works.)"; return; }
+      go.addEventListener("click", async () => {
+        const idt = window.FDE_getIdentity ? window.FDE_getIdentity() : null;
+        const trainee = idt ? idt.code : "anon";
+        const prompt = ta.value.trim(); if (!prompt) return;
+        go.disabled = true; out.className = "run-out"; out.textContent = "Running…";
+        try {
+          const r = await fetch(url + "/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ trainee, id, prompt, system: sys }) });
+          const d = await r.json();
+          if (r.status === 429) { out.className = "run-out info"; out.textContent = "You've used all 3 tries for this demo."; left.textContent = "0"; return; }
+          if (!r.ok) { out.className = "run-out err"; out.textContent = d.error || "error"; go.disabled = false; return; }
+          out.className = "run-out ok"; out.textContent = d.text;
+          if (typeof d.remaining === "number") { left.textContent = d.remaining; if (d.remaining <= 0) return; }
+          go.disabled = false;
+        } catch (e) { out.className = "run-out err"; out.textContent = "network error"; go.disabled = false; }
+      });
+    });
+  }
+
   // consistent interaction key — the same vocabulary on every reading
   function legend(elist) {
     elist.forEach(el => {
@@ -158,5 +195,6 @@
     tempSlider(document.querySelectorAll(".ix-temp"));
     costCalc(document.querySelectorAll(".ix-cost"));
     retrySim(document.querySelectorAll(".ix-retry"));
+    runWidget(document.querySelectorAll(".ix-run"));
   });
 })();
