@@ -44,14 +44,17 @@
   .cd-sec { margin:22px 0 0; padding-top:20px; border-top:1px solid var(--line); }
   .cd-sec:first-of-type { border-top:none; padding-top:0; }
   .cd-sec .cd-h { font-size:12px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--ink-soft); margin-bottom:8px; }
-  .cd-ask { background:var(--accent-soft); border:1px solid #ffd8bf; border-radius:12px; padding:16px 18px; font-size:18px; line-height:1.55; font-style:italic; color:var(--ink); }
-  .cd-ask .who { display:block; font-style:normal; font-size:13px; color:var(--ink-soft); margin-top:8px; font-weight:600; }
+  .cd-ask { background:var(--accent-soft); border:1px solid #ffd8bf; border-radius:12px; padding:18px 20px; font-size:16.5px; line-height:1.6; color:var(--ink); }
+  .cd-ask .who { display:block; font-size:13px; color:var(--ink-soft); margin-top:10px; font-weight:600; }
   .cd-list { margin:6px 0 0; padding-left:22px; }
-  .cd-list li { margin:8px 0; line-height:1.5; }
-  .cd-list code { font-family:var(--mono); font-size:.84em; background:#f1efe9; padding:1px 5px; border-radius:4px; }
+  .cd-list li { margin:9px 0; line-height:1.5; }
+  .cd-list code { font-family:var(--mono); font-size:.8em; background:#f1efe9; padding:1px 5px; border-radius:4px; word-break:break-word; }
+  .cd-dig { background:#fff; border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; padding:12px 16px 12px 18px; }
+  .cd-dig ol { margin:0; padding-left:20px; }
+  .cd-dig li { margin:9px 0; line-height:1.5; font-weight:550; }
+  .cd-dig code { font-family:var(--mono); font-size:.8em; background:#f1efe9; padding:1px 5px; border-radius:4px; }
   .cd-deliv { background:#f6f8f6; border:1px solid #d8e6d8; border-radius:12px; padding:14px 16px; font-size:15.5px; line-height:1.55; }
   .cd-quota.callout { margin:14px 0 0; }
-  .cd-hidden-head { font-size:14px; font-weight:700; color:#c2410c; margin:6px 0 4px; }
 </style>
 </head>
 <body>
@@ -65,15 +68,16 @@
 <div class="cd-wrap">
   <div class="cd-hero">
     <h1>Client <b>Delivery</b></h1>
-    <p>Per-week client material for the two brownfield projects. Each week the client asks for a feature — the
-    real FDE win is surfacing the latent problem hiding under the ask, then shipping one small, focused increment.</p>
+    <p>Per-week client material for the two brownfield projects. Each week the client sends you a casual ask —
+    the real FDE win is reading the artifacts, surfacing the latent problem hiding under the ask, then shipping
+    one small, focused increment. Problem identification first, solutioning second.</p>
   </div>
 
   <div class="cd-banner">
     <div style="flex:1">
-      <div class="b-everyone"><b>Log in with your code</b> (top right) to see your project's material. Client request,
-      handover artifacts, and known problems are visible to everyone.</div>
-      <div class="trainer-only">🔑 You're in <b>trainer view</b> — hidden problems learners should surface and facilitator notes are shown below. Don't lecture them; steer with questions.</div>
+      <div class="b-everyone"><b>Log in with your code</b> (top right) to see your project's material. The client
+      message, handover artifacts, questions to dig into, and known problems are visible to everyone.</div>
+      <div class="trainer-only">🔑 You're in <b>trainer view</b> — the hidden problems learners should surface and facilitator notes are shown below. Don't lecture them; steer with questions.</div>
     </div>
   </div>
 
@@ -87,8 +91,11 @@
 <script>
 /* ============================================================================
    Per-project, per-week client material. Faithful to projects/<p>/client-packets.md.
-   Learner-visible: ask, handover, stated (known) problems, deliverable, quota.
-   Trainer-only:   hidden[] + facilitator (rendered inside .trainer-only blocks).
+   Learner-visible: ask (client message), handover[], dig[] (questions to dig into),
+                    stated (known problems), deliverable, quota.
+   Trainer-only:    hidden[] + facilitator (rendered inside .trainer-only blocks).
+   Handover artifacts carry concrete CLUES that point toward the seeded latent
+   problems WITHOUT naming them; the answer key stays in the trainer-only block.
    ========================================================================== */
 window.CLIENT = {
   healthcare: {
@@ -99,11 +106,20 @@ window.CLIENT = {
       1: {
         title: "LLM Engineering for Production",
         tie: "Production-grade LLM clients — retries, timeouts, structured output, cost/latency, safe logging.",
-        ask: "Welcome aboard. Two things — the registration page feels slow, and the board wants 'AI,' so start us off with a little assistant that can draft a patient-friendly summary of our intake instructions. Just get the repo running and show me something.",
+        ask: "Hi, and welcome to Riverbend! So glad to finally have an engineer who actually gets this AI stuff. Two quick wins to start: our front desk keeps saying the registration page 'spins' for ages, and honestly the board has been on me to do *something* with AI — could you stand up a little assistant that drafts a patient-friendly version of our intake instructions? I've zipped up the whole repo the last contractor left us; the logins are all in there so you can just run it. We're fully HIPAA compliant already, so don't worry about that side — just get something on the screen this week. Thanks!",
         handover: [
-          "Repo zip with a committed <code>.env</code> (DB creds, payer API key, Bedrock key) — and <code>.env</code> is <b>not</b> in <code>.gitignore</code>.",
-          "A <code>logs/intake-service.log</code> excerpt logging full request bodies (name, DOB, SSN, insurance_id) at INFO on every POST.",
-          "A README claiming 'All PHI encrypted — HIPAA compliant,' while the DB schema shows plaintext <code>ssn</code>, <code>dob</code>, <code>notes</code> columns."
+          "Repo zip <code>riverbend-portal.zip</code>. At the root: a tracked <code>.env</code> containing <code>DB_PASSWORD=</code>, <code>PAYER_API_KEY=</code>, <code>BEDROCK_API_KEY=</code>. The <code>.gitignore</code> lists <code>node_modules/</code> and <code>*.pyc</code> — but not <code>.env</code>.",
+          "Log file <code>logs/intake-service.log</code>, representative line: <code>INFO 09:14:02 POST /intake body={\"name\":\"Maria Gonzalez\",\"dob\":\"1971-03-02\",\"ssn\":\"412-55-9981\",\"insurance_id\":\"BCBS4471\"}</code> — one per POST.",
+          "Schema dump <code>schema.sql</code>: <code>patients(id, name, dob, ssn, address, notes, created_at)</code> — <code>ssn</code> and <code>notes</code> are plain <code>TEXT</code>; no tokenized or encrypted columns.",
+          "<code>README.md</code>, first line: \"All PHI is encrypted and the system is fully HIPAA compliant.\"",
+          "Front-desk Jira ticket RIV-088: \"Registration spins ~4–5s after Save before it confirms.\"",
+          "One-paragraph architecture note: intake-service → Postgres, with a planned 'AI summary' box wired to AWS Bedrock."
+        ],
+        dig: [
+          "What exact fields get written to <code>intake-service.log</code> on every request — and who can read that log file?",
+          "Does the README's \"PHI is encrypted\" claim match what you actually see in <code>schema.sql</code>?",
+          "If this repo (or its <code>.env</code>) leaked tomorrow, what would an attacker immediately hold?",
+          "Before building the AI assistant, what does a production LLM call need that a quick demo skips — timeouts, retries, cost limits, and what's safe to log?"
         ],
         stated: [
           "The registration page feels slow.",
@@ -120,10 +136,19 @@ window.CLIENT = {
       2: {
         title: "RAG & Knowledge Retrieval",
         tie: "Retrieval pipelines, chunking/embeddings, and eval harnesses for retrieval quality.",
-        ask: "Clinicians waste time hunting through a patient's history. Build me a retrieval helper that pulls the right past records when they open a chart.",
+        ask: "Our clinicians are constantly complaining that they have to click through a patient's entire history to find anything relevant. Could you build a retrieval helper that surfaces the most relevant past records the moment they open a chart? The last contractor left a little 'gold set' of example questions and expected answers you can test against — it all looked great when he demoed it. I've exported a chunk of our patients and encounters tables for you. Don't go too crazy on cost, our AI budget is basically a Claude Pro plan.",
         handover: [
-          "A dump of <code>patients</code> + <code>encounters</code> rows. Buried in it: the same human appears as 3 patient IDs (different MRNs, slight name/DOB spelling variants) created via self-service intake.",
-          "A retrieval gold-set the contractor left: queries like 'show me Maria Gonzalez's allergies' return records from only one of her three fragments."
+          "Export <code>patients.csv</code> (~5k rows). Three rows stand out: <code>1042 | Maria Gonzalez | 1971-03-02</code>, <code>1330 | Maria Gonzales | 1971-03-02</code>, <code>1588 | M. Gonzalez | 1971-02-03</code> — different MRNs, all created via self-service intake.",
+          "Export <code>encounters.csv</code>: allergy and med rows are scattered across those three IDs — the penicillin allergy is recorded only under patient <code>1330</code>.",
+          "Contractor's <code>goldset.json</code>: query \"show me Maria Gonzalez's allergies\" → expected answer cites records from patient <code>1042</code> only.",
+          "Intake config <code>intake.yaml</code>: <code>self_service_intake: true</code>, <code>match_key: none</code> (no de-dup on name/DOB/SSN at create).",
+          "Clinician Slack screenshot: \"Why does the allergy list look different depending on which chart I open for the same lady?\""
+        ],
+        dig: [
+          "Scan the patient export — is each human really one patient ID, or could one person appear more than once?",
+          "Collect every allergy/med for \"Maria Gonzalez\" across the data — do you get the full list from any single patient ID?",
+          "The contractor's gold-set passes. Does passing it actually prove the clinician sees a complete record?",
+          "What in <code>intake.yaml</code> would let one person become three separate charts?"
         ],
         stated: [
           "Clinicians waste time hunting through patient history.",
@@ -140,10 +165,19 @@ window.CLIENT = {
       3: {
         title: "Single-Agent Design + Memory",
         tie: "A single tool-using agent with conversation memory; tool-call design, failure handling.",
-        ask: "Front-desk eligibility checks are painful. Build a little assistant the staff can chat with that checks a patient's insurance eligibility and remembers the context of the visit.",
+        ask: "Front desk is miserable doing insurance eligibility checks — it's so much manual back-and-forth with the payer. Can you build them a little chat assistant that checks a patient's eligibility and keeps track of the visit context as they go? Heads up: eligibility 'gets slow' now and then, but it usually sorts itself out. Oh — one of the front-desk leads filed a ticket about a rough morning last week; I'll forward it, probably nothing.",
         handover: [
-          "The <code>eligibility-service</code> code: the 270/271 payer call is a synchronous <code>requests.get()</code> with no timeout, inside the request thread.",
-          "A support ticket: 'Tuesday 9–9:20am the whole intake screen froze — front desk couldn't register anyone.' The payer status page shows a 20-min outage that morning."
+          "<code>eligibility-service/check.py</code>: <code>resp = requests.get(PAYER_URL, params=...)</code> — no <code>timeout=</code> argument, called inline in the request handler thread.",
+          "Support ticket RIV-141: \"Tue 9:00–9:20am the ENTIRE intake screen froze — front desk couldn't register any patient, not just eligibility.\"",
+          "Payer status page PDF: \"Degradation 9:02–9:21am Tuesday — 270/271 endpoint timeouts.\"",
+          "p95 latency chart for <code>/intake</code>: flat ~600ms all week, with a single 20-minute spike past 30s Tuesday morning.",
+          "Grep of eligibility-service: no <code>timeout</code>, no <code>circuit breaker</code>, no <code>cache</code>; the eligibility call sits directly on the intake request path."
+        ],
+        dig: [
+          "Trace what thread the payer call runs on — what else is waiting behind it when the payer is slow?",
+          "Line up the frozen-screen ticket, the payer status PDF, and the latency spike — is it the same 20 minutes?",
+          "If the payer is down for 20 minutes, what's the smallest blast radius you'd accept — eligibility only, or all of intake?",
+          "What would let intake keep working through a payer outage (timeout, breaker, last-known-good cache)?"
         ],
         stated: [
           "Front-desk eligibility checks are painful.",
@@ -159,15 +193,23 @@ window.CLIENT = {
       4: {
         title: "Multi-Agent + Knowledge Graphs",
         tie: "Multiple coordinated agents + a knowledge graph over entities/relationships.",
-        ask: "Let patients see their own labs and visit summaries in one place. Build something that assembles a patient's full picture across our services.",
+        ask: "Patients keep calling to ask how to see their own labs and visit summaries — right now it's all scattered across services. Can you build something that assembles a patient's full picture in one view? The portal already has a records endpoint you can build on. Make it feel fast, some of the record pages are a bit sluggish today. I'll send the network capture our QA person grabbed off the current portal.",
         handover: [
-          "API spec for <code>records-service</code>: <code>GET /patients/{id}/records</code> — no ownership check; <code>{id}</code> is a sequential integer.",
-          "A HAR/network capture showing a logged-in patient fetch <code>/patients/1042/records</code>, then successfully fetch <code>/patients/1043/records</code>.",
-          "Query logs: assembling one patient view fires one query per encounter (N+1) and a full-table scan on records search."
+          "API spec: <code>GET /patients/{id}/records</code> — auth required, but no check that the caller's token matches <code>{id}</code>; <code>{id}</code> is a sequential integer.",
+          "QA capture <code>portal.har</code>: a logged-in patient (own id 1042) requests <code>/patients/1042/records</code> → 200, then requests <code>/patients/1043/records</code> → 200, returning another patient's labs.",
+          "Query log for one patient-view assembly: <code>SELECT * FROM records WHERE encounter_id = ?</code> runs 37 times (one per encounter), plus a full-table scan on records search.",
+          "Session config <code>auth.yaml</code>: <code>SESSION_TIMEOUT: never</code> — tokens issued at login don't expire.",
+          "Page-load metric: assembled patient view p95 = 3.8s, almost all DB time."
+        ],
+        dig: [
+          "In the HAR, change the patient ID in the URL — does the server stop you, or hand over the chart?",
+          "How are patient IDs generated — could you guess the next valid one?",
+          "Count the queries behind one patient view — does it hold up for a real chart with 50+ encounters?",
+          "When a clinician walks away from a shared workstation, when does their session actually end?"
         ],
         stated: [
           "Patients want their labs + visit summaries in one place.",
-          "Assembling the full picture is the requested feature."
+          "Some record pages are sluggish."
         ],
         hidden: [
           "<b>IDOR on record reads (D11, #9)</b> — guessable IDs + missing ownership checks let any authenticated user pull any chart.",
@@ -179,11 +221,19 @@ window.CLIENT = {
       5: {
         title: "Spec-Driven Dev & Problem Scoping",
         tie: "Writing a rigorous spec + acceptance criteria before coding; scoping a fuzzy ask into a precise problem.",
-        ask: "Our scheduling double-books the same slot. Just fix the calendar.",
+        ask: "Our scheduling keeps double-booking the same slot and it's getting embarrassing — two patients show up for one appointment. The team's pretty sure it's a glitch in the calendar widget, so could you just fix the calendar so it stops doing that? I pulled some example rows and the booking code for you. It seems to happen more when the system's busy.",
         handover: [
-          "<code>appointments</code> table export: two confirmed rows for the same <code>slot_id</code>, created ~400ms apart.",
-          "Server logs showing the booking POST was retried by the client after a slow response; no idempotency key present.",
-          "The booking handler: read-check-then-insert with no transaction / no unique constraint on <code>slot_id</code>."
+          "<code>appointments.csv</code>: two rows, both <code>slot_id=88231</code>, both <code>status=confirmed</code>, created_at <code>09:31:04.120</code> and <code>09:31:04.519</code> (~400ms apart), different patient IDs.",
+          "Booking handler <code>book.py</code>: <code>if not slot_taken(slot_id): insert_appointment(...)</code> — read-check-then-insert, no transaction.",
+          "Server log: <code>POST /appointments</code> took 2.1s, the client auto-retried, a second <code>POST /appointments</code> landed 380ms later — both returned success.",
+          "Frontend network tab: the booking request carries no idempotency key / request-id header.",
+          "DDL for <code>appointments</code>: <code>slot_id INTEGER</code> — no <code>UNIQUE</code> and no composite constraint on the slot."
+        ],
+        dig: [
+          "Are the two confirmed rows really a UI glitch, or two successful inserts? What created the second one?",
+          "Walk read-check-then-insert under two near-simultaneous requests — what stops both from passing the check?",
+          "If the client retries a slow booking POST, what guarantees the server treats it as the same booking?",
+          "Where could a DB constraint or transaction make a double-book impossible, regardless of the UI?"
         ],
         stated: [
           "Scheduling double-books the same slot.",
@@ -199,10 +249,20 @@ window.CLIENT = {
       6: {
         title: "AI-Augmented SDLC (Legacy Comprehension)",
         tie: "Using AI to comprehend inherited/legacy code; characterization tests; safe-change workflow on brownfield.",
-        ask: "We're wiring up the hospital's system feed. Make the integration solid — it 'works' but I want to trust it.",
+        ask: "We're finally wiring up the feed from the hospital's system — it sends us those HL7 messages. The integration 'works' in that data shows up, but before we lean on it for care I want to actually trust it. Can you go through the parser and make sure it's solid? I've attached the parser code and a few sample messages our integration guy saved. It's been quietly running for months with zero errors, which is reassuring.",
         handover: [
-          "The <code>interop-service</code> HL7 v2 parser: string-split on <code>|</code>, hard-coded segment indices, a bare <code>except: pass</code> that silently drops unmapped segments.",
-          "Sample inbound HL7 ADT/ORU messages where AL1 (allergy) and RXA (med) segments are present but absent from the internal record the mapper produces."
+          "<code>interop-service/hl7_parser.py</code>: <code>fields = segment.split('|')</code> with hard-coded indices (<code>fields[3]</code>, <code>fields[5]</code>), the whole loop wrapped in <code>try: ... except: pass</code>.",
+          "Sample inbound message <code>adt_sample.hl7</code> contains <code>AL1|1|DA|penicillin</code> (allergy) and <code>RXA|...|amoxicillin</code> (med) segments.",
+          "The internal record the mapper produces from that exact message: <code>allergies: []</code>, <code>medications: []</code>.",
+          "The parser's index map only covers <code>PID</code> and <code>PV1</code> segments; <code>AL1</code> and <code>RXA</code> aren't in it.",
+          "Ops note (offered as a sign of health): \"HL7 ingest has thrown zero errors in 3 months.\"",
+          "No schema validation and no count of dropped/unmapped segments anywhere in the pipeline."
+        ],
+        dig: [
+          "Pick one inbound message and diff it field-by-field against the internal record — is anything missing?",
+          "What does <code>except: pass</code> do when the parser meets a segment it doesn't recognize?",
+          "Is \"zero errors in 3 months\" evidence it works, or evidence it can't tell you when it fails?",
+          "If allergies/meds silently drop, who is the first person harmed, and when do they find out?"
         ],
         stated: [
           "The hospital feed integration needs to be 'solid.'",
@@ -217,10 +277,20 @@ window.CLIENT = {
       7: {
         title: "Observability / SRE / Guardrails",
         tie: "Golden-signal instrumentation, tracing, alerting; guardrails on LLM output.",
-        ask: "The portal is flaky and I'm always the last to know. Give me visibility — and make sure that AI summary thing can't say anything crazy.",
+        ask: "The portal feels flaky and I'm always the last to hear about it — usually a patient complains before I even know there's a problem. I want real visibility so I can get ahead of issues. And while you're in there, that AI summary feature makes me a little nervous; I need to know it can't say something off about a patient. Here's a week of logs and a transcript that honestly concerned me.",
         handover: [
-          "A week of raw latency logs (no structured tracing) and an incident note: 'intake froze ~20 min, no alert fired' — correlates with the W3 payer-outage pattern.",
-          "The current LLM summary endpoint: no output validation — a transcript where it invented a medication the patient isn't on."
+          "A week of raw latency logs — plain text, no trace IDs, no structured fields; you can't follow one request across services.",
+          "Incident note: \"intake froze ~20 min Tuesday, no alert fired — I found out from a front-desk phone call.\"",
+          "That frozen window lines up with the same intake/eligibility path from the W3 payer outage.",
+          "LLM summary transcript: for a patient on no medications, the generated summary reads \"...continue metformin as prescribed.\"",
+          "LLM summary endpoint code: returns the model output directly — no grounding check, no validation, no 'refuse if unknown.'",
+          "No dashboard, no SLO definition, and no alerting config anywhere in the repo."
+        ],
+        dig: [
+          "With these logs, can you reconstruct a single slow request end-to-end? What's missing to make that possible?",
+          "Why did a 20-minute outage produce zero alerts — what would have had to exist to page someone?",
+          "Where did \"metformin\" come from in that summary, and what could have caught it before a clinician saw it?",
+          "What are the few golden signals for the intake path you'd watch, and which single alert is worth firing?"
         ],
         stated: [
           "The portal is flaky and the client is last to know.",
@@ -236,10 +306,20 @@ window.CLIENT = {
       8: {
         title: "Security / Governance / Responsible AI",
         tie: "Data governance, responsible-AI design, PII handling, third-party/vendor risk.",
-        ask: "The board wants the headline AI feature: automatic visit-summaries for every patient. Turn it on for everyone.",
+        ask: "The board is really excited — they want the AI visit-summary turned on for every patient, automatically, as our headline feature. Let's make it happen this week. We already share data with the AI vendor, and we have a de-identified export for analytics, so the privacy stuff is handled. Can you just flip it on for everyone?",
         handover: [
-          "The <code>ai-summary</code> config: sends the full encounter record (name, DOB, MRN, notes) to a cloud LLM vendor. No BAA on file (vendor contract is a standard ToS, no BA addendum).",
-          "The contractor's 'de-identified analytics export' script: it drops the <code>name</code> column only and ships ZIP, dates, MRN, device IDs."
+          "<code>ai-summary</code> config: the payload sent to the cloud LLM vendor is the full encounter record <code>{name, dob, mrn, notes}</code>.",
+          "Vendor contract PDF: a standard SaaS Terms of Service — no Business Associate Agreement / BA addendum anywhere in it.",
+          "Contractor's <code>deidentify.py</code>: <code>del record['name']</code>, then ships the row — keeping ZIP, full dates, MRN, and device_id.",
+          "Sample 'de-identified' export row: <code>{zip:90210, dob:1971-03-02, mrn:'M4471', device_id:'IPAD-07', visit_date:'2026-06-14'}</code>.",
+          "HHS Safe-Harbor reference: the list of 18 identifiers that must be removed for de-identification.",
+          "No data-flow diagram of what leaves the PHI boundary, or under what agreement."
+        ],
+        dig: [
+          "Trace exactly which fields leave Riverbend when the AI summary runs — and is there a signed BAA covering that vendor?",
+          "Check the 'de-identified' export against the 18 Safe-Harbor identifiers — how many are still present?",
+          "Could you re-identify someone from {ZIP + DOB + visit date}? (it's famously few fields.)",
+          "What has to happen to data BEFORE it crosses to a vendor for this feature to be lawful?"
         ],
         stated: [
           "Board wants automatic visit-summaries for every patient.",
@@ -256,11 +336,19 @@ window.CLIENT = {
       9: {
         title: "Client Specialization Track (Healthcare Compliance)",
         tie: "Deep specialization in the client's regulatory domain; least-privilege + audit architecture.",
-        ask: "A payer audit is coming. Tighten up security — and the staff keep asking for the records-request (ROI) feature, can we add it?",
+        ask: "A payer audit is coming and I want us buttoned up. Tighten the security generally, and — staff keep asking — can we finally add the records-request (ROI) feature so we stop emailing PDFs around? Everyone here logs in with their own account, so access control is basically handled; I just want it to look clean for the auditor.",
         handover: [
-          "RBAC config: a single <code>staff</code> role; billing + ROI + front-desk + clinician all share it → everyone can read clinical notes.",
-          "The half-built <code>roi-service</code>: a <code>GET /disclosures/{patient_id}</code> that returns records with no 164.508 authorization check and ignores 164.522 restrictions; ROI today happens by staff emailing PDFs, unlogged.",
-          "Auth setup: passwords only, no MFA."
+          "RBAC config <code>roles.yaml</code>: a single role <code>staff</code>; billing, ROI, front-desk, and clinicians all map to it → all can read clinical <code>notes</code>.",
+          "Half-built <code>roi-service</code>: <code>GET /disclosures/{patient_id}</code> returns records with no check for a 164.508 authorization and no honoring of 164.522 restrictions.",
+          "Current ROI process doc: \"Staff email the records as a PDF to the requester\" — no log of who disclosed what, to whom, or when.",
+          "Auth config: password login only, <code>mfa_enabled: false</code>.",
+          "Access-log sample: a billing clerk's account opened a patient's psychotherapy <code>notes</code> — allowed, and unremarkable to the system."
+        ],
+        dig: [
+          "List who can read clinical notes today — does a billing clerk need the same access as a treating clinician?",
+          "When ROI serves a record, where does it verify a valid authorization exists, and where is the disclosure logged?",
+          "If the auditor asks \"prove you had authorization for this disclosure,\" can the current ROI flow answer?",
+          "What's the gap between \"everyone has a login\" and actual least-privilege access control?"
         ],
         stated: [
           "A payer audit is coming — 'tighten up security.'",
@@ -276,10 +364,19 @@ window.CLIENT = {
       10: {
         title: "Project Work & Client Showcase",
         tie: "Integrate the arc; produce a handoff + showcase that proves value in client language.",
-        ask: "Prove we're compliant and ready for the audit. Package it all up and show the board.",
+        ask: "Home stretch — I need to prove to the board that we're compliant and audit-ready, and package everything up. The auditor sent a pre-visit questionnaire and a couple of the questions completely stumped my team. Can you pull the whole engagement together into something I can present? I want it to land in terms the board actually cares about.",
         handover: [
-          "The mutable <code>audit_logs</code> table (rows editable/soft-deletable) + the W1 finding that 'audit' is really app logging.",
-          "An auditor's pre-visit questionnaire: 'Produce an accounting of disclosures for patient X' and 'List everyone who viewed patient Y in the last 90 days.' Neither is answerable today."
+          "<code>audit_logs</code> table DDL: an ordinary table — rows are <code>UPDATE</code>/<code>DELETE</code>-able, and there's a <code>deleted_at</code> soft-delete column. (Recall the W1 finding: 'audit' here is really app logging.)",
+          "Auditor questionnaire Q7: \"Produce an accounting of disclosures for patient X.\" Q9: \"List everyone who viewed patient Y in the last 90 days.\"",
+          "Staff's attempted answer, in writing: \"We don't have a way to pull that.\"",
+          "Breach-response policy doc: references a 60-day notification clock but no mechanism to *detect* an impermissible access.",
+          "Sample 'audit' rows: app INFO logs containing PHI — not an actor→patient→action→time access trail you could trust as evidence."
+        ],
+        dig: [
+          "Try to answer the auditor's two questions with today's data — what's structurally missing?",
+          "Can a row in <code>audit_logs</code> be changed or deleted? What does that do to its value as evidence?",
+          "The 60-day breach clock starts at \"discovery\" — how would Riverbend ever discover an impermissible access?",
+          "What's the smallest append-only trail that would make \"who viewed patient Y?\" answerable?"
         ],
         stated: [
           "Prove compliance + audit-readiness to the board.",
@@ -304,11 +401,20 @@ window.CLIENT = {
       1: {
         title: "LLM Engineering for Production",
         tie: "Production-grade LLM clients — retries, timeouts, structured output, cost/latency, safe logging.",
-        ask: "Welcome. Get the platform running, do a little polish on the application form, and — the board wants 'AI' — stand up a small assistant that can summarize an application for a loan officer. Just show me you can move this week.",
+        ask: "Hey, welcome aboard — excited to have you! To get going: give the loan application form a little polish, and the board's been hammering me about 'AI,' so spin up a small assistant that can summarize an application for a loan officer. Nothing fancy, just show momentum this week. The vendor who built the platform went under, so it's a bit of a black box, but the repo has everything including the keys so you can just run it. We process payments fine today, so don't worry about that part.",
         handover: [
-          "Repo with bureau credentials hardcoded in <code>decision-service</code> + a committed <code>.env</code>.",
-          "<code>logs/payment-service.log</code>: <code>INFO charge req={\"pan\":\"4111...1111\",\"cvv\":\"123\",\"ssn\":\"...\"}</code> — full PAN, CVV (SAD!), SSN at INFO.",
-          "<code>servicing-service</code> balance math using Python <code>float</code>: <code>balance = balance - float(payment)</code>."
+          "Repo with bureau creds hardcoded in <code>decision-service/config.py</code>: <code>EXPERIAN_KEY = 'sk_live_8f2c...'</code>; plus a tracked <code>.env</code>.",
+          "<code>logs/payment-service.log</code> line: <code>INFO charge req={\"pan\":\"4111111111111111\",\"cvv\":\"123\",\"ssn\":\"412-55-9981\",\"amount\":250.00}</code>.",
+          "<code>servicing-service/balance.py</code>: <code>balance = balance - float(payment)</code> — money is stored and computed as <code>float</code>.",
+          "DB schema: <code>payments(id, pan, cvv, amount, created_at)</code> — full PAN and CVV columns present.",
+          "<code>README.md</code>: \"Cardholder data is encrypted and we are PCI compliant.\"",
+          "Architecture sketch: the LOS (origination) and LSS (servicing) are two systems bolted together at a thin seam."
+        ],
+        dig: [
+          "Read one line of <code>payment-service.log</code> — which cardholder fields are sitting in plaintext, and is storing any of them ever allowed?",
+          "Where do the bureau credentials live, and what happens the moment this repo leaks?",
+          "Run <code>0.1 + 0.2</code> in Python — now picture that error compounding across a loan balance and an APR.",
+          "Does the README's \"PCI compliant\" claim survive a look at the <code>payments</code> schema?"
         ],
         stated: [
           "Polish the application form.",
@@ -324,10 +430,19 @@ window.CLIENT = {
       2: {
         title: "RAG & Knowledge Retrieval",
         tie: "Retrieval pipelines, chunking/embeddings, eval harnesses for retrieval quality + corpus hygiene.",
-        ask: "Loan officers keep asking the same underwriting-policy questions. Build a helper that answers from our lending-policy docs and past decisions.",
+        ask: "Our loan officers keep pinging compliance with the same underwriting-policy questions. Could you build a helper that answers from our lending-policy docs and our past decisions? I dumped the policy folder plus a big 'knowledge base' of past applications so it has plenty of context. One officer tried asking it 'why was app #4471 denied?' and it came back empty, which was weird. Keep the cost low — we're on basically a Pro plan.",
         handover: [
-          "A <code>policies/</code> doc set (underwriting guidelines, fee schedule) plus a 'knowledge base' dump of past applications that includes unredacted SSNs and PANs mixed into the corpus.",
-          "A sample query — 'why was application #4471 denied?' — that returns nothing, because denials aren't stored as retrievable, reasoned records."
+          "<code>policies/</code>: <code>underwriting_guidelines.md</code>, <code>fee_schedule.md</code> — clean policy docs.",
+          "<code>kb_dump/applications.jsonl</code>: past applications including raw <code>ssn</code>, <code>pan</code>, <code>dob</code> fields — unredacted, in the same corpus you'd embed.",
+          "Query trace: \"why was application #4471 denied?\" → 0 retrieved documents.",
+          "<code>decisions</code> table: <code>decisions(app_id, outcome)</code> — outcome only; no reason, no model drivers, no timestamp.",
+          "An officer's note: \"We approve/deny in the tool, but I can never find *why* later.\""
+        ],
+        dig: [
+          "What sensitive fields are inside the 'knowledge base' you're about to embed into a vector store?",
+          "Why does \"why was #4471 denied?\" return nothing — is the answer not retrievable, or was it never recorded?",
+          "If a regulator asked for the reason behind one specific denial, could you produce it from this data?",
+          "What belongs in a retrieval corpus, and what must be redacted or kept out entirely?"
         ],
         stated: [
           "Loan officers repeat the same policy questions.",
@@ -344,10 +459,19 @@ window.CLIENT = {
       3: {
         title: "Single-Agent Design + Memory",
         tie: "A single tool-using agent with memory; tool-call design + failure handling.",
-        ask: "We licensed a new AI credit-scoring model — it's more accurate. Wrap it in an assistant that decisions an application and tells the officer the result.",
+        ask: "Big news — we licensed a new AI credit-scoring model and it's noticeably more accurate. I want you to wrap it in an assistant that decisions an application and tells the officer the result, clean and simple. I attached some sample outputs. It does slow down when a lot of apps come in at once, but accuracy is what matters. Move fast on this one, the board's watching.",
         handover: [
-          "The <code>decision-service</code>: credit pull + bureau call + model are a synchronous chain blocking the request thread; a load-test note shows timeouts under concurrency.",
-          "Model output samples: a raw score + a denial, with the adverse-action reason rendered as 'purchasing history' (a generic nearest-checkbox), and no record persisted of the actual model drivers."
+          "<code>decision-service</code>: credit pull → bureau call → model run are a synchronous chain on the request thread; load-test note: \"timeouts at >20 concurrent apps.\"",
+          "Sample model output: <code>{score: 612, decision: 'deny', adverse_action_reason: 'purchasing history'}</code> — the same generic string recurs across many denials.",
+          "No decision record is persisted: nothing stores the inputs, the model's actual top features, or a timestamp.",
+          "A denied applicant's adverse-action letter draft: reason = \"purchasing history\" (a nearest-checkbox, not the real driver).",
+          "Reg B reference note: the adverse-action notice must state the *specific, accurate* principal reason(s); CFPB Circular 2023-03 — no AI exemption."
+        ],
+        dig: [
+          "Read several denials — are the adverse-action reasons specific to each applicant, or the same generic string?",
+          "Does \"purchasing history\" reflect what the model actually weighed? Where would you even check?",
+          "If a denied applicant disputes the reason, what record proves why Meridian denied them?",
+          "Which matters more here for compliance — that the model is accurate, or that the reason is correct and provable?"
         ],
         stated: [
           "Newly licensed AI scorer is 'more accurate.'",
@@ -363,14 +487,24 @@ window.CLIENT = {
       4: {
         title: "Multi-Agent + Knowledge Graphs",
         tie: "Coordinated multi-agent workflow + a knowledge graph over entities/relationships.",
-        ask: "Generate the loan offer and the disclosure documents automatically once an app is approved.",
+        ask: "Once an app is approved, generating the offer and the disclosure documents is still totally manual. Can you automate it — produce the offer and the TILA disclosures right after approval? I attached the disclosure service and a worked example. The numbers look basically right to me. The fee and APR rules are scattered around the code a bit, but it works.",
         handover: [
-          "The <code>disclosure-service</code>: APR + finance charge computed with <code>float</code>; a worked example where the disclosed APR is off by enough to breach the Reg Z tolerance vs the correct <code>Decimal</code> value.",
-          "Fee/APR rules hardcoded across three files, differing by copy-paste.",
-          "The data model has no clean link from application→decision→offer→disclosure (provenance gaps)."
+          "<code>disclosure-service/apr.py</code>: APR and finance charge are computed with <code>float</code>.",
+          "Worked example: float APR = <code>7.142%</code>, correct <code>Decimal</code> APR = <code>7.157%</code> — a gap large enough to exceed the Reg Z APR tolerance.",
+          "Fee/APR constants are hardcoded across three files (<code>apr.py</code>, <code>fees.py</code>, <code>offer.py</code>), values drifted by copy-paste.",
+          "Data model: no clean link <code>application→decision→offer→disclosure</code> (provenance gaps).",
+          "QA spreadsheet comparing disclosed vs recomputed APR on 10 loans — 3 of them differ in the 3rd decimal.",
+          "TILA note: APR/finance-charge *tolerances* mean a small rounding error can be a legal violation, not a cosmetic nit."
+        ],
+        dig: [
+          "Recompute one loan's APR with <code>Decimal</code> vs the service's <code>float</code> — does the difference cross the TILA tolerance?",
+          "The fee/APR rules live in three files — are the numbers identical in all three?",
+          "Which value is shipped to the borrower — the rounded float or the exact one — and does that have legal weight?",
+          "How would you link a disclosure back to the exact decision and inputs that produced it?"
         ],
         stated: [
-          "Auto-generate the offer + disclosure docs on approval."
+          "Auto-generate the offer + disclosure docs on approval.",
+          "Client thinks the numbers 'look basically right.'"
         ],
         hidden: [
           "<b>Float rounding silently breaches TILA APR/finance-charge tolerance (#3, D1)</b> — every affected loan ships a legally inaccurate disclosure.",
@@ -382,10 +516,19 @@ window.CLIENT = {
       5: {
         title: "Spec-Driven Dev & Problem Scoping",
         tie: "Rigorous spec + acceptance criteria before coding; scoping a fuzzy ask precisely.",
-        ask: "Let customers pay online — card and ACH. Just add a payment form.",
+        ask: "Customers want to pay online — card and ACH. Let's just add a payment form so they can self-serve. We've had a few 'I was charged twice' complaints, but I think people are just confused. I attached the prototype handler the last vendor started. Keep it simple.",
         handover: [
-          "Support tickets: 'I was charged twice' ×3; payment logs show a retried POST with no idempotency key produced two <code>payments</code> rows.",
-          "The current (prototype) payment handler stores the full PAN in the <code>payments</code> table and logs the CVV."
+          "Three support tickets: \"I was charged twice.\" Payment logs show one retried POST produced two <code>payments</code> rows for the same charge.",
+          "Payment log: <code>POST /payments</code> took 2.4s (slow), the client retried, a second <code>POST /payments</code> landed 410ms later — both inserted.",
+          "Prototype <code>pay.py</code>: stores the full <code>pan</code> in the <code>payments</code> table and logs the <code>cvv</code> at INFO.",
+          "The payment request carries no idempotency key / client-supplied request id.",
+          "<code>payments</code> DDL: <code>pan TEXT</code> — no tokenization and no unique constraint on the charge reference."
+        ],
+        dig: [
+          "Look at a 'charged twice' case — is it user confusion, or two successful inserts from one retry?",
+          "What makes a retried payment safe to send twice — what would the server need to dedupe it?",
+          "What cardholder data does the prototype store and log, and which of those is flatly prohibited?",
+          "How could the right design *shrink* PCI scope instead of growing it (tokenize, never store SAD)?"
         ],
         stated: [
           "Let customers pay online (card + ACH).",
@@ -401,13 +544,23 @@ window.CLIENT = {
       6: {
         title: "AI-Augmented SDLC (Legacy Comprehension)",
         tie: "Using AI to comprehend inherited code; characterization tests; safe brownfield change.",
-        ask: "Build the servicing dashboard so reps can manage accounts — adjust balances, waive fees, fix mistakes.",
+        ask: "I need a servicing dashboard so our reps can actually manage accounts — adjust balances, waive fees, fix the occasional mistake. Right now it's clunky and they hate it. I attached the servicing service. Our reps are trusted folks, so don't over-engineer the permissions; just make it usable.",
         handover: [
-          "The <code>servicing-service</code>: any authenticated user can hit <code>POST /accounts/{id}/adjust-balance</code> and <code>/waive-fee</code>; no role check, no second approver.",
-          "The balance code: a single <code>balance</code> column overwritten in place (no transaction log); a payment + a concurrent fee waiver show a lost update."
+          "<code>servicing-service</code>: <code>POST /accounts/{id}/adjust-balance</code> and <code>/waive-fee</code> accept any authenticated user — no role check, no second-approver step.",
+          "Balance code: a single <code>balance</code> column is <code>UPDATE</code>d in place; there is no ledger or transaction log.",
+          "Reproduced bug: a payment and a concurrent fee-waiver both read <code>balance=500</code>, both write → the final balance is wrong (a lost update).",
+          "A controller's question: \"Show me every change to account 7781's balance and who made it\" — not answerable today.",
+          "No maker-checker and no segregation of duties on any money-affecting endpoint."
+        ],
+        dig: [
+          "Who exactly can move money or waive a fee today — is there any second approver in the path?",
+          "Run the payment + waiver concurrently against one balance — what's the final number, and is it correct?",
+          "Can you reconstruct the full history of a single account's balance? What would you need to?",
+          "Which actions here are 'money-affecting' and should require maker-checker plus an immutable ledger?"
         ],
         stated: [
-          "Wants a servicing dashboard for reps to adjust balances + waive fees."
+          "Wants a servicing dashboard for reps to adjust balances + waive fees.",
+          "Reps are 'trusted' — keep permissions light."
         ],
         hidden: [
           "<b>Weak authz / no segregation of duties (D8, #6)</b> — any rep (or compromised account) can silently move money: insider-fraud + SOX §404 control failure.",
@@ -419,10 +572,19 @@ window.CLIENT = {
       7: {
         title: "Observability / SRE / Guardrails",
         tie: "Golden-signal instrumentation, tracing, alerting; reconciliation as a control; guardrails.",
-        ask: "Payments feel flaky and finance complains about 'noise' at month-end. Give me visibility so I'm not the last to know.",
+        ask: "Payments feel flaky, and my finance team grumbles about 'noise' at month-end that they just write off. I want visibility so I'm not the last to know when something's off. I attached a month of payments and the processor's settlement file — finance says they 'mostly tie out.' Help me get ahead of this.",
         handover: [
-          "A month of <code>payments</code> rows + a processor settlement file that don't tie out — a small persistent variance nobody reconciles.",
-          "Raw payment-path logs with no tracing; a few double-fund events from the W5 idempotency gap buried in them."
+          "A month of <code>payments</code> rows + the processor <code>settlement.csv</code>: the totals differ by a small, persistent amount that nobody reconciles.",
+          "Raw payment-path logs with no trace IDs — a few double-fund events (from the W5 idempotency gap) are buried in them.",
+          "Finance email: \"month-end is always a little noisy, we just adjust to the bank number.\"",
+          "No reconciliation job exists; ledger vs settlement is never compared programmatically.",
+          "No alerting on payment error rate, and none on a reconciliation break."
+        ],
+        dig: [
+          "Sum the ledger vs the settlement file — do they tie out exactly? What is the variance?",
+          "Is 'month-end noise' random, or a consistent, directional gap that signals a real leak?",
+          "Find the double-fund events in the logs — could anyone see them without instrumentation?",
+          "What single control would turn \"we adjust to the bank number\" into \"we know exactly why it differs\"?"
         ],
         stated: [
           "Payments feel flaky.",
@@ -439,10 +601,19 @@ window.CLIENT = {
       8: {
         title: "Security / Governance / Responsible AI",
         tie: "Responsible-AI design, model governance, fair-lending monitoring, data governance.",
-        ask: "The board loves the AI scorer. Roll it out wider and make a nice page about how advanced it is.",
+        ask: "The board loves the AI scorer — let's roll it out to more products and put together a slick page on how advanced our underwriting is. I attached the recent decision logs; the model's humming along. Let's make this a marketing moment. Wider is better, right?",
         handover: [
-          "Decision logs from the W3 model showing adverse-action reasons clustering on two generic strings regardless of the real driver.",
-          "No model documentation, no fair-lending disparity check, no monitoring of denial-reason accuracy. Approval-rate data by ZIP shows a pattern worth examining."
+          "Decision logs from the W3 model: adverse-action reasons cluster on just two generic strings, regardless of the real driver.",
+          "No model card, no model documentation, and no record of the features/version used per decision.",
+          "No fair-lending disparity check and no monitoring of denial-reason accuracy anywhere.",
+          "Approval-rate breakdown by ZIP code shows a noticeable pattern across certain areas.",
+          "CFPB Circular 2023-03 note: ML/black-box models must still give the specific driver — no AI exemption."
+        ],
+        dig: [
+          "Across many decisions, how many *distinct* adverse-action reasons does the model actually emit?",
+          "Does the ZIP-level approval-rate pattern warrant a disparate-impact look before scaling wider?",
+          "If a regulator asked \"how does this model decide, and is it fair?\", what documentation exists today?",
+          "What does 'responsible AI' require here beyond a marketing page — reason accuracy, monitoring, a model card?"
         ],
         stated: [
           "Board loves the AI scorer — roll it out wider.",
@@ -459,13 +630,23 @@ window.CLIENT = {
       9: {
         title: "Client Specialization Track (Lending Compliance / BSA-AML)",
         tie: "Deep specialization in the client's regulatory domain (KYC/AML pipeline).",
-        ask: "We're launching a new product. Tighten up KYC during onboarding so we don't get burned.",
+        ask: "We're launching a new product and I want KYC tightened during onboarding so we don't get burned. I attached the kyc-service and a sample onboarding. We verify the applicant's identity already, so I think we're mostly there — just make it look thorough for the launch.",
         handover: [
-          "The <code>kyc-service</code>: CIP only — verifies name/DOB/address/SSN, then stops. No OFAC/sanctions screen, no beneficial-owner (UBO) capture, no ongoing monitoring, no SAR path.",
-          "An onboarding sample where an entity applicant went through with no UBO check and no sanctions screen."
+          "<code>kyc-service</code>: performs CIP only — verifies name/DOB/address/SSN, then stops.",
+          "No OFAC/sanctions screening, no beneficial-owner (UBO) capture, no ongoing monitoring, and no SAR path anywhere in the code.",
+          "Onboarding sample: an *entity* (LLC) applicant cleared with no beneficial owner identified and no sanctions check.",
+          "BSA/AML reference: CIP → CDD (incl. beneficial owner, FinCEN 2016 rule) → EDD → ongoing monitoring → SAR; OFAC screening required.",
+          "Compliance worksheet: \"we check ID ✓\" written next to a blank \"sanctions screen?\" field."
+        ],
+        dig: [
+          "What does the kyc-service actually check — and where does it stop relative to full KYC/AML?",
+          "For the LLC applicant, who are the beneficial owners, and were they screened against sanctions lists?",
+          "Could a sanctioned party clear onboarding today? Where in the flow would a screen have caught them?",
+          "What's the difference between \"verifying ID\" (CIP) and the CDD / ongoing-monitoring / SAR obligations of BSA/AML?"
         ],
         stated: [
-          "Launching a new product — 'tighten up KYC.'"
+          "Launching a new product — 'tighten up KYC.'",
+          "Client thinks 'we verify ID' means KYC is mostly handled."
         ],
         hidden: [
           "<b>KYC stops at CIP — no CDD/UBO, no OFAC/sanctions, no SAR (D11, #8)</b> — Meridian could be onboarding a sanctioned party today.",
@@ -477,10 +658,19 @@ window.CLIENT = {
       10: {
         title: "Project Work & Client Showcase",
         tie: "Integrate the arc; produce a handoff + showcase in client language.",
-        ask: "Privacy is hot — add a 'delete my data' button. Then package everything up and show the board.",
+        ask: "Privacy's a hot topic with the board, so I want a clean 'delete my data' button for customers who ask — full hard delete, the works. Then package the whole engagement up so I can present it. I want it to land in terms the board cares about: risk, money, defensibility.",
         handover: [
-          "A product request: 'hard-delete all data for any customer who asks.'",
-          "The retention map (from prior weeks): applications + adverse-action reasons (Reg B) and financial records (SOX) are legally required to be retained — and now they're also the audit trail W3 built."
+          "Product request ticket: \"On request, hard-delete ALL data for any customer.\"",
+          "Retention map (assembled across prior weeks): applications + adverse-action reasons (Reg B) and financial records (SOX) are legally required to be *retained*.",
+          "Note linking back to W3: those same records include the decision audit trail that proves fair-lending compliance.",
+          "Reg B retention: adverse-action records kept ~25 months; SOX: financial records kept for years.",
+          "No field-level redaction capability exists today — the only option is all-or-nothing delete."
+        ],
+        dig: [
+          "Cross-check 'hard-delete everything' against the retention map — which fields is the law requiring you to keep?",
+          "If you delete a denied applicant's record, what compliance evidence (the W3 audit trail) vanishes with it?",
+          "How do you honor a privacy request without erasing legally-required records — what gets redacted vs retained?",
+          "Which records are safe to delete, and which must survive a 'delete my data' request — and why?"
         ],
         stated: [
           "Add a 'delete my data' privacy button.",
@@ -530,8 +720,11 @@ window.CLIENT = {
     weeksEl.appendChild(btn);
   }
 
-  function list(items) {
+  function ul(items) {
     return `<ul class="cd-list">${items.map(i => `<li>${i}</li>`).join("")}</ul>`;
+  }
+  function ol(items) {
+    return `<ol>${items.map(i => `<li>${i}</li>`).join("")}</ol>`;
   }
 
   function render() {
@@ -550,25 +743,32 @@ window.CLIENT = {
       `<h2>${wk.title}</h2>` +
       `<p class="cd-tie">Curriculum tie-in: ${wk.tie}</p>`;
 
-    // Client request (everyone)
+    // Client message (everyone)
     html +=
       `<div class="cd-sec">` +
-        `<div class="cd-h">Client request</div>` +
-        `<div class="cd-ask">"${wk.ask}"<span class="who">— ${proj.persona}</span></div>` +
+        `<div class="cd-h">Client message</div>` +
+        `<div class="cd-ask">${wk.ask}<span class="who">— ${proj.persona}</span></div>` +
       `</div>`;
 
     // What they handed over (everyone)
     html +=
       `<div class="cd-sec">` +
         `<div class="cd-h">What they handed over</div>` +
-        list(wk.handover) +
+        ul(wk.handover) +
+      `</div>`;
+
+    // Questions to dig into (everyone) — the bridge from artifacts to discovery
+    html +=
+      `<div class="cd-sec">` +
+        `<div class="cd-h">🔍 Questions to dig into</div>` +
+        `<div class="cd-dig">${ol(wk.dig)}</div>` +
       `</div>`;
 
     // Current / stated problems (everyone)
     html +=
       `<div class="cd-sec">` +
         `<div class="cd-h">Current problems (stated / known)</div>` +
-        list(wk.stated) +
+        ul(wk.stated) +
       `</div>`;
 
     // This week's deliverable (everyone)
@@ -583,7 +783,7 @@ window.CLIENT = {
     html +=
       `<div class="cd-sec trainer-only">` +
         `<div class="cd-h" style="color:#c2410c">🔑 Hidden problems learners should surface</div>` +
-        list(wk.hidden) +
+        ul(wk.hidden) +
         `<div class="trainer-note"><div class="k">Facilitator note</div><p style="margin:0">${wk.facilitator}</p></div>` +
       `</div>`;
 
