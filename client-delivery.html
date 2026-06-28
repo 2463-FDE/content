@@ -694,6 +694,7 @@ window.CLIENT = {
   const PROJ_KEYS = Object.keys(window.CLIENT);
 
   let state = { proj: PROJ_KEYS[0], week: 1 };
+  (function () { const q = new URLSearchParams(location.search); const w = Number(q.get("w")); if (w >= 1 && w <= 10) state.week = w; const p = q.get("p"); if (p && PROJ_KEYS.includes(p)) state.proj = p; })();
 
   // ---- project tabs ----
   PROJ_KEYS.forEach(key => {

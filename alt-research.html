@@ -92,6 +92,7 @@
     <span class="tx">Each week has <b>4 alternatives</b> and there are <b>4 of you</b> — log in and you'll be assigned <b>one</b>.
     <b>Research your assigned alternative this week, then present it to the group for ~10 minutes on Friday.</b>
     Across four weeks the rotation puts everyone in every slot.</span>
+    <a class="ritual ar" style="margin-top:10px;display:inline-block" href="alt-research-example.html">📄 See an example submission (Next.js vs Vue vs Angular)</a>
   </div>
 
   <div class="ar-banner">
@@ -329,6 +330,7 @@ window.ALT = {
   const WEEK_KEYS = Object.keys(window.ALT).map(Number).sort((a, b) => a - b);
 
   let state = { week: WEEK_KEYS[0] || 1 };
+  (function () { const w = new URLSearchParams(location.search).get("w"); if (w && WEEK_KEYS.includes(Number(w))) state.week = Number(w); })();
 
   // ---- week selector ----
   for (let w = 1; w <= 8; w++) {

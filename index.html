@@ -126,10 +126,10 @@ window.WEEKS = [
       const marks = `${day.fde ? '<span class="mk fde">◆ FDE</span>' : ''}${day.star ? '<span class="mk star">★</span>' : ''}`;
       // recurring weekly rituals
       let rituals = "";
-      if (di === 0) rituals += `<a class="ritual cr" href="client-delivery.html">📋 Client request</a>`;
-      if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="system-design.html">🎯 Sys-design · start</a>`;
-      if (week.w <= 8 && di === 2) rituals += `<a class="ritual ar" href="alt-research.html">🔬 Alt research</a>`;
-      if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="system-design.html">🎯 Sys-design · due</a>`;
+      if (di === 0) rituals += `<a class="ritual cr" href="client-delivery.html?w=${week.w}">📋 Client request</a>`;
+      if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}">🎯 Sys-design · start</a>`;
+      if (week.w <= 8 && di === 2) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}">🔬 Alt research</a>`;
+      if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}">🎯 Sys-design · due</a>`;
       const el = document.createElement("div");
       el.className = "cal-cell" + (day.href ? " live" : " soon");
       el.style.setProperty("--pc", ph.c);

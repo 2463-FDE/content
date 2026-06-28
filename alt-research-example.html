@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alt Research — Example Submission | 2463-FDE</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+  .ex-wrap { max-width: 940px; margin: 0 auto; padding: 0 24px 70px; }
+  .ex-hero { padding: 40px 0 10px; }
+  .ex-hero h1 { font-size: 40px; margin: 0 0 6px; } .ex-hero h1 b { color: var(--accent); }
+  .ex-hero p { color: var(--ink-soft); font-size: 18px; max-width: 720px; }
+  .ex-banner { background: var(--accent-soft); border: 1px solid #ffd8bf; border-radius: 12px; padding: 14px 18px; margin: 18px 0 28px; font-size: 15px; }
+  .ex-banner b { color: var(--accent); }
+  .ex-card { background:#fff; border:1px solid var(--line); border-radius:14px; padding: 24px 26px; margin: 18px 0; }
+  .ex-k { font-size:12px; text-transform:uppercase; letter-spacing:.12em; font-weight:700; color:var(--accent); margin-bottom:8px; }
+  .ex-card h2 { margin:.1em 0 .4em; font-size:24px; }
+  .ex-card p, .ex-card li { font-size:17px; line-height:1.65; }
+  .scenario { background:#f6f8f6; border-left:4px solid #0ca678; border-radius:8px; padding:14px 16px; font-style:italic; color:#2b3a2f; }
+  table.cmp { width:100%; border-collapse:collapse; margin:10px 0; font-size:15px; }
+  table.cmp th, table.cmp td { border:1px solid var(--line); padding:9px 11px; text-align:left; vertical-align:top; }
+  table.cmp th { background:#faf8f4; font-size:13px; }
+  table.cmp td.win { background:#ebfbee; font-weight:600; }
+  .verdict { background:#f3effe; border:1px solid #e5dbff; border-radius:10px; padding:14px 16px; }
+  .verdict .pick { font-weight:700; color:#7048e8; }
+  .anti li { margin:6px 0; }
+  .srcs { font-size:13.5px; color:var(--ink-soft); }
+  .srcs a { color:var(--accent); }
+  .rubric li { margin:7px 0; }
+  .pill { display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; margin-right:6px; }
+  .pill.mature { background:#ebfbee; color:#0ca678; } .pill.solid { background:#eef7ff; color:#1c7ed6; } .pill.niche { background:#fff4e6; color:#e8590c; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Alt Research · Example submission</span>
+  <span class="spacer"></span>
+  <a class="topnav" href="alt-research.html">← Back to Alt Research</a>
+</div>
+
+<div class="ex-wrap">
+  <div class="ex-hero">
+    <h1>What a strong <b>Alt Research</b> submission looks like</h1>
+    <p>A worked example. This isn't one of your assigned weeks — it's here so you can see the shape and the
+    depth we expect before you write your own. Read it as a template, not as content to memorize.</p>
+  </div>
+
+  <div class="ex-banner">
+    <b>The job (Karsun-style):</b> given a real client constraint, name the option you'd recommend, compare it
+    honestly against 2–3 alternatives with a <b>maturity read</b>, own the <b>anti-patterns</b> you'd have to
+    defend, and <b>cite every current-state claim</b>. Then defend it live for ~10 minutes — your group will
+    probe it. Picking the trendiest tool isn't the win; defending a recommendation against the constraint is.
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-k">Step 1 · The constraint (in the client's words)</div>
+    <div class="scenario">"Our customer-facing loan portal is a six-year-old server-rendered app nobody
+    wants to touch. Leadership wants a modern front end — something we can actually hire for, that renders fast
+    and ranks on Google for our public loan-product pages, and that won't take the team a year to learn. Pick a
+    framework and tell me why."  — Dana, VP of Lending Ops</div>
+    <p style="margin-top:12px"><b>Reframe (the FDE move):</b> the real requirements hiding in that ask are
+    <b>(a)</b> server-side rendering / SEO for public pages, <b>(b)</b> a US hiring pool the client can staff
+    from, <b>(c)</b> a gentle ramp for an existing team, and <b>(d)</b> long-term maintainability. Name them
+    explicitly — the client didn't.</p>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-k">Step 2 · The candidates</div>
+    <p>
+      <span class="pill mature">mature</span> <b>Next.js</b> (React) — the programme default for this client.<br>
+      <span class="pill solid">solid</span> <b>Nuxt</b> (Vue) — progressive, gentle learning curve.<br>
+      <span class="pill solid">solid</span> <b>Angular</b> — batteries-included, opinionated, enterprise-leaning.
+    </p>
+    <p class="srcs">Maturity reads are claims you must back. Cite the framework's own release/LTS page + a
+    current ecosystem/usage source, dated, in Step 5 — don't assert "most popular" from memory.</p>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-k">Step 3 · Honest comparison against the constraint</div>
+    <table class="cmp">
+      <tr><th>Criterion (from the constraint)</th><th>Next.js / React</th><th>Nuxt / Vue</th><th>Angular</th></tr>
+      <tr><td>SSR / SEO for public pages</td><td class="win">First-class (App Router, RSC, streaming)</td><td>First-class (Nuxt)</td><td>SSR via Angular Universal; heavier setup</td></tr>
+      <tr><td>US hiring pool</td><td class="win">Largest (React)</td><td>Smaller</td><td>Mid; strong in enterprise/regulated shops</td></tr>
+      <tr><td>Learning ramp for the team</td><td>Moderate (RSC/server-vs-client boundary is the trap)</td><td class="win">Gentlest</td><td>Steepest (DI, RxJS, modules)</td></tr>
+      <tr><td>Structure / guardrails for a big team</td><td>Convention, not enforced</td><td>Convention, not enforced</td><td class="win">Opinionated, enforced</td></tr>
+      <tr><td>Long-term maintainability</td><td>Strong, fast-moving (pin versions)</td><td>Strong, stable</td><td>Strong, very stable</td></tr>
+    </table>
+    <p style="margin:6px 0 0"><b>No clean sweep</b> — and that's the point. Each wins something. Your job is to
+    weight the criteria <em>for this client</em> and defend the weighting.</p>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-k">Step 4 · Recommendation + one-paragraph rationale</div>
+    <div class="verdict">
+      <p style="margin:0"><span class="pick">Recommend: Next.js.</span> The two non-negotiables in Dana's ask
+      are SSR/SEO for public loan pages and a hiring pool she can staff from — Next.js wins both decisively, and
+      it's mature enough to inherit safely. Angular's enforced structure is tempting for a regulated lender, but
+      the steeper ramp fights requirement (c) and the smaller hiring pool fights (b); I'd revisit Angular only if
+      the team were already Angular-shops. Vue/Nuxt is the closest runner-up and the right pick if "gentle ramp"
+      outranked "hiring pool" — but for Meridian it doesn't.</p>
+    </div>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-k">Step 5 · Anti-patterns I'd have to own on defense</div>
+    <ul class="anti">
+      <li><b>Next.js:</b> the App Router server/client-component boundary is where teams shoot themselves — over-adopting server components before the team understands it leaks data-fetching bugs. Mitigation: start with the boundary documented + a lint rule.</li>
+      <li><b>Don't chase the bleeding edge:</b> pin the major version; Next moves fast and "latest" in a tutorial may differ from your LTS. (This is exactly the kind of current-state claim you must cite, not assume.)</li>
+      <li><b>SEO isn't free:</b> SSR has to be wired correctly (metadata, caching) or you get the worst of both worlds — own the work, don't assume the framework does it.</li>
+    </ul>
+    <p class="srcs">These are the probe questions your group will ask on Friday. A strong defender names the
+    anti-patterns <em>before</em> they're asked.</p>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-k">Step 6 · Sources (every current-state claim, dated)</div>
+    <p class="srcs">This section is required. Each maturity/popularity/version claim above ties to a source you
+    retrieved via <code>/web-research</code>, with the date you pulled it (the landscape moves — an undated claim
+    is a guess). Example shape:</p>
+    <ul class="srcs">
+      <li>Next.js — official releases / versioning page · <em>retrieved YYYY-MM-DD</em></li>
+      <li>State-of-JS or framework usage survey (hiring-pool signal) · <em>retrieved YYYY-MM-DD</em></li>
+      <li>Vue / Nuxt docs (SSR support) · <em>retrieved YYYY-MM-DD</em></li>
+      <li>Angular docs (Universal SSR, LTS schedule) · <em>retrieved YYYY-MM-DD</em></li>
+    </ul>
+  </div>
+
+  <div class="ex-card" style="border-color:#ffd8bf;background:var(--accent-soft)">
+    <div class="ex-k">What good looks like (the bar)</div>
+    <ul class="rubric">
+      <li><b>Reframed the ask</b> — surfaced the requirements the client didn't state.</li>
+      <li><b>Named a recommendation</b> and one runner-up, not a wishy-washy "it depends."</li>
+      <li><b>Compared honestly</b> — every candidate wins something; no strawmen.</li>
+      <li><b>Weighted to the client</b> — the rationale ties to <em>this</em> constraint, not generic pros/cons.</li>
+      <li><b>Owned the anti-patterns</b> before being asked.</li>
+      <li><b>Cited every current-state claim</b>, dated, via <code>/web-research</code>.</li>
+      <li><b>Defends in ~10 min</b> and survives the group's probe questions.</li>
+    </ul>
+  </div>
+
+  <p style="text-align:center;margin-top:24px"><a class="btn" href="alt-research.html">← Back to this week's Alt Research</a></p>
+</div>
+
+<footer class="foot">2463-FDE · Alternative Research — example submission · problem framing first, tool second</footer>
+<script src="assets/js/roster.js"></script>
+<script src="assets/js/auth.js"></script>
+</body>
+</html>
