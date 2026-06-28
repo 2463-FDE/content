@@ -1,0 +1,4 @@
+{"ts":"2026-06-28T16:42:16.246Z","cmd":"goto","args":"http://localhost:8099/weeks/w01/survey.html","origin":"http://localhost:8099/weeks/w01/survey.html","durationMs":16,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-28T16:42:17.316Z","cmd":"console","args":"--errors","origin":"http://localhost:8099/weeks/w01/survey.html","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-28T16:42:17.370Z","cmd":"js","args":"'topic rows: '+document.querySelectorAll('.sv-table .sv-row').length+', quota q: '+(!!document.querySelector('[data-k=quota]'))","origin":"http://localhost:8099/weeks/w01/survey.html","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-28T16:42:17.491Z","cmd":"screenshot","args":"/tmp/fde-survey.png","origin":"http://localhost:8099/weeks/w01/survey.html","durationMs":75,"status":"ok","hasCookies":false,"mode":"launched"}

@@ -1,0 +1,9 @@
+{
+  "pid": 59500,
+  "port": 20469,
+  "token": "db758ff5-0510-4e5e-b837-c5000c333fe7",
+  "startedAt": "2026-06-28T16:42:16.205Z",
+  "serverPath": "/Users/jestercharles/.claude/skills/gstack/browse/src/server.ts",
+  "mode": "launched",
+  "configHash": "303a7eeccc03078b"
+}
