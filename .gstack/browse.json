@@ -1,8 +1,8 @@
 {
-  "pid": 93217,
-  "port": 49976,
-  "token": "ccd1022d-321d-4e5a-a5ce-4c6a1e3422ca",
-  "startedAt": "2026-06-28T20:12:23.878Z",
+  "pid": 96782,
+  "port": 45795,
+  "token": "92e2b0d6-25d6-44ce-8f46-d75e309dddcb",
+  "startedAt": "2026-06-28T20:44:23.681Z",
   "serverPath": "/Users/jestercharles/.claude/skills/gstack/browse/src/server.ts",
   "mode": "launched",
   "configHash": "303a7eeccc03078b"

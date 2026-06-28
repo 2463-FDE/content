@@ -26,17 +26,19 @@
         <div class="meta">
           <span><b>Week 1</b> · Day 4</span>
           <span>Cost Engineering &amp; Reliability</span>
-          <span><b>~75 min</b> · reading @150 wpm + diagram + check</span>
+          <span><b>~75 min</b> · reading @150 wpm + 2 diagrams + check</span>
         </div>
         <p class="summary">Day 1 gave you the mental model: the context window is a <strong>finite budget</strong>,
         and every token in and out is metered. Today you turn that model into two engineering disciplines a Forward
         Deployed Engineer gets paid for — making each call <strong>cost less</strong> (prompt caching, context
         compression, dynamic assembly, spend tracking) and making each response <strong>trustworthy</strong> (schema
         validation, retry-on-invalid, hallucination mitigation, refusal/fallback handling). Scroll the reading; the
-        token-optimization pipeline on the right builds with you.</p>
+        panel on the right builds two diagrams, one per part, and swaps as you cross into Part 2.</p>
       </div>
 
-      <section class="step" data-step="0">
+      <div class="chapter">Part 1 · Token optimization<span class="ch-sub">Spend fewer tokens for the same quality — trim the window before you call.</span></div>
+
+      <section class="step" data-diagram="0" data-step="0">
         <div class="tag">The whole game</div>
         <h2>Cost and trust are the two bills you always pay</h2>
         <p>On Day 1 we said the same sentence three times until it stuck: <strong>capabilities and limits both come
@@ -58,7 +60,7 @@
         Hold that, and the rest of the day is detail.</p>
       </section>
 
-      <section class="step" data-step="1">
+      <section class="step" data-diagram="0" data-step="1">
         <div class="tag">Cost lever 1</div>
         <h2>Prompt caching: stop paying for the same prefix twice</h2>
         <p>Recall the Day 1 picture: the system prompt, the few-shot examples, and a big chunk of retrieved context
@@ -93,7 +95,7 @@
         repeated identical-prefix calls, a silent invalidator is hiding in your prefix.</p>
       </section>
 
-      <section class="step" data-step="2">
+      <section class="step" data-diagram="0" data-step="2">
         <div class="tag">Cost lever 2</div>
         <h2>Context compression: shrink what you carry</h2>
         <p>Day 1's "silent leak" was conversation history: every turn re-sends the entire prior conversation, so a
@@ -120,7 +122,7 @@
         good summary is lossy on purpose, but lossy in the right places.</p>
       </section>
 
-      <section class="step" data-step="3">
+      <section class="step" data-diagram="0" data-step="3">
         <div class="tag">Cost lever 3</div>
         <h2>Dynamic prompt assembly: include only what this call needs</h2>
         <p>The beginner builds one giant prompt template — every instruction, every tool description, every example,
@@ -144,7 +146,7 @@
         it's why these three levers are taught together rather than in isolation.</p>
       </section>
 
-      <section class="step" data-step="4">
+      <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Cost lever 4</div>
         <h2>Cost management: you can't optimize what you don't measure</h2>
         <p>All three levers above are guesses until you measure them. <strong>Cost management</strong> is the
@@ -176,7 +178,9 @@
         actually worked.</p>
       </section>
 
-      <section class="step" data-step="5">
+      <div class="chapter">Part 2 · Output guardrails<span class="ch-sub">From spending fewer tokens to trusting what comes back.</span></div>
+
+      <section class="step" data-diagram="1" data-step="0">
         <div class="tag">Guardrail 1</div>
         <h2>Schema validation: never trust the shape of the output</h2>
         <p>Now we cross from cost to trust. The hard truth about LLM output is that it is <strong>generated text,
@@ -201,7 +205,7 @@
         your client's data integrity. Validate the shape before you trust the content.</p>
       </section>
 
-      <section class="step" data-step="6">
+      <section class="step" data-diagram="1" data-step="1">
         <div class="tag">Guardrail 2</div>
         <h2>Retry-on-invalid: give the model a second chance, but a bounded one</h2>
         <p>Catching a bad response with schema validation answers "is this output usable?" The next question is "what
@@ -224,7 +228,7 @@
         is in today's deep-dive.</p>
       </section>
 
-      <section class="step" data-step="7">
+      <section class="step" data-diagram="1" data-step="2">
         <div class="tag">Guardrail 3</div>
         <h2>Hallucination mitigation: defend against confident wrongness</h2>
         <p>Schema validation catches malformed output. It does <em>not</em> catch the more insidious failure: output
@@ -249,7 +253,7 @@
         reach for the model. That was the spine of Day 1, and it's still the move.</p>
       </section>
 
-      <section class="step" data-step="8">
+      <section class="step" data-diagram="1" data-step="3">
         <div class="tag">Guardrail 4 · last line</div>
         <h2>Refusal &amp; fallback: fail safe, never ship garbage</h2>
         <p>Even with caching, compression, validation, retries, and grounding, some requests will still end in a bad
@@ -278,7 +282,7 @@
         the diagram on the right, and it's the difference between a demo and a production feature.</p>
       </section>
 
-      <section class="step extra" data-step="8">
+      <section class="step extra" data-diagram="1" data-step="3">
         <div class="tag">Your tools</div>
         <h2>The $20 plan rewards exactly these habits</h2>
         <p>Everything today maps directly onto how you'll actually work this program. You're on a <strong>$20 Claude
@@ -440,38 +444,58 @@
 
 <script>
 window.FDE_NEXT = { label: "Day 5 — Build the LLM API Client →", href: "d5.html" };
-window.DIAGRAM = {
-  width: 460, height: 560,
-  nodes: [
-    { id:"raw",      step:0, x:30,  y:50,  w:300, h:50, label:"RAW CONTEXT\n(everything you *could* send)" },
-    { id:"cache",    step:1, x:30,  y:114, w:300, h:44, label:"Prompt cache: reuse stable prefix" },
-    { id:"compress", step:2, x:30,  y:172, w:300, h:44, label:"Compress: summarize / trim history" },
-    { id:"assemble", step:3, x:30,  y:230, w:300, h:44, label:"Assemble: only what's needed" },
-    { id:"call",     step:4, x:30,  y:288, w:300, h:52, label:"API CALL\n$ = (in + out) × price" },
-    { id:"validate", step:5, x:30,  y:368, w:300, h:48, label:"Validate output (schema)" },
-    { id:"retry",    step:6, x:352, y:286, w:96,  h:56, label:"retry\n(re-ask, fix)" },
-    { id:"pass",     step:7, x:30,  y:452, w:140, h:52, label:"✓ PASS → ship" },
-    { id:"fallback", step:8, x:186, y:452, w:144, h:56, label:"refuse →\nsafe fallback" }
-  ],
-  edges: [
-    { id:"e_cv",  step:5, from:"call",     to:"validate", label:"response" },
-    { id:"e_r1",  step:6, from:"validate", to:"retry",    label:"invalid" },
-    { id:"e_r2",  step:6, from:"retry",    to:"assemble", label:"re-ask" },
-    { id:"e_pass",step:7, from:"validate", to:"pass",     label:"valid" },
-    { id:"e_fb",  step:8, from:"validate", to:"fallback", label:"still bad" }
-  ],
-  captions: [
-    "Day 1's budget, made operational: the window holds everything you <b>could</b> send — today you decide what's worth sending and whether to trust what comes back.",
-    "<b>Prompt caching</b>: reuse the stable prefix (system + manual) for ~0.1× the input price instead of paying full price every call.",
-    "<b>Compress</b>: replace bulky history with a summary; extract only the relevant slice of retrieved docs.",
-    "<b>Dynamic assembly</b>: include only the instructions, tools, and examples <b>this</b> request needs.",
-    "The call is <b>metered</b>: cost = (input + output tokens) × price. Track it per feature, per user, per run.",
-    "Don't trust the shape — <b>validate the output</b> against a schema before you act on it.",
-    "Invalid? <b>Retry</b> with the error fed back in — bounded (1–3 tries), never an infinite loop.",
-    "Valid and grounded → <b>pass</b> it downstream.",
-    "Refusal, or still-bad after retries → <b>safe fallback</b>. Never ship a wrong answer confidently."
-  ]
-};
+window.DIAGRAMS = [
+  {
+    title: "Part 1 · Token-optimization pipeline",
+    width: 460, height: 400,
+    nodes: [
+      { id:"raw",      step:0, x:40, y:30,  w:380, h:50, label:"RAW CONTEXT\n(everything you *could* send)" },
+      { id:"cache",    step:1, x:70, y:104, w:320, h:44, label:"① Prompt cache — reuse stable prefix" },
+      { id:"compress", step:2, x:100, y:172, w:260, h:44, label:"② Compress — summarize / trim" },
+      { id:"assemble", step:3, x:130, y:240, w:200, h:44, label:"③ Assemble — only what's needed" },
+      { id:"call",     step:4, x:150, y:308, w:160, h:52, label:"API CALL\n$ = (in+out) × price" }
+    ],
+    edges: [
+      { id:"e1", step:1, from:"raw",      to:"cache",    label:"≈0.1× cached" },
+      { id:"e2", step:2, from:"cache",    to:"compress", label:"shrink" },
+      { id:"e3", step:3, from:"compress", to:"assemble", label:"select" },
+      { id:"e4", step:4, from:"assemble", to:"call",     label:"send lean" }
+    ],
+    captions: [
+      "Day 1's budget, made operational: the window holds everything you <b>could</b> send — Part 1 is deciding what's actually worth sending. Each step below trims the input.",
+      "<b>① Prompt caching</b>: reuse the stable prefix (system + manual) for ~0.1× the input price instead of paying full price every call. Keep volatile content after the cache boundary.",
+      "<b>② Compress</b>: replace bulky history with a summary; extract only the relevant slice of retrieved docs. More text is not more intelligence — it's more budget spent.",
+      "<b>③ Dynamic assembly</b>: include only the instructions, tools, and examples <b>this</b> request needs — do the selecting <i>after</i> the cache boundary so the prefix still caches.",
+      "The window is now lean, so the <b>metered call</b> costs less: cost = (input + output tokens) × price. Track it per feature, per user, per run — you can't optimize what you don't measure."
+    ]
+  },
+  {
+    title: "Part 2 · Output guardrails",
+    width: 470, height: 380,
+    nodes: [
+      { id:"out",    step:0, x:40,  y:30,  w:300, h:50, label:"MODEL OUTPUT\n(generated text, not guaranteed)" },
+      { id:"schema", step:0, x:40,  y:104, w:300, h:44, label:"Validate shape (schema check)" },
+      { id:"retry",  step:1, x:358, y:100, w:98,  h:56, label:"retry\n(feed error back)" },
+      { id:"halluc", step:2, x:40,  y:172, w:300, h:48, label:"Grounded & cited? (hallucination)" },
+      { id:"pass",   step:3, x:40,  y:252, w:140, h:52, label:"✓ PASS → ship" },
+      { id:"fb",     step:3, x:196, y:250, w:144, h:56, label:"refuse / exhausted →\nsafe fallback" }
+    ],
+    edges: [
+      { id:"e_os", step:0, from:"out",    to:"schema", label:"response" },
+      { id:"e_sr", step:1, from:"schema", to:"retry",  label:"invalid" },
+      { id:"e_rs", step:1, from:"retry",  to:"schema", label:"re-ask", bend:-36 },
+      { id:"e_sh", step:2, from:"schema", to:"halluc", label:"valid shape" },
+      { id:"e_hp", step:3, from:"halluc", to:"pass",   label:"grounded" },
+      { id:"e_hf", step:3, from:"halluc", to:"fb",     label:"can't trust" }
+    ],
+    captions: [
+      "Part 1 spent fewer tokens; Part 2 trusts what comes back. <b>Model output is generated text, not a guaranteed structure</b> — so the first gate is a <b>schema check</b> on its shape before you act on it.",
+      "Invalid shape? <b>Retry</b> with the specific validation error fed back in — bounded (1–3 tries), never an infinite loop. Each retry is another billable call.",
+      "Valid shape isn't valid <i>facts</i>: a well-formed answer can still be a <b>hallucination</b>. Defend with grounding, demanded citations, and an 'I don't know' exit — it's a window problem, not a model problem.",
+      "Ends in exactly two places: a grounded answer you <b>ship</b>, or — on refusal, exhausted retries, or untrustworthy output — a <b>safe fallback</b>. Never ship a wrong answer confidently."
+    ]
+  }
+];
 window.QUIZ = {
   id: "w01-d4",
   title: "Check your understanding",

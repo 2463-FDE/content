@@ -1,6 +1,8 @@
 /* scrolly.js — scroll-driven diagram build + in-page section nav (TOC).
-   Each <section class="step" data-step="N"> activates diagram step N and its
-   TOC entry when it reaches the middle of the viewport. */
+   TOC groups steps by their diagram ("part"); on multi-diagram pages it's an
+   accordion: only the part you're currently in is expanded, so jumping parts
+   is obvious. Each <section class="step" data-diagram="i" data-step="n">
+   activates diagram i / step n and its TOC entry at viewport center. */
 (function () {
   function init() {
     const steps = Array.from(document.querySelectorAll(".step"));
@@ -8,20 +10,56 @@
     const toc = document.querySelector(".toc");
     if (!steps.length) return;
 
-    // build the table of contents from each step's heading
-    const tocLinks = [];
+    // group consecutive steps by data-diagram into "parts"
+    const groups = [];
+    steps.forEach((s) => {
+      const di = parseInt(s.dataset.diagram || "0", 10);
+      let g = groups[groups.length - 1];
+      if (!g || g.di !== di) { g = { di, items: [] }; groups.push(g); }
+      g.items.push(s);
+    });
+    const multi = groups.length > 1;
+
+    const stepToLink = new Map();
+    const partEls = [];
     if (toc) {
-      const head = document.createElement("div"); head.className = "toc-head"; head.textContent = "On this page";
-      const ul = document.createElement("ul");
-      steps.forEach((s, i) => {
-        const h = s.querySelector("h2"); if (!h) return;
-        const li = document.createElement("li");
-        const a = document.createElement("a");
-        a.href = "#"; a.textContent = h.textContent;
-        a.addEventListener("click", (e) => { e.preventDefault(); s.scrollIntoView({ behavior: "smooth", block: "start" }); });
-        li.appendChild(a); ul.appendChild(li); tocLinks[i] = a;
+      const head = document.createElement("div");
+      head.className = "toc-head";
+      head.textContent = "On this page";
+      toc.appendChild(head);
+
+      groups.forEach((g, gi) => {
+        const title = (window.DIAGRAMS && window.DIAGRAMS[g.di] && window.DIAGRAMS[g.di].title) || ("Part " + (gi + 1));
+        const part = document.createElement("div");
+        part.className = "toc-part";
+        if (multi) {
+          const ph = document.createElement("button");
+          ph.type = "button"; ph.className = "toc-part-head";
+          ph.innerHTML = `<span class="cv">▸</span><span class="pt">${title}</span>`;
+          ph.addEventListener("click", () => g.items[0].scrollIntoView({ behavior: "smooth", block: "start" }));
+          part.appendChild(ph);
+        }
+        const ul = document.createElement("ul");
+        ul.className = "toc-part-list";
+        g.items.forEach((s) => {
+          const h = s.querySelector("h2"); if (!h) return;
+          const li = document.createElement("li");
+          const a = document.createElement("a");
+          a.href = "#"; a.textContent = h.textContent;
+          a.addEventListener("click", (e) => { e.preventDefault(); s.scrollIntoView({ behavior: "smooth", block: "start" }); });
+          li.appendChild(a); ul.appendChild(li);
+          stepToLink.set(s, a);
+        });
+        part.appendChild(ul);
+        toc.appendChild(part);
+        partEls.push(part);
       });
-      toc.appendChild(head); toc.appendChild(ul);
+      partEls.forEach((p, i) => p.classList.toggle("open", i === 0));
+    }
+
+    function openPart(gi) {
+      if (!multi) return;
+      partEls.forEach((p, i) => p.classList.toggle("open", i === gi));
     }
 
     const obs = new IntersectionObserver((entries) => {
@@ -32,8 +70,11 @@
         const n = parseInt(e.target.dataset.step, 10);
         const di = parseInt(e.target.dataset.diagram || "0", 10);
         if (!isNaN(n) && window.Diagram) window.Diagram.to(di, n);
-        const idx = steps.indexOf(e.target);
-        tocLinks.forEach((a, i) => { if (a) a.classList.toggle("on", i === idx); });
+        stepToLink.forEach((a, s) => a.classList.toggle("on", s === e.target));
+        // accordion: expand the part this step belongs to
+        let gi = 0;
+        for (let k = 0; k < groups.length; k++) { if (groups[k].items.includes(e.target)) { gi = k; break; } }
+        openPart(gi);
       });
     }, { rootMargin: "-45% 0px -45% 0px", threshold: 0 });
     steps.forEach(s => obs.observe(s));

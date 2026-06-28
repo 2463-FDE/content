@@ -126,6 +126,14 @@ details.deep[open] summary { border-bottom: 1px solid var(--line); margin-bottom
 .d-el.hot rect { stroke: var(--accent); stroke-width: 3; fill: var(--accent-soft); }
 .d-el.hot path { stroke: var(--accent); stroke-width: 3; }
 .d-el.hot text { fill: var(--ink); font-weight: 600; }
+/* example payload card — "what the user/client sends" */
+.d-example rect { fill: #1f2329; stroke: #1f2329; }
+.d-example text { fill: #e8e6e1; font-family: var(--mono); font-size: 12px; }
+.d-example.dim rect { fill: #2b2f36; }
+.d-example.hot rect { fill: #1f2329; stroke: var(--accent); stroke-width: 3; }
+.d-example.hot text { fill: #fff; }
+/* edge labels live in a top layer; keep them crisp */
+.d-elabel text { font-size: 11.5px; }
 
 /* ---------- quiz ---------- */
 .quiz { max-width: var(--maxprose); margin: 50px auto 30px; background:#fff; border:1px solid var(--line); border-radius:14px; padding: 26px; }
@@ -345,6 +353,14 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .toc { position:sticky; top:60px; align-self:start; padding-top:34px; }
 .toc-head { text-transform:uppercase; letter-spacing:.11em; font-size:11px; color:var(--dim); font-weight:700; margin-bottom:12px; }
 .toc ul { list-style:none; margin:0; padding:0; border-left:2px solid var(--line); }
+/* accordion parts (multi-diagram days) */
+.toc-part { margin-bottom:2px; }
+.toc-part-head { display:flex; align-items:center; gap:7px; width:100%; text-align:left; background:none; border:none; cursor:pointer; font:inherit; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-soft); padding:8px 0; }
+.toc-part-head .cv { font-size:9px; color:var(--dim); transition:transform .2s; flex:0 0 auto; }
+.toc-part.open > .toc-part-head { color:var(--accent); }
+.toc-part.open > .toc-part-head .cv { transform:rotate(90deg); color:var(--accent); }
+.toc-part-list { max-height:1400px; overflow:hidden; transition:max-height .35s ease, opacity .2s; }
+.toc-part:not(.open) .toc-part-list { max-height:0; opacity:0; border-color:transparent; }
 .toc li a { display:block; padding:7px 0 7px 14px; margin-left:-2px; border-left:2px solid transparent; color:var(--ink-soft); text-decoration:none; font-size:13.5px; line-height:1.3; }
 .toc li a:hover { color:var(--ink); }
 .toc li a.on { color:var(--accent); border-left-color:var(--accent); font-weight:600; }

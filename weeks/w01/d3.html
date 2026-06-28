@@ -26,7 +26,7 @@
         <div class="meta">
           <span><b>Week 1</b> · Day 3</span>
           <span>Foundation AI Engineering · FDE Situation day</span>
-          <span><b>~65 min</b> · reading @150 wpm + diagram + check</span>
+          <span><b>~65 min</b> · reading @150 wpm + 2 diagrams + check</span>
         </div>
         <p class="summary">Day 1 you learned the context window is a budget. Day 2 you learned tokens are the
         currency. Today you learn what to <em>put</em> in that window on purpose. Prompt engineering isn't magic
@@ -34,10 +34,13 @@
         Wednesday is your first <strong>FDE Situation</strong> session, we go one level up: how a Forward Deployed
         Engineer takes a client's vague, hand-wavy ask and turns it into concrete model and prompt
         <em>requirements</em> — what must be structured, what must be deterministic, what must be grounded in
-        retrieved facts. Scroll the reading; the diagram on the right assembles a real prompt as you go.</p>
+        retrieved facts. Scroll the reading; the panel on the right builds two diagrams — first a prompt assembling
+        part by part, then the funnel that turns a vague ask into a spec — and swaps as you cross into Part 2.</p>
       </div>
 
-      <section class="step" data-step="0">
+      <div class="chapter">Part 1 · Prompt engineering techniques<span class="ch-sub">A prompt is an interface you design — assembled part by part, then measured like code.</span></div>
+
+      <section class="step" data-diagram="0" data-step="0">
         <div class="tag">The whole game</div>
         <h2>A prompt is an interface, not an incantation</h2>
         <p>The internet is full of "prompt hacks" — magic phrases, all-caps threats, "you are a world-class
@@ -76,7 +79,7 @@
         today.</p>
       </section>
 
-      <section class="step" data-step="1">
+      <section class="step" data-diagram="0" data-step="1">
         <div class="tag">Slice 1 · the contract</div>
         <h2>The system prompt is the standing contract</h2>
         <p>You met the system prompt on Day 1 as "the first slice of the window, paid on every call." Today we
@@ -116,7 +119,7 @@
         to Friday.</p>
       </section>
 
-      <section class="step" data-step="2">
+      <section class="step" data-diagram="0" data-step="2">
         <div class="tag">Slice 2 · teach by showing</div>
         <h2>Zero, one, and few-shot: examples teach format</h2>
         <p>There are three points on a spectrum, and naming them precisely keeps you honest. <strong>Zero-shot</strong>
@@ -160,7 +163,7 @@
         show it.</p>
       </section>
 
-      <section class="step" data-step="3">
+      <section class="step" data-diagram="0" data-step="3">
         <div class="tag">Slice 3 · room to think</div>
         <h2>Chain-of-thought: give the model room to reason</h2>
         <p>For any task that involves multiple steps — math, multi-condition logic, comparing options, applying a
@@ -202,7 +205,7 @@
         decomposition you'll build in Week 3.</p>
       </section>
 
-      <section class="step" data-step="4">
+      <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Slice 4 · the variable part</div>
         <h2>The user input slot — and grounding it in real context</h2>
         <p>Everything so far — system prompt, examples, reasoning instructions — is <strong>fixed scaffolding</strong>
@@ -246,7 +249,7 @@
         it's a habit that costs nothing to build now and pays off at every client you ever touch.</p>
       </section>
 
-      <section class="step" data-step="5">
+      <section class="step" data-diagram="0" data-step="5">
         <div class="tag">Slice 5 · the output contract</div>
         <h2>Structured output: pin the shape with a schema</h2>
         <p>Here's the part that separates a demo from a system. In a chat window, freeform prose is fine — a human
@@ -291,7 +294,7 @@
         a silently-wrong record is the kind of thing that turns into a very uncomfortable meeting.</p>
       </section>
 
-      <section class="step" data-step="6">
+      <section class="step" data-diagram="0" data-step="6">
         <div class="tag">Slice 6 · close the loop</div>
         <h2>Iteration and eval: treat the prompt like code</h2>
         <p>The amateur writes a prompt, tries it once on a happy-path example, sees it work, and ships. The
@@ -334,7 +337,9 @@
         on it.</p>
       </section>
 
-      <section class="step" data-step="7">
+      <div class="chapter">Part 2 · FDE Situation — requirements synthesis<span class="ch-sub">From technique to turning a vague client ask into a spec.</span></div>
+
+      <section class="step" data-diagram="1" data-step="0">
         <div class="tag">FDE Situation · the ask</div>
         <h2>Clients hand you a sentence, not a spec</h2>
         <p>Now the part that makes today FDE Situation day. Everything above assumes you already know what you're
@@ -381,7 +386,7 @@
         wrong thing beautifully.</p>
       </section>
 
-      <section class="step" data-step="8">
+      <section class="step" data-diagram="1" data-step="1">
         <div class="tag">FDE Situation · the synthesis</div>
         <h2>Synthesize the ask into model + prompt requirements</h2>
         <p>Here's the move that earns your keep, distilled into three questions you ask of every vague ask. They
@@ -431,7 +436,7 @@
         either — which is exactly the value you were brought in to provide.</p>
       </section>
 
-      <section class="step extra" data-step="8">
+      <section class="step extra" data-diagram="1" data-step="2">
         <div class="tag">Your tools</div>
         <h2>Claude Code is where you practice the loop</h2>
         <p>Everything today has a home in <strong>Claude Code</strong>. Your system prompts, few-shot examples, and
@@ -605,35 +610,55 @@
 
 <script>
 window.FDE_NEXT = { label: "Day 4 — Token Optimization →", href: "d4.html" };
-window.DIAGRAM = {
-  width: 460, height: 660,
-  nodes: [
-    { id:"prompt", step:0, x:30,  y:60,  w:400, h:362, label:"THE ENGINEERED PROMPT  (one request)" },
-    { id:"sys",    step:1, x:50,  y:92,  w:360, h:44,  label:"System prompt — role · rules · format" },
-    { id:"shots",  step:2, x:50,  y:144, w:360, h:44,  label:"Few-shot examples  (0 → 1 → few)" },
-    { id:"cot",    step:3, x:50,  y:196, w:360, h:44,  label:"Reasoning scaffold (chain-of-thought)" },
-    { id:"userin", step:4, x:50,  y:248, w:360, h:44,  label:"User input slot + grounded context" },
-    { id:"schema", step:5, x:50,  y:312, w:360, h:88,  label:"← structured OUTPUT (JSON schema)" },
-    { id:"eval",   step:6, x:36,  y:470, w:186, h:64,  label:"eval set\nmeasure → iterate" },
-    { id:"vague",  step:7, x:250, y:456, w:180, h:44,  label:"vague client ask" },
-    { id:"spec",   step:8, x:250, y:512, w:180, h:78,  label:"requirements:\nstructured · deterministic\n· grounded" }
-  ],
-  edges: [
-    { id:"e_eval", step:6, from:"eval", to:"cot",   label:"tune & re-test", bend:-26 },
-    { id:"e_syn",  step:8, from:"vague", to:"spec", label:"synthesis" }
-  ],
-  captions: [
-    "A prompt is an <b>interface</b> you design — assemble each part on purpose.",
-    "The <b>system prompt</b> sets the standing contract: role, rules, output format.",
-    "<b>Few-shot examples</b> teach format by showing: zero → one → a few worked pairs.",
-    "A <b>reasoning scaffold</b> (chain-of-thought) gives the model room to work before it answers.",
-    "The <b>user input slot</b> is the only part that changes per call — and where grounded context lands.",
-    "Pin the result to a <b>JSON schema</b> so downstream code can trust its shape.",
-    "Treat the prompt as code: score it against an <b>eval set</b> and iterate, one change at a time.",
-    "The <b>FDE situation</b>: a client hands you a vague ask, not a spec.",
-    "Your move — synthesize it into <b>requirements</b>: what must be structured, deterministic, grounded. That spec becomes the prompt above."
-  ]
-};
+window.DIAGRAMS = [
+  {
+    title: "Part 1 · Prompt anatomy",
+    width: 460, height: 560,
+    nodes: [
+      { id:"prompt", step:0, x:30,  y:60,  w:400, h:362, label:"THE ENGINEERED PROMPT  (one request)" },
+      { id:"sys",    step:1, x:50,  y:92,  w:360, h:44,  label:"System prompt — role · rules · format" },
+      { id:"shots",  step:2, x:50,  y:144, w:360, h:44,  label:"Few-shot examples  (0 → 1 → few)" },
+      { id:"cot",    step:3, x:50,  y:196, w:360, h:44,  label:"Reasoning scaffold (chain-of-thought)" },
+      { id:"userin", step:4, x:50,  y:248, w:360, h:44,  label:"User input slot + grounded context" },
+      { id:"schema", step:5, x:50,  y:312, w:360, h:88,  label:"← structured OUTPUT (JSON schema)" },
+      { id:"eval",   step:6, x:137, y:470, w:186, h:64,  label:"eval set\nmeasure → iterate" }
+    ],
+    edges: [
+      { id:"e_eval", step:6, from:"eval", to:"cot", label:"tune & re-test", bend:-26 }
+    ],
+    captions: [
+      "A prompt is an <b>interface</b> you design — assemble each part on purpose.",
+      "The <b>system prompt</b> sets the standing contract: role, rules, output format.",
+      "<b>Few-shot examples</b> teach format by showing: zero → one → a few worked pairs.",
+      "A <b>reasoning scaffold</b> (chain-of-thought) gives the model room to work before it answers.",
+      "The <b>user input slot</b> is the only part that changes per call — and where grounded context lands.",
+      "Pin the result to a <b>JSON schema</b> so downstream code can trust its shape.",
+      "Treat the prompt as code: score it against an <b>eval set</b> and iterate, one change at a time."
+    ]
+  },
+  {
+    title: "Part 2 · Requirements synthesis",
+    width: 460, height: 430,
+    nodes: [
+      { id:"ask",  step:0, x:40, y:30,  w:380, h:54, label:"VAGUE CLIENT ASK\n\"can the AI just handle this?\"" },
+      { id:"q1",   step:1, x:40, y:124, w:380, h:40, label:"① Structured? — what shape must come back" },
+      { id:"q2",   step:1, x:40, y:174, w:380, h:40, label:"② Deterministic? — same input, same answer?" },
+      { id:"q3",   step:1, x:40, y:224, w:380, h:40, label:"③ Grounded? — which facts from client data" },
+      { id:"spec", step:2, x:40, y:312, w:380, h:80, label:"BUILDABLE SPEC ✓\nschema · temperature · grounding · eval set" }
+    ],
+    edges: [
+      { id:"e_a1", step:1, from:"ask", to:"q1", label:"interrogate" },
+      { id:"e_12", step:1, from:"q1",  to:"q2" },
+      { id:"e_23", step:1, from:"q2",  to:"q3" },
+      { id:"e_3s", step:2, from:"q3",  to:"spec", label:"synthesize" }
+    ],
+    captions: [
+      "A client hands you a <b>sentence, not a spec</b> — a vague ask like \"can the AI just handle this?\"",
+      "Interrogate it along three lenses: what must be <b>structured</b>, <b>deterministic</b>, and <b>grounded</b>?",
+      "Synthesize the answers into a <b>buildable spec</b> — schema, temperature, grounding plan, eval set. That spec becomes the Part-1 prompt."
+    ]
+  }
+];
 window.QUIZ = {
   id: "w01-d3",
   title: "Check your understanding",
