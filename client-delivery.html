@@ -692,6 +692,7 @@ window.CLIENT = {
   const weeksEl  = document.getElementById("weeks");
   const panel    = document.getElementById("panel");
   const PROJ_KEYS = Object.keys(window.CLIENT);
+  const REPOS = { healthcare: "https://github.com/2463-FDE/riverbend-portal", finance: "https://github.com/2463-FDE/meridian-lending" };
 
   let state = { proj: PROJ_KEYS[0], week: 1 };
   (function () { const q = new URLSearchParams(location.search); const w = Number(q.get("w")); if (w >= 1 && w <= 10) state.week = w; const p = q.get("p"); if (p && PROJ_KEYS.includes(p)) state.proj = p; })();
@@ -742,7 +743,8 @@ window.CLIENT = {
     let html =
       `<div class="cd-eyebrow">${proj.label} · ${proj.short} · Week ${state.week}</div>` +
       `<h2>${wk.title}</h2>` +
-      `<p class="cd-tie">Curriculum tie-in: ${wk.tie}</p>`;
+      `<p class="cd-tie">Curriculum tie-in: ${wk.tie}</p>` +
+      (REPOS[state.proj] ? `<a class="cd-repo" href="${REPOS[state.proj]}" target="_blank" rel="noopener">📦 Open the codebase — ${REPOS[state.proj].replace("https://github.com/", "")}</a>` : "");
 
     // Client message (everyone)
     html +=

@@ -433,4 +433,8 @@ body.is-trainer .trainer-only { display:block; }
 .ritual.cr { color:#0ca678; border-color:#c3fae8; background:#ebfbf4; }
 .ritual.sd { color:#7048e8; border-color:#e5dbff; background:#f3effe; }
 .ritual.ar { color:#1c7ed6; border-color:#d0ebff; background:#eef7ff; }
+
+/* repo link button (client-delivery) */
+.cd-repo { display:inline-flex; align-items:center; gap:6px; margin:6px 0 2px; font-size:14px; font-weight:600; color:#fff; background:#24292f; padding:8px 14px; border-radius:8px; text-decoration:none; }
+.cd-repo:hover { background:#000; }
 @media (max-width:1000px){ .cal { grid-template-columns:1fr; } .cal-dayhead { display:none; } .cal-week { border-left-width:5px; margin-top:14px; } .cal-cell { min-height:0; } }
