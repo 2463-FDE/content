@@ -144,9 +144,11 @@ details.deep[open] summary { border-bottom: 1px solid var(--line); margin-bottom
   border:1px solid var(--line); border-radius:12px; background:#fff; padding:16px 18px; margin:22px 0;
 }
 /* live "Try it" (real Claude call) */
-.ix-run .run-ex { display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 8px; }
-.ix-run .run-egbtn { font:inherit; font-size:12.5px; border:1.5px solid var(--line); background:#faf8f4; border-radius:20px; padding:4px 12px; cursor:pointer; }
-.ix-run .run-egbtn:hover { border-color:var(--accent); color:var(--accent); }
+.ix-run .run-guide { font-size:14px; color:var(--ink-soft); margin:2px 0 10px; }
+.ix-run .run-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+.ix-run .run-tab { font:inherit; font-size:13px; border:1.5px solid var(--line); background:#faf8f4; border-radius:8px 8px 0 0; padding:6px 14px; cursor:pointer; border-bottom-color:transparent; }
+.ix-run .run-tab:hover { color:var(--accent); }
+.ix-run .run-tab.on { background:#fff; border-color:var(--accent); color:var(--accent); font-weight:600; }
 .ix-run .run-go { margin-top:10px; }
 .ix-run .run-out { margin-top:12px; font-size:15px; line-height:1.55; white-space:pre-wrap; min-height:0; }
 .ix-run .run-out.ok { background:#f6f8f6; border:1px solid #d8e6d8; border-radius:9px; padding:12px 14px; }

@@ -125,7 +125,8 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
              data-id="w01-d4a-trim"
              data-system="Summarize in one sentence."
              data-examples='["The applicant requests a no-cost extension. Per the cooperative agreement, extensions up to 12 months are permitted once, provided the recipient submits justification 30 days prior to the period-of-performance end date and no additional funds are required.","No-cost extension request: up to 12 months, one-time, needs justification filed 30 days before the period of performance ends, no new funds."]'
-             data-placeholder="Try the bloated version, then the lean one — same answer?"></div>
+             data-placeholder="Try the bloated version, then the lean one — same answer?"
+             data-yourturn="Summarize in one sentence: (paste your own long paragraph here, then trim it and run again — does the answer change?)"></div>
         <p>The FDE judgment call with any compression is <strong>fidelity versus cost</strong>. Summarize too aggressively
         and you drop a detail the model needed three turns later — now you've saved tokens and broken the feature. The
         skill is choosing <em>what</em> is safe to compress (resolved sub-topics, pleasantries, redundant confirmations)

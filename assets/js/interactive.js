@@ -145,16 +145,27 @@
       const id = el.dataset.id || "run";
       const sys = el.dataset.system || "";
       let examples = []; try { examples = JSON.parse(el.dataset.examples || "[]"); } catch (e) {}
+      const yourTurn = el.dataset.yourturn || "";
       const url = window.FDE_RUN_URL;
+      // tabs: the example prompts (ready to run) + a "Your turn" one the learner edits
+      const tabs = examples.map((x, i) => ({ label: "Example " + (i + 1), text: x, edit: false }));
+      if (yourTurn) tabs.push({ label: "✎ Your turn", text: yourTurn, edit: true });
       el.innerHTML =
         `<div class="ix-k">▶ Try it · live <span class="ix-sub">calls Claude · <b class="run-left">3</b> tries</span></div>` +
-        (examples.length ? `<div class="run-ex">${examples.map((x, i) => `<button type="button" class="run-egbtn" data-i="${i}">Example ${i + 1}</button>`).join("")}</div>` : "") +
-        `<textarea class="ix-ta run-in" rows="2" placeholder="${el.dataset.placeholder || "Type a prompt…"}"></textarea>` +
-        `<button type="button" class="btn run-go">Run</button>` +
+        `<p class="run-guide">Run the example${examples.length > 1 ? "s" : ""}, then ${yourTurn ? "open <b>Your turn</b>, edit the prompt," : "tweak the prompt"} and run it — watch the answer change.</p>` +
+        `<div class="run-tabs">${tabs.map((t, i) => `<button type="button" class="run-tab${i === 0 ? " on" : ""}" data-i="${i}">${t.label}</button>`).join("")}</div>` +
+        `<textarea class="ix-ta run-in" rows="3"></textarea>` +
+        `<button type="button" class="btn run-go">Run ▸</button>` +
         `<div class="run-out"></div>`;
       const ta = el.querySelector(".run-in"), out = el.querySelector(".run-out"), go = el.querySelector(".run-go"), left = el.querySelector(".run-left");
-      el.querySelectorAll(".run-egbtn").forEach(b => b.addEventListener("click", () => { ta.value = examples[+b.dataset.i] || ""; ta.focus(); }));
-      if (examples.length) ta.value = examples[0];
+      const tabEls = Array.from(el.querySelectorAll(".run-tab"));
+      function pick(i) {
+        tabEls.forEach((t, j) => t.classList.toggle("on", j === i));
+        ta.value = tabs[i] ? tabs[i].text : "";
+        if (tabs[i] && tabs[i].edit) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+      }
+      tabEls.forEach((t, i) => t.addEventListener("click", () => pick(i)));
+      if (tabs.length) pick(0);
       if (!url) { go.disabled = true; out.className = "run-out info"; out.textContent = "Live demo not enabled yet — backend pending. (Everything else on the page works.)"; return; }
       go.addEventListener("click", async () => {
         const idt = window.FDE_getIdentity ? window.FDE_getIdentity() : null;

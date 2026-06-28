@@ -118,7 +118,8 @@
              data-id="w01-d3a-extract"
              data-system="Extract fields and reply with compact JSON only: {name, amount, due_date}. No prose."
              data-examples='["Invoice from Acme Corp — please remit $4,200 by 2026-07-15.","Hi, this is Dana Lopez; the $980 balance is due August 3rd. Thanks!"]'
-             data-placeholder="Paste a messy invoice or email line — get back clean JSON."></div>
+             data-placeholder="Paste a messy invoice or email line — get back clean JSON."
+             data-yourturn="Quick note: we owe Nimbus Co about 1,250 dollars. (edit me — there's no due date here; watch what the model puts for due_date)"></div>
         <p>But the cost discipline from Day 1 applies directly: every example is tokens in the window on <em>every call</em>,
         and the benefit has steep <strong>diminishing returns</strong> — zero to two is transformative, eight to twelve
         usually isn't, and a giant example block can crowd out the user's real input. The extractor above shows how little
