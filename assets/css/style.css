@@ -323,3 +323,53 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
   .closing-grid { grid-template-columns:1fr; }
   .lesson-head .lh-inner, .lesson, .closing { padding-left:20px; padding-right:20px; }
 }
+
+/* ============ READING + STICKY SIDEBAR LAYOUT (wireframe v3) ============ */
+.lesson2 { max-width:1440px; margin:0 auto; padding:0 36px; }
+.reading2col { display:grid; grid-template-columns:minmax(0,1fr) 460px; gap:56px; align-items:start; }
+.reading-col { max-width:720px; padding-top:28px; padding-bottom:40px; }
+.reading-col .lede h1 { font-size:34px; line-height:1.13; margin:0 0 8px; }
+.reading-col .lede .meta { display:flex; gap:16px; flex-wrap:wrap; color:var(--ink-soft); font-size:14px; }
+.reading-col .lede .meta b { color:var(--ink); }
+.reading-col .lede .summary { font-size:18px; color:var(--ink-soft); margin-top:14px; }
+.reading-col .step { min-height:30vh; }
+.reading-col .step h2 { font-size:26px; }
+.reading-col .step p { font-size:18px; line-height:1.7; }
+
+.side { position:sticky; top:60px; height:calc(100vh - 78px); display:flex; flex-direction:column; gap:13px; padding-top:28px; }
+.side-diagram { flex:1; min-height:0; background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 14px 10px; display:flex; flex-direction:column; box-shadow:0 6px 24px rgba(40,30,10,.06); }
+.side-diagram svg { width:100%; flex:1; min-height:0; }
+.side-diagram .stage-title { font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--dim); font-weight:700; margin-bottom:4px; }
+.side-diagram .stage-caption { font-size:13.5px; color:var(--ink-soft); border-top:1px dashed var(--line); padding-top:9px; min-height:38px; }
+.side-diagram .stage-caption b { color:var(--ink); }
+
+.side-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.activity-card { text-align:left; cursor:pointer; border:1.5px solid var(--line); border-radius:12px; background:#fff; padding:13px 14px; font:inherit; color:var(--ink); transition:border-color .12s, transform .12s, box-shadow .12s; }
+.activity-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 20px rgba(40,30,10,.08); }
+.activity-card.accent { background:var(--accent-soft); border-color:#ffd8bf; }
+.activity-card .ac-k { font-size:12px; font-weight:700; color:var(--accent); margin-bottom:5px; }
+.activity-card .ac-t { font-size:14.5px; font-weight:600; line-height:1.3; }
+.activity-card .ac-meta { font-size:12px; color:var(--ink-soft); margin-top:6px; }
+
+.side-nav { display:flex; gap:8px; }
+.snav-btn { flex:1; text-align:center; text-decoration:none; border:1.5px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); font:inherit; font-size:13.5px; font-weight:600; padding:10px 6px; cursor:pointer; }
+a.snav-btn:hover { border-color:var(--accent); color:var(--accent); }
+.snav-btn.goals { background:var(--accent); color:#fff; border-color:var(--accent); }
+.snav-btn.goals:hover { filter:brightness(.96); }
+.snav-btn.dim { color:var(--dim); cursor:default; }
+
+/* goals / deliverable lists */
+.goals-list, .deliv-list { margin:8px 0 18px; padding-left:20px; }
+.goals-list li, .deliv-list li { margin:8px 0; line-height:1.5; }
+.deliv-list.check { list-style:none; padding-left:2px; }
+.deliv-list.check li { position:relative; padding-left:28px; }
+.deliv-list.check li:before { content:"\2610"; position:absolute; left:0; top:-1px; color:var(--accent); font-size:18px; }
+.goals-foot { color:var(--ink-soft); font-size:14px; }
+
+@media (max-width:960px){
+  .lesson2 { padding:0 20px; }
+  .reading2col { grid-template-columns:1fr; gap:0; }
+  .side { position:static; height:auto; order:-1; padding-top:12px; }
+  .side-diagram { height:44vh; }
+  .reading-col { max-width:none; }
+}

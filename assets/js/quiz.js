@@ -101,26 +101,8 @@
     const summary = document.createElement("div"); summary.className = "quiz-summary"; host.appendChild(summary);
   }
 
-  // ---- modal control ----
-  function setupModal(Q) {
-    const overlay = document.getElementById("quiz-modal");
-    const host = document.getElementById("quiz");
-    if (!overlay || !host) return;
-    let rendered = false;
-    function open() {
-      if (!rendered) { render(host, Q); rendered = true; }
-      overlay.hidden = false; document.body.style.overflow = "hidden";
-      const card = overlay.querySelector(".modal-card"); if (card) card.scrollTop = 0;
-    }
-    function close() { overlay.hidden = true; document.body.style.overflow = ""; }
-    window.FDE_openQuiz = open; window.FDE_closeQuiz = close;
-    const fab = document.getElementById("quiz-fab"); if (fab) fab.addEventListener("click", open);
-    const x = overlay.querySelector(".modal-close"); if (x) x.addEventListener("click", close);
-    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !overlay.hidden) close(); });
-  }
-
   document.addEventListener("DOMContentLoaded", () => {
-    if (window.QUIZ) setupModal(window.QUIZ);
+    const host = document.getElementById("quiz");
+    if (host && window.QUIZ) render(host, window.QUIZ);
   });
 })();
