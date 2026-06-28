@@ -30,7 +30,8 @@
         steps.forEach(s => s.classList.remove("active"));
         e.target.classList.add("active");
         const n = parseInt(e.target.dataset.step, 10);
-        if (!isNaN(n) && window.Diagram) window.Diagram.goTo(n);
+        const di = parseInt(e.target.dataset.diagram || "0", 10);
+        if (!isNaN(n) && window.Diagram) window.Diagram.to(di, n);
         const idx = steps.indexOf(e.target);
         tocLinks.forEach((a, i) => { if (a) a.classList.toggle("on", i === idx); });
       });

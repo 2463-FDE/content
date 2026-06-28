@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W1·D5 — Build the LLM API Client | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 1 · Day 5 · LLM Engineering for Production</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Putting It Together: Build a Production LLM API Client</h1>
+        <div class="meta">
+          <span><b>Week 1</b> · Day 5</span>
+          <span>Milestone &amp; Assessment Day</span>
+          <span><b>~40 min</b> · lighter reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Four days of ideas — the context window, model selection, resilient API calls, prompting,
+        token budgets, output guardrails — collapse into one artifact today: a small piece of code that sits between
+        your application and a model and behaves itself in production. That's the <strong>LLM API client</strong>,
+        and building one is your Week-1 milestone. This is a build day, so the reading is short: it's here to give you
+        the blueprint and frame the three things you'll hand in. Scroll it once; the diagram on the right assembles the
+        client layer by layer as you go.</p>
+      </div>
+
+      <section class="step" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>The client is a seam you own</h2>
+        <p>Everything this week pointed at a single object. When an application "uses an LLM", it almost never calls the
+        provider's raw HTTP endpoint from twelve scattered places. It calls <em>one</em> well-defined component — a
+        <strong>client</strong> — and that component is the only thing in your codebase that knows how to talk to a
+        model. Every prompt, every retry, every token-counting decision, every guardrail lives behind that one door.</p>
+        <p>Why does that matter so much that it's the whole milestone? Because the client is a <strong>seam</strong> —
+        a deliberate boundary between "your application's intent" and "the messy, metered, occasionally-flaky world of a
+        model API." A good seam means you can change models, add a retry, tighten a budget, or redact a log line in
+        <em>one file</em> instead of forty. A bad seam — raw API calls sprinkled through controllers and React handlers
+        — means every one of those changes is a hunt-and-replace across the codebase, and every bug is a fresh
+        investigation. As a Forward Deployed Engineer, the first thing you'll often build at a client site is exactly
+        this seam, because everything else you do depends on it existing.</p>
+        <p>So the framing for today is not "learn ten new things." It's "take the ten things you already learned this
+        week and put each one in its proper layer." The reading walks the layers bottom-to-top; the diagram builds them
+        up; and by Friday's milestone you'll have written them.</p>
+        <p>It's worth saying out loud what "production" means here, because it's the word doing the heavy lifting. A
+        notebook that calls a model and prints the result is not a production client — it works on your machine, on a good
+        network, with one user, on the inputs you happened to try. A <em>production</em> client is the same idea hardened
+        against everything that goes wrong the moment it's real: the network drops, the provider rate-limits you, the
+        model returns something slightly off-format, two users hit it at once, a log file ends up somewhere it shouldn't.
+        Each layer you're about to read exists to absorb one of those realities. The reason this is the Week-1 milestone
+        and not a Week-3 nicety is that <strong>every later week builds on top of this seam</strong> — RAG, agents,
+        evaluation, the lot — and they all inherit its reliability or its fragility.</p>
+      </section>
+
+      <section class="step" data-step="1">
+        <div class="tag">Layer 1 · config</div>
+        <h2>Configuration, and where the key lives</h2>
+        <p>Start at the bottom, with the least glamorous layer that quietly causes the most incidents: <strong>config</strong>.
+        Your client needs to know which model to call, what default parameters to use (temperature, max output tokens,
+        timeout), and — the part people get wrong — <em>where the API key comes from</em>. The answer is always the same:
+        the key is read from the <strong>environment</strong> (an environment variable, a secrets manager, a vault), and
+        it is <strong>never</strong> written into source code, never committed to git, never pasted into a prompt, never
+        printed to a log.</p>
+        <p>This is not paranoia; it's the single most common way real teams leak credentials. A key hardcoded "just to
+        test it" gets committed, pushed, and within hours scrapers find it and someone else is spending your token
+        budget. Build the habit on day one: config is loaded once, at startup, from outside the code, and the rest of
+        the client receives it as a parameter. If the key is missing, the client should fail loudly and immediately at
+        boot — not three layers deep on the first real request, where the error is buried in a stack trace.</p>
+        <p>Config is also where your model choice from Tuesday lives. You decided <em>which</em> model fits the task —
+        a small fast one for classification, a larger one for hard reasoning. That decision belongs in configuration,
+        not scattered as string literals, so that swapping it later is a one-line change rather than an archaeology dig.</p>
+        <p>There's a second, subtler reason config matters on a forty-hour week with a twenty-dollar plan: <strong>defaults
+        are where waste hides.</strong> A timeout left at the SDK's generous default means a single hung request can tie
+        up a worker far longer than you'd ever wait. A max-output-tokens left unbounded means a runaway answer can cost
+        many times what the task needed. A temperature left at a middling value means an extraction task that wanted
+        determinism gets variability instead, and you spend an afternoon chasing a "flaky" bug that was really a config
+        line. Treat the config layer as the place where you state your intentions explicitly — short timeout, bounded
+        output, temperature matched to the task — rather than inheriting whatever the library happened to ship. Explicit
+        beats implicit every time someone has to debug your code at 2 a.m., and that someone is often future-you.</p>
+      </section>
+
+      <section class="step" data-step="2">
+        <div class="tag">Layer 2 · adapter</div>
+        <h2>The model adapter: one interface, many models</h2>
+        <p>On top of config sits the <strong>adapter</strong> — the layer that hides the provider behind an interface
+        <em>you</em> define. Your application code should never say "call this specific provider's chat endpoint with
+        this specific JSON shape." It should say something like <code>client.complete(messages, options)</code> and not
+        care what's underneath. The adapter translates that clean call into whatever the provider's SDK actually wants,
+        and translates the response back into a shape your app understands.</p>
+        <p>The payoff is concrete. Models change constantly — a new version ships, pricing shifts, a client mandates a
+        different provider for compliance, you want to A/B two models on the same task. With an adapter, all of that is
+        contained: you change one layer and every caller keeps working. Without one, a model swap touches every file
+        that ever made a request. The adapter is the practical expression of Tuesday's lesson that model selection is a
+        decision you should be able to <em>revisit</em>, not a marriage.</p>
+        <p>Keep the adapter thin. Its job is translation, not business logic. It shouldn't know what your prompts mean or
+        what your app does with the answer — it only knows how to turn "a request in your terms" into "a request in the
+        provider's terms" and back. A thin adapter is easy to test with a fake that returns canned responses, which is
+        how you write tests for AI features without spending tokens on every test run.</p>
+        <p>That last point is bigger than it sounds, so sit with it. If your application code calls the provider directly,
+        then every test of that code <em>also</em> calls the provider — which means your test suite is slow, costs money
+        on every run, and fails randomly whenever the network hiccups. None of that is acceptable in a real codebase. The
+        adapter is what makes the model a <strong>replaceable dependency</strong>: in tests you swap in a fake adapter
+        that returns a fixed answer, so you can assert "given this model response, does my code do the right thing?"
+        thousands of times for free, deterministically. You'll see this pattern everywhere good AI code lives, and it
+        starts with the discipline of never letting a raw provider call escape the adapter. The interface you draw here is
+        also the contract the rest of your team programs against — design it for the caller's convenience, not the
+        provider's quirks.</p>
+      </section>
+
+      <section class="step" data-step="3">
+        <div class="tag">Layer 3 · request builder</div>
+        <h2>Building the request, on a token budget</h2>
+        <p>Now the layer where Monday and Thursday come back to collect their debt. The <strong>request builder</strong>
+        assembles the actual call: it takes the system prompt, the few-shot examples, any retrieved context, the
+        conversation history, and the user's message, and it stacks them into the message list that goes to the model.
+        And as it does, it enforces the <strong>token budget</strong> — the discipline you learned on Day 1 and
+        practised on Day 4.</p>
+        <p>This is where budgeting stops being a concept and becomes code. The builder counts tokens as it assembles, and
+        when the inputs would crowd out the answer, <em>it</em> decides what gives — trim the oldest history, summarize
+        instead of including verbatim, cap the retrieved context to the top few chunks, and always reserve room for the
+        output. That decision should be explicit and centralized here, not an accident that happens when the provider
+        silently truncates your overflowing request. A client that budgets deliberately is the difference between "our
+        AI feature costs a predictable amount" and "nobody knows why the bill tripled last Tuesday."</p>
+        <p>The request builder is also where your prompts live — and that connects to one of today's deliverables. Rather
+        than building prompt strings inline at the call site, good clients pull prompts from a <strong>prompt
+        library</strong>: named, versioned, reusable templates with clearly-marked slots for the variable parts. We'll
+        come back to that library near the end, because submitting one is part of Friday's hand-in.</p>
+      </section>
+
+      <section class="step" data-step="4">
+        <div class="tag">Layer 4 · resilient transport</div>
+        <h2>The network will fail — plan for it</h2>
+        <p>Here is the layer that separates a demo from a product. The moment your client leaves your laptop, it is
+        talking to a remote service over a network, and remote services <strong>fail</strong>: they rate-limit you
+        (HTTP 429), they have transient server errors (500/502/503), they time out, the connection drops mid-stream.
+        None of these are exotic. At any real request volume they happen daily. A client that assumes the happy path is
+        a client that pages someone at 2 a.m.</p>
+        <p>The <strong>resilient transport</strong> layer wraps the actual call with the patterns you covered Tuesday:
+        a sensible <strong>timeout</strong> so a hung request doesn't hang your whole app; <strong>retries</strong> on
+        the failures that are worth retrying (429s and 5xxs — transient), but <em>not</em> on the ones that aren't (a
+        400 for a malformed request will fail identically every time, so retrying it just wastes time and money); and
+        <strong>exponential backoff with jitter</strong> between retries, so that when the provider is briefly
+        overloaded you back off politely instead of hammering it — and so a fleet of your own clients doesn't all retry
+        in lockstep and create a self-inflicted stampede.</p>
+        <p>One subtlety worth internalizing now: retries and <strong>idempotency</strong>. If a request might have
+        succeeded on the provider's side before your connection dropped, blindly retrying can double-charge you or
+        produce duplicate side effects. For pure text generation that's usually just wasted tokens, but the instinct —
+        "is it safe to retry this exact operation?" — is one you'll need constantly once tools and actions enter the
+        picture in later weeks. Build the reflex on the easy case now.</p>
+        <p>The other half of resilience is knowing when to <em>stop</em>. Retries are not free and they are not infinite —
+        a request that's failed three times with backoff is probably going to keep failing, and continuing to retry just
+        delays the moment you tell the user something honest. A production client bounds its retries, and when it gives
+        up it fails in a way the rest of the app can handle gracefully: a clear error, a fallback response, a queued
+        retry-for-later — not an unhandled exception that takes down the request. This is also where the cost lens from
+        Day 1 reappears. Rate limits exist precisely because you're sharing a metered resource; the right response to a
+        429 is to slow down, not to push harder. An FDE who understands that builds clients that are good <em>citizens</em>
+        of the provider's API, which in turn keeps the whole system stable under load — yours and everyone else's.</p>
+      </section>
+
+      <section class="step" data-step="5">
+        <div class="tag">Layer 4b · streaming</div>
+        <h2>Streaming changes the feel and the failure modes</h2>
+        <p>Transport has a second mode you should support deliberately: <strong>streaming</strong>. Instead of waiting
+        for the entire answer and getting it in one lump, a streaming call returns tokens as the model generates them.
+        The user sees text appear within a fraction of a second — a dramatically better experience for anything
+        chat-like, because <strong>time-to-first-token</strong> is what people actually feel, far more than total
+        completion time.</p>
+        <p>But streaming is not free, and it reshapes your error handling. A non-streaming call either succeeds or fails
+        cleanly. A stream can fail <em>halfway</em> — you've already shown the user half an answer when the connection
+        drops. Your client has to decide what that means: discard the partial and retry from scratch, or keep what you
+        have. Streaming also makes <strong>cancellation</strong> possible and important — if the user navigates away or
+        types a new question, you want to stop the stream and stop paying for tokens you'll never show. And streaming
+        complicates the very next layer: you can't validate a structured answer that hasn't finished arriving, so you
+        often buffer the stream, then validate the complete result before you trust it.</p>
+        <p>The FDE judgment call is simple: stream the things humans watch in real time; don't bother streaming the
+        things a machine consumes (a classification, an extraction, a JSON object headed for another system) — there's
+        no human waiting, and a clean all-or-nothing response is easier to validate. Match the mode to who's on the
+        other end.</p>
+      </section>
+
+      <section class="step" data-step="6">
+        <div class="tag">Layer 5 · validator / guardrail</div>
+        <h2>Never trust the output unverified</h2>
+        <p>The model has answered. The most important word in this entire reading is the next one: <strong>verify</strong>.
+        A model's output is a <em>suggestion</em>, not a guarantee. It is text shaped like an answer, produced by a
+        system with no built-in way to know whether it's correct, complete, or even in the format you asked for. The
+        <strong>validator / guardrail</strong> layer is where Thursday's lesson becomes the thing that stops a bad
+        answer from reaching a user.</p>
+        <p>Concretely: if you asked for structured output — JSON with specific fields, a value from a fixed set, a number
+        in a range — then <strong>parse it and validate it against a schema</strong> before anything downstream touches
+        it. Did the JSON actually parse? Are the required fields present? Is the "priority" field really one of
+        <code>low / medium / high</code> and not the model's creative fourth option? If validation fails, your client
+        has options, in order of preference: retry once with a corrective instruction ("your last reply wasn't valid
+        JSON; return only the JSON object"), fall back to a safe default, or surface a clear error — but it must
+        <em>never</em> silently pass malformed output forward as if it were fine.</p>
+        <p>Guardrails go beyond format. This is the layer to enforce the things the client must always be true regardless
+        of what the model felt like saying: strip or refuse outputs that leak the system prompt, block disallowed
+        content, check that a cited source actually exists, bound the length. The mental model from Monday holds: a
+        confident wrong answer is the model filling a gap. The validator is your structured refusal to let that gap
+        become the user's problem. <strong>Treat every model response as untrusted input — because it is.</strong></p>
+        <p>There's a security dimension here that becomes a whole topic in Week&nbsp;4, but the seed is planted now. The
+        same way you'd never pass raw user input straight into a database query, you should never pass raw model output
+        straight into anything consequential — a shell command, a database write, a rendered web page, another API call.
+        Output that's going to be <em>executed</em> or <em>displayed</em> is exactly where an attacker who can influence
+        the prompt would aim, and the validator is your first line of defense. For this week's milestone you don't need
+        the full security treatment; you just need the habit: <strong>nothing the model produces gets trusted until your
+        code has checked it.</strong> Validation is not the unglamorous afterthought it looks like — on most real AI
+        features it is the single layer that most determines whether the thing is safe to ship.</p>
+      </section>
+
+      <section class="step" data-step="7">
+        <div class="tag">Layer 6 · logging</div>
+        <h2>Log everything that helps — leak nothing that hurts</h2>
+        <p>The top layer is <strong>observability</strong>, and it carries a sharp edge. You absolutely need logging: when
+        an AI feature misbehaves in production, the logs are the only way you'll reconstruct what happened. Log the
+        things that let you debug and cost-account — latency per call, input and output token counts (your live cost
+        meter), which model and parameters were used, retry counts, validation failures, error types and codes, a
+        request id to correlate across systems.</p>
+        <p>And here is the edge: <strong>what you must never log.</strong> Never the API key — not even a fragment, not in
+        an error message, not in a "here's the request we sent" debug dump. Never raw user <strong>PII</strong> if your
+        domain has any — at a federal client, prompts and retrieved context may contain names, case numbers, or
+        sensitive records, and a log file is a copy of that data sitting somewhere with weaker access controls than the
+        source. The discipline is to log <em>shapes and metrics</em>, not <em>contents</em>: "received a 1,240-token
+        prompt, returned 380 tokens in 1.9s" is gold; dumping the full prompt text with someone's social security number
+        in it is an incident. When you do need to log content for debugging, redact first — and make redaction the
+        default, not the thing you remember to add later.</p>
+        <p>This layer is also where the <em>cost story</em> you'll tell a client comes from. Every token count you log is
+        a line you can later turn into "this feature costs roughly X per thousand requests, and here's where the budget
+        goes." That sentence — backed by your own logs — is what turns "the AI is expensive" from a complaint into a
+        plan.</p>
+        <p>One practical pattern ties this together: attach a <strong>request id</strong> to every call and carry it
+        through the whole client, so a single line of structured log captures id, model, token counts in and out,
+        latency, retry count, and the outcome. When something goes wrong in production — a slow response, a validation
+        failure, a cost spike — you can pull that one id and see the entire life of the request without reconstructing it
+        from scattered prints. That's the difference between "we think it's the retrieval step" and "request abc123 spent
+        4,800 input tokens and timed out after two retries." Observability isn't a feature you bolt on after an incident;
+        it's the thing that lets you diagnose the <em>next</em> incident in minutes instead of a day, and on a
+        forty-hour week that saved day is real.</p>
+      </section>
+
+      <section class="step" data-step="8">
+        <div class="tag">The Friday lens</div>
+        <h2>How to review LLM-integration code</h2>
+        <p>The client is built. Now comes the other half of today: the <strong>code review</strong>. Reviewing
+        AI-integration code is its own skill, because the failure modes aren't the ones you look for in ordinary code.
+        Tests passing tells you almost nothing here — a client can pass every unit test and still leak keys, retry a
+        non-idempotent action, or pass unvalidated JSON to production. So you review against a specific set of questions,
+        most of which map directly onto the layers you just built.</p>
+        <p>Walk the layers as a checklist. <strong>Config:</strong> is the key read from the environment, and is there any
+        chance — any path, any log line — where it could be printed or committed? <strong>Adapter:</strong> is the
+        provider actually isolated, or did a raw API call sneak into a controller? <strong>Request builder:</strong> is
+        there a real token budget, or does this just hope the input fits? Are prompts pulled from the library or
+        hardcoded inline? <strong>Transport:</strong> are there timeouts and bounded retries with backoff, and does it
+        avoid retrying things that can't succeed or shouldn't be repeated? <strong>Validator:</strong> is structured
+        output actually parsed and schema-checked, or is the model's word taken on faith? <strong>Logging:</strong>
+        could any secret or any PII reach a log? Then the cross-cutting ones: what happens on the unhappy path —
+        timeout, rate-limit, malformed response — and is that behavior tested with a <em>fake</em> model so the suite
+        doesn't burn tokens or flake on the network?</p>
+        <p>A good reviewer reads LLM code assuming the network will fail and the model will lie, and checks that the code
+        already assumes the same. The Deep-dive card holds both the full client blueprint and this review checklist in
+        one place — use it as your literal checklist during the Friday activity, on your own code and on your partner's.</p>
+        <p>Two habits make your review comments useful rather than annoying. First, <strong>tag each comment with the
+        layer</strong> it belongs to — "Transport: no timeout on this call," "Validator: this JSON is parsed but never
+        schema-checked." Naming the layer turns a vague worry into a precise, fixable item the author can act on without
+        a back-and-forth. Second, <strong>distinguish "this is wrong" from "this is style."</strong> A leaked key or an
+        unvalidated output is a must-fix; a preference about how you'd have named a function is a nice-to-have, and
+        labeling it as such keeps the review focused on what actually ships safely. The point of the Friday review isn't
+        to prove you found something — it's to make the code more likely to survive contact with production. Review your
+        partner's client the way you'd want yours reviewed: assume good intent, look hardest at the layers where the
+        damage is worst, and say plainly which findings block and which are optional.</p>
+      </section>
+
+      <section class="step extra" data-step="8">
+        <div class="tag">Deliverable · the prompt library</div>
+        <h2>Build a prompt library, not a pile of strings</h2>
+        <p>One deliverable deserves its own moment: the <strong>prompt library</strong>. By Friday you've written a lot of
+        prompts, and the temptation is to leave them where they were born — as string literals jammed into the code that
+        happens to call the model. Resist it. A prompt is a piece of engineering: it has a job, it can be wrong, it gets
+        revised, and when you change it you want to know what you changed and why. That makes it deserve the same care as
+        any other versioned asset.</p>
+        <p>A prompt library is just prompts pulled out into named, reusable templates with clear slots for the variable
+        parts — <code>classify_ticket</code>, <code>extract_invoice_fields</code>, <code>summarize_with_citations</code>
+        — each one documented with what it's for, which model it was tuned against, and an example of good input and good
+        output. The benefits compound fast: prompts get reused instead of re-invented slightly-differently in five
+        places; a partner can improve one without grepping the whole codebase; and the few-shot examples and output-format
+        rules you fought to get right on Days 3 and 4 are captured where the next person can find them. Your Friday
+        submission is a small library like this — a handful of your best prompts, organized so someone else could pick
+        them up and use them. That "someone else" mindset is the entire job: an FDE leaves behind work a client's own
+        team can run without you in the room.</p>
+        <p>Treat each prompt entry as a tiny spec, not a sticky note. Give it a name that says what it does, a one-line
+        statement of its purpose, the input it expects and the output it promises, and the one or two few-shot examples
+        that make it reliable. When you revise a prompt — and you will, constantly — that structure is what lets you see
+        what changed and judge whether the change actually helped. This is also where the determinism lesson from Day&nbsp;1
+        pays off: a prompt you can't reproduce is a prompt you can't improve. The library you hand in today is small, but
+        it sets the pattern for every prompt you'll write for the next nine weeks, and for the ones the client's team will
+        write after you've gone.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>Notice what every layer today had in common: it assumes the model and the network are <em>untrustworthy</em>,
+          and it puts the trustworthiness in the code <em>you</em> wrote around them. That's the whole posture of a
+          Forward Deployed Engineer shipping AI — you don't ask the model to be reliable, you build a client that stays
+          reliable even when the model isn't. On a $20 Pro plan with forty hours a week, you can't afford to babysit a
+          flaky integration; you build it to behave, then you trust it. Ship the client, review it honestly, hand in your
+          prompt library — and then <strong>fill out the Week&nbsp;1 survey</strong> (the link is in the sidebar). Your
+          numbers are how we keep the next four days calibrated to where you actually are.</p>
+        </div>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Client blueprint + code-review checklist</div>
+          <div class="ac-meta">reference · keep it open Friday</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">4 applied questions on client design &amp; review</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="d4.html">◂ Back</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn" href="survey.html">Week 1 survey ▸</a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 1 Day 5</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Reference: client blueprint &amp; code-review checklist</h2>
+    <p class="quiz-sub">Keep this open during the Friday build and review. Two checklists — one to build against, one to
+    review against.</p>
+
+    <div class="model-answer show">
+      <div class="ma-k">LLM API client — build checklist</div>
+      <ul class="deliv-list">
+        <li><b>Config</b> — model id, default params, and timeout in one place; API key loaded from the environment; fail loudly at boot if the key is missing.</li>
+        <li><b>Model adapter</b> — one interface (<code>complete()</code> / <code>stream()</code>) that hides the provider; thin (translation only, no business logic); fakeable for tests.</li>
+        <li><b>Request builder</b> — assembles system + examples + context + history + user message; enforces a token budget (count, trim, reserve room for the answer); pulls prompts from the library, not inline strings.</li>
+        <li><b>Resilient transport</b> — timeout on every call; retry only transient failures (429 / 5xx), never 4xx; exponential backoff + jitter; aware of idempotency.</li>
+        <li><b>Streaming</b> — supported where a human is watching; handles mid-stream failure and cancellation; buffer-then-validate for structured output.</li>
+        <li><b>Validator / guardrail</b> — parse + schema-check structured output; on failure retry-with-correction, fall back, or error — never pass malformed output forward; enforce content/length/leak guards.</li>
+        <li><b>Logger</b> — latency, token counts, model+params, retries, errors, request id; <b>never</b> the API key or raw PII; redact by default.</li>
+      </ul>
+    </div>
+
+    <div class="model-answer show" style="margin-top:14px">
+      <div class="ma-k">Reviewing LLM-integration code — what to look for</div>
+      <ul class="deliv-list">
+        <li><b>Secrets</b> — key from env only? No path where it gets logged, committed, or echoed in an error?</li>
+        <li><b>Isolation</b> — all model calls behind the adapter? Any raw provider call leaking into app code?</li>
+        <li><b>Budget</b> — real token budgeting, or "hope it fits"? Prompts from the library or hardcoded?</li>
+        <li><b>Resilience</b> — timeouts present? Retries bounded, backed-off, and limited to retryable errors? Anything non-idempotent being retried?</li>
+        <li><b>Validation</b> — structured output parsed and checked against a schema before use? Failure path defined?</li>
+        <li><b>Logging hygiene</b> — could any secret or PII reach a log line?</li>
+        <li><b>Unhappy path tested</b> — timeout / 429 / malformed-response covered, using a <b>fake</b> model so tests don't spend tokens or flake?</li>
+      </ul>
+    </div>
+
+    <p style="margin-top:14px"><strong>Review etiquette.</strong> Review the code against these questions, not against
+    "does it run." A client that passes every test can still leak a key or trust a hallucination. Lead your review
+    comments with the layer ("Transport: no timeout here") so the author knows exactly where to look.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 5 — goals &amp; deliverables</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Name the layers of a production LLM API client and what belongs in each</li>
+      <li>Place this week's ideas (token budget, model choice, retries, guardrails) into their proper layer</li>
+      <li>Explain why every model response is untrusted input and must be validated</li>
+      <li>Review LLM-integration code for the failures tests don't catch — leaked secrets, missing retries, unvalidated output</li>
+      <li>Organize prompts into a reusable, documented library someone else could pick up</li>
+    </ul>
+    <div class="ma-k">Friday deliverables — hand in / commit to your repo</div>
+    <ul class="deliv-list check">
+      <li><b>①</b> <b>Project milestone — LLM API Client.</b> A working client with config, model adapter, request builder + token budget, resilient transport, output validation, and safe logging.</li>
+      <li><b>②</b> <b>Code review — done.</b> Reviewed against the checklist (your own client and your partner's), with comments tagged by layer.</li>
+      <li><b>③</b> <b>Prompt library — submitted.</b> Your best prompts pulled into named, documented, reusable templates.</li>
+    </ul>
+    <p class="goals-foot">Last day of Week&nbsp;1 — once you've shipped, please complete the <a href="survey.html">Week&nbsp;1
+    survey</a>. It takes two minutes and keeps the next four weeks aimed at where the cohort actually is.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Week 1 survey →", href: "survey.html" };
+window.DIAGRAM = {
+  width: 460, height: 660,
+  nodes: [
+    { id:"client",    step:0, x:30,  y:60,  w:400, h:418, label:"LLM API CLIENT  (the seam you own)" },
+    { id:"cfg",       step:1, x:50,  y:96,  w:360, h:42,  label:"Config — env keys · model id · timeouts" },
+    { id:"adapter",   step:2, x:50,  y:146, w:360, h:42,  label:"Model adapter (one provider-agnostic interface)" },
+    { id:"req",       step:3, x:50,  y:196, w:360, h:46,  label:"Request builder + token budget" },
+    { id:"transport", step:4, x:50,  y:250, w:360, h:46,  label:"Resilient transport — retry · backoff · timeout" },
+    { id:"stream",    step:5, x:50,  y:304, w:360, h:42,  label:"Streaming — TTFT · partial · cancel" },
+    { id:"valid",     step:6, x:50,  y:354, w:360, h:46,  label:"Output validator / guardrails" },
+    { id:"log",       step:7, x:50,  y:408, w:360, h:42,  label:"Logger — no secrets · no PII" },
+    { id:"api",       step:4, x:120, y:520, w:220, h:54,  label:"LLM provider API\n(Claude · Bedrock)" }
+  ],
+  edges: [
+    { id:"e_call",   step:4, from:"transport", to:"api",    label:"call (retry on 429 / 5xx)" },
+    { id:"e_stream", step:5, from:"api",        to:"stream", label:"tokens stream back", bend:-34 }
+  ],
+  captions: [
+    "A production <b>LLM API client</b> is the seam you own between your app and the model. Build it in layers.",
+    "<b>Config</b> first — model id, defaults, timeout in one place; the API key comes from the <b>environment</b>, never the code.",
+    "A <b>model adapter</b> hides the provider behind one interface, so you can swap models without touching callers.",
+    "The <b>request builder</b> assembles the prompt and enforces the <b>token budget</b> — count, trim, reserve room to answer.",
+    "<b>Resilient transport</b> — timeouts, and retry-with-backoff only on transient failures. The network <i>will</i> fail.",
+    "<b>Streaming</b> returns tokens as they generate — fast time-to-first-token, plus mid-stream failure and cancel to handle.",
+    "The <b>validator</b> parses and schema-checks the output, and refuses anything malformed. Treat every response as untrusted.",
+    "The <b>logger</b> records latency, tokens, and errors — <b>never</b> the API key or user PII. Log shapes, not contents.",
+    "Assembled, this whole client is what you <b>code-review</b> on Friday — every layer is a checkpoint."
+  ]
+};
+window.QUIZ = {
+  id: "w01-d5",
+  title: "Check your understanding",
+  questions: [
+    { type: "mcq",
+      stem: "Reviewing a teammate's LLM client, you see the API key read with os.getenv() AND printed in a 'request we sent: ...' debug log. The biggest problem is:",
+      options: [
+        "getenv is slower than hardcoding the key",
+        "The debug log will leak the secret — keys must never reach a log line",
+        "The log should use warning level, not debug",
+        "Nothing — the key came from the environment, so it's fine" ],
+      answer: 1,
+      explain: "Reading from the environment is correct, but logging the request dumps the key into a file with weaker access controls. Keys (and PII) must never reach a log — redact by default." },
+    { type: "mcq",
+      stem: "Your client's transport retries EVERY failed call up to 5 times with no delay. Which fix matters most?",
+      options: [
+        "Retry 10 times instead of 5",
+        "Retry only transient errors (429/5xx), add exponential backoff + jitter, and don't retry 4xx",
+        "Switch to a faster model so calls don't fail",
+        "Remove retries entirely — they cause duplicate charges" ],
+      answer: 1,
+      explain: "Retrying a 400 just fails identically and wastes money; hammering with no delay makes an overloaded provider worse. Retry transient failures only, back off with jitter, and bound the count." },
+    { type: "mcq",
+      stem: "A feature asks the model for JSON like {\"priority\":\"low|medium|high\"} and passes the parsed result straight to a downstream system. What's missing?",
+      options: [
+        "A bigger model that never makes formatting mistakes",
+        "A higher temperature for more reliable JSON",
+        "A validator that parses and schema-checks the output, with a defined failure path, before anything trusts it",
+        "Streaming, so the JSON arrives faster" ],
+      answer: 2,
+      explain: "Model output is a suggestion, not a guarantee — it may be malformed or use an off-schema value. Parse, validate against the schema, and on failure retry-with-correction / fall back / error. Never pass it forward on faith." },
+    { type: "open",
+      stem: "In one or two sentences: why put all model calls behind a single model-adapter interface instead of calling the provider directly wherever you need it?",
+      hint: "Think about the day a client mandates a different model.",
+      model: "An adapter is a seam: it isolates the provider behind one interface, so swapping models, changing parameters, or adding cross-cutting behavior (retries, logging) is a one-file change instead of a hunt across the codebase. It also makes the client fakeable, so you can test AI features without spending tokens." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+</body>
+</html>

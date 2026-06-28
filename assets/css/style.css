@@ -336,6 +336,9 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .reading-col .step .tag { font-size:13px; }
 .reading-col .step h2 { font-size:33px; line-height:1.15; margin:6px 0 14px; }
 .reading-col .step p { font-size:21px; line-height:1.75; margin:0 0 18px; }
+/* multi-diagram chapter divider in the reading column */
+.reading-col .chapter { margin:46px 0 6px; padding-top:26px; border-top:2px solid var(--line); font-size:13px; text-transform:uppercase; letter-spacing:.13em; font-weight:700; color:var(--accent); }
+.reading-col .chapter .ch-sub { display:block; text-transform:none; letter-spacing:0; font-size:16px; font-weight:600; color:var(--ink-soft); margin-top:4px; }
 .reading-col .step .callout p { font-size:19px; }
 
 /* in-page section nav */

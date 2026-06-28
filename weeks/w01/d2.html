@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W1·D2 — Model Selection &amp; API Integration Patterns | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 1 · Day 2 · LLM Engineering for Production</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Model Selection &amp; API Integration Patterns</h1>
+        <div class="meta">
+          <span><b>Week 1</b> · Day 2</span>
+          <span>Choosing a Model &amp; Calling It Reliably</span>
+          <span><b>~80 min</b> · reading @150 wpm + 2 diagrams + check</span>
+        </div>
+        <p class="summary">Day 1 taught you the context window — what an LLM can and can't do, and why. Today you make
+        two decisions that every Forward Deployed Engineer makes on every engagement. <strong>Part 1</strong>: which
+        foundation model do you build on — Claude, GPT, Gemini, or a self-hosted open-weight model — and how do you
+        defend that choice to a client on capability, cost, latency, context, tooling, and data-residency? It's a
+        <em>framework</em>, not a leaderboard. <strong>Part 2</strong>: once you've picked one, how do you call its API
+        so it survives contact with production — streaming, batching, rate limits, retries with backoff and jitter,
+        idempotency, timeouts, and graceful failure? Scroll the reading; the panel on the right builds two diagrams,
+        one per part, and swaps as you cross into Part 2.</p>
+      </div>
+
+      <div class="chapter">Part 1 · Model selection<span class="ch-sub">A decision framework on six axes — not "which model is best."</span></div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>"Which model should we use?" is a framework, not a leaderboard</h2>
+        <p>The first question a client asks an FDE is almost always "which AI should we use?" — and they usually expect a
+        one-word answer, the way they'd expect "which database?" to resolve to a name. The amateur answer is to name
+        whatever model topped a benchmark last week. The professional answer is: <strong>it depends on what you're
+        building, and here's how I'll decide.</strong> Model selection is not a contest with a single winner. It's a
+        constrained optimization across six axes that pull against each other, and the right model is the one that fits
+        <em>this</em> task, <em>this</em> budget, and <em>this</em> client's rules — which is frequently not the
+        most capable model on the market.</p>
+        <p>The landscape you're choosing from, as of <span class="nowrap">June 2026</span>, is four broad options.
+        <strong>Anthropic's Claude</strong> family (Opus, Sonnet, Haiku tiers). <strong>OpenAI's GPT</strong> family
+        (the GPT-5 line, currently topping out at GPT-5.5 on the API). <strong>Google's Gemini</strong> family (the
+        3.x and 2.5 lines, across Pro and Flash tiers). And the <strong>open-weight / self-hosted</strong> world —
+        Llama, Mistral, DeepSeek, Qwen and others — where you download the weights and run inference on hardware you
+        control. <span style="display:inline-block; font-size:14px; color:var(--ink-soft);">[sources: Anthropic model catalog (claude-api reference, cached 2026-06-04); OpenAI
+        API docs, platform.openai.com (verified 2026-06-28); Google Gemini API pricing, ai.google.dev (verified
+        2026-06-28)]</span> The specific version names will have moved by the time you read this — that's exactly why
+        you learn the <em>axes</em>, not the names.</p>
+        <p>Those six axes are <strong>capability</strong>, <strong>cost</strong>, <strong>latency</strong>,
+        <strong>context window</strong>, <strong>tooling &amp; ecosystem</strong>, and <strong>data residency /
+        compliance</strong>. The diagram on the right is the funnel: a task and its constraints come in at the top, each
+        axis narrows the field, and a defensible pick falls out the bottom — with one rule attached that we'll come back
+        to. Walk the axes one at a time.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Axis 1 · Capability</div>
+        <h2>Capability: fit to the task, not the top of the chart</h2>
+        <p>Capability is the axis everyone over-weights. The instinct is to grab the smartest model and stop thinking.
+        But "smartest" is expensive and slow, and most production tasks don't need it. The discipline is to match the
+        model's capability tier to the <em>hardest thing the task actually requires</em> — and no higher.</p>
+        <p>Every major vendor now ships a <strong>tiered family</strong> precisely so you can make this match. Anthropic
+        offers Opus (the heavyweight, for the hardest reasoning and long-horizon agentic work), Sonnet (the balanced
+        workhorse), and Haiku (fast and cheap for high-volume, simpler tasks). Google mirrors this with Gemini Pro
+        versus Flash versus Flash-Lite; OpenAI ships the GPT-5 line with smaller and larger variants. The tiers exist
+        because the same vendor is telling you, in pricing, that you should not run everything on the flagship.</p>
+        <p>The FDE move is to <strong>decompose the workload</strong>. A customer-support feature might use a small,
+        cheap model to classify an incoming message ("is this billing, shipping, or technical?"), and only escalate the
+        genuinely hard, open-ended conversations to a top tier. A document pipeline might extract structured fields with
+        a mid-tier model and reserve the flagship for the final summarization a human will read. This is sometimes
+        called a <strong>model router</strong> or <strong>cascade</strong>: cheap model first, expensive model only when
+        the cheap one isn't confident. You'll build a primitive version of this thinking into nearly every engagement.</p>
+        <p>How do you actually judge capability for <em>your</em> task? Not from a public leaderboard — those measure
+        generic benchmarks that may have nothing to do with your client's domain. You judge it with a small
+        <strong>eval set</strong>: ten or twenty real examples from the client's actual data, with known-good answers,
+        run against two or three candidate models. The model that gets your examples right is more capable <em>for you</em>
+        than whatever won an abstract benchmark. Capability is the first axis, but it's the one you measure last and
+        most concretely.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Axis 2 · Cost</div>
+        <h2>Cost: input and output are priced differently, and it compounds</h2>
+        <p>Day 1's cost equation returns: <strong>cost ≈ (input tokens + output tokens) × price-per-token</strong>, with
+        input and output billed at <em>different</em> rates and output almost always the more expensive of the two. The
+        gap is large and it shapes every decision. As of <span class="nowrap">June 2026</span>, on Anthropic's API,
+        Claude Opus 4.8 runs about <strong>$5 per million input tokens and $25 per million output</strong>, Sonnet 4.6
+        about <strong>$3 / $15</strong>, and Haiku 4.5 about <strong>$1 / $5</strong>.
+        <span style="display:inline-block; font-size:14px; color:var(--ink-soft);">[source: Anthropic model catalog, claude-api reference, cached 2026-06-04]</span> Google's
+        Gemini 3.5 Flash sits far lower — roughly <strong>$1.50 input / $9 output</strong> — and the Pro tier higher,
+        around <strong>$2.70 / $16</strong>. <span style="display:inline-block; font-size:14px; color:var(--ink-soft);">[source: Google Gemini API pricing,
+        ai.google.dev, verified 2026-06-28]</span> The numbers will drift; the <em>shape</em> is durable, and the shape
+        is what you reason with: output costs several times input, and the cheapest tier is often an order of magnitude
+        below the flagship.</p>
+        <p>That asymmetry has a direct design consequence. A feature that reads a lot and answers briefly — classify
+        this, extract that field, label this ticket — is dominated by <em>input</em> cost, so a model with cheap input
+        and a big context window wins. A feature that generates long output — write the report, draft the email, produce
+        the code — is dominated by <em>output</em> cost, and a small move down the tier ladder there saves real money.
+        Two features with identical "AI" labels can have cost profiles that differ by 20×.</p>
+        <p>And it <strong>compounds with volume</strong>, which is where prototypes lie to you. A feature that costs two
+        cents per call is free in a demo that runs it ten times. The same feature at forty thousand calls a day is
+        $800/day, a quarter-million dollars a year — and now the difference between Opus and Haiku is the difference
+        between a viable product and a deal-breaker line item. The FDE who can stand in front of a client and say "this
+        endpoint costs $0.02 a call, runs 40,000 times a day, and we can cut it 70% by moving the classification step to
+        Haiku" is the one who keeps the engagement. Cost isn't a footnote to the model choice; for high-volume features
+        it often <em>is</em> the model choice.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Axis 3 · Latency</div>
+        <h2>Latency: how fast does the answer need to arrive?</h2>
+        <p>Capability and cost get the headlines; latency quietly decides whether users tolerate the feature at all. A
+        model that gives a brilliant answer in nineteen seconds is the wrong model for a chat box where the user expects
+        a reply in two. Latency is a first-class selection axis, and like cost it splits the world cleanly into two
+        modes.</p>
+        <p><strong>Interactive</strong> workloads — a chatbot, an autocomplete, a "summarize this page" button — live or
+        die on perceived speed, and the metric that matters most is <strong>time-to-first-token</strong> (TTFT): how
+        long until <em>something</em> appears. We'll see in Part 2 that streaming is the lever that turns a slow total
+        response into a fast-feeling one, but the model and tier still set the floor. Smaller models in a family (Haiku,
+        Flash) are not just cheaper — they're <em>faster</em>, often dramatically so, and several vendors now offer an
+        explicit low-latency or "fast" mode on their larger models for exactly these cases. For interactive features,
+        the smallest model that's <em>capable enough</em> usually wins on both latency and cost at once.</p>
+        <p><strong>Batch / asynchronous</strong> workloads — overnight processing of ten thousand documents, a
+        nightly report, a back-office data-enrichment job — invert the priority. Here nobody is watching a spinner, so
+        per-call latency barely matters; throughput and cost dominate, and (as Part 2 covers) the provider's batch API
+        will often do the same work at roughly half the price in exchange for letting it complete within hours instead
+        of seconds.</p>
+        <p>The FDE habit is to <strong>ask "who is waiting, and for how long?"</strong> before you ask anything else
+        about the model. The answer sorts the task into interactive or batch, and that sort eliminates whole columns of
+        the options table before you've compared a single benchmark. A common, expensive mistake is putting a flagship
+        model on a synchronous user-facing path "because it's the best," then discovering the feature feels broken
+        because every interaction takes eight seconds. The best model that arrives too late is the wrong model.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Axis 4 · Context window</div>
+        <h2>Context window: how much can you hand it, and what does that cost?</h2>
+        <p>The context window — Day 1's central idea — is also a selection axis, because models differ in how big a
+        window they offer, and the size you need is set by the task. As of <span class="nowrap">June 2026</span>, the
+        frontier tiers have converged on very large windows: Claude's current models offer up to a <strong>1 million
+        token</strong> context, with the smaller Haiku tier at <strong>200K</strong>; Gemini's Pro tier and others sit
+        in the same 1M-class range. <span style="display:inline-block; font-size:14px; color:var(--ink-soft);">[source: Anthropic model catalog, claude-api reference, cached
+        2026-06-04]</span> A million tokens is roughly a few thousand pages — enough to drop an entire codebase, a long
+        contract, or a quarter's worth of support transcripts into a single call.</p>
+        <p>But a bigger window is not automatically better, and treating "1M context" as a pure win is a beginner
+        error. Two costs come with the size. First, the <strong>dollar cost</strong>: you pay per token for everything
+        you put in the window, so a habit of stuffing the whole document set into every call is a habit of paying for
+        tens of thousands of tokens you don't need — Day 1's lesson that <em>more retrieved text is not more
+        intelligence; it's more budget spent.</em> Second, the <strong>attention cost</strong>: models can lose
+        precision on facts buried in the middle of an enormous context, so a smaller, well-chosen window often produces
+        a <em>more</em> accurate answer than a giant, noisy one.</p>
+        <p>So the context-window question is really two questions. <strong>Does the model's maximum window comfortably
+        exceed the largest input this task will ever realistically send?</strong> If the task is "answer questions about
+        a 300-page manual," you need a model whose window holds the manual plus the conversation plus room to answer —
+        and if no single model's window fits, that's a strong signal you need retrieval (RAG, all of Week 2) rather than
+        a bigger model. And <strong>what will it cost to fill the window you actually use?</strong> A model with a huge
+        window but expensive input may lose to a model with a smaller window and cheap input, if your real inputs fit the
+        smaller one. Size the window to the task, then price the tokens you'll really send.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Axis 5 · Tooling &amp; ecosystem</div>
+        <h2>Tooling &amp; ecosystem: the model is half of what you're buying</h2>
+        <p>Here's the axis junior engineers forget entirely: you are not just choosing a model, you're choosing the
+        <strong>platform around it</strong>. Two models can be equally capable on raw text and worlds apart in how much
+        engineering it takes to ship a reliable feature, because the surrounding tooling differs. For an FDE shipping on
+        a deadline, that tooling is often the deciding factor.</p>
+        <p>What's in that ecosystem? <strong>Structured output</strong> — can you tell the API "return JSON matching
+        this exact schema" and have it guaranteed, rather than parsing and praying? (We covered why that guardrail
+        matters on Day 4's territory; here it's a <em>selection</em> criterion.) <strong>Tool / function calling</strong>
+        — how cleanly can the model call out to your code, your database, your APIs, which is the entire foundation of
+        the agentic systems you'll build in Week 3. <strong>Prompt caching</strong> — does the platform let you reuse a
+        stable prefix at a fraction of the price (Anthropic, for instance, prices cache reads at roughly a tenth of
+        normal input). <strong>Batch APIs</strong> for the async workloads above. The maturity of the
+        <strong>SDKs</strong> in your client's language. And whether mainstream <strong>agent frameworks</strong> and
+        observability tools support the model first-class.</p>
+        <p>This is where the "biggest" vendors earn their keep beyond model quality. A model with mediocre benchmarks but
+        a rock-solid SDK, native structured output, reliable tool calling, and prompt caching may get a working,
+        affordable feature into production a week faster than a marginally smarter model with a thinner ecosystem — and
+        a week is the entire budget on a lot of FDE engagements. When you evaluate candidates, build a tiny end-to-end
+        slice on each (one structured call, one tool call) and notice <em>how much friction</em> there was. That
+        friction, multiplied across a project, is real cost the benchmark never shows. The model is maybe half of what
+        you're actually buying; the ecosystem is the other half.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Axis 6 · Data residency &amp; compliance</div>
+        <h2>Data residency, BAA &amp; self-hosting: the axis that overrules the rest</h2>
+        <p>The final axis is the one that, on the engagements you'll actually staff, frequently <strong>vetoes every
+        other axis at once</strong>. It doesn't matter that a model is the smartest, cheapest, and fastest if the client
+        is legally forbidden from sending their data to it. For a federal-acquisitions client like the ones in this
+        program — or a healthcare, financial, or defense client anywhere — the question "where does our data go, and who
+        can see it?" comes <em>before</em> "which model is best," and it eliminates options the leaderboard would have
+        ranked first.</p>
+        <p>The compliance vocabulary you need: a <strong>BAA</strong> (Business Associate Agreement) is the contract that
+        lets a vendor process protected health information under HIPAA — no BAA, no PHI, full stop.
+        <strong>Data residency</strong> is the guarantee that data is processed and stored in a specific geography (a
+        US region, say, for federal work). <strong>FedRAMP</strong> authorization, and government-cloud regions, are
+        what let a vendor touch federal systems at all. And "<strong>no training on your data</strong>" is the baseline
+        commitment that your client's proprietary content won't leak into a future model.</p>
+        <p>The major API vendors have responded to exactly this pressure, and it's why they matter for regulated work.
+        Anthropic offers BAAs and runs Claude through enterprise channels — Amazon Bedrock, Google Vertex AI, and a
+        dedicated Claude-on-AWS path — that bring it inside a client's existing cloud-governance and data-residency
+        boundary. <span style="display:inline-block; font-size:14px; color:var(--ink-soft);">[source: Anthropic platform docs, claude-api reference, cached
+        2026-06-04]</span> OpenAI offers BAAs to eligible customers, a no-training-by-default posture, and data
+        residency across roughly ten regions; Google delivers Gemini through Vertex AI with the full Google Cloud
+        compliance stack. <span style="display:inline-block; font-size:14px; color:var(--ink-soft);">[sources: OpenAI pricing &amp; API docs, openai.com /
+        platform.openai.com, verified 2026-06-28; Google Vertex AI docs]</span></p>
+        <p>And when even a compliant public API isn't allowed — air-gapped networks, classified systems, the strictest
+        FedRAMP-High and beyond — this axis is the entire reason <strong>open-weight, self-hosted models</strong> exist
+        in your toolkit. Llama, Mistral, DeepSeek, Qwen and their kin can run on hardware the client controls, inside
+        their own boundary, with <em>no</em> data ever leaving. You trade away some raw capability and take on the
+        burden of running the infrastructure yourself — but you gain absolute data control, and on some engagements
+        that's the only acceptable answer. For a Karsun federal-acquisitions engagement, this axis isn't a tiebreaker;
+        it's often the first filter, and it can settle the decision before capability, cost, or latency get a vote.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Putting it together</div>
+        <h2>Walk the funnel — and never marry one model</h2>
+        <p>Now run the funnel on the right top to bottom. A <strong>task with its constraints</strong> enters. Compliance
+        and data residency usually filter first and hardest — they can knock out whole vendors before anything else is
+        considered. What survives gets sorted by <strong>latency</strong> (who's waiting?) into interactive or batch,
+        which prunes tiers. <strong>Context window</strong> checks that the model can hold the real inputs. Then you
+        weigh <strong>capability</strong> against <strong>cost</strong> on the survivors — with a small eval set on real
+        client data, not a benchmark — and you confirm the <strong>tooling</strong> won't fight you. A defensible pick
+        falls out the bottom: not "the best model," but <em>the right model for this task, this budget, and this
+        client's rules,</em> with the reasoning you can show the client written down beside it.</p>
+        <p>That written reasoning is half the deliverable. Clients don't just want a recommendation; they want to
+        understand the trade-off — what you gave up and why — and an FDE who can produce a one-page model-selection
+        rationale (the scorecard in today's deep-dive is a template) is doing the consulting half of the job, not just
+        the coding half.</p>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>Attach one rule to every pick: <strong>keep it swappable.</strong> Models leapfrog each other every few
+          months, prices fall, a new compliance region opens, and the client's needs shift mid-engagement. If your code
+          hard-codes one vendor's SDK and prompt quirks into every corner, switching means a rewrite. If you put the
+          model behind a thin internal interface — one place that builds the request, sends it, and parses the response
+          — switching is a config change and a re-run of your eval set. The deliverable is never "we chose Model X." It's
+          "we chose Model X for these reasons, and here's how cheaply we can change our minds." That portability is what
+          Part 2 makes concrete: the resilient call you build there is the seam you swap models behind.</p>
+        </div>
+      </section>
+
+      <div class="chapter">Part 2 · API integration patterns<span class="ch-sub">From "which model" to "calling it reliably in production."</span></div>
+
+      <section class="step" data-diagram="1" data-step="0">
+        <div class="tag">The whole game, again</div>
+        <h2>Picking the model was the easy part — now you have to call it</h2>
+        <p>You've chosen a model and put it behind a clean interface. Now your code has to actually <em>call</em> it, over
+        the network, thousands of times a day, against a service you don't control. This is where a depressing number of
+        AI features fail — not because the model is wrong, but because the integration is naïve. The prototype made one
+        call in a notebook, it worked, everyone clapped. Production makes that call forty thousand times against a
+        rate-limited, occasionally-overloaded, sometimes-slow remote API, and every weakness the notebook hid becomes a
+        user-facing outage.</p>
+        <p>The mental shift for Part 2 is this: <strong>an LLM API call is a network request to a shared, metered,
+        fallible service — treat it like one.</strong> Everything you already know about resilient distributed systems
+        applies. The patterns aren't AI-specific; they're the same disciplines that make any third-party API
+        integration survive production — streaming for responsiveness, batching for throughput, respecting rate limits,
+        retrying transient failures correctly, making retries safe, bounding how long you'll wait, and failing
+        gracefully when nothing works. LLM calls just make each of these matter <em>more</em>, because they're slower,
+        pricier, and flakier than the average REST call.</p>
+        <p>The diagram on the right has now swapped to a single resilient call and everything wrapped around it. We'll
+        build it piece by piece: how the response comes back (stream or batch), the gate in front of the call (rate
+        limiting), the call itself with its safety equipment (timeout, retry with backoff and jitter, idempotency), and
+        the two ways it can end (ship the result, or fall back safely). Master this once and you reuse it on every
+        engagement, behind whatever model you picked in Part 1.</p>
+      </section>
+
+      <section class="step" data-diagram="1" data-step="1">
+        <div class="tag">Pattern 1 · Streaming</div>
+        <h2>Streaming: don't make the user wait for the last token</h2>
+        <p>An LLM generates its answer one token at a time, left to right. By default the API waits until the
+        <em>entire</em> answer is finished, then sends it back in one lump — so for a long response the user stares at a
+        spinner for the full generation time, maybe ten or twenty seconds, before anything appears. <strong>Streaming</strong>
+        changes the delivery: the API sends each token (or small chunk) as it's produced, so text starts appearing
+        almost immediately and flows in as it's written. The total generation time is unchanged, but the
+        <em>perceived</em> latency collapses, because <strong>time-to-first-token</strong> — not total time — is what
+        the user feels.</p>
+        <p>This is the single highest-leverage UX move on any interactive AI feature, and it's why every "the AI feels
+        slow" complaint should first be met with "are we streaming?" The familiar typewriter effect in every chat
+        interface is streaming; without it those same products would feel broken. For anything a human watches in real
+        time — chat, assistants, live summaries — streaming is not optional.</p>
+        <p>It does cost you some engineering. A streamed response arrives as a sequence of events over a long-lived
+        connection rather than a single JSON object, so your code consumes a stream and assembles the pieces, and your
+        front end renders them as they arrive. Two consequences to internalize now. First, because the connection stays
+        open for the whole generation, streaming is also how you <em>avoid request timeouts</em> on long outputs — a
+        large non-streaming response can exceed a client's HTTP timeout and get killed mid-flight, which is why SDKs
+        often <em>require</em> streaming above a certain output size. Second, streaming interacts with error handling:
+        a failure can happen <em>after</em> some tokens have already reached the user, so "the request failed" is no
+        longer a clean before-or-after — you may have a partial answer on screen to deal with. Hold that thought; it
+        returns when we get to error handling.</p>
+      </section>
+
+      <section class="step" data-diagram="1" data-step="2">
+        <div class="tag">Pattern 2 · Batching</div>
+        <h2>Batching: the opposite trade for work nobody is watching</h2>
+        <p>Streaming optimizes the case where a human is waiting. <strong>Batching</strong> optimizes the case where
+        nobody is. When you have a large volume of <em>independent</em> calls that don't need to finish right now —
+        classify ten thousand support tickets, summarize last quarter's documents, enrich a database overnight — sending
+        them one at a time through the synchronous API is the wrong tool. You'll fight rate limits, pay full price, and
+        babchle a long sequential loop.</p>
+        <p>The major providers offer a dedicated <strong>batch API</strong> for exactly this: you submit a big set of
+        requests as one job, the provider processes them asynchronously over a window (typically up to 24 hours), and
+        you collect the results when it's done — at a substantial discount, commonly around <strong>50% off</strong> the
+        normal per-token price. <span style="display:inline-block; font-size:14px; color:var(--ink-soft);">[source: provider batch-API docs — Anthropic Message Batches /
+        OpenAI Batch API, verified 2026-06]</span> You trade immediacy for throughput and cost: results in hours instead
+        of seconds, for roughly half the money and none of the rate-limit juggling.</p>
+        <p>The FDE judgment is matching the mechanism to the workload's <em>true</em> deadline. The instinct to make
+        everything synchronous and instant is expensive and often pointless — if a report is read tomorrow morning,
+        generating it in a 2 a.m. batch run for half the price is strictly better. Conversely, batching a request a user
+        is actively waiting on would be absurd. Two practical notes carry into the rest of Part 2. First, batch results
+        come back keyed by an ID <em>in no guaranteed order</em>, so you match each result to its request by the custom
+        ID you assigned — never by position. Second, batching sidesteps the live rate-limit dance we're about to discuss,
+        which is half its appeal: you hand the provider the whole pile and let them pace it. Ask of every bulk job: does
+        anyone need this in the next few seconds? If not, batch it.</p>
+      </section>
+
+      <section class="step" data-diagram="1" data-step="3">
+        <div class="tag">Pattern 3 · Rate limiting</div>
+        <h2>Rate limits: you are sharing a metered service</h2>
+        <p>An LLM API is a shared resource, and the provider caps how much of it any one account can consume. Those caps
+        come in three flavors you'll see constantly: <strong>RPM</strong> (requests per minute),
+        <strong>TPM</strong> (tokens per minute), and sometimes <strong>TPD</strong> (tokens per day). Exceed any of
+        them and the API stops serving you and returns an <strong>HTTP 429, "Too Many Requests."</strong> A 429 is not a
+        bug in your code and not an error in the usual sense — it's the provider saying "slow down, you've hit your
+        share." Treating it as a fatal error, or worse, hammering harder when you see one, is the classic way to turn a
+        brief throttle into a sustained outage.</p>
+        <p>You handle rate limits from both sides. <strong>Reactively</strong>, when a 429 comes back, you back off and
+        retry — and the provider usually tells you exactly how long to wait, in a <code>Retry-After</code> header.
+        Respecting that header is the single most important thing you can do; it's the difference between recovering in
+        one polite pause and flailing against the wall. (The retry mechanics themselves are the next pattern.)
+        <strong>Proactively</strong>, you throttle <em>yourself</em> so you mostly don't hit the limit in the first
+        place — a client-side rate limiter (a token-bucket or a simple semaphore capping concurrent requests) that paces
+        your outbound calls to stay under the known ceiling. The diagram puts this throttle as a gate <em>in front of</em>
+        the call for a reason: it's cheaper to not send a doomed request than to send it and handle the 429.</p>
+        <p>This is also where Part 1 and Part 2 connect. Rate limits are <em>per account and per model tier</em>, so the
+        model you chose shapes the headroom you have — a smaller tier may have a roomier limit, and spreading load across
+        tiers (cheap model for the bulk, flagship for the hard cases) spreads load across limit pools too. And rate
+        limits feed directly back into cost tracking: a feature that's constantly hitting 429s isn't just slow, it's a
+        signal you're under-provisioned or wasting calls. For an FDE, "we're getting rate-limited" should trigger a
+        design conversation — throttle, batch, cache, or upgrade the tier — not a frantic retry loop.</p>
+      </section>
+
+      <section class="step" data-diagram="1" data-step="4">
+        <div class="tag">Pattern 4 · Retries with backoff + jitter</div>
+        <h2>Retries: the right way to handle transient failure</h2>
+        <p>Networks are unreliable and shared services have bad moments. Over thousands of calls you <em>will</em> hit
+        transient failures: a 429 rate limit, a 500 or 503 when the provider is briefly overloaded, a dropped
+        connection. The defining property of these failures is that they're <strong>temporary</strong> — the exact same
+        request, sent again a moment later, usually succeeds. So the correct response is to retry. But <em>how</em> you
+        retry is what separates a resilient system from one that makes outages worse.</p>
+        <p>The wrong way is to retry immediately, in a tight loop. If the service is overloaded, a flood of instant
+        retries from every client at once is precisely what keeps it overloaded — a self-inflicted denial-of-service
+        called a "retry storm." The right way has three parts. <strong>Exponential backoff</strong>: wait longer between
+        each attempt — 1 second, then 2, then 4, then 8 — so you give the service room to recover instead of pounding it.
+        <strong>Jitter</strong>: add a small random amount to each wait, so that thousands of clients that all failed at
+        the same instant don't all retry at the same instant and re-create the spike; randomizing the waits spreads the
+        load smoothly. And a <strong>bounded cap</strong>: retry a fixed, small number of times — three, maybe five —
+        and then give up and treat it as a real failure, because an unbounded retry loop burns money and stalls the user
+        forever.</p>
+        <p>One crucial distinction makes retries correct rather than dangerous: <strong>retry only the failures that are
+        actually transient.</strong> A 429 or a 5xx is worth retrying — the request was fine, the service just couldn't
+        serve it yet. A 400 (malformed request) or a 401 (bad credentials) is <em>not</em> — retrying a request the
+        server already rejected as invalid will fail identically every time and just waste attempts. The retry logic has
+        to branch on the error type. Get this right and you absorb the provider's bad moments invisibly; get it wrong and
+        you either crash on recoverable blips or hammer the service on unrecoverable ones. The good news: mature SDKs
+        implement backoff-with-jitter retries on the right error classes for you — but you must know what they're doing,
+        because you'll tune it, and because the next pattern is the thing that makes any retry safe. The worked
+        implementation is in today's deep-dive.</p>
+      </section>
+
+      <section class="step" data-diagram="1" data-step="5">
+        <div class="tag">Pattern 5 · Idempotency</div>
+        <h2>Idempotency: making it safe to retry at all</h2>
+        <p>Retries introduce a subtle, dangerous question that you must answer before you turn them on: <strong>what if
+        the request actually succeeded, but the response got lost on the way back?</strong> The server did the work and
+        charged you; the acknowledgment never arrived; your retry logic sees "no response" and sends the request again.
+        Now the work has happened <em>twice</em>. For a read-only LLM call that's merely wasteful — you paid for two
+        generations. For anything with a side effect — an agent that placed an order, sent an email, wrote a record,
+        kicked off a payment — doing it twice is a real incident.</p>
+        <p><strong>Idempotency</strong> is the property that doing an operation twice has the same effect as doing it
+        once. The standard mechanism is an <strong>idempotency key</strong>: you generate a unique ID for the logical
+        operation and attach it to the request. The first time the server sees that key it does the work and remembers
+        the result; if a retry arrives carrying the <em>same</em> key, the server recognizes it as a duplicate and
+        returns the original result instead of doing the work again. The retry becomes safe — at most one real execution,
+        no matter how many times the network makes you resend.</p>
+        <p>This is why idempotency sits in the diagram <em>attached to the call</em>, right beside retry: they're a pair.
+        Retry without idempotency is a loaded gun pointed at your client's data — every backoff attempt risks a
+        duplicate side effect. Many LLM APIs support an idempotency key directly on the request for exactly this reason,
+        and where the model is just one step in a larger workflow, you carry the same discipline through your own
+        services: assign each logical operation an ID, dedupe on it, and design every step so that replaying it is
+        harmless. The FDE rule is blunt: <strong>before you enable retries, make the thing being retried idempotent.</strong>
+        Retries assume the operation is safe to repeat. Idempotency is how you make that assumption true.</p>
+      </section>
+
+      <section class="step" data-diagram="1" data-step="6">
+        <div class="tag">Pattern 6 · Timeouts</div>
+        <h2>Timeouts: decide in advance how long you'll wait</h2>
+        <p>Every call needs a deadline. Without one, a single slow or hung request can tie up a connection, a thread, or
+        a user's patience indefinitely — and under load, a pile of stuck requests with no timeout is how one slow
+        dependency takes down an entire service. A <strong>timeout</strong> is your explicit decision: if this call
+        hasn't returned in N seconds, stop waiting and handle it as a failure. LLM calls make timeouts especially
+        important because they're <em>slow and variable</em> — a response can legitimately take many seconds, and the
+        spread between a fast and a slow call is wide, so the naïve defaults that work for a quick REST call are wrong
+        here.</p>
+        <p>Setting the timeout is a judgment call you tune to the workload. Too short and you'll kill legitimate slow
+        responses, turning a working call into a failure and a wasted retry. Too long and a genuinely hung request
+        blocks resources far past the point of usefulness. An interactive feature wants a tighter deadline (a user won't
+        wait 60 seconds anyway); a batch or long-generation job can afford a generous one. The key is that it's a
+        deliberate number, not whatever the library happened to default to.</p>
+        <p>Two LLM-specific traps to internalize. First, the <strong>streaming gotcha</strong> from Pattern 1: many HTTP
+        clients implement "timeout" as a <em>per-chunk</em> read timeout that resets every time a byte arrives, not a
+        total wall-clock cap. On a streamed response that trickles tokens slowly, such a timeout may never fire even
+        though the call has dragged on for minutes — so for a hard overall deadline you often have to track elapsed time
+        yourself at the loop level, not trust a single timeout setting. Second, timeouts compose with retries:
+        <strong>your true worst-case wait is the timeout multiplied by the number of attempts</strong> (plus the backoff
+        delays between them). A 30-second timeout with three retries can mean a user waiting well over a minute before
+        you give up — so set both numbers together, with the total experience in mind, not each in isolation.</p>
+      </section>
+
+      <section class="step" data-diagram="1" data-step="7">
+        <div class="tag">Pattern 7 · Graceful error handling</div>
+        <h2>Graceful failure: never let a broken call reach the user raw</h2>
+        <p>Everything so far reduces how often calls fail and how safely you retry them. The last pattern decides what
+        happens when, despite all of it, a call <em>still</em> fails — because at scale, some will. The amateur
+        integration lets the exception bubble up and the user sees a stack trace, a spinner that never resolves, or a
+        blank screen. The professional integration has decided, in advance, <strong>what failure looks like to the
+        user</strong>, and it's never raw.</p>
+        <p>It starts with a <strong>taxonomy</strong> of what can go wrong, because each class is handled differently:
+        a <em>transient</em> error (429, 5xx, dropped connection) → retry with backoff (Pattern 4); a <em>client</em>
+        error (400, 401) → don't retry, fix the request or fail fast, because retrying changes nothing; a
+        <em>timeout</em> → treat as failure after the deadline (Pattern 6); a <em>content</em> outcome like a safety
+        refusal → a real, expected response type to branch on, not a crash; and <em>still-failing-after-retries</em> →
+        the genuine dead end this pattern exists for. Code that lumps all of these into one <code>catch (Exception)</code>
+        has thrown away the information it needs to respond correctly.</p>
+        <p>For the dead end, you define a <strong>fallback</strong> — the deliberate "what we do when nothing worked."
+        Depending on the feature that might be a graceful message ("the assistant is unavailable right now — here's how
+        to reach a human"), a handoff to a deterministic non-AI code path, a cached or default result, or
+        <em>falling back to a different model</em> (the Part 1 portability seam paying off — if your primary is down or
+        refusing, a clean interface lets you retry on a backup model). Two refinements for systems that call a lot: a
+        <strong>circuit breaker</strong> that, after repeated failures, stops sending requests for a cooldown instead of
+        retrying into a wall — protecting both you and the struggling provider; and, recalling Pattern 1, a plan for
+        <strong>partial streamed output</strong>, since a failure mid-stream may leave half an answer on the user's
+        screen that you must either complete or cleanly retract.</p>
+        <p>The unifying principle is Day 4's, restated for the network layer: <strong>"no answer, cleanly handled"
+        always beats "a wrong answer or a crash, delivered raw."</strong> A user told the feature is briefly unavailable
+        is mildly annoyed; a user shown a traceback, or left hanging on a dead spinner, has lost trust in the product —
+        and your client has lost trust in you. The resilient call in the diagram ends in exactly two places: a result
+        you ship, or a fallback you chose. It never ends in an exception the user sees.</p>
+      </section>
+
+      <section class="step extra" data-diagram="1" data-step="7">
+        <div class="tag">Your tools</div>
+        <h2>The $20 plan is your first model-selection decision</h2>
+        <p>Both halves of today are things you're already living. You're working on a <strong>$20 Claude Pro plan with a
+        budget measured in roughly 40 focused hours a week</strong> — which means you have <em>already made a
+        model-selection decision under constraints</em>. You picked a capable model at a fixed price and a hard usage
+        ceiling, and now every habit that stretches that budget is the same discipline a client pays an FDE to bring,
+        just with you holding the meter.</p>
+        <p>Part 1's framework is exactly how you'd reason about your own toolchain: when a sub-task is simple, you don't
+        need to burn your best model's budget on it — match the tier to the task. Part 2's patterns show up every time
+        Claude Code streams a long answer (you read it as it arrives instead of waiting), every time you hit a usage
+        limit and have to pace yourself instead of hammering retries, and every time a long agentic run times out and you
+        decide whether to retry the whole thing or fall back to doing the step by hand. Working like an engineer —
+        choosing the right model for the task and calling it resiliently — makes the $20 plan stretch across the week.
+        Working like a slot machine — flagship model on everything, re-running giant loops on every transient blip —
+        burns it by Tuesday.</p>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>A client will ask two questions that sound separate: "which AI should we use?" and "why does the AI feature
+          keep breaking?" They're the two halves of today. The first is a six-axis trade-off you decide and
+          <em>document</em> — capability, cost, latency, context, tooling, and the compliance axis that often overrules
+          the rest. The second is almost never the model's fault; it's a missing timeout, an unbounded retry, an
+          un-throttled rate limit, a non-idempotent side effect, or an error that reached the user raw. The FDE who can
+          pick the right model <em>and</em> wrap it in a call that survives production is delivering the whole job — the
+          consulting decision and the engineering that makes it hold.</p>
+        </div>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">A model-selection scorecard &amp; a backoff-retry loop</div>
+          <div class="ac-meta">optional · +12 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">4 quick questions across both parts</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="d1.html">◂ Back</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn" href="d3.html">Day 3 ▸</a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 1 Day 2</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: a selection scorecard &amp; a resilient-call loop</h2>
+    <p class="quiz-sub">Optional. ~12 minutes. The artifact behind Part 1, and the pattern behind Part 2.</p>
+
+    <p><strong>1 · A model-selection scorecard.</strong> The one-page artifact you hand a client. Score each candidate
+    1–5 on every axis, weight the axes for <em>this</em> task, and the choice — plus the reasoning — is on the page.
+    Sample numbers below are illustrative current-state anchors, not a verdict; pricing drifts, so re-verify before you
+    ship one. <span style="display:inline-block; font-size:14px; color:var(--ink-soft);">[pricing/context sources: Anthropic catalog (claude-api, cached 2026-06-04);
+    Gemini API pricing, ai.google.dev (2026-06-28); OpenAI API docs (2026-06-28)]</span></p>
+
+    <div class="model-answer show">
+      <div class="ma-k">Worked scorecard — a federal-acquisitions document-summarization feature</div>
+      <pre style="background:#f1efe9; border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.5; margin:6px 0 0;"><code>AXIS (weight)        Flagship API     Mid-tier API     Open-weight (self-host)
+                     e.g. Opus 4.8    e.g. Sonnet/Flash  e.g. Llama/Mistral
+Capability (×2)        5                4                  3
+Cost in/out ($/M)      $5 / $25  →2     $1.50–3 / $9–15 →4 infra-only     →4
+Latency (×1)           3                4                  4 (you size HW)
+Context window (×1)    1M        →5     1M / 200K     →5  varies          →3
+Tooling/ecosystem(×1)  5                5                  3 (DIY)
+Data residency (×3)    BAA+Bedrock →4   BAA+Vertex   →4   FULL control →5
+─────────────────────────────────────────────────────────────────────────
+If "data never leaves our boundary" is mandatory, the ×3 weight on the last
+row can make open-weight win even though it scores lower on capability.</code></pre>
+      <p style="margin:8px 0 0">The point isn't the exact cells — it's the <em>method</em>: explicit axes, a weight that
+      encodes <em>this</em> client's priorities, and a defensible total. For a regulated client the data-residency
+      weight is often so high it decides the table before capability gets a vote. Pair the scorecard with a 10–20
+      example eval set on the client's real data to ground the capability row in fact, not vibes.</p>
+    </div>
+
+    <p style="margin-top:14px"><strong>2 · The resilient-call loop.</strong> Part 2's patterns, assembled into one
+    function. Backoff + jitter on transient errors only, bounded attempts, an idempotency key so a retry can't double a
+    side effect, a deliberate timeout, and a fallback so failure never reaches the user raw:</p>
+    <pre style="background:#f1efe9; border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.5; margin:10px 0 0;"><code>def call_model(request, *, max_tries=4, base=1.0, cap=30.0, timeout=20.0):
+    idem_key = request.idempotency_key or new_uuid()   # safe to retry
+    for attempt in range(max_tries):
+        try:
+            return model.call(request, key=idem_key,    # one logical op
+                              timeout=timeout)           # bounded wait
+        except RateLimited as e:                         # 429
+            delay = e.retry_after or backoff(attempt, base, cap)
+        except (ServerError, ConnectionDropped):         # 5xx / network
+            delay = backoff(attempt, base, cap)          # transient → retry
+        except (BadRequest, Unauthorized):               # 400 / 401
+            raise                                        # NOT transient → stop
+        sleep(delay)
+    return fallback(request)        # exhausted → fail safe, never crash
+
+def backoff(attempt, base, cap):
+    raw = min(cap, base * (2 ** attempt))    # exponential: 1,2,4,8...
+    return random.uniform(0, raw)            # full jitter — spread the herd</code></pre>
+    <p style="margin:8px 0 0">Five things make it production-grade: it retries <strong>only transient</strong> errors
+    (4xx falls straight through); it honors the server's <code>Retry-After</code> when given; backoff is
+    <strong>exponential with jitter</strong> so simultaneous failures don't re-spike together; the same
+    <strong>idempotency key</strong> rides every attempt so at most one real execution happens; and every path that
+    isn't a clean result lands in <code>fallback()</code>. Worst-case wait ≈ <code>timeout × max_tries</code> plus the
+    backoff delays — set those two numbers together, with the user's experience in mind.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 2 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Frame model selection as a six-axis trade-off — capability, cost, latency, context window, tooling, and data residency — instead of naming a leaderboard winner</li>
+      <li>Explain why output costs more than input, why the compliance axis often overrules the rest, and why you keep the model swappable behind a thin interface</li>
+      <li>Name the API integration patterns that make a call survive production: streaming, batching, rate-limit handling, retries with exponential backoff + jitter, idempotency, timeouts, and graceful fallback</li>
+      <li>Explain why retries are unsafe without idempotency, and why a timeout must be paired with the retry count to bound the worst-case wait</li>
+    </ul>
+    <div class="ma-k">Deliverable — add to your <code>NOTES.md</code></div>
+    <ul class="deliv-list check">
+      <li><b>①</b> a 3-candidate model scorecard for one realistic feature, with the axis weights you'd defend to a client and the pick that falls out</li>
+      <li><b>②</b> one feature sorted into interactive-vs-batch, and the model tier + delivery mode (stream / batch) that follows from it</li>
+      <li><b>③</b> the resilient-call checklist you'd apply to one untrusted API call — timeout, retry policy (which errors, how many, backoff+jitter), idempotency, and fallback</li>
+    </ul>
+    <p class="goals-foot">Bring it to tomorrow's session. Day 3 you turn the prompt itself into the next engineering surface.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 3 — Prompt Engineering →", href: "d3.html" };
+window.DIAGRAMS = [
+  {
+    title: "Part 1 · Model selection",
+    width: 460, height: 510,
+    nodes: [
+      { id:"task", step:0, x:40, y:30,  w:380, h:46, label:"TASK + CONSTRAINTS\n(what must it do, for whom?)" },
+      { id:"cap",  step:1, x:40, y:92,  w:380, h:36, label:"① Capability — fit, not max" },
+      { id:"cost", step:2, x:40, y:140, w:380, h:36, label:"② Cost — input ≠ output" },
+      { id:"lat",  step:3, x:40, y:188, w:380, h:36, label:"③ Latency — live vs batch" },
+      { id:"ctx",  step:4, x:40, y:236, w:380, h:36, label:"④ Context window — size & $" },
+      { id:"tool", step:5, x:40, y:284, w:380, h:36, label:"⑤ Tooling & ecosystem" },
+      { id:"data", step:6, x:40, y:332, w:380, h:42, label:"⑥ Data residency / BAA" },
+      { id:"pick", step:7, x:40, y:398, w:380, h:50, label:"PICK ✓ — keep it swappable" }
+    ],
+    edges: [
+      { id:"e1", step:1, from:"task", to:"cap" },
+      { id:"e2", step:2, from:"cap",  to:"cost" },
+      { id:"e3", step:3, from:"cost", to:"lat" },
+      { id:"e4", step:4, from:"lat",  to:"ctx" },
+      { id:"e5", step:5, from:"ctx",  to:"tool" },
+      { id:"e6", step:6, from:"tool", to:"data" },
+      { id:"e7", step:7, from:"data", to:"pick" }
+    ],
+    captions: [
+      "Start from the <b>task and its constraints</b> — what it must do, for whom, under what rules. The model falls out of this, not out of a leaderboard.",
+      "<b>① Capability</b>: match the tier to the hardest thing the task needs — and no higher. Measure it with a small eval set on real data.",
+      "<b>② Cost</b>: input and output are priced differently (output costs more), and it compounds with volume. The cheap tier is often 10× below the flagship.",
+      "<b>③ Latency</b>: who's waiting? Interactive favors small/fast tiers + streaming; batch favors throughput + cost.",
+      "<b>④ Context window</b>: does the model hold the real inputs — and what does filling it cost? Bigger isn't free, and isn't always more accurate.",
+      "<b>⑤ Tooling & ecosystem</b>: structured output, tool calling, caching, SDKs. The platform is half of what you're buying.",
+      "<b>⑥ Data residency / BAA</b>: for regulated/federal work this often <b>overrules</b> the rest — and is why open-weight self-hosting is in your toolkit.",
+      "A <b>defensible pick</b> falls out — the right model for this task, budget, and rules. Rule attached: <b>keep it swappable.</b>"
+    ]
+  },
+  {
+    title: "Part 2 · Resilient API call",
+    width: 470, height: 380,
+    nodes: [
+      { id:"client",  step:0, x:40,  y:30,  w:290, h:42, label:"CLIENT request" },
+      { id:"stream",  step:1, x:40,  y:90,  w:290, h:36, label:"Stream tokens back (low TTFT)" },
+      { id:"batch",   step:2, x:348, y:88,  w:108, h:52, label:"or BATCH\nasync · −50%" },
+      { id:"throt",   step:3, x:40,  y:144, w:290, h:36, label:"Throttle ≤ RPM / TPM" },
+      { id:"call",    step:4, x:40,  y:196, w:290, h:50, label:"API CALL\n(timeout set)" },
+      { id:"retry",   step:5, x:348, y:194, w:108, h:54, label:"retry:\nbackoff + jitter" },
+      { id:"idem",    step:6, x:348, y:282, w:108, h:54, label:"idempotency key\n→ safe retry" },
+      { id:"done",    step:7, x:40,  y:286, w:140, h:50, label:"✓ result → ship" },
+      { id:"fb",      step:7, x:192, y:286, w:138, h:54, label:"exhausted/4xx →\nfail safe" }
+    ],
+    edges: [
+      { id:"e_cs", step:1, from:"client", to:"stream", label:"response" },
+      { id:"e_b",  step:2, from:"client", to:"batch",  label:"bulk", bend:24 },
+      { id:"e_st", step:3, from:"stream", to:"throt" },
+      { id:"e_tc", step:4, from:"throt",  to:"call" },
+      { id:"e_rt", step:5, from:"call",   to:"retry",  label:"429/5xx" },
+      { id:"e_rc", step:5, from:"retry",  to:"call",   label:"re-try", bend:-34 },
+      { id:"e_ic", step:6, from:"idem",   to:"call",   label:"safe", dir:"-" },
+      { id:"e_ok", step:7, from:"call",   to:"done",   label:"200" },
+      { id:"e_fb", step:7, from:"retry",  to:"fb",     label:"give up" }
+    ],
+    captions: [
+      "A single <b>client request</b> — now treated as what it is: a network call to a shared, metered, fallible service.",
+      "<b>Stream</b> the response so the user sees tokens immediately. Time-to-first-token, not total time, is what they feel.",
+      "Work nobody's waiting on? <b>Batch</b> it — async, often ~50% cheaper, and it sidesteps the live rate-limit dance.",
+      "<b>Throttle</b> yourself under the provider's RPM/TPM caps. Cheaper to not send a doomed request than to handle the 429.",
+      "Make the <b>call</b> with a deliberate <b>timeout</b> — LLM calls are slow and variable; the library default is wrong.",
+      "Transient failure (429/5xx)? <b>Retry</b> with exponential backoff + jitter, bounded — never a tight loop. 4xx is NOT retried.",
+      "An <b>idempotency key</b> on every attempt means a retry can't double a side effect. Retry + idempotency are a pair.",
+      "Ends in exactly two places: a <b>result you ship</b>, or a <b>fallback you chose</b>. Never an exception the user sees."
+    ]
+  }
+];
+window.QUIZ = {
+  id: "w01-d2",
+  title: "Check your understanding",
+  questions: [
+    { type: "mcq",
+      stem: "A federal-acquisitions client says their data legally cannot leave their own network boundary. Which model-selection axis decides this, and what option does it point to?",
+      options: [
+        "Capability — pick whichever model scores highest on benchmarks",
+        "Cost — pick the cheapest per-token API",
+        "Data residency / compliance — it can overrule the other axes and points toward an open-weight, self-hosted model",
+        "Latency — pick the fastest model regardless of where it runs" ],
+      answer: 2,
+      explain: "For regulated/federal work the data-residency axis often filters first and hardest — it doesn't matter that a model is smartest or cheapest if the client can't legally send it the data. When even a compliant public API isn't allowed, a self-hosted open-weight model (running inside the client's boundary) is the answer, trading some capability for absolute data control." },
+    { type: "mcq",
+      stem: "Your service retries failed model calls with a tight immediate loop and no idempotency key. Two things are wrong. Which pair fixes them?",
+      options: [
+        "Use a bigger model, and add more retries",
+        "Add exponential backoff with jitter (so retries don't re-spike the overloaded service), and attach an idempotency key (so a retried call that already succeeded can't double a side effect)",
+        "Stream the response, and increase the timeout",
+        "Switch to a batch API, and remove the retries entirely" ],
+      answer: 1,
+      explain: "Immediate tight-loop retries cause retry storms — exponential backoff spaces attempts out and jitter stops thousands of clients retrying in lockstep. And retries are unsafe without idempotency: if the original request actually succeeded but the response was lost, a blind retry repeats the work (and any side effect). An idempotency key makes the server dedupe the retry to a single execution." },
+    { type: "mcq",
+      stem: "You get an HTTP 429 from the model API. What is it, and how should resilient code respond?",
+      options: [
+        "A bug in your code — log it and crash",
+        "A rate limit ('too many requests') — back off and retry, ideally honoring the Retry-After header, and throttle proactively to avoid it",
+        "A malformed request — fix the JSON and do not retry",
+        "A safety refusal — route to a human" ],
+      answer: 1,
+      explain: "429 means you've hit your share of a metered, shared service — it's transient, not a code bug. Respect the Retry-After header when present, retry with bounded backoff, and proactively throttle yourself (client-side rate limiting) so you mostly stay under the cap. Contrast a 400, which is a malformed request and should NOT be retried." },
+    { type: "open",
+      stem: "In two or three sentences: a client asks 'which AI should we use?' and later 'why does the AI feature keep breaking?' Why are these two different questions, and which of today's two parts answers each?",
+      hint: "One is a selection decision; the other is almost never the model's fault.",
+      model: "'Which AI should we use?' is Part 1 — a six-axis trade-off (capability, cost, latency, context window, tooling, data residency) that you decide and document for this specific task, budget, and client's rules, not a leaderboard pick. 'Why does it keep breaking?' is almost always Part 2 and not the model's fault at all — it's a missing timeout, an unbounded or non-idempotent retry, an unhandled rate limit, or an error that reached the user raw. The first is a consulting decision; the second is resilient-integration engineering, and an FDE owes the client both." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+</body>
+</html>

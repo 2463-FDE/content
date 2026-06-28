@@ -1,16 +1,21 @@
-/* diagram.js — declarative SVG diagram with hand-drawn (Excalidraw-style)
+/* diagram.js — declarative SVG diagram(s) with hand-drawn (Excalidraw-style)
    wobble + per-step draw-in animation. No dependencies.
 
-   A page defines `window.DIAGRAM = { width, height, title, nodes:[...], edges:[...], captions:[...] }`.
-   nodes: { id, step, x, y, w, h, label }
-   edges: { id, step, from, to, label?, dir? ('->'|'-'), bend? }
-   captions: array indexed by step number (HTML allowed).
+   A page defines EITHER:
+     window.DIAGRAM  = { width, height, nodes, edges, captions }   // single (legacy)
+   OR for days that need multiple storytelling phases:
+     window.DIAGRAMS = [ { title?, width, height, nodes, edges, captions }, ... ]
 
-   goTo(n) reveals everything with step<=n, highlights step===n, dims earlier. */
+   Reading steps tag which diagram + which step they drive:
+     <section class="step" data-diagram="1" data-step="2"> ... </section>
+   (data-diagram defaults to 0). The sticky panel swaps to the right diagram and
+   builds it as the reader scrolls between chapters. */
 
 (function () {
   const SVGNS = "http://www.w3.org/2000/svg";
-  let cfg = null, root = null, captionEl = null, current = -1;
+  let root = null, captionEl = null, titleEl = null;
+  let specs = [], activeIdx = -1;
+  let cfg = null, current = -1;
   const nodeById = {};
 
   function el(tag, attrs) {
@@ -19,7 +24,6 @@
     return e;
   }
 
-  // hand-drawn filter: subtle turbulence displacement on strokes
   function defs() {
     const d = el("defs", {});
     d.innerHTML =
@@ -28,15 +32,11 @@
       '<feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>' +
       '</filter>' +
       '<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
-      '<path d="M0,0 L10,5 L0,10 z" fill="#2b2f36"/></marker>' +
-      '<marker id="arrowhot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
-      '<path d="M0,0 L10,5 L0,10 z" fill="#e8590c"/></marker>';
+      '<path d="M0,0 L10,5 L0,10 z" fill="#2b2f36"/></marker>';
     return d;
   }
 
   function center(n) { return { x: n.x + n.w / 2, y: n.y + n.h / 2 }; }
-
-  // attach point on node border toward a target point
   function anchor(n, tx, ty) {
     const c = center(n), dx = tx - c.x, dy = ty - c.y;
     if (dx === 0 && dy === 0) return c;
@@ -80,18 +80,16 @@
     const g = el("g", { class: "d-el d-edge", "data-step": e.step, "data-id": e.id });
     const p = el("path", { d: dpath, filter: "url(#rough)" });
     if (e.dir !== "-") p.setAttribute("marker-end", "url(#arrow)");
-    const len = p.getTotalLength ? 0 : 0; // measured after insert
     g.appendChild(p);
     if (e.label) {
       const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2 + (e.bend ? e.bend / 2 : 0) - 6;
-      const t = el("text", { x: mx, y: my, "text-anchor": "middle" });
-      t.textContent = e.label;
-      // halo for readability
       const halo = el("text", { x: mx, y: my, "text-anchor": "middle", stroke: "#fff", "stroke-width": 4 });
       halo.textContent = e.label;
+      const t = el("text", { x: mx, y: my, "text-anchor": "middle" });
+      t.textContent = e.label;
       g.appendChild(halo); g.appendChild(t);
     }
-    g._path = p; g._marker = e.dir !== "-";
+    g._path = p;
     return g;
   }
 
@@ -103,18 +101,17 @@
     root.setAttribute("preserveAspectRatio", "xMidYMid meet");
     root.appendChild(defs());
     spec.nodes.forEach(n => nodeById[n.id] = n);
-    // edges first (under nodes)
     const edgeLayer = el("g", {}), nodeLayer = el("g", {});
     spec.edges.forEach(e => { const g = buildEdge(e); e._g = g; edgeLayer.appendChild(g); });
     spec.nodes.forEach(n => { const g = buildNode(n); n._g = g; nodeLayer.appendChild(g); });
     root.appendChild(edgeLayer); root.appendChild(nodeLayer);
-    // measure edge path lengths now that they're in the DOM
     spec.edges.forEach(e => {
       const len = e._g._path.getTotalLength();
       e._g._path.style.strokeDasharray = len;
       e._g._path.style.strokeDashoffset = len;
       e._g._len = len;
     });
+    if (titleEl) titleEl.textContent = spec.title || "Live diagram";
     current = -1;
     goTo(0);
   }
@@ -122,7 +119,6 @@
   function drawIn(g, isNode) {
     g.classList.add("shown");
     const target = isNode ? g._rect : g._path;
-    // force reflow then animate dashoffset to 0
     requestAnimationFrame(() => {
       target.style.transition = "stroke-dashoffset .6s ease";
       target.style.strokeDashoffset = 0;
@@ -140,13 +136,9 @@
       if (st <= n) {
         if (!g.classList.contains("shown")) {
           if (forward && st === n) drawIn(g, !!g._rect);
-          else { // already-passed elements appear instantly
-            g.classList.add("shown");
-            const t = g._rect || g._path; if (t) t.style.strokeDashoffset = 0;
-          }
+          else { g.classList.add("shown"); const t = g._rect || g._path; if (t) t.style.strokeDashoffset = 0; }
         }
-        if (st === n) g.classList.add("hot");
-        else g.classList.add("dim");
+        if (st === n) g.classList.add("hot"); else g.classList.add("dim");
       } else {
         g.classList.remove("shown");
         const t = g._rect || g._path;
@@ -156,11 +148,34 @@
     if (captionEl) captionEl.innerHTML = (cfg.captions && cfg.captions[n]) || "";
   }
 
-  function init(svgSel, captionSel) {
-    root = document.querySelector(svgSel);
-    captionEl = document.querySelector(captionSel);
-    if (window.DIAGRAM) render(window.DIAGRAM);
+  // activate a diagram by index (rebuild the SVG if it changed)
+  function activate(di) {
+    di = Math.max(0, Math.min(specs.length - 1, di || 0));
+    if (di === activeIdx) return;
+    activeIdx = di;
+    render(specs[di]);
   }
 
-  window.Diagram = { init, render, goTo, get current() { return current; } };
+  // scrolly drives this: (which diagram, which step within it)
+  function to(di, step) {
+    activate(di);
+    goTo(step);
+  }
+
+  function init(svgSel, captionSel, titleSel) {
+    root = document.querySelector(svgSel);
+    captionEl = document.querySelector(captionSel);
+    titleEl = titleSel ? document.querySelector(titleSel) : document.querySelector(".stage-title");
+    specs = Array.isArray(window.DIAGRAMS) && window.DIAGRAMS.length
+      ? window.DIAGRAMS
+      : (window.DIAGRAM ? [window.DIAGRAM] : []);
+    if (specs.length) activate(0);
+  }
+
+  window.Diagram = {
+    init, activate, to, goTo, render,
+    get count() { return specs.length; },
+    get current() { return current; },
+    get activeIdx() { return activeIdx; }
+  };
 })();
