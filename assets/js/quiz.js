@@ -1,20 +1,10 @@
-/* quiz.js — non-punitive, formative end-of-reading check.
-   Evidence-based design (retrieval practice + immediate post-commit feedback,
-   zero stakes, unlimited retries). See research/quiz-pedagogy-brief.md.
+/* quiz.js — non-punitive formative check, rendered in a modal.
+   Launched by #quiz-fab or the lesson's final "Take the check" button.
+   Evidence-based: immediate per-item feedback on commit, no pass/fail gate,
+   unlimited retries, zero stakes (see research/quiz-pedagogy-brief.md).
 
-   Page defines:
-   window.QUIZ = {
-     id: "w01-d1",
-     title: "Check your understanding",
-     questions: [
-       { type:"mcq", stem, options:[...], answer:<idx>, explain },
-       { type:"open", stem, model:"<model answer to self-check against>", hint? }
-     ]
-   }
-
-   Behavior: each item gives feedback the instant the learner commits it.
-   No pass/fail gate. Retry freely. Results (first-try correctness + self-rating)
-   stored to localStorage and POSTed to window.FDE_TRACK_URL if set. */
+   Page defines window.QUIZ (id, title, questions[]) and optionally
+   window.FDE_NEXT = { label, href } for the "next" CTA after completion. */
 (function () {
   const LSID = "fde_trainee_id";
   const LSRES = "fde_results";
@@ -35,7 +25,7 @@
 
     const h = document.createElement("h2"); h.textContent = Q.title || "Check your understanding"; host.appendChild(h);
     const sub = document.createElement("p"); sub.className = "quiz-sub";
-    sub.innerHTML = "Practice, not a grade. Answer each one to lock the idea in — you get the answer right away, and you can retry as many times as you like.";
+    sub.textContent = "Practice, not a grade. Answer each one to lock the idea in — instant feedback, retry as much as you like.";
     host.appendChild(sub);
 
     const state = Q.questions.map(() => ({ committed: false, correct: null, selfRate: null }));
@@ -44,9 +34,8 @@
       if (!state.every(s => s.committed)) return;
       const firstTry = state.filter(s => s.correct === true || s.selfRate === "got").length;
       const summary = host.querySelector(".quiz-summary");
-      summary.innerHTML = `<b>Nice — all done.</b> You locked in ${firstTry}/${Q.questions.length} on this pass. ` +
-        `This is practice, so there's no grade; retry any time to make it stick. ` +
-        `<button class="btn-link retry">Try again ↻</button>`;
+      summary.innerHTML = `<b>Nice — all done.</b> You locked in ${firstTry}/${Q.questions.length} this pass. ` +
+        `No grade here; retry any time to make it stick. <button class="btn-link retry">Try again ↻</button>`;
       summary.classList.add("show");
       summary.querySelector(".retry").addEventListener("click", () => render(host, Q));
       record({
@@ -54,6 +43,12 @@
         items: state.map((s, i) => ({ q: i, correct: s.correct, selfRate: s.selfRate })),
         ts: new Date().toISOString(), page: location.pathname
       });
+      const next = document.querySelector(".modal-next");
+      if (next) {
+        const n = window.FDE_NEXT || { label: "Back to Program", href: "../../index.html" };
+        next.innerHTML = `<span>Concept locked. Move on:</span> <a class="btn" href="${n.href}">${n.label}</a>`;
+        next.classList.add("show");
+      }
     }
 
     Q.questions.forEach((q, qi) => {
@@ -68,8 +63,7 @@
         const reveal = document.createElement("button"); reveal.className = "btn-soft"; reveal.type = "button"; reveal.textContent = "Reveal model answer";
         qd.appendChild(reveal);
         const model = document.createElement("div"); model.className = "model-answer"; model.innerHTML = `<div class="ma-k">Model answer</div>${q.model}`;
-        const rate = document.createElement("div"); rate.className = "selfrate";
-        rate.innerHTML = "<span>How did yours compare?</span>";
+        const rate = document.createElement("div"); rate.className = "selfrate"; rate.innerHTML = "<span>How did yours compare?</span>";
         [["got", "Nailed it"], ["partly", "Partly"], ["missed", "Missed it"]].forEach(([k, label]) => {
           const b = document.createElement("button"); b.type = "button"; b.className = "sr"; b.textContent = label;
           b.addEventListener("click", () => {
@@ -89,8 +83,7 @@
             state[qi].committed = true; state[qi].correct = (i === q.answer);
             qd.querySelectorAll(".opt").forEach((x, xi) => {
               x.setAttribute("disabled", "true");
-              const optIdx = order[xi].i;
-              if (optIdx === q.answer) x.classList.add("correct");
+              if (order[xi].i === q.answer) x.classList.add("correct");
             });
             if (!state[qi].correct) b.classList.add("wrong");
             qd.querySelector(".explain").classList.add("show");
@@ -108,8 +101,26 @@
     const summary = document.createElement("div"); summary.className = "quiz-summary"; host.appendChild(summary);
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  // ---- modal control ----
+  function setupModal(Q) {
+    const overlay = document.getElementById("quiz-modal");
     const host = document.getElementById("quiz");
-    if (host && window.QUIZ) render(host, window.QUIZ);
+    if (!overlay || !host) return;
+    let rendered = false;
+    function open() {
+      if (!rendered) { render(host, Q); rendered = true; }
+      overlay.hidden = false; document.body.style.overflow = "hidden";
+      const card = overlay.querySelector(".modal-card"); if (card) card.scrollTop = 0;
+    }
+    function close() { overlay.hidden = true; document.body.style.overflow = ""; }
+    window.FDE_openQuiz = open; window.FDE_closeQuiz = close;
+    const fab = document.getElementById("quiz-fab"); if (fab) fab.addEventListener("click", open);
+    const x = overlay.querySelector(".modal-close"); if (x) x.addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !overlay.hidden) close(); });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.QUIZ) setupModal(window.QUIZ);
   });
 })();
