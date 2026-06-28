@@ -51,6 +51,23 @@
   .ar-src .dt { color:var(--dim); }
 
   .ar-degraded { background:#fff5f5; border:1px solid #ffc9c9; border-radius:12px; padding:14px 16px; font-size:14.5px; color:#c92a2a; margin:14px 0; display:none; }
+
+  /* Friday-present banner */
+  .ar-friday { display:flex; gap:12px; align-items:flex-start; border:1px solid #ffd8bf; background:var(--accent-soft); border-radius:12px; padding:14px 18px; margin:0 0 22px; }
+  .ar-friday .em { font-size:22px; line-height:1.2; }
+  .ar-friday .tx { font-size:15px; color:var(--ink); line-height:1.5; }
+  .ar-friday .tx b { color:#c2410c; }
+
+  /* per-learner assignment highlight */
+  .ar-alt.mine { border-left-color:#1c7ed6; background:#eef7ff; box-shadow:0 4px 16px rgba(28,126,214,.10); }
+  .ar-mybadge { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#fff; background:#1c7ed6; border-radius:20px; padding:2px 10px; margin-bottom:7px; }
+  .ar-mybadge.preview { background:#868e96; }
+
+  /* trainer assignment table */
+  .ar-assign { width:100%; border-collapse:collapse; margin:8px 0 0; font-size:14px; }
+  .ar-assign th, .ar-assign td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); }
+  .ar-assign th { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); }
+  .ar-assign td.who { font-weight:650; white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -70,13 +87,20 @@
     maturity, and data residency.</p>
   </div>
 
+  <div class="ar-friday">
+    <span class="em">🗓️</span>
+    <span class="tx">Each week has <b>4 alternatives</b> and there are <b>4 of you</b> — log in and you'll be assigned <b>one</b>.
+    <b>Research your assigned alternative this week, then present it to the group for ~10 minutes on Friday.</b>
+    Across four weeks the rotation puts everyone in every slot.</span>
+  </div>
+
   <div class="ar-banner">
     <div class="b-everyone">
       <span class="ritual">🔬 Wednesday · Alt Research</span>
-      <b>Log in with your code</b> (top right) to track your work. Each week gives you 2-3 named alternatives with honest
-      tradeoffs, a recommend-and-defend task, and the sources behind every current-state claim.
+      <b>Log in with your code</b> (top right) to see your assignment. Each week gives you 4 named alternatives with honest
+      tradeoffs, your recommend-and-defend task, and the sources behind every current-state claim.
     </div>
-    <div class="trainer-only">🔑 You're in <b>trainer view</b> — a note on what a strong evaluation surfaces appears under each week. Don't hand them the answer; the recommendation is theirs to defend.</div>
+    <div class="trainer-only">🔑 You're in <b>trainer view</b> — the per-learner assignment table and a note on what a strong evaluation surfaces appear under each week. Don't hand them the answer; the recommendation is theirs to defend.</div>
   </div>
 
   <div class="ar-degraded" id="degraded"></div>
@@ -108,7 +132,9 @@ window.ALT = {
       { name: "OpenAI GPT (GPT-5 series)",
         body: "Current frontier is <code>GPT-5.2</code> (~$1.75 in / $14 out per 1M tokens, 400K context). Input is cheaper than Claude Opus, but <b>output dominates cost on chatty agent loops</b> — $14 output is the line to watch. Widest SDK/tooling breadth and high maturity. Lock-in is real (Responses API, Agents SDK), and the public API is single-region by default — friction for a regulated client unless routed through Azure OpenAI for residency/BAA." },
       { name: "Open-weight on a fast host (Llama / Qwen / DeepSeek / gpt-oss via Groq, Together, Fireworks, or local Ollama)",
-        body: "Dramatically cheaper — <code>gpt-oss-120B</code> runs ~$0.15 in / $0.60 out per 1M on Groq/Together/Fireworks; Llama 3.1 8B is ~$0.05/$0.08. Groq wins latency (LPU), Together/Fireworks add dedicated endpoints, Ollama runs the weights fully local/offline (free). For a $20-Pro trainee it's the cheapest way to burn 40 hrs of experiments; for the client the real draw is residency — weights in-VPC or on-prem mean PHI/PII never leaves the boundary, at the cost of owning the eval, guardrails, and ops that the closed vendors hand you for free." }
+        body: "Dramatically cheaper — <code>gpt-oss-120B</code> runs ~$0.15 in / $0.60 out per 1M on Groq/Together/Fireworks; Llama 3.1 8B is ~$0.05/$0.08. Groq wins latency (LPU), Together/Fireworks add dedicated endpoints, Ollama runs the weights fully local/offline (free). For a $20-Pro trainee it's the cheapest way to burn 40 hrs of experiments; for the client the real draw is residency — weights in-VPC or on-prem mean PHI/PII never leaves the boundary, at the cost of owning the eval, guardrails, and ops that the closed vendors hand you for free." },
+      { name: "Google Gemini (3.x family via AI Studio or Vertex AI)",
+        body: "Current family: <code>Gemini 3.1 Pro</code> and <code>3.1 Deep Think</code> for hard reasoning, <code>3.5 Flash</code> and <code>3.1 Flash-Lite</code> for cheap/high-volume work (3.5 Pro flagged 'coming soon'). The standout is a very large context window and an aggressively cheap Flash tier, plus the same models served through Vertex AI on Google Cloud — the residency/governance path for a client already on GCP, analogous to Claude-on-Bedrock. For a $20-Pro trainee there's a generous free tier in AI Studio to prototype against; lock-in is moderate and skews to GCP if you go the Vertex route. The honest caveat: SDK/tooling ecosystem is narrower than OpenAI's, and the model lineup churns fast, so pin a version." }
     ],
     task: "Evaluate Claude Sonnet 4.6 on AWS Bedrock vs an open-weight model (gpt-oss-120B) self-hosted on Bedrock or Ollama for your client's intake assistant, and recommend one with a one-paragraph rationale. Healthcare needs a BAA + in-account data path; finance needs auditability and predictable cost at high call volume.",
     trainer: "A strong evaluation doesn't stop at $/token. It names (1) <b>output tokens as the real cost driver</b> for agent loops (GPT-5.2's $14 output vs Haiku's $5); (2) that a 'cheaper open model' shifts cost from API spend to eval/guardrail/ops labor; and (3) the residency/BAA gap between the public API and the Bedrock/Azure path of the <i>same</i> model — the senior insight being that model choice and hosting choice are separable, and for a regulated client the hosting decision usually dominates.",
@@ -117,7 +143,8 @@ window.ALT = {
       { label: "Anthropic — plan pricing (Pro $17-20/mo)", url: "https://www.anthropic.com/pricing", date: "2026-06-28" },
       { label: "OpenRouter — GPT-5.2 ($1.75/$14, 400K)", url: "https://openrouter.ai/openai/gpt-5.2", date: "2026-06-28" },
       { label: "Groq — token pricing & speeds (gpt-oss, Llama, Qwen)", url: "https://groq.com/pricing", date: "2026-06-28" },
-      { label: "AWS Bedrock — pricing, tiers & provider list", url: "https://aws.amazon.com/bedrock/pricing/", date: "2026-06-28" }
+      { label: "AWS Bedrock — pricing, tiers & provider list", url: "https://aws.amazon.com/bedrock/pricing/", date: "2026-06-28" },
+      { label: "Google DeepMind — Gemini models (3.1 Pro / 3.5 Flash / Flash-Lite)", url: "https://deepmind.google/models/gemini/", date: "2026-06-28" }
     ]
   },
 
@@ -130,7 +157,9 @@ window.ALT = {
       { name: "Pinecone (fully-managed serverless)",
         body: "The Builder tier is a flat $20/mo that maps onto a trainee's budget and removes all ops work. For the healthcare client the decisive feature is the HIPAA add-on (Standard, $50+/mo) and full HIPAA + private networking + audit logs on Enterprise — but you only reach those on paid tiers, and you accept the <b>deepest lock-in</b> of the group (proprietary API, vectors in Pinecone's cloud). DX and maturity are excellent." },
       { name: "Qdrant (open-source + managed, residency-flexible)",
-        body: "OSS core with a free managed tier for prototyping. Its differentiator is deployment flexibility: <b>Hybrid Cloud</b> runs managed Qdrant on the client's own infrastructure so data never leaves their network, and Private Cloud supports air-gapped installs — the strongest fit when both clients are regulated but want managed convenience without shipping PHI/PII to a vendor. Low lock-in (OSS escape hatch). On embeddings: Voyage's <code>voyage-4</code> family (incl. <code>voyage-finance-2</code>), OpenAI <code>text-embedding-3</code>, or self-hosted <code>BGE-M3</code>/<code>nomic-embed</code> for zero egress. On retrieval: hybrid BM25 + dense + rerank is current best practice — Anthropic's Contextual Retrieval reports up to -67% failed retrievals." }
+        body: "OSS core with a free managed tier for prototyping. Its differentiator is deployment flexibility: <b>Hybrid Cloud</b> runs managed Qdrant on the client's own infrastructure so data never leaves their network, and Private Cloud supports air-gapped installs — the strongest fit when both clients are regulated but want managed convenience without shipping PHI/PII to a vendor. Low lock-in (OSS escape hatch). On embeddings (the other half of the decision): Voyage's <code>voyage-4</code> family (incl. <code>voyage-finance-2</code>), OpenAI <code>text-embedding-3</code>, or self-hosted <code>BGE-M3</code>/<code>nomic-embed</code> for zero egress. On retrieval: hybrid BM25 + dense + rerank is current best practice — Anthropic's Contextual Retrieval reports up to -67% failed retrievals." },
+      { name: "Chroma (developer-first, embedded or cloud)",
+        body: "The lightest on-ramp: an OSS embedded store you can <code>pip install</code> and run in-process with zero infrastructure — ideal for a $20-Pro trainee's first RAG prototype, and free. Chroma Cloud adds a usage-based managed tier ($0 starter + pay-as-you-go) when you outgrow local. The tradeoff is maturity at scale: Chroma is optimized for fast iteration and small/medium corpora rather than the high-QPS, hardened-ops profile a production healthcare/finance deployment needs, so it's often the right place to <i>start</i> and the wrong place to <i>finish</i> — a good FDE names the migration path (to pgvector/Qdrant) up front. Low lock-in (OSS, standard API)." }
     ],
     task: "Evaluate pgvector (in your client's Postgres) vs Pinecone Standard (HIPAA add-on) as the vector store for your client's document-retrieval feature, and recommend one with a one-paragraph rationale. Healthcare needs the HIPAA/residency posture; finance benefits from co-locating vectors with the system-of-record and audit data.",
     trainer: "Strong evaluations surface three non-obvious points. (1) The vector-store choice is downstream of <b>where the regulated data is allowed to live</b> — pgvector/Qdrant-Hybrid keep data in-boundary, Pinecone moves it to a vendor cloud (acceptable only on the $50+ HIPAA tier, not the $20 Builder tier the trainee tested on). (2) Retrieval quality is usually capped by chunking + hybrid/rerank, not by which DB you picked — propose BM25+dense+rerank before a fancier store. (3) For a small/medium corpus the right answer may be <b>no RAG at all</b> (long-context + prompt caching).",
@@ -138,6 +167,7 @@ window.ALT = {
       { label: "pgvector — repo (v0.8.x, OSS Postgres extension)", url: "https://github.com/pgvector/pgvector", date: "2026-06-28" },
       { label: "Pinecone — pricing (Builder $20 / Standard $50 + HIPAA add-on)", url: "https://www.pinecone.io/pricing/", date: "2026-06-28" },
       { label: "Qdrant — pricing (free tier, Hybrid Cloud in-network, air-gapped)", url: "https://qdrant.tech/pricing/", date: "2026-06-28" },
+      { label: "Chroma — usage-based cloud pricing ($0 starter + usage)", url: "https://www.trychroma.com/pricing", date: "2026-06-28" },
       { label: "Voyage AI — embedding/rerank pricing (voyage-4, finance model)", url: "https://docs.voyageai.com/docs/pricing", date: "2026-06-28" },
       { label: "Anthropic — Contextual Retrieval (hybrid + rerank, -67%)", url: "https://www.anthropic.com/news/contextual-retrieval", date: "2026-06-28" }
     ]
@@ -152,7 +182,9 @@ window.ALT = {
       { name: "Tool-calling — native vs framework-abstracted vs MCP",
         body: "<b>MCP (Model Context Protocol)</b> is now an open standard ('USB-C for AI apps') natively supported in the OpenAI Agents SDK, Claude Agent SDK, and PydanticAI. Native function-calling is simplest for one app; framework-abstracted tools buy auto-schema generation; MCP buys reusable, swappable connectors — the right call when a client wants the same 'records lookup' or 'loan-status' tool reachable from multiple assistants without rewrites." },
       { name: "Tracing/eval — LangSmith vs Langfuse vs Arize Phoenix",
-        body: "<b>LangSmith</b> is frictionless hosted SaaS — but a healthcare/finance client may balk without the self-managed tier. <b>Langfuse</b> is OSS (~30k stars), self-hostable — the answer when PHI/financial data can't leave the network; free to run locally, cost moves to ops in prod. <b>Arize Phoenix</b> is OSS and OpenTelemetry-native (auto-instruments LangChain/Bedrock/Anthropic) — most standards-based, least lock-in." }
+        body: "<b>LangSmith</b> is frictionless hosted SaaS — but a healthcare/finance client may balk without the self-managed tier. <b>Langfuse</b> is OSS (~30k stars), self-hostable — the answer when PHI/financial data can't leave the network; free to run locally, cost moves to ops in prod. <b>Arize Phoenix</b> is OSS and OpenTelemetry-native (auto-instruments LangChain/Bedrock/Anthropic) — most standards-based, least lock-in." },
+      { name: "No framework — a raw tool-calling loop on the provider SDK",
+        body: "The deliberately boring option: a hand-written <code>while</code> loop over the provider's native function-calling (OpenAI / Anthropic SDK), with your own retry, memory, and logging. Zero framework lock-in and <b>total transparency</b> — every decision the agent makes is code an auditor can read line-by-line, which is a real asset for a regulated healthcare/finance reviewer asking 'what exactly does this agent do?'. For a $20-Pro trainee it's the best way to actually understand the agent loop the frameworks hide. The cost is that you re-implement retries, tracing, and session state yourself, so it rarely scales past one teaching exercise or a tightly-scoped, high-assurance agent — name it as the baseline you measure the frameworks against, not the default for a 6-week build." }
     ],
     task: "Evaluate the OpenAI Agents SDK vs the Anthropic Claude Agent SDK for your client's single intake/triage agent and recommend one, with a one-paragraph rationale (healthcare: the stack runs Claude on Bedrock; finance: model portability + audit). In one sentence, say whether you'd pair it with LangSmith or self-hosted Langfuse/Phoenix for tracing, and why.",
     trainer: "The non-obvious point: <b>framework lock-in mostly enters through the observability/eval tool, not the agent loop.</b> The SDKs are all a few-hundred-line loop you could rewrite; the sticky decision is whether traces (containing PHI/PII) flow to a vendor SaaS or stay self-hosted. The best FDE flags that MCP decouples tools from whichever SDK you pick, so a 'wrong' framework choice is cheaply reversible while a 'wrong' trace-data-residency choice is a compliance incident.",
@@ -169,10 +201,14 @@ window.ALT = {
     title: "Multi-Agent & Knowledge Graphs",
     space: "Content space: coordinated multi-agent workflows + a knowledge graph. Alternatives across orchestration frameworks and graph/KG stores.",
     alts: [
-      { name: "Orchestration — LangGraph vs CrewAI vs Microsoft Agent Framework / AG2 vs OpenAI handoffs",
-        body: "<b>LangGraph</b> gives maximum control over execution order, state, and checkpointing — regulated clients like the deterministic, inspectable audit trail; cost is that you author the graph yourself (steepest for a trainee). <b>CrewAI</b> is fastest to a believable role-based demo (researcher → drafter → reviewer maps onto loan-underwriting or intake-triage), but the abstraction hides orchestration detail an auditor may want. <b>Microsoft Agent Framework</b> is the converged successor to AutoGen + Semantic Kernel (C#/Python, graph Workflows with checkpointing + HITL) — best for Azure/.NET shops; <b>AG2</b> is the separate community AutoGen fork (note the naming split so a trainee doesn't cite a dead 'AutoGen' repo)." },
-      { name: "Graph store — Neo4j vs Apache AGE vs Memgraph",
-        body: "<b>Neo4j</b> is the most mature property-graph DB (Cypher, AuraDB or self-host, granular RBAC) — the safest enterprise pick and best-documented; the catch is commercial licensing for the enterprise security/scale tier. <b>Apache AGE</b> is a Postgres extension adding Cypher inside the existing relational DB — lowest lock-in and zero new infrastructure, huge for a Postgres-native finance/health client; fewer graph-native features. <b>Memgraph</b> is Cypher-compatible and in-memory, positioned for low-latency multi-hop 'AI context' — Cypher skills transfer from Neo4j, but plan for the memory-cost profile." }
+      { name: "Orchestration — LangGraph (graph-based, max control)",
+        body: "LangGraph gives maximum control over execution order, state, and checkpointing — regulated clients like the deterministic, inspectable audit trail, since you can show a reviewer exactly which node ran, what state it held, and where the human-approval gate sits. OSS + token cost, low framework-level lock-in. The cost is steepness: you author the graph yourself, so it's the hardest of the four for a 40hr/wk trainee — and arguably the most worth learning, because the mental model (a state machine of agents) transfers everywhere." },
+      { name: "Orchestration — CrewAI (role-based crews) / MS Agent Framework / AG2",
+        body: "<b>CrewAI</b> is fastest to a believable multi-agent demo: define roles ('underwriter', 'reviewer', 'drafter') and let a crew collaborate — maps cleanly onto loan-underwriting or intake-triage. The tradeoff is that the higher-level abstraction hides the orchestration detail an auditor may want, and the managed platform is the upsell. <b>Microsoft Agent Framework</b> is the converged successor to AutoGen + Semantic Kernel (C#/Python, graph Workflows with checkpointing + HITL) — best if the client is an Azure/.NET shop; <b>AG2</b> is the separate community AutoGen fork (note the naming split so a trainee doesn't cite a dead 'AutoGen' repo). For a trainee, CrewAI is the quickest path to a working crew; the lock-in to weigh is platform pull (CrewAI) vs Azure ecosystem (MS)." },
+      { name: "Graph store — Neo4j (mature property-graph)",
+        body: "Neo4j is the most mature property-graph database (Cypher query language, managed AuraDB or self-host, granular RBAC and schema-based security) — the safest enterprise pick and the best-documented for a trainee to learn on. The catch is licensing: the powerful enterprise security/scale features are commercial, and Cypher, while widely adopted, is a Neo4j dialect. For a regulated client it's the low-risk default; for a $20-Pro trainee the free Community edition or AuraDB free tier is enough to learn Cypher." },
+      { name: "Graph store — Apache AGE (Postgres-native) / Memgraph",
+        body: "<b>Apache AGE</b> is a Postgres extension (Apache-2.0) that adds Cypher-style graph queries inside an existing relational DB, alongside SQL and transactions — lowest lock-in and <b>zero new infrastructure</b>, huge for a finance/health client already standardized on Postgres, and free for a trainee; the tradeoff is fewer graph-native features and a smaller community than Neo4j. <b>Memgraph</b> is the in-memory, Cypher-compatible alternative positioned as 'the graph engine for AI context' for low-latency multi-hop reasoning — Cypher skills transfer from Neo4j, but plan for the memory-cost/operational profile of an in-memory store." }
     ],
     task: "Evaluate Neo4j vs Apache AGE as the knowledge-graph store for your client and recommend one, with a one-paragraph rationale (finance: loan data already lives in PostgreSQL; healthcare: PHI residency + mature RBAC). In one sentence, name whether you'd orchestrate the agents over that graph with LangGraph or CrewAI, and why that fits the client's audit needs.",
     trainer: "Two senior tells. On orchestration, the real axis isn't 'easy vs powerful' but <b>how much of the control flow is inspectable for audit</b> — CrewAI/OpenAI handoffs hide the decision graph; LangGraph and MS Agent Framework make execution order, checkpoints, and HITL gates explicit, which is what a reviewer signs off on. On the graph store, <b>Apache AGE collapses the 'do we add a new database?' question</b> — for a Postgres-native client, keeping the KG inside the already-audited, backed-up, access-controlled Postgres can outweigh Neo4j's superior features. The senior line: 'the cheapest graph is the one you don't have to separately certify.'",
@@ -194,7 +230,9 @@ window.ALT = {
       { name: "MADR-in-repo (MADR + adr-tools / Log4brains)",
         body: "The vendor-neutral path: <code>MADR 4.0.0</code> is a mature, stable markdown template; Log4brains renders the ADRs into a searchable static site (note <code>adr-tools</code> is effectively unmaintained since 2020 — steer to MADR + Log4brains). Zero cost, near-nil lock-in (plain files in the client's git history), and 'boringly stable' — a virtue for a multi-year engagement. Decisions live in the repo next to the code, survive tooling changes, and need no SaaS to hold sensitive rationale." },
       { name: "Contract-first — OpenAPI (+ Gherkin acceptance criteria)",
-        body: "Pin the <i>interface</i> as a machine-readable contract — OpenAPI for the service boundary, Gherkin/acceptance criteria for behavior. Zero cost, explicitly designed to avoid lock-in, and highest maturity (industry standard, multi-vendor tooling, generates clients/tests/mocks). More upfront rigor for a $20/40hr trainee, but a loan-servicing or patient-records API contract becomes the single source of truth that frontend, backend, and auditors all read." }
+        body: "Pin the <i>interface</i> as a machine-readable contract — OpenAPI for the service boundary, Gherkin/acceptance criteria for behavior. Zero cost, explicitly designed to avoid lock-in, and highest maturity (industry standard, multi-vendor tooling, generates clients/tests/mocks). More upfront rigor for a $20/40hr trainee, but a loan-servicing or patient-records API contract becomes the single source of truth that frontend, backend, and auditors all read." },
+      { name: "Confluence / wiki (the enterprise incumbent)",
+        body: "The option already on the client's desk: Confluence (now with Rovo AI for drafting + AI search) is where most enterprises already keep PRDs, specs, and decisions — so the honest FDE tension is <b>build on what they have vs introduce something new</b>. Zero adoption friction (the team is already there), rich collaboration and templates, and non-engineers can read it. The costs are real, though: it's a per-seat SaaS (a recurring license, not free like in-repo markdown), the rationale lives in a silo <i>away</i> from the code where it drifts out of sync and rots, and exporting/migrating later is painful — meaningful lock-in. For a regulated client there's also a data-residency question about what spec detail lives in a vendor cloud. For a $20-Pro trainee it's usually overkill; name it as the realistic incumbent you must argue with, not against." }
     ],
     task: "Evaluate GitHub Spec Kit vs MADR-in-repo (adr-tools/Log4brains) as the spec-and-decision backbone for your pair project and recommend one, with a one-paragraph rationale that names how each lets a regulated client reconstruct WHY a decision was made 18 months later.",
     trainer: "The split to surface: <b>generative</b> spec tooling (Spec Kit drives the agent forward, but its artifacts and commands churn and the spec rots the moment the agent stops obeying it) vs <b>durable</b> decision records (MADR captures nothing automatically but never rots and needs no vendor). The best FDEs name these as complements — Spec Kit/OpenAPI for the forward 'what to build,' MADR for the retrospective 'why we chose it' — and flag the longevity asymmetry: a client who outlives three AI-tool generations needs the rationale in plain git, not a tool's proprietary format.",
@@ -202,7 +240,8 @@ window.ALT = {
       { label: "GitHub Spec Kit — repo (executable spec workflow, 30+ agents)", url: "https://github.com/github/spec-kit", date: "2026-06-28" },
       { label: "MADR — 4.0.0 (Markdown ADR template + lint)", url: "https://adr.github.io/madr/", date: "2026-06-28" },
       { label: "Log4brains — ADR knowledge-base (adr-tools status)", url: "https://github.com/thomvaill/log4brains", date: "2026-06-28" },
-      { label: "OpenAPI Initiative — HTTP API contract standard", url: "https://www.openapis.org/", date: "2026-06-28" }
+      { label: "OpenAPI Initiative — HTTP API contract standard", url: "https://www.openapis.org/", date: "2026-06-28" },
+      { label: "Atlassian Confluence — product page (knowledge/docs + Rovo AI)", url: "https://www.atlassian.com/software/confluence", date: "2026-06-28" }
     ]
   },
 
@@ -214,8 +253,10 @@ window.ALT = {
         body: "<b>Claude Code</b> is included in Anthropic Pro ($17 annual / $20 monthly) with the deepest agentic depth, but Pro usage limits throttle long brownfield sessions (power use pushes toward Max). <b>Cursor</b> Pro is $20/mo but is a full IDE switch and bills usage in arrears once quota is consumed — a budget-blowout risk at 40 hrs/wk. <b>GitHub Copilot</b> is the cheapest entry — Free, and Pro at just $10/mo with unlimited completions plus credits, and it can drive Claude Code/Codex as third-party agents — the strongest pure $20-budget fit and lowest lock-in (it lives in the client's existing GitHub/IDE)." },
       { name: "Open / alternative agents — Aider, Windsurf",
         body: "<b>Aider</b> is the low-lock-in escape hatch — free OSS terminal pair-programmer, BYO-API-key, works with almost any LLM incl. local models (the best answer when a client forbids sending PHI/PII to a hosted vendor); the catch is it needs <i>API</i> credentials, so token cost is pay-per-use and can exceed $20 on heavy days. <b>Windsurf</b> (now under Cognition/Devin) has a $20/mo Pro tier but is mid-consolidation after acquisition — a roadmap/stability risk to name for a long-horizon client." },
-      { name: "Legacy comprehension + AI review — SonarQube, CodeScene, Sourcegraph, CodeRabbit",
-        body: "These <i>govern</i> brownfield code, complementing the coding agent. <b>SonarQube</b> is the quality/security gate and ships a self-hosted/air-gapped Server edition — right for PHI/loan data that can't leave the perimeter. <b>CodeScene</b> is the brownfield lens (Code Health, hotspots, bus-factor). <b>Sourcegraph</b> indexes the whole codebase for agent context (enterprise, sales-led). <b>CodeRabbit</b> is AI PR review (free summaries; Pro ~$24/seat). The affordable trainee pairing: SonarQube (community/self-host) + CodeScene's free IDE extension." }
+      { name: "Legacy comprehension — SonarQube, CodeScene, Sourcegraph",
+        body: "Tools to <i>understand and govern</i> inherited brownfield code (the core W6 problem), complementing the coding agent. <b>SonarQube</b> is the quality/security gate ('verification layer for AI code') and ships a self-hosted/air-gapped Server edition — the right answer for PHI/loan data that can't leave the perimeter. <b>CodeScene</b> is the differentiated brownfield lens: behavioral analysis (Code Health, hotspots, knowledge-distribution/bus-factor) plus AI refactoring, with a free IDE extension. <b>Sourcegraph</b> indexes the entire multi-repo codebase and feeds full context to agents (enterprise, sales-led, no $20 self-serve tier). Affordable trainee pairing: SonarQube (community/self-host) + CodeScene's free extension; client stack: Sourcegraph + SonarQube Server." },
+      { name: "AI code review — CodeRabbit vs Copilot/Codex review",
+        body: "Continuous AI review on every PR, a distinct decision from the coding agent and the static-analysis gate. <b>CodeRabbit</b> gives AI PR summaries + line-level review (free tier for summaries, Pro ~$24/seat/mo, self-hosting only at Enterprise) — strong for catching issues before a human reviewer, but the per-seat cost sits just above the $20 trainee budget and self-host is gated. The cheaper path is the <b>review built into the agent you already pay for</b> — GitHub Copilot's PR review and Claude Code/Codex review run inside the $10-20 tier with no extra seat. The honest tradeoff: a dedicated reviewer like CodeRabbit is more thorough and consistent, but for a regulated client the deciding question is again residency — does the diff (and its embedded business logic) leave the perimeter to be reviewed, and is there a self-hosted option in budget?" }
     ],
     task: "Evaluate GitHub Copilot Pro ($10) + CodeRabbit AI review vs Claude Code Pro ($20) + SonarQube for modernizing the brownfield service in your pair project, and recommend one stack with a one-paragraph rationale that addresses (a) staying within the $20 budget and (b) producing the audit/quality evidence your client's reviewers will demand.",
     trainer: "The non-obvious tradeoff: <b>generation speed and comprehension/governance are different budgets and different risks</b> — cheap, fast agents produce code faster than a brownfield team can verify it, which is exactly the 'AI slop' gap SonarQube/CodeScene/Sourcegraph exist to close. The best answer is rarely the most powerful single agent; it's the cheapest agent the budget allows plus a verification layer the client can self-host. Two more senior signals: data residency beats raw capability for healthcare/finance (Aider-with-local-models or SonarQube Server inside the perimeter can be correct even when a hosted agent is 'better'), and lock-in is a contract-length question (Copilot/Sonar Server live in the client's own infra and survive tool churn; Cursor/Windsurf overages + proprietary IDEs create switching exposure).",
@@ -224,7 +265,9 @@ window.ALT = {
       { label: "Cursor — pricing (Pro $20, on-demand usage billing)", url: "https://cursor.com/pricing", date: "2026-06-28" },
       { label: "GitHub Copilot — plans (Free / Pro $10, 3rd-party agents)", url: "https://github.com/features/copilot/plans", date: "2026-06-28" },
       { label: "Aider — open-source, BYO-key, any/local LLM", url: "https://aider.chat/", date: "2026-06-28" },
-      { label: "SonarQube — AI-code verification, Cloud + self-hosted Server", url: "https://www.sonarsource.com/products/sonarqube/", date: "2026-06-28" }
+      { label: "SonarQube — AI-code verification, Cloud + self-hosted Server", url: "https://www.sonarsource.com/products/sonarqube/", date: "2026-06-28" },
+      { label: "CodeScene — Code Health + behavioral brownfield analysis", url: "https://codescene.com/product", date: "2026-06-28" },
+      { label: "CodeRabbit — pricing (Free / Pro ~$24 AI PR review, self-host Enterprise)", url: "https://www.coderabbit.ai/pricing", date: "2026-06-28" }
     ]
   },
 
@@ -237,7 +280,9 @@ window.ALT = {
       { name: "LangSmith (vendor-native SaaS)",
         body: "The polished commercial option: Developer tier $0/seat (5k traces/mo then pay-as-you-go), Plus $39/seat/mo. Smoothest tracing + eval + annotation experience and the default if the client's stack is already LangChain/LangGraph. The honest downside is gravitational lock-in — metered on traces and increasingly on LangChain's own compute units — and self-hosting lives behind the Enterprise tier (a budget conversation, not a checkbox)." },
       { name: "Arize Phoenix (OSS, OpenTelemetry-native)",
-        body: "OSS (~10k stars) and notable for being <b>OpenTelemetry-native</b> — it uses the OTel GenAI semantic conventions (now promoted to a dedicated standard) rather than a proprietary trace schema. Instrument once with OTel/OpenLLMetry and your traces are portable across Phoenix, Langfuse, or a vendor backend — the one skill that doesn't expire when the client switches tools. Steeper conceptual ramp (spans, exporters, collectors). On <b>drift</b>: Evidently AI for data/embedding/output drift; NannyML for performance estimation <i>without labels</i> — directly relevant to a loan model whose 'did they default' label arrives months later (note NannyML was acquired by Soda)." }
+        body: "OSS (~10k stars) and notable for being <b>OpenTelemetry-native</b> — it uses the OTel GenAI semantic conventions (now promoted to a dedicated standard) rather than a proprietary trace schema. Instrument once with OTel/OpenLLMetry and your traces are portable across Phoenix, Langfuse, or a vendor backend — the one skill that doesn't expire when the client switches tools. Steeper conceptual ramp (spans, exporters, collectors). On <b>drift</b>: Evidently AI for data/embedding/output drift; NannyML for performance estimation <i>without labels</i> — directly relevant to a loan model whose 'did they default' label arrives months later (note NannyML was acquired by Soda)." },
+      { name: "Helicone (proxy-based, fastest to instrument)",
+        body: "The lowest-effort on-ramp: Helicone sits as a <b>proxy</b> in front of your LLM calls, so you get logging, cost tracking, and latency dashboards by changing a base URL — often a one-line integration, with a free tier that suits a $20-Pro trainee. That same proxy design is the catch a good FDE names: routing a regulated client's prompts (PHI/financial PII) through a third-party proxy is a data-flow a HIPAA/finance security review will scrutinize, and a proxy in the request path is a new latency + availability dependency on the hot path. Self-hosting is offered to address residency. Best framed as the quickest way to <i>see</i> your LLM traffic, weighed against the deeper eval/dataset features of Langfuse/Phoenix and the proxy-in-the-path risk." }
     ],
     task: "Evaluate Langfuse (self-hosted) vs LangSmith (SaaS) for your client and recommend one, with a one-paragraph rationale addressing data residency / PHI-or-PII exposure, total cost at ~50k traces/mo, who operates it, and 12-month lock-in. Bonus: state whether you'd instrument with OpenTelemetry/OpenLLMetry underneath so the backend is swappable.",
     trainer: "A strong evaluation refuses to treat 'open-source = free' — Langfuse self-hosting trades vendor dollars for client ops hours (Postgres + ClickHouse). The real decision axis isn't features (all three trace + eval) but <b>data gravity + schema lock-in</b>. The standout FDE separates the instrumentation layer (OpenTelemetry GenAI semconv — a maturing standard) from the backend (Langfuse/LangSmith/Phoenix) and instruments OTel-native so the backend choice is reversible. The sharpest answers also catch the label-latency problem on the finance side and name NannyML's performance-estimation-without-labels as the non-obvious fit.",
@@ -246,7 +291,8 @@ window.ALT = {
       { label: "Arize Phoenix — GitHub (OSS, OpenTelemetry-native)", url: "https://github.com/Arize-ai/phoenix", date: "2026-06-28" },
       { label: "OpenTelemetry — GenAI semantic conventions", url: "https://opentelemetry.io/docs/specs/semconv/gen-ai/", date: "2026-06-28" },
       { label: "Evidently AI — OSS eval/observability (drift + PII)", url: "https://www.evidentlyai.com/", date: "2026-06-28" },
-      { label: "Langfuse — GitHub (OSS, ~30k stars, v4)", url: "https://github.com/langfuse/langfuse", date: "2026-06-28" }
+      { label: "Langfuse — GitHub (OSS, ~30k stars, v4)", url: "https://github.com/langfuse/langfuse", date: "2026-06-28" },
+      { label: "Helicone — pricing (proxy-based LLM observability, free tier)", url: "https://www.helicone.ai/pricing", date: "2026-06-28" }
     ]
   },
 
@@ -258,8 +304,10 @@ window.ALT = {
         body: "<b>LLM Guard</b> is an OSS scanner suite (prompt-injection detection, PII anonymize/de-anonymize, toxicity, output validation), free to self-host — fits a $20-Pro trainee and a client that can't send prompts to a third party; honest caveat: its last substantive commit was Sep 2025, so check maintenance before betting a healthcare deployment on it. <b>Presidio</b> is Microsoft's dedicated PII engine (NER + regex + checksum recognizers), the stronger pure-PII tool (note it moved org to <code>data-privacy-stack.github.io/presidio</code>). Together they're the 'own-your-data' guardrail layer — ideal where PHI or financial PII can never leave the boundary." },
       { name: "Programmable guardrail frameworks — NeMo Guardrails vs Guardrails AI",
         body: "<b>NVIDIA NeMo Guardrails</b> (~6.6k stars, active) is the more mature framework for <i>programmable</i> rails — you define flows/policies (Colang) to constrain topics, dialog, and tool use; strong fit when the client wants deterministic 'never give medical/financial advice' boundaries. <b>Guardrails AI</b> is an 'AI reliability platform' with a Hub of reusable validators — friendlier for output-schema validation and catching hallucination/leakage at the response layer. Both run locally for $0; the lock-in question is 'am I adopting the OSS library or the hosted platform?'" },
-      { name: "Commercial SaaS — Lakera (Check Point) vs the OSS stack",
-        body: "<b>Lakera</b> is the managed end (sub-50ms latency, threat intel from 1M+ adversarial players), now acquired by Check Point — enterprise backing + SOC integration, but vendor lock-in and a data-flow question (prompts traversing a third-party guard) a HIPAA/finance security review will scrutinize. On <b>secrets</b>: gitleaks is the fast CI scanner; TruffleHog adds live secret <i>verification</i> to cut false positives; Semgrep extends into AI-code scanning (Guardian). On <b>governance</b>: Open Policy Agent / Rego for portable policy-as-code, framed against NIST AI RMF and the EU AI Act." }
+      { name: "Commercial guardrail SaaS — Lakera (Check Point) vs the OSS stack",
+        body: "<b>Lakera</b> is the managed end (sub-50ms latency, threat intel from 1M+ adversarial players via its Gandalf game), now acquired by Check Point — enterprise backing + SOC integration, but vendor lock-in and a data-flow question (prompts traversing a third-party guard) a HIPAA/finance security review will scrutinize. For a $20-Pro trainee it's mostly a 'know it exists / try the free tier' tool; for the client it's a genuine buy-vs-build decision against the free LLM Guard + Presidio + NeMo stack — name the SLA + threat-intel upside honestly against the residency cost." },
+      { name: "Secrets scanning & policy-as-code — gitleaks / TruffleHog / Semgrep + OPA",
+        body: "AI-generated code multiplies leaked-secret and policy risk, so this is its own layer. <b>gitleaks</b> is the fast, lightweight, CI-friendly secret scanner; <b>TruffleHog</b> differentiates on <i>verification</i> — it live-checks whether a found credential still works, killing the false-positive fatigue that makes teams ignore scanners; <b>Semgrep</b> extends past SAST into Secrets, Supply Chain, and AI-code scanning (Guardian). All three have free/OSS tiers a trainee can wire into a GitHub Action today. For <b>governance</b>, Open Policy Agent / Rego is the portable policy-as-code engine (CNCF Graduated) — its own canonical example is a finance transaction-approval rule — and the whole layer should be framed against NIST AI RMF and the EU AI Act so tooling maps to an actual obligation, not vibes." }
     ],
     task: "Evaluate the OSS guardrail stack (LLM Guard + Presidio + NeMo Guardrails) vs Lakera (Check Point) for your client and recommend one, with a one-paragraph rationale addressing where data flows (does any prompt leave the client boundary?), maintenance burden vs vendor SLA, cost, and how a client security/compliance review would react. Add one sentence on which secret scanner (gitleaks vs TruffleHog) you'd wire into CI and why.",
     trainer: "A strong evaluation doesn't equate 'more tools' with 'more secure.' It surfaces that guardrails span <b>three distinct layers</b> — input PII/injection (LLM Guard/Presidio), conversational/policy rails (NeMo), output validation (Guardrails AI) — and one tool leaves gaps. The non-obvious FDE move is the <b>data-flow question</b>: a managed guard like Lakera means prompts (possibly containing PHI/financial PII) traverse a third party, which can fail a HIPAA or finance review regardless of product quality — so the 'worse' OSS stack can be the <i>correct</i> answer on residency grounds. Top answers catch maintenance risk (LLM Guard's stalled commits), prefer TruffleHog's verification over raw pattern-matching, and tie tool choice to a governance frame (NIST AI RMF / EU AI Act).",
@@ -268,6 +316,8 @@ window.ALT = {
       { label: "NVIDIA NeMo Guardrails — GitHub (programmable rails)", url: "https://github.com/NVIDIA/NeMo-Guardrails", date: "2026-06-28" },
       { label: "Guardrails AI — runtime guardrails + validators", url: "https://www.guardrailsai.com/", date: "2026-06-28" },
       { label: "Lakera — commercial AI security (acquired by Check Point)", url: "https://www.lakera.ai/", date: "2026-06-28" },
+      { label: "TruffleHog — GitHub (secret scanning + live verification)", url: "https://github.com/trufflesecurity/trufflehog", date: "2026-06-28" },
+      { label: "Open Policy Agent — policy-as-code (CNCF Graduated, Rego)", url: "https://www.openpolicyagent.org/", date: "2026-06-28" },
       { label: "NIST AI Risk Management Framework", url: "https://www.nist.gov/itl/ai-risk-management-framework", date: "2026-06-28" }
     ]
   }
@@ -290,10 +340,59 @@ window.ALT = {
     weeksEl.appendChild(btn);
   }
 
-  function alts(items) {
-    return items.map(a =>
-      `<div class="ar-alt"><div class="ar-name">${a.name}</div><p>${a.body}</p></div>`
-    ).join("");
+  // ---- identity + per-learner assignment -------------------------------------
+  function getIdentity() {
+    try { return (typeof window.FDE_getIdentity === "function" && window.FDE_getIdentity()) || null; }
+    catch (e) { return null; }
+  }
+  // The 4 learners, sorted by code for a stable rotation order.
+  function learners() {
+    return (window.ROSTER || [])
+      .filter(r => r.role === "learner")
+      .slice()
+      .sort((a, b) => a.code.localeCompare(b.code));
+  }
+  // Which learner index owns alternative `a` (0..3) in week `week`.
+  function ownerIndex(week, a, n) { return (a + (week - 1)) % n; }
+  // Which alternative index a given learner (by list index) owns this week.
+  function myAltIndex(week, li, n) { return ((li - (week - 1)) % n + n) % n; }
+
+  function alts(items, week) {
+    const ls = learners();
+    const n = ls.length;
+    const idt = getIdentity();
+    let mine = -1, previewName = "";
+    if (idt && n > 0) {
+      const li = ls.findIndex(r => r.code.toUpperCase() === (idt.code || "").toUpperCase());
+      if (li >= 0) {                       // a real learner
+        mine = myAltIndex(week, li, n);
+      } else if (idt.role === "tester") {  // tester previews the first learner's slot
+        mine = myAltIndex(week, 0, n);
+        previewName = ls[0] ? ls[0].name : "";
+      }
+    }
+    return items.map((a, i) => {
+      const isMine = i === mine;
+      const badge = isMine
+        ? (previewName
+            ? `<span class="ar-mybadge preview">🎯 Tester preview · ${previewName}'s assignment</span>`
+            : `<span class="ar-mybadge">🎯 Your assignment this week</span>`)
+        : "";
+      return `<div class="ar-alt${isMine ? " mine" : ""}">${badge}<div class="ar-name">${a.name}</div><p>${a.body}</p></div>`;
+    }).join("");
+  }
+
+  // Trainer-visible (role==='trainer') assignment table: learner -> alternative.
+  function assignTable(wk, week) {
+    const ls = learners();
+    const n = ls.length;
+    if (!n) return "";
+    const rows = ls.map((r, li) => {
+      const ai = myAltIndex(week, li, n);
+      const alt = wk.alts[ai];
+      return `<tr><td class="who">${r.name}</td><td>${alt ? alt.name : "—"}</td></tr>`;
+    }).join("");
+    return `<table class="ar-assign"><thead><tr><th>Learner</th><th>Assigned alternative (Week ${week})</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
 
   function sources(items) {
@@ -309,23 +408,36 @@ window.ALT = {
     const wk = window.ALT[state.week];
     if (!wk) { panel.innerHTML = `<p>No alternative-research brief for this week yet.</p>`; return; }
 
+    const idt = getIdentity();
+
     let html =
       `<div class="ar-eyebrow">Week ${state.week} · Wednesday · Alternative Research</div>` +
       `<h2>${wk.title}</h2>` +
       `<p class="ar-space">${wk.space}</p>`;
 
-    // Alternatives to weigh (everyone)
+    // Alternatives to weigh (everyone); the logged-in learner's is badged
     html +=
       `<div class="ar-sec">` +
-        `<div class="ar-h">Alternatives to weigh</div>` +
-        alts(wk.alts) +
+        `<div class="ar-h">Alternatives to weigh — one per learner</div>` +
+        alts(wk.alts, state.week) +
       `</div>`;
 
-    // Your task (everyone)
+    // Trainer-only assignment table (rendered openly when role==='trainer')
+    if (idt && idt.role === "trainer") {
+      html +=
+        `<div class="ar-sec">` +
+          `<div class="ar-h" style="color:#c2410c">🔑 Assignment table (trainer)</div>` +
+          assignTable(wk, state.week) +
+        `</div>`;
+    }
+
+    // Your task (everyone) + Friday deliverable
     html +=
       `<div class="ar-sec">` +
         `<div class="ar-h">Your task this Wednesday</div>` +
-        `<div class="ar-task">${wk.task}<span class="who">Recommend one. Defend it in a one-paragraph rationale tied to your assigned client.</span></div>` +
+        `<div class="ar-task">${wk.task}` +
+          `<span class="who">📅 Deliverable: a short written comparison of <b>your assigned alternative</b> (vs the group's options) and a ~10-minute talk to the group this <b>Friday</b>. Recommend one; defend it in a one-paragraph rationale tied to your assigned client.</span>` +
+        `</div>` +
       `</div>`;
 
     // Sources (everyone)
@@ -335,7 +447,7 @@ window.ALT = {
         sources(wk.sources) +
       `</div>`;
 
-    // What a strong evaluation surfaces (TRAINER ONLY)
+    // What a strong evaluation surfaces (TRAINER ONLY, CSS-gated)
     html +=
       `<div class="ar-sec trainer-only">` +
         `<div class="ar-h" style="color:#c2410c">🔑 What a strong evaluation surfaces</div>` +
@@ -346,6 +458,9 @@ window.ALT = {
   }
 
   render();
+  // auth.js loads AFTER this script and resolves identity on load — re-render then
+  // so the assignment highlight + trainer table reflect the logged-in user.
+  window.addEventListener("load", render);
 })();
 </script>
 <script src="assets/js/roster.js"></script>
