@@ -35,7 +35,8 @@
   }
 
   function render(host, Q) {
-    const traineeId = localStorage.getItem(LSID) || "";
+    const idt = window.FDE_getIdentity ? window.FDE_getIdentity() : null;
+    const traineeId = idt ? idt.code : (localStorage.getItem(LSID) || "");
     const prior = getResults()[Q.id];
     host.innerHTML = "";
 
@@ -58,6 +59,7 @@
     idInput.addEventListener("change", () => localStorage.setItem(LSID, idInput.value.trim()));
     gate.appendChild(idInput);
     host.appendChild(gate);
+    if (idt) gate.style.display = "none";  // identity already set via login
 
     const chosen = new Array(Q.questions.length).fill(-1);
     let submitted = false;

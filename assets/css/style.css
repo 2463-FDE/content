@@ -13,7 +13,7 @@
   --dim: #b7bcc4;
   --good: #2f9e44;
   --bad: #e03131;
-  --maxprose: 680px;
+  --maxprose: 780px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
 }
@@ -48,7 +48,7 @@ body {
 .progressbar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s ease; }
 
 /* ---------- reading layout ---------- */
-.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+.wrap { max-width: 1300px; margin: 0 auto; padding: 0 20px; }
 .lede { max-width: var(--maxprose); margin: 38px auto 10px; }
 .lede h1 { font-size: 34px; line-height: 1.15; margin: 0 0 6px; }
 .lede .meta { color: var(--ink-soft); font-size: 14px; display: flex; gap: 14px; flex-wrap: wrap; }
@@ -57,10 +57,10 @@ body {
 
 .reading {
   display: grid;
-  grid-template-columns: minmax(0,1fr) minmax(0, 520px);
-  gap: 48px;
+  grid-template-columns: minmax(0,1fr) minmax(0, 560px);
+  gap: 40px;
   align-items: start;
-  margin: 30px auto 0;
+  margin: 18px auto 0;
 }
 .prose { max-width: var(--maxprose); }
 .prose h2 { font-size: 24px; margin: 8px 0 4px; }
@@ -69,14 +69,16 @@ body {
 .prose strong { font-weight: 650; }
 
 .step {
-  min-height: 70vh;
+  min-height: 40vh;
   display: flex; flex-direction: column; justify-content: center;
-  padding: 18px 0;
+  padding: 22px 0;
   border-left: 3px solid transparent;
   padding-left: 18px; margin-left: -21px;
   transition: border-color .3s, opacity .3s;
-  opacity: .45;
+  opacity: .5;
 }
+.step:first-of-type { min-height: 30vh; padding-top: 4px; }
+.step:last-of-type { min-height: 34vh; }
 .step.active { opacity: 1; border-left-color: var(--accent); }
 .step .tag { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
 
@@ -192,3 +194,26 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .sv-q label { display:block; font-weight:600; margin-bottom:6px; font-size:15px; }
 .sv-q input, .sv-q select, .sv-q textarea { width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:8px; font:inherit; }
 @media (max-width:700px){ .sv-row { grid-template-columns:1fr; gap:6px; } .sv-row.sv-head{display:none;} }
+
+/* ---------- identity / login ---------- */
+.topbar .brand a { color: inherit; text-decoration: none; }
+.id-badge { display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--ink-soft); }
+.id-badge .dot { width:8px; height:8px; border-radius:50%; background:var(--good); display:inline-block; }
+.id-badge .logout { color:var(--accent); text-decoration:none; }
+.login-overlay { position:fixed; inset:0; background:rgba(251,250,247,.97); backdrop-filter:blur(6px); z-index:1000; display:flex; align-items:center; justify-content:center; }
+.login-card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:34px; max-width:430px; width:90%; box-shadow:0 14px 44px rgba(40,30,10,.14); }
+.login-card .lc-brand { font-weight:700; letter-spacing:.3px; margin-bottom:16px; }
+.login-card .lc-brand b { color:var(--accent); }
+.login-card h2 { margin:0 0 6px; }
+.login-card p { color:var(--ink-soft); font-size:15px; margin:0 0 18px; }
+.login-card .lc-input { width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:10px; font:inherit; font-size:18px; letter-spacing:.06em; margin-bottom:12px; text-transform:uppercase; }
+.login-card .lc-input:focus { outline:none; border-color:var(--accent); }
+.login-card .lc-go { width:100%; }
+.login-card .lc-err { color:var(--bad); font-size:13px; margin-top:10px; min-height:16px; }
+
+/* ---------- day navigation ---------- */
+.daynav { max-width:var(--maxprose); margin:34px auto 0; display:flex; justify-content:space-between; align-items:center; gap:12px; border-top:1px solid var(--line); padding-top:18px; font-size:15px; }
+.daynav a { color:var(--accent); text-decoration:none; font-weight:600; }
+.daynav a:hover { text-decoration:underline; }
+.daynav .next, .daynav .prev { color:var(--dim); }
+.daynav .mid { color:var(--ink-soft); }

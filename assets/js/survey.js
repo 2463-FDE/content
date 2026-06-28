@@ -35,10 +35,12 @@
     const p = document.createElement("p"); p.style.color = "var(--ink-soft)"; p.style.marginTop = "-6px";
     p.textContent = "Two minutes. Honest numbers help us keep the week sane — especially the quota question."; host.appendChild(p);
 
+    const idt = window.FDE_getIdentity ? window.FDE_getIdentity() : null;
     const gate = document.createElement("div"); gate.className = "idgate";
     gate.innerHTML = "<label>Trainee ID / GitHub handle:</label>";
-    const idIn = document.createElement("input"); idIn.type = "text"; idIn.value = localStorage.getItem(LSID) || ""; idIn.placeholder = "e.g. jsmith";
+    const idIn = document.createElement("input"); idIn.type = "text"; idIn.value = idt ? idt.code : (localStorage.getItem(LSID) || ""); idIn.placeholder = "e.g. jsmith";
     gate.appendChild(idIn); host.appendChild(gate);
+    if (idt) gate.style.display = "none";  // identity already set via login
 
     // per-topic time rows
     const tbl = document.createElement("div"); tbl.className = "sv-table";

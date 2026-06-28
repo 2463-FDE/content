@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The FDE Mindset Atlas — 2463-FDE</title>
+<meta name="description" content="An interactive, zoomable, fully-cited mind-map of the Forward Deployed Engineer mindset — what an FDE is, diagnose-before-you-build, client embedding, communication, app modernization, and the graph layer that lets agents execute. Click to expand nodes, zoom to dive deeper.">
+<meta property="og:title" content="The FDE Mindset Atlas">
+<meta property="og:description" content="Interactive zoomable mind-map of the FDE mindset, scenarios, decomposition, modernization, and knowledge/context graphs.">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="graph-mode">
+<header class="bar">
+  <div class="bar-in">
+    <a class="back" href="../index.html">&larr; FDE Program</a>
+    <div class="brand" id="brand"><span class="dot"></span> FDE Mindset Atlas</div>
+    <nav class="crumbs" id="bcrumb">The FDE Mindset</nav>
+    <div class="right">2463-FDE</div>
+  </div>
+</header>
+
+<main id="stage">
+  <svg id="graph" role="img" aria-label="Interactive FDE mind-map"></svg>
+
+  <div id="hud">
+    <div class="hud-controls">
+      <button id="cZin"   title="Zoom in">+</button>
+      <button id="cZout"  title="Zoom out">&minus;</button>
+      <button id="cUp"    title="Climb up a layer">&#8624;</button>
+      <button id="cExpand" title="Expand the whole map">&#9783;</button>
+      <button id="cReset" title="Reset view">&#8635;</button>
+    </div>
+    <div class="hud-hint" id="hudHint">
+      <button class="hint-x" id="hintX" aria-label="dismiss">&times;</button>
+      <span class="hint-full"><strong>Tap / click</strong> a node to expand it &amp; reveal its edges &middot;
+      tap the <strong>&#9432; / &#9673;</strong> badge to read its notes &amp; switch role perspectives &middot;
+      <strong>scroll or pinch</strong> to zoom (zoom in near a node to dive deeper) &middot;
+      <strong>drag</strong> to pan.</span>
+      <span class="hint-mini">Tap node = expand &middot; tap &#9432; = notes/perspectives &middot; pinch = zoom</span>
+    </div>
+  </div>
+
+  <div id="scrim"></div>
+  <aside id="drawer" aria-live="polite"></aside>
+</main>
+
+<script src="assets/js/content.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
