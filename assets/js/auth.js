@@ -19,7 +19,8 @@
     if (!bar) return;
     let b = bar.querySelector(".id-badge");
     if (!b) { b = document.createElement("span"); b.className = "id-badge"; bar.appendChild(b); }
-    b.innerHTML = `<span class="dot"></span><span>${idt.name}</span> <a href="#" class="logout">log out</a>`;
+    const rolePill = (idt.role === "trainer") ? '<span class="role">trainer</span>' : '';
+    b.innerHTML = `<span class="dot"></span><span>${idt.name}</span>${rolePill} <a href="#" class="logout">log out</a>`;
     b.querySelector(".logout").addEventListener("click", e => { e.preventDefault(); localStorage.removeItem(KEY); location.reload(); });
   }
   function overlay() {
@@ -48,7 +49,7 @@
   window.FDE_getIdentity = get;
   document.addEventListener("DOMContentLoaded", () => {
     const idt = get();
-    if (idt) { window.FDE_IDENTITY = idt; badge(idt); }
+    if (idt) { window.FDE_IDENTITY = idt; if (idt.role === "trainer") document.body.classList.add("is-trainer"); badge(idt); }
     else overlay();
   });
 })();

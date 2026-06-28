@@ -8,41 +8,133 @@
 </head>
 <body>
 <div class="topbar">
-  <span class="brand"><b>2463</b>·FDE</span>
+  <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
   <span class="crumb">Forward Deployed Engineer · 10-Week Program</span>
   <span class="spacer"></span>
-  <a class="crumb" href="atlas/" style="text-decoration:none;color:var(--accent);font-weight:600">FDE Mindset Atlas →</a>
+  <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
+  <a class="topnav" href="client-delivery.html">Client Delivery</a>
 </div>
 
-<div class="wrap">
-  <div class="hero">
+<div class="cal-wrap">
+  <div class="cal-hero">
     <h1>The <b>FDE</b> Program</h1>
-    <p>Ten weeks from LLM fundamentals to defending a production AI system in front of a client.
-    Read for an hour, watch the diagram build itself, prove you got it, then go build. Every week ties to a
-    real client and a real codebase.</p>
+    <p>Ten weeks, mapped day by day. Read for an hour, watch the diagram build, prove you got it, then go build —
+    every week tied to a real client and a real codebase.</p>
+    <div class="legend"></div>
   </div>
 
-  <div class="weekgrid">
-    <a class="weekcard" href="weeks/w01/d1.html">
-      <div class="w">Week 1</div>
-      <div class="t">LLM Engineering for Production</div>
-      <div class="ph">Foundation AI Engineering</div>
-    </a>
-    <span class="weekcard soon"><div class="w">Week 2</div><div class="t">RAG &amp; Knowledge Retrieval</div><div class="ph">Foundation AI Engineering</div></span>
-    <span class="weekcard soon"><div class="w">Week 3</div><div class="t">Single-Agent Design &amp; Memory</div><div class="ph">Agentic Systems</div></span>
-    <span class="weekcard soon"><div class="w">Week 4</div><div class="t">Multi-Agent &amp; Knowledge Graphs</div><div class="ph">Agentic Systems</div></span>
-    <span class="weekcard soon"><div class="w">Week 5</div><div class="t">Spec-Driven Dev &amp; Problem Scoping</div><div class="ph">AI-Native SDLC</div></span>
-    <span class="weekcard soon"><div class="w">Week 6</div><div class="t">AI-Augmented SDLC</div><div class="ph">AI-Native SDLC</div></span>
-    <span class="weekcard soon"><div class="w">Week 7</div><div class="t">Observability, SRE &amp; Guardrails</div><div class="ph">AI-Specific Observability</div></span>
-    <span class="weekcard soon"><div class="w">Week 8</div><div class="t">Security, Governance &amp; Responsible AI</div><div class="ph">Production AI Systems</div></span>
-    <span class="weekcard soon"><div class="w">Week 9</div><div class="t">Client Specialization Track</div><div class="ph">Specialization &amp; Capstone</div></span>
-    <span class="weekcard soon"><div class="w">Week 10</div><div class="t">Project Work &amp; Client Showcase</div><div class="ph">Specialization &amp; Capstone</div></span>
+  <div class="cal" id="cal"></div>
+
+  <div class="cal-foot">
+    <span>◆ FDE Situation session</span>
+    <span>★ Assessment / project milestone</span>
+    <span class="trainer-only" style="display:none">🔑 You're in <b>trainer view</b> — extra notes appear on the client-delivery page.</span>
   </div>
 </div>
 
-<footer class="foot">
-  2463-FDE · Forward Deployed Engineer Program · built for the way FDEs actually work
-</footer>
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program</footer>
+
+<script>
+window.PHASES = {
+  found:  { label:"Foundation AI Engineering", c:"#e8590c" },
+  agent:  { label:"Agentic Systems",           c:"#1c7ed6" },
+  sdlc:   { label:"AI-Native SDLC",            c:"#7048e8" },
+  obs:    { label:"AI Observability",          c:"#0ca678" },
+  sec:    { label:"Production & Security",      c:"#e03131" },
+  cap:    { label:"Specialization & Capstone", c:"#f08c00" }
+};
+window.WEEKS = [
+  { w:1, phase:"found", title:"LLM Engineering for Production", days:[
+    { t:"LLM fundamentals", s:"context windows · tokens · sampling · hallucination · AI coding", href:"weeks/w01/d1.html" },
+    { t:"Model selection + API patterns", s:"Claude/GPT/Gemini · streaming · batching · retries" },
+    { t:"Prompt engineering", s:"zero/few-shot · CoT · structured output", fde:true },
+    { t:"Token optimization", s:"caching · compression · cost mgmt · guardrails" },
+    { t:"Code review + LLM API Client", s:"prompt library · project milestone", star:true } ]},
+  { w:2, phase:"found", title:"RAG & Knowledge Retrieval", days:[
+    { t:"RAG fundamentals + chunking", s:"retrieval vs fine-tuning · ingestion" },
+    { t:"Embeddings + vector stores", s:"dimensionality · pgvector/Chroma/Pinecone" },
+    { t:"Retrieval strategies", s:"dense · sparse · hybrid · re-ranking", fde:true },
+    { t:"RAG evaluation", s:"faithfulness · recall · failure modes" },
+    { t:"RAG eval harness + E2E RAG", s:"project milestone", star:true } ]},
+  { w:3, phase:"agent", title:"Single-Agent Design & Memory", days:[
+    { t:"Agent architecture", s:"ReAct · Plan-and-Execute · Reflexion" },
+    { t:"Tool/function calling + HITL", s:"JSON schema · idempotency · approval gates" },
+    { t:"Memory patterns", s:"episodic · semantic · procedural · state", fde:true },
+    { t:"Eval-driven dev + tracing", s:"success metrics · LangSmith · replay" },
+    { t:"Live agent demo", s:"completed agent · project milestone", star:true } ]},
+  { w:4, phase:"agent", title:"Multi-Agent & Knowledge Graphs", days:[
+    { t:"Multi-agent patterns + LangGraph", s:"supervisor · hierarchical · state machines" },
+    { t:"Agent communication", s:"handoffs · shared state · anti-patterns" },
+    { t:"Cost/latency + Knowledge Graphs", s:"KG as institutional memory · 6R", fde:true },
+    { t:"Pipeline requirements", s:"boundaries · approval gates · observability" },
+    { t:"Architecture defense", s:"multi-agent code walkthrough · assessment", star:true } ]},
+  { w:5, phase:"sdlc", title:"Spec-Driven Dev & Problem Scoping", days:[
+    { t:"Spec-driven development", s:"architecture before code · spec before impl" },
+    { t:"Knowledge modeling + ADRs", s:"entities · decision points · lock vs defer" },
+    { t:"Context graph + AI-native stories", s:"business rules · compliance as governance" },
+    { t:"Requirements + NFRs", s:"eliciting ambiguity · perf/scale/security" },
+    { t:"Specification quality review", s:"assessment", star:true } ]},
+  { w:6, phase:"sdlc", title:"AI-Augmented SDLC", days:[
+    { t:"AI-augmented dev workflow", s:"AI across full SDLC · spec → implementation" },
+    { t:"Legacy comprehension", s:"parse codebases · extract logic · LEGMOD/brownfield" },
+    { t:"Cross-team orchestration + AI review", s:"quality gates · design thinking", fde:true },
+    { t:"Continuous validation", s:"validation intervals" },
+    { t:"Quality control audit", s:"acceptance-criteria validation · milestone", star:true } ]},
+  { w:7, phase:"obs", title:"Observability, SRE & Guardrails", days:[
+    { t:"Probabilistic vs deterministic", s:"monitoring LLMs · latency/cost/hallucination rate" },
+    { t:"Model drift + structured logging", s:"distribution/embedding shift" },
+    { t:"Distributed tracing + CI/CD for AI", s:"eval runs · staged rollouts · gates", fde:true },
+    { t:"Reliability guardrails", s:"input validation · circuit breakers · graceful degr." },
+    { t:"Observability stack review", s:"instrumentation · assessment", star:true } ]},
+  { w:8, phase:"sec", title:"Security, Governance & Responsible AI", days:[
+    { t:"AI threats", s:"prompt injection · jailbreak · data leakage · tool misuse" },
+    { t:"Secure LLM design + data privacy", s:"RBAC · least-privilege · PII masking" },
+    { t:"Compliance + AI governance", s:"SOX/HIPAA/GDPR/EU-AI-Act · audit · oversight", fde:true },
+    { t:"AI security in CI/CD", s:"scanning · secrets · LLM Guard/Presidio" },
+    { t:"Security audit + technical exam", s:"milestone + assessment", star:true } ]},
+  { w:9, phase:"cap", title:"Client Specialization Track", days:[
+    { t:"Capstone track kickoff", s:"advanced track-specific foundation" },
+    { t:"Project implementation", s:"build" },
+    { t:"Project implementation", s:"track-relevant model", fde:true },
+    { t:"Project impl + cert selection", s:"build · choose certification" },
+    { t:"Project review + cert prep", s:"review" } ]},
+  { w:10, phase:"cap", title:"Project Work & Client Showcase", days:[
+    { t:"Project brief + data comprehension", s:"tech stack mapping · requirement synthesis" },
+    { t:"Spec package + estimation", s:"6R · system mapping · NFRs · architecture" },
+    { t:"AI-augmented implementation", s:"cloud · devops · database thinking" },
+    { t:"Complete build", s:"security · observability · remediation" },
+    { t:"Client showcase", s:"architecture defense · assessment", star:true } ]}
+];
+(function () {
+  const DOW = ["Mon","Tue","Wed","Thu","Fri"];
+  const legend = document.querySelector(".legend");
+  Object.values(window.PHASES).forEach(p => {
+    const s = document.createElement("span"); s.className = "lg";
+    s.innerHTML = `<i style="background:${p.c}"></i>${p.label}`; legend.appendChild(s);
+  });
+  const cal = document.getElementById("cal");
+  cal.appendChild(cell("cal-corner", ""));
+  DOW.forEach(d => cal.appendChild(cell("cal-dayhead", d)));
+  window.WEEKS.forEach(week => {
+    const ph = window.PHASES[week.phase];
+    const wc = document.createElement("div");
+    wc.className = "cal-week"; wc.style.setProperty("--pc", ph.c);
+    wc.innerHTML = `<div class="ww">Week ${week.w}</div><div class="wt">${week.title}</div><div class="wp">${ph.label}</div>`;
+    cal.appendChild(wc);
+    week.days.forEach(day => {
+      const inner = `<div class="ct">${day.t}</div><div class="cs">${day.s || ""}</div>` +
+        `<div class="cmark">${day.fde ? '<span class="mk fde">◆ FDE</span>' : ''}${day.star ? '<span class="mk star">★</span>' : ''}</div>`;
+      let el;
+      if (day.href) { el = document.createElement("a"); el.href = day.href; el.className = "cal-cell live"; }
+      else { el = document.createElement("div"); el.className = "cal-cell soon"; }
+      el.style.setProperty("--pc", ph.c);
+      el.innerHTML = inner;
+      cal.appendChild(el);
+    });
+  });
+  function cell(cls, txt) { const d = document.createElement("div"); d.className = cls; d.textContent = txt; return d; }
+})();
+</script>
 <script src="assets/js/roster.js"></script>
 <script src="assets/js/auth.js"></script>
 </body>
