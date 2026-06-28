@@ -367,42 +367,66 @@ resp = model.call(prompt)"
 <script>
 window.FDE_NEXT = { label: "Day 4 · Part 1 — Token optimization →", href: "d4a.html" };
 window.DIAGRAM = {
-  title: "Requirements synthesis · the funnel",
-  width: 500, height: 470,
+  title: "Vague ask → concrete requirements → spec",
+  width: 770, height: 408,
   nodes: [
-    // the vague ask — dark payload card, wide at the top of the funnel
-    { id:"ask", step:0, kind:"example", x:20, y:14, w:460, h:74,
-      label:"VAGUE CLIENT ASK\n\"can the AI just read these solicitations and\n pull out the important stuff so we triage faster?\"",
-      detail:"One sentence, three vague nouns ('the important stuff'), a dozen unstated decisions hiding inside it. The ask is a SYMPTOM; the requirements are the diagnosis. The junior move is to write a 'summarize' prompt; the FDE move is to interrogate the sentence before touching a prompt." },
+    // the vague ask — dark payload card, full width at the top
+    { id:"ask", step:0, kind:"example", x:14, y:14, w:742, h:72,
+      label:"VAGUE CLIENT ASK\n\"can the AI just read these solicitations and pull out the\n important stuff so we triage faster?\"",
+      detail:"One sentence, three vague nouns ('the important stuff'), a dozen unstated decisions hiding inside it. The ask is a SYMPTOM; the requirements are the diagnosis. The junior move is to write a 'summarize' prompt; the FDE move is to interrogate the sentence — turning each vague noun into a concrete, defensible requirement — before touching a prompt." },
 
-    { id:"interro", step:1, x:90,  y:112, w:320, h:40,
-      label:"Problem identification — interrogate the ask" },
+    // the act: interrogate along three lenses
+    { id:"interro", step:1, x:120, y:96, w:520, h:34,
+      label:"Interrogate along 3 lenses — turn each vague noun into a concrete requirement" },
 
-    // the three lenses, narrowing toward the spec (the funnel)
-    { id:"q1", step:2, x:70,  y:170, w:360, h:42, label:"① Structured? — what shape must come back" },
-    { id:"q2", step:3, x:90,  y:222, w:320, h:42, label:"② Deterministic? — same input, same answer?" },
-    { id:"q3", step:4, x:110, y:274, w:280, h:42, label:"③ Grounded? — which facts from client data",
-      detail:"Separate what the model can answer from general knowledge (the format of a federal solicitation) from what it must answer from THIS client's facts (this document's due date). Rule of thumb: if being wrong about a fact has real consequences, ground it — and let the model say 'not found' instead of inventing a plausible value." },
+    // ── three lens ROWS: QUESTION (left) → CONCRETE ANSWER for THIS ask (right) ──
+    // row 1 · structured
+    { id:"q1", step:2, x:14, y:146, w:200, h:72,
+      label:"① Structured?\nwhat shape must\ncome back" },
+    { id:"a1", step:2, x:250, y:146, w:324, h:72,
+      label:"return JSON {priority, dept,\ndeadline, summary}\n— a typed extraction schema" },
 
-    // the spec — the point of the funnel
-    { id:"spec", step:5, x:130, y:348, w:240, h:80,
-      label:"BUILDABLE SPEC ✓\nschema · temperature · grounding · eval set",
-      detail:"system prompt ('answer only from the document; null for missing') + output schema (typed, nullable, enums) + temperature ≈ 0 + a grounding plan + a 10–20 doc eval set with known-correct extractions. THIS is the deliverable of the vague-ask conversation — worth far more than any single clever prompt, because it makes every prompt decision obvious. It IS the Part-1 prompt." }
+    // row 2 · deterministic
+    { id:"q2", step:3, x:14, y:232, w:200, h:72,
+      label:"② Deterministic?\nsame input →\nsame answer?" },
+    { id:"a2", step:3, x:250, y:232, w:324, h:72,
+      label:"temperature 0 · fixed schema\nsame solicitation → same triage\n(two analysts must agree)" },
+
+    // row 3 · grounded
+    { id:"q3", step:4, x:14, y:318, w:200, h:72,
+      label:"③ Grounded?\nwhich facts from\nthe document" },
+    { id:"a3", step:4, x:250, y:318, w:324, h:72,
+      label:"cite the solicitation section\neach field came from · return null,\nnever an invented deadline",
+      detail:"Ungrounded extraction is where hallucinated deadlines come from: ask a model for a due date with no document in the window and it will return a plausible-looking date it invented, because it has no way to know the real one and every incentive to answer. Grounding fixes this two ways — every fact field comes from THIS document (never the model's memory), and every field is nullable so 'not found in the document' is a sanctioned answer. An honest null beats a confident fabrication, and at a federal client a wrong deadline loses a bid." },
+
+    // the convergence: one tall spec node spanning all three rows
+    { id:"spec", step:5, x:600, y:146, w:156, h:244,
+      label:"BUILDABLE\nSPEC ✓\n\nschema\ntemp 0\ngrounding\neval set\n\n= your\nPart-1 prompt",
+      detail:"The three concrete answers ARE the spec: an output schema (typed, nullable, enums), temperature ≈ 0 for repeatability, a grounding rule ('answer only from the document; null for missing'), and a 10–20 doc eval set with known-correct extractions. That bundle is the deliverable of the vague-ask conversation — and THIS SPEC IS YOUR PART-1 PROMPT. Everything you learned in Part 1 (system prompt, output schema, determinism, grounding) is just these requirements written down. The clever prompt was never the hard part; the synthesis was." }
   ],
   edges: [
-    { id:"e_ai", step:1, from:"ask",     to:"interro", label:"the FDE move", ly:-2 },
-    { id:"e_i1", step:2, from:"interro", to:"q1" },
-    { id:"e_12", step:3, from:"q1",      to:"q2" },
-    { id:"e_23", step:4, from:"q2",      to:"q3" },
-    { id:"e_3s", step:5, from:"q3",      to:"spec", label:"synthesize", ly:-2 }
+    // ask → interrogate
+    { id:"e_ai", step:1, from:"ask", to:"interro" },
+    // interrogate decomposes into the three lens questions
+    { id:"e_iq1", step:2, from:"interro", to:"q1" },
+    { id:"e_iq2", step:3, from:"interro", to:"q2" },
+    { id:"e_iq3", step:4, from:"interro", to:"q3" },
+    // the value-add: each vague QUESTION → its CONCRETE ANSWER for this ask
+    { id:"e_q1a1", step:2, from:"q1", to:"a1", label:"concrete →", ly:-14 },
+    { id:"e_q2a2", step:3, from:"q2", to:"a2" },
+    { id:"e_q3a3", step:4, from:"q3", to:"a3" },
+    // synthesize: the three concrete answers converge into the spec
+    { id:"e_a1s", step:5, from:"a1", to:"spec" },
+    { id:"e_a2s", step:5, from:"a2", to:"spec", label:"synthesize", ly:-12 },
+    { id:"e_a3s", step:5, from:"a3", to:"spec" }
   ],
   captions: [
-    "A client hands you a <b>sentence, not a spec</b> — a vague ask with a dozen unstated decisions inside it. <span style='opacity:.7'>(tap the card)</span>",
-    "The FDE move is <b>problem identification through structured questioning</b> — interrogate the ask, don't jump to a prompt.",
-    "<b>① Structured?</b> Who consumes the output decides prose vs JSON. A dashboard wants a typed schema; 'the important stuff' becomes a finite, named list.",
-    "<b>② Deterministic?</b> Must the same document give the same answer? For extraction, almost always — low temperature, tight schema, an eval that checks stability. You elicit it, never assume it.",
-    "<b>③ Grounded?</b> Which facts must come from THIS client's data, never the model's memory? <span style='opacity:.7'>(tap)</span>",
-    "Synthesize the three answers into a <b>buildable spec</b> — schema, temperature, grounding plan, eval set. That spec IS the Part-1 prompt. <span style='opacity:.7'>(tap)</span>"
+    "A client hands you a <b>sentence, not a spec</b> — 'pull out the important stuff.' One sentence, three vague nouns, a dozen unstated decisions inside it. <span style='opacity:.7'>(tap the card)</span>",
+    "The FDE move: <b>don't jump to a prompt — interrogate.</b> Three lenses turn each vague noun into a concrete, buildable requirement.",
+    "<b>① Structured?</b> Who consumes it decides the shape. A triage dashboard wants data — so 'the important stuff' becomes a <b>typed schema</b>: <code>{priority, dept, deadline, summary}</code>.",
+    "<b>② Deterministic?</b> Two analysts must get the same triage from the same doc → <b>temperature 0, fixed schema, same input → same output.</b> You elicit it, never assume it.",
+    "<b>③ Grounded?</b> Every field <b>cites the solicitation section</b> it came from; a missing one returns <code>null</code>, never an invented deadline. <span style='opacity:.7'>(tap)</span>",
+    "Synthesize the three concrete answers into a <b>buildable spec</b> — schema · temp 0 · grounding · eval. That spec <b>IS your Part-1 prompt.</b> <span style='opacity:.7'>(tap)</span>"
   ]
 };
 window.QUIZ = {

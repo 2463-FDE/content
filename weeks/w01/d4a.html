@@ -330,29 +330,57 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
 window.FDE_NEXT = { label: "Day 4 · Part 2 — Output guardrails →", href: "d4b.html" };
 window.DIAGRAM = {
   title: "Trim the window before you call",
-  width: 600, height: 560,
+  // Each stage is the SAME fixed-width context window (x 130→610, 480px wide).
+  // The dark segment = input tokens you pay for (width ∝ token count); the light
+  // segment = answer-room left over. The dark bar shrinks stage to stage while
+  // the light answer-room grows — the shrinking is the picture, not the labels.
+  width: 640, height: 552,
   nodes: [
-    { id:"ex", step:0, kind:"example", x:18, y:14, w:564, h:92,
-      label:"BLOATED  system+manual+15 tools+all history+Q  ≈ 12,000 tok\nTRIMMED  cached prefix + 300-tok summary + 2 tools + Q  ≈ 2,400 tok",
+    // contrast card — the whole funnel in one line: BLOATED 12k vs TRIMMED 2.4k
+    { id:"ex", step:0, kind:"example", x:20, y:14, w:600, h:86,
+      label:"BLOATED  system + manual + 15 tools + all history + Q  ≈ 12,000 tok\nTRIMMED  cached prefix + 300-tok summary + 2 tools + Q   ≈  2,400 tok",
       detail:"Same task, two prompts. BLOATED re-sends a 1,500-tok system prompt, a 3,000-tok manual, all 15 tool schemas, and 20 turns of verbatim history every call — ~12,000 tokens, nearly all of it repeated or irrelevant. TRIMMED caches the fixed system+manual prefix (≈0.1× on reuse), replaces old turns with a 300-tok summary, sends only the 2 tools this request could use, and appends the question after the cache boundary — ~2,400 tokens, and most of it cached. Same answer, a fraction of the bill." },
-    { id:"raw",      step:0, x:50,  y:124, w:500, h:48, label:"RAW CONTEXT — everything you *could* send  ·  ~12,000 tok" },
-    { id:"cache",    step:1, x:95,  y:200, w:410, h:46, label:"① Cache stable prefix  →  ~0.1× on reuse" },
-    { id:"compress", step:2, x:140, y:276, w:320, h:46, label:"② Compress history + retrieved" },
-    { id:"assemble", step:3, x:185, y:352, w:230, h:46, label:"③ Assemble only what's needed" },
-    { id:"call",     step:4, x:210, y:430, w:180, h:58, label:"API CALL  ~2,400 tok\n$ = (in + out) × price" }
+
+    // ── RAW (step 0): input fills almost the whole window, barely any answer room ──
+    { id:"rawL",   step:0, x:20, y:146, w:100, h:48, label:"RAW\neverything" },
+    { id:"rawIn",  step:0, kind:"example", x:130, y:146, w:430, h:48, label:"~12k in · mostly repeat / irrelevant" },
+    { id:"rawRm",  step:0, x:560, y:146, w:50,  h:48, label:"" },
+
+    // ── ① cache (step 1): stable prefix served at ~0.1× → input drops to ~7k ──
+    { id:"cacheL", step:1, x:20, y:216, w:100, h:48, label:"① cache\nprefix",
+      detail:"Cache the stable prefix — the system prompt, the product manual, and the fixed tool list don't change between calls. You mark where the stable part ends and the provider serves it from cache on reuse at ~0.1× input price (the first write costs ~1.25×, so you break even by call 2). The one rule: any byte change ABOVE the cache boundary — a datetime.now(), a per-request UUID, the user's name — makes the prefix differ every call, so nothing caches and you pay the write premium forever. Keep all volatile content AFTER the boundary." },
+    { id:"cacheIn",step:1, kind:"example", x:130, y:216, w:251, h:48, label:"~7k in · prefix cached" },
+    { id:"cacheRm",step:1, x:381, y:216, w:229, h:48, label:"room to answer ↑" },
+
+    // ── ② compress (step 2): summarize history + extract retrieved → ~4k ──
+    { id:"compL",  step:2, x:20, y:286, w:100, h:48, label:"② compress\nhistory",
+      detail:"Compress what you must carry — don't ship raw verbatim when a smaller representation does the job. Replace the oldest 20 conversation turns with a 300-token summary; extract only the relevant passages from a 5,000-token retrieved doc instead of pasting the whole thing. Compression is lossy on purpose — but lossy in the SAFE places (resolved sub-topics, pleasantries, redundant confirmations), never the user's stated constraints, IDs, or numbers. More retrieved text is not more intelligence; it's more budget spent." },
+    { id:"compIn", step:2, kind:"example", x:130, y:286, w:143, h:48, label:"~4k in" },
+    { id:"compRm", step:2, x:273, y:286, w:337, h:48, label:"more answer room ↑↑" },
+
+    // ── ③ assemble (step 3): include only what THIS call needs → ~2.4k ──
+    { id:"asmL",   step:3, x:20, y:356, w:100, h:48, label:"③ assemble\nonly needed",
+      detail:"Dynamic assembly — build the prompt per request from parts and include only what THIS call needs. A billing question doesn't need the 800-token shipping-policy block; route it out. If only 2 of 15 tools could plausibly fire, send 2 schemas, not 15 — fewer wasted tokens and fewer ways to pick wrong. The catch: caching wants the prefix byte-identical while assembly wants it to vary, so do all per-request selection AFTER the cache boundary. Stable core caches; variable tail stays lean." },
+    { id:"asmIn",  step:3, kind:"example", x:130, y:356, w:86,  h:48, label:"~2.4k in" },
+    { id:"asmRm",  step:3, x:216, y:356, w:394, h:48, label:"lots of answer room ↑↑↑" },
+
+    // ── the lean metered call falls out the bottom ──
+    { id:"call",   step:4, x:170, y:444, w:300, h:64, label:"API CALL · ~2,400 tok\ncost = (in + out) × price",
+      detail:"The lean window — ~2,400 tokens instead of ~12,000 — is what actually gets metered. cost = (input + output tokens) × price, with output billed several× higher than input. You read the exact numbers off the usage fields the API returns on every response (including the cached-vs-uncached split), then slice them per feature, per user, and per run. That dashboard is the feedback loop that proves which lever moved the bill — you can't optimize what you don't measure." }
   ],
   edges: [
-    { id:"e1", step:1, from:"raw",      to:"cache",    label:"prefix cached → 7k", ly:-1 },
-    { id:"e2", step:2, from:"cache",    to:"compress", label:"− history → 4k" },
-    { id:"e3", step:3, from:"compress", to:"assemble", label:"− noise → 2.4k" },
-    { id:"e4", step:4, from:"assemble", to:"call",     label:"send lean" }
+    { id:"e0", step:0, from:"ex",    to:"rawIn", label:"BLOATED = the raw window ↓", ly:-2 },
+    { id:"e1", step:1, from:"rawL",  to:"cacheL", label:"− cached prefix  (12k → 7k)", lx:150, ly:0 },
+    { id:"e2", step:2, from:"cacheL",to:"compL",  label:"− summarized history  (7k → 4k)", lx:150, ly:0 },
+    { id:"e3", step:3, from:"compL", to:"asmL",   label:"− unused tools/docs  (4k → 2.4k)", lx:150, ly:0 },
+    { id:"e4", step:4, from:"asmL",  to:"call",   label:"send the lean window →", lx:18, ly:-4 }
   ],
   captions: [
-    "Day 1's budget made operational. The window holds everything you <b>could</b> send — ~12,000 tokens here, nearly all repeated or irrelevant. Part 1 is deciding what's actually worth sending; each lever below trims it. <span style='opacity:.7'>(tap the top card)</span>",
-    "<b>① Prompt caching</b>: the stable prefix (system + manual) is reused at ~0.1× input price instead of full price every call. The bar narrows — you stop paying to re-send the unchanged part. Keep volatile content <i>after</i> the cache boundary or it caches nothing.",
-    "<b>② Compress</b>: replace 20 verbatim turns with a 300-token summary; extract only the relevant slice of retrieved docs. More text is not more intelligence — it's more budget spent. The window shrinks again.",
-    "<b>③ Dynamic assembly</b>: include only the instructions, tools, and examples <b>this</b> request needs — do the selecting <i>after</i> the cache boundary so the prefix still caches. Down to ~2,400 tokens.",
-    "The window is lean, so the <b>metered call</b> costs a fraction of the bloated one: cost = (input + output) × price. Track it per feature, per user, per run — you can't optimize what you don't measure."
+    "Read each row as the <b>same context window</b> (fixed width). The <b>dark</b> part is input tokens you pay for; the empty part is room left to answer. At RAW it's ~12,000 tokens — nearly all repeated or irrelevant — and almost no answer room. Each lever below shrinks the dark part. <span style='opacity:.7'>(tap the top card)</span>",
+    "<b>① Prompt caching</b>: the stable prefix (system + manual) is reused at ~0.1× input price, so it stops counting against you — the dark bar drops to ~7k and answer room opens up. Keep volatile content <i>after</i> the cache boundary or nothing caches. <span style='opacity:.7'>(tap ① cache)</span>",
+    "<b>② Compress</b>: replace 20 verbatim turns with a 300-token summary and extract only the relevant slice of retrieved docs — input falls to ~4k. More text is not more intelligence; it's more budget spent. <span style='opacity:.7'>(tap ② compress)</span>",
+    "<b>③ Dynamic assembly</b>: include only the instructions, tools, and examples <b>this</b> request needs — done <i>after</i> the cache boundary so the prefix still caches. The dark bar bottoms out at ~2.4k; the window is now mostly answer room. <span style='opacity:.7'>(tap ③ assemble)</span>",
+    "The window is lean, so the <b>metered call</b> costs a fraction of the bloated one — ~2,400 tokens, not ~12,000. cost = (input + output) × price; track it per feature, per user, per run. <span style='opacity:.7'>(tap API CALL)</span>"
   ]
 };
 window.QUIZ = {
