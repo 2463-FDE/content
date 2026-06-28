@@ -372,8 +372,9 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 }
 
 /* ============ READING + STICKY SIDEBAR LAYOUT (wireframe v3) ============ */
-.lesson2 { max-width:1640px; margin:0 auto; padding:0 40px; }
-.reading2col { display:grid; grid-template-columns:170px minmax(0,1fr) 560px; gap:48px; align-items:start; }
+.lesson2 { max-width:none; margin:0 auto; padding:0 clamp(24px,3vw,64px); }
+/* fills the page: narrow TOC · readable reading (capped) · diagram absorbs the rest */
+.reading2col { display:grid; grid-template-columns:108px minmax(0,860px) minmax(520px,1fr); gap:clamp(28px,3vw,56px); align-items:start; }
 .reading-col { max-width:none; padding-top:30px; padding-bottom:50px; }
 .reading-col .lede h1 { font-size:46px; line-height:1.1; margin:0 0 10px; letter-spacing:-.5px; }
 .reading-col .lede .meta { display:flex; gap:18px; flex-wrap:wrap; color:var(--ink-soft); font-size:15px; }
@@ -400,7 +401,7 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .toc-part.open > .toc-part-head .cv { transform:rotate(90deg); color:var(--accent); }
 .toc-part-list { max-height:1400px; overflow:hidden; transition:max-height .35s ease, opacity .2s; }
 .toc-part:not(.open) .toc-part-list { max-height:0; opacity:0; border-color:transparent; }
-.toc li a { display:block; padding:7px 0 7px 14px; margin-left:-2px; border-left:2px solid transparent; color:var(--ink-soft); text-decoration:none; font-size:13.5px; line-height:1.3; }
+.toc li a { display:block; padding:5px 0 5px 11px; margin-left:-2px; border-left:2px solid transparent; color:var(--ink-soft); text-decoration:none; font-size:12px; line-height:1.25; }
 .toc li a:hover { color:var(--ink); }
 .toc li a.on { color:var(--accent); border-left-color:var(--accent); font-weight:600; }
 
@@ -434,8 +435,8 @@ a.snav-btn:hover { border-color:var(--accent); color:var(--accent); }
 .deliv-list.check li:before { content:"\2610"; position:absolute; left:0; top:-1px; color:var(--accent); font-size:18px; }
 .goals-foot { color:var(--ink-soft); font-size:14px; }
 
-@media (max-width:1280px){
-  .reading2col { grid-template-columns:minmax(0,1fr) 500px; gap:40px; }
+@media (max-width:1180px){
+  .reading2col { grid-template-columns:minmax(0,860px) minmax(440px,1fr); gap:40px; }
   .toc { display:none; }
 }
 @media (max-width:980px){

@@ -4,6 +4,18 @@
    is obvious. Each <section class="step" data-diagram="i" data-step="n">
    activates diagram i / step n and its TOC entry at viewport center. */
 (function () {
+  // short, scannable TOC label from a long section heading
+  function shortLabel(t) {
+    t = (t || "").trim();
+    for (const sep of [" — ", " – ", ": ", " · "]) {
+      const i = t.indexOf(sep);
+      if (i > 0 && i <= 28) return t.slice(0, i);
+    }
+    const w = t.split(/\s+/);
+    let s = w.slice(0, 4).join(" ");
+    if (s.length > 26) s = s.slice(0, 24).trim() + "…";
+    return s;
+  }
   function init() {
     const steps = Array.from(document.querySelectorAll(".step"));
     const bar = document.querySelector(".progressbar > i");
@@ -45,7 +57,7 @@
           const h = s.querySelector("h2"); if (!h) return;
           const li = document.createElement("li");
           const a = document.createElement("a");
-          a.href = "#"; a.textContent = h.textContent;
+          a.href = "#"; a.textContent = shortLabel(h.textContent); a.title = h.textContent;
           a.addEventListener("click", (e) => { e.preventDefault(); s.scrollIntoView({ behavior: "smooth", block: "start" }); });
           li.appendChild(a); ul.appendChild(li);
           stepToLink.set(s, a);
