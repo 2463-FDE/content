@@ -7,8 +7,8 @@
    role: "learner" | "trainer" | "tester" */
 // Backend Worker (set both after deploying ~/2463-fde/backend). Empty = live
 // "Try it" widgets degrade gracefully and progress just stays in localStorage.
-window.FDE_RUN_URL = "";
-window.FDE_TRACK_URL = "";
+window.FDE_RUN_URL = "https://fde-backend.jestercharles.workers.dev";
+window.FDE_TRACK_URL = "https://fde-backend.jestercharles.workers.dev/track";
 
 window.ROSTER = [
   // --- learners (Cohort #1) ---
