@@ -500,7 +500,7 @@ window.QUIZ = {
   id: "w01-d4",
   title: "Check your understanding",
   questions: [
-    { type: "mcq",
+    { type: "scq",
       stem: "You added prompt caching to a support bot, but the response's cache-read token count is zero on every call. Most likely cause?",
       options: [
         "The model is too small to support caching",
@@ -509,7 +509,7 @@ window.QUIZ = {
         "The temperature is set too high" ],
       answer: 1,
       explain: "Caching is a prefix match — any byte change in the prefix invalidates the cache. A timestamp/UUID/username near the top makes every prefix unique, so nothing ever reads from cache. Keep stable content first, volatile content after the cache boundary." },
-    { type: "mcq",
+    { type: "scq",
       stem: "A model returns perfectly valid JSON, but one field contains a fabricated account balance that wasn't in the source documents. Which guardrail addresses this?",
       options: [
         "Schema validation — the JSON is malformed",
@@ -518,7 +518,7 @@ window.QUIZ = {
         "Prompt caching — to reduce cost" ],
       answer: 2,
       explain: "Schema validation passes here because the JSON is well-formed — only the fact is invented. Hallucination is a window problem: the needed fact wasn't grounded, so the model filled the gap. Fix it by grounding, demanding citations, and permitting 'I don't know' — not by swapping models." },
-    { type: "mcq",
+    { type: "scq",
       stem: "What makes a retry-on-invalid-output loop production-grade rather than dangerous?",
       options: [
         "It retries forever until the output is valid",

@@ -271,7 +271,7 @@ answer = resp.choices[0].message.content"
       <div class="side-nav">
         <a class="snav-btn" href="d1.html">◂ Back</a>
         <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
-        <a class="snav-btn" href="d2b.html">Part 2 ▸</a>
+        <a class="snav-btn snav-next"></a>
       </div>
     </aside>
 
@@ -349,47 +349,90 @@ row can make open-weight win even though it scores lower on capability.</code></
 <script>
 window.FDE_NEXT = { label: "Day 2 · Part 2 — API patterns →", href: "d2b.html" };
 window.DIAGRAM = {
-  title: "Model selection · the funnel",
-  width: 480, height: 524,
+  title: "Model selection · scorecard",
+  width: 720, height: 512,
   nodes: [
-    { id:"task", step:0, kind:"example", x:40, y:20, w:400, h:92,
-      label:"TASK  Summarize a 40-page RFP\n  → return JSON {summary, risks[]}\nCONSTRAINTS  ~50k calls/day\n  US-only data residency" },
-    { id:"cap",  step:1, x:40, y:126, w:400, h:38, label:"① Capability — fit, not max",
-      detail:"Match the tier to the hardest thing the task needs. Decompose: cheap model classifies, flagship only for the hard cases. Judge with a 10–20 example eval set on real data, not a leaderboard." },
-    { id:"cost", step:2, x:40, y:176, w:400, h:38, label:"② Cost — input ≠ output",
-      detail:"Output costs several times input, and it compounds with volume. At 50k calls/day a 2¢ call is ~$365k/yr — the gap between flagship and a cheaper tier becomes the product decision." },
-    { id:"lat",  step:3, x:40, y:226, w:400, h:38, label:"③ Latency — live vs batch" },
-    { id:"ctx",  step:4, x:40, y:276, w:400, h:38, label:"④ Context window — size & $" },
-    { id:"tool", step:5, x:40, y:326, w:400, h:38, label:"⑤ Tooling & ecosystem" },
-    { id:"data", step:6, x:40, y:376, w:400, h:44, label:"⑥ Data residency / BAA",
-      detail:"For regulated/federal work this often filters first and hardest. BAA = process PHI under HIPAA. FedRAMP / gov-cloud = touch federal systems. No public API allowed → open-weight, self-hosted." },
-    { id:"pick", step:7, x:40, y:448, w:400, h:52, label:"PICK ✓ — keep it swappable" }
+    // the concrete task (dark payload card)
+    { id:"task", step:0, kind:"example", x:14, y:14, w:680, h:70,
+      label:"TASK  Summarize a 40-page RFP  →  JSON {summary, risks[]}\nCONSTRAINTS  ~50k calls/day  ·  US-only data residency" },
+
+    // candidate column headers
+    { id:"hl",  step:0, x:14,  y:96, w:122, h:46, label:"score for\nTHIS task ↓" },
+    { id:"hc1", step:0, x:146, y:96, w:176, h:46, label:"Flagship API\nOpus-class · US" },
+    { id:"hc2", step:0, x:332, y:96, w:176, h:46, label:"Open-weight\nself-host (Llama)" },
+    { id:"hc3", step:0, x:518, y:96, w:176, h:46, label:"Mid-tier API\nSonnet/Flash · US" },
+
+    // ① capability
+    { id:"capL", step:1, x:14,  y:156, w:122, h:38, label:"① Capability" },
+    { id:"cap1", step:1, x:146, y:156, w:176, h:38, label:"✓ overkill" },
+    { id:"cap2", step:1, x:332, y:156, w:176, h:38, label:"~ good enough" },
+    { id:"cap3", step:1, x:518, y:156, w:176, h:38, label:"✓ enough" },
+
+    // ② cost @ volume — the eliminator for flagship
+    { id:"costL", step:2, x:14,  y:204, w:122, h:38, label:"② Cost @vol",
+      detail:"cost ≈ (input + output tokens) × price, and OUTPUT bills several× higher than input. At ~50k calls/day summarizing 40 pages, a flagship at ~$25 / M output is roughly 6× the bill of a mid-tier (~$9–15 / M). Cost — not capability — is what eliminates the 'best' model here. A 2¢ demo call becomes a six-figure yearly line item at this volume." },
+    { id:"cost1", step:2, x:146, y:204, w:176, h:38, label:"✗ ~6× pricier" },
+    { id:"cost2", step:2, x:332, y:204, w:176, h:38, label:"✓ infra-only" },
+    { id:"cost3", step:2, x:518, y:204, w:176, h:38, label:"✓ cheapest" },
+
+    // ③ latency
+    { id:"latL", step:3, x:14,  y:252, w:122, h:38, label:"③ Latency" },
+    { id:"lat1", step:3, x:146, y:252, w:176, h:38, label:"~ slower" },
+    { id:"lat2", step:3, x:332, y:252, w:176, h:38, label:"~ you size HW" },
+    { id:"lat3", step:3, x:518, y:252, w:176, h:38, label:"✓ fast tier" },
+
+    // ④ context
+    { id:"ctxL", step:4, x:14,  y:300, w:122, h:38, label:"④ Context" },
+    { id:"ctx1", step:4, x:146, y:300, w:176, h:38, label:"✓ 1M" },
+    { id:"ctx2", step:4, x:332, y:300, w:176, h:38, label:"✓ fits 40pg" },
+    { id:"ctx3", step:4, x:518, y:300, w:176, h:38, label:"✓ 200K+" },
+
+    // ⑤ tooling — structured JSON output needed
+    { id:"toolL", step:5, x:14,  y:348, w:122, h:38, label:"⑤ Tooling" },
+    { id:"tool1", step:5, x:146, y:348, w:176, h:38, label:"✓ native JSON" },
+    { id:"tool2", step:5, x:332, y:348, w:176, h:38, label:"~ DIY parse" },
+    { id:"tool3", step:5, x:518, y:348, w:176, h:38, label:"✓ native JSON" },
+
+    // ⑥ residency — the twist: US-region API satisfies it
+    { id:"dataL", step:6, x:14,  y:396, w:122, h:38, label:"⑥ Residency",
+      detail:"The constraint is US-only — NOT 'data can never leave our boundary'. A US-region enterprise API under a BAA satisfies it: Claude via Amazon Bedrock, Gemini via Vertex, in a US region. So self-host's full control is more than THIS task needs. Contrast the harder federal case — air-gapped / 'data can't leave the network' — where only an open-weight model running inside the boundary qualifies, and this same axis would pick the self-host column instead." },
+    { id:"data1", step:6, x:146, y:396, w:176, h:38, label:"✓ BAA + US" },
+    { id:"data2", step:6, x:332, y:396, w:176, h:38, label:"✓ full control" },
+    { id:"data3", step:6, x:518, y:396, w:176, h:38, label:"✓ BAA + US" },
+
+    // verdict row
+    { id:"vL", step:7, x:14,  y:446, w:122, h:52, label:"Verdict" },
+    { id:"v1", step:7, x:146, y:446, w:176, h:52, label:"✗ cost\nkills it" },
+    { id:"v2", step:7, x:332, y:446, w:176, h:52, label:"~ ops you\ndon't need" },
+    { id:"v3", step:7, x:518, y:446, w:176, h:52, label:"✓ PICK",
+      detail:"The mid-tier API wins the whole column: capable enough for summarize→JSON, the cheapest at 50k/day, native structured JSON, and US residency via Bedrock under a BAA. The flagship died on cost; self-host was ops you don't need once a US-region API already satisfies residency. Rule attached to every pick: keep it behind one thin interface so re-running this table when prices move is a config change, not a rewrite." }
   ],
   edges: [
-    { id:"e1", step:1, from:"task", to:"cap" },
-    { id:"e2", step:2, from:"cap",  to:"cost" },
-    { id:"e3", step:3, from:"cost", to:"lat" },
-    { id:"e4", step:4, from:"lat",  to:"ctx" },
-    { id:"e5", step:5, from:"ctx",  to:"tool" },
-    { id:"e6", step:6, from:"tool", to:"data" },
-    { id:"e7", step:7, from:"data", to:"pick" }
+    // task is scored against the three candidates (fan, no crossings)
+    { id:"f1", step:0, from:"task", to:"hc1" },
+    { id:"f2", step:0, from:"task", to:"hc2" },
+    { id:"f3", step:0, from:"task", to:"hc3" },
+    // each column resolves to its verdict (parallel, in-column)
+    { id:"ve1", step:7, from:"data1", to:"v1" },
+    { id:"ve2", step:7, from:"data2", to:"v2" },
+    { id:"ve3", step:7, from:"data3", to:"v3", label:"pick ✓", ly:2 }
   ],
   captions: [
-    "Start from the <b>task and its constraints</b> — what it must do, for whom, under what rules. (Tap the card.) The model falls out of <i>this</i>, not a leaderboard.",
-    "<b>① Capability</b>: match the tier to the hardest thing the task needs — and no higher. Measure it with a small eval set on real data. <span style='opacity:.7'>(tap for more)</span>",
-    "<b>② Cost</b>: input and output are priced differently (output costs more), and it compounds with volume. The cheap tier is often 10× below the flagship. <span style='opacity:.7'>(tap)</span>",
-    "<b>③ Latency</b>: who's waiting? Interactive favors small/fast tiers + streaming; batch favors throughput + cost. Ask it first — it prunes whole columns.",
-    "<b>④ Context window</b>: does the model hold the real inputs — and what does filling it cost? Bigger isn't free, and isn't always more accurate.",
-    "<b>⑤ Tooling & ecosystem</b>: structured output, tool calling, caching, SDKs. The platform is half of what you're buying.",
-    "<b>⑥ Data residency / BAA</b>: for regulated/federal work this often <b>overrules</b> the rest — and is why open-weight self-hosting is in your toolkit. <span style='opacity:.7'>(tap)</span>",
-    "A <b>defensible pick</b> falls out — the right model for this task, budget, and rules. Rule attached: <b>keep it swappable.</b>"
+    "One concrete task, three real candidates. The pick falls out of <i>this</i> task's constraints — <b>50k calls/day, US-only residency</b> — not a leaderboard. <span style='opacity:.7'>(tap a row label for detail)</span>",
+    "<b>① Capability</b>: all three clear the bar — summarize→JSON isn't frontier-hard, so the flagship is <i>overkill</i>. Capability rarely decides; match the tier to the hardest thing the task needs.",
+    "<b>② Cost @volume</b>: the flagship's ~$25 / M output makes it ~6× pricier at 50k/day — <b>eliminated</b>. Cost, not capability, knocks out the 'best' model. <span style='opacity:.7'>(tap)</span>",
+    "<b>③ Latency</b>: a smaller tier is faster, and the flagship is already out. Mid-tier and self-host are both serviceable here.",
+    "<b>④ Context</b>: a 40-page RFP (~35k tokens) fits every option — even the 200K tier. Not a differentiator for this task.",
+    "<b>⑤ Tooling</b>: the task needs guaranteed JSON. The API tiers do it natively; self-host means DIY parsing <i>and</i> running the hardware — friction you'd take on for nothing.",
+    "<b>⑥ Residency: US-only</b> — the twist: a US-region API under a BAA (Bedrock / Vertex) <i>satisfies</i> it, so self-host's full control is more than this task needs. <span style='opacity:.7'>(tap)</span>",
+    "<b>Verdict</b>: the <b>mid-tier API</b> wins the column — capable enough, cheapest at volume, native JSON, US residency. Flagship died on cost; self-host was needless ops. Rule: <b>keep it swappable.</b> <span style='opacity:.7'>(tap PICK)</span>"
   ]
 };
 window.QUIZ = {
   id: "w01-d2a",
   title: "Check your understanding · Part 1",
   questions: [
-    { type: "mcq",
+    { type: "scq",
       stem: "A federal-acquisitions client says their data legally cannot leave their own network boundary. Which model-selection axis decides this, and what option does it point to?",
       options: [
         "Capability — pick whichever model scores highest on benchmarks",
@@ -398,7 +441,7 @@ window.QUIZ = {
         "Latency — pick the fastest model regardless of where it runs" ],
       answer: 2,
       explain: "For regulated/federal work the data-residency axis often filters first and hardest — it doesn't matter that a model is smartest or cheapest if the client can't legally send it the data. When even a compliant public API isn't allowed, a self-hosted open-weight model (running inside the client's boundary) is the answer, trading some capability for absolute data control." },
-    { type: "mcq",
+    { type: "scq",
       stem: "Two features both get the 'AI' label: (A) classify 200k inbound messages/day into 3 buckets, (B) draft a long report a handful of times a day. What does the cost axis say about model choice?",
       options: [
         "Use the same flagship model for both — consistency matters more than cost",
@@ -407,6 +450,28 @@ window.QUIZ = {
         "Cost is the same for both because they both call an LLM" ],
       answer: 1,
       explain: "Cost ≈ (input + output tokens) × price, with output billed higher and the total compounding with volume. A is huge volume of cheap classification — a small tier saves enormous money. B generates expensive output but runs rarely, so a capable tier is affordable. Two 'AI' features can differ 20× in cost profile; you size the model to each feature's shape." },
+    { type: "tf",
+      stem: "Model selection is mainly about picking whichever model scores highest on public benchmarks.",
+      answer: false,
+      explain: "No. Capability is just one of six axes. Cost at volume, latency, context, tooling, and data residency routinely overrule 'smartest' — the benchmark leader is often overkill, too pricey, or not compliant for this client." },
+    { type: "mcq",
+      stem: "Which axes can OVERRULE raw capability when choosing a model? (select all that apply)",
+      options: [
+        "Data residency / compliance",
+        "Cost at production volume",
+        "The model's leaderboard rank",
+        "Latency budget",
+        "Tooling / ecosystem fit" ],
+      answer: [0, 1, 3, 4],
+      explain: "Residency can veto outright (the data legally can't go there), cost-at-volume eliminates the flagship, a latency budget rules out slow tiers, and tooling/ecosystem fit shapes integration. Leaderboard rank is not itself a constraint — it's the thing the others overrule." },
+    { type: "match",
+      stem: "Match each client situation to the model choice it points toward.",
+      pairs: [
+        { l: "Data legally can't leave their network", r: "self-host an open-weight model" },
+        { l: "200k cheap classifications / day", r: "small, cheap tier" },
+        { l: "Rare long-report drafting", r: "capable tier (affordable at low volume)" },
+        { l: "Avoid getting locked to one vendor", r: "thin, swappable interface" } ],
+      explain: "Residency forces self-host; high-volume-cheap work wants a small tier; low-volume-expensive output can afford a capable tier; and every pick rides behind a swappable interface because models and prices move mid-engagement." },
     { type: "open",
       stem: "In two or three sentences: a client asks 'which AI should we use?' and expects a one-word answer. Why is the right response a framework rather than a model name, and what makes a pick 'defensible'?",
       hint: "Six axes, a weight that encodes this client's priorities, and one rule you attach to every pick.",

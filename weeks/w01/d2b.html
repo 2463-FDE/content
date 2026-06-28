@@ -289,7 +289,7 @@ except Exception:
       <div class="side-nav">
         <a class="snav-btn" href="d2a.html">◂ Back</a>
         <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
-        <a class="snav-btn" href="d3.html">Day 3 ▸</a>
+        <a class="snav-btn snav-next"></a>
       </div>
     </aside>
 
@@ -414,7 +414,7 @@ window.QUIZ = {
   id: "w01-d2b",
   title: "Check your understanding · Part 2",
   questions: [
-    { type: "mcq",
+    { type: "scq",
       stem: "Your service retries failed model calls with a tight immediate loop and no idempotency key. Two things are wrong. Which pair fixes them?",
       options: [
         "Use a bigger model, and add more retries",
@@ -423,7 +423,7 @@ window.QUIZ = {
         "Switch to a batch API, and remove the retries entirely" ],
       answer: 1,
       explain: "Immediate tight-loop retries cause retry storms — exponential backoff spaces attempts out and jitter stops thousands of clients retrying in lockstep. And retries are unsafe without idempotency: if the original request actually succeeded but the response was lost, a blind retry repeats the work (and any side effect). An idempotency key makes the server dedupe the retry to a single execution." },
-    { type: "mcq",
+    { type: "scq",
       stem: "You get an HTTP 429 from the model API. What is it, and how should resilient code respond?",
       options: [
         "A bug in your code — log it and crash",
@@ -432,8 +432,30 @@ window.QUIZ = {
         "A safety refusal — route to a human" ],
       answer: 1,
       explain: "429 means you've hit your share of a metered, shared service — it's transient, not a code bug. Respect the Retry-After header when present, retry with bounded backoff, and proactively throttle yourself (client-side rate limiting) so you mostly stay under the cap. Contrast a 400, which is a malformed request and should NOT be retried." },
+    { type: "tf",
+      stem: "A 4xx client error (like 400 Bad Request) should be retried with backoff, the same way you'd retry a 5xx.",
+      answer: false,
+      explain: "No. 4xx means YOUR request is wrong (malformed, unauthorized, too large) — retrying sends the same broken request again. Only retry transient failures: 429 (rate limit) and 5xx (server-side). Retrying 4xx just wastes calls and budget." },
+    { type: "mcq",
+      stem: "Which of these belong in a resilient LLM API call? (select all that apply)",
+      options: [
+        "A timeout on every call",
+        "Exponential backoff with jitter on retries",
+        "Retry every error type the same way",
+        "An idempotency key for retried side-effecting calls",
+        "One broad try/except that swallows all errors silently" ],
+      answer: [0, 1, 3],
+      explain: "Timeout (bound the wait), backoff+jitter (avoid retry storms), and idempotency keys (safe retries of writes) are core. Retrying every error type the same way retries un-retryable 4xx; a catch-all that swallows errors hides the failures you need to see and route to a fallback." },
+    { type: "match",
+      stem: "Match each failure to the right response.",
+      pairs: [
+        { l: "429 rate limit", r: "back off + retry (honor Retry-After)" },
+        { l: "400 bad request", r: "fix the request, do not retry" },
+        { l: "timeout fires", r: "cancel, then retry or fall back" },
+        { l: "retries exhausted", r: "graceful fallback, never a raw error" } ],
+      explain: "Transient (429/timeout) → retry with limits; client error (400) → fix, don't retry; exhausted → a fallback the user can live with, never a stack trace." },
     { type: "open",
-      stem: "In two or three sentences: a client complains 'the AI feature keeps breaking.' It's almost never the model itself. Name three integration patterns you'd check first, and what each prevents.",
+      stem: "In two or three sentences: a client says 'the AI feature keeps breaking.' It's almost never the model. Name three integration patterns you'd check first, and what each prevents.",
       hint: "Think about the call's safety equipment: timeout, retry policy, idempotency, fallback.",
       model: "The breakage is almost always the integration, not the model. I'd check: (1) a deliberate timeout paired with the retry count — without it a hung call ties up resources and the worst-case wait is unbounded; (2) retries that branch on error type with exponential backoff + jitter and an idempotency key — so transient 429/5xx recover without retry storms or duplicated side effects, and 4xx isn't retried pointlessly; and (3) a defined fallback so an exhausted call ends in a graceful message or a backup model, never a raw exception on the user's screen." }
   ]

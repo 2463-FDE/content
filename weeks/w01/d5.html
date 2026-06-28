@@ -460,7 +460,7 @@ window.QUIZ = {
   id: "w01-d5",
   title: "Check your understanding",
   questions: [
-    { type: "mcq",
+    { type: "scq",
       stem: "Reviewing a teammate's LLM client, you see the API key read with os.getenv() AND printed in a 'request we sent: ...' debug log. The biggest problem is:",
       options: [
         "getenv is slower than hardcoding the key",
@@ -469,7 +469,7 @@ window.QUIZ = {
         "Nothing — the key came from the environment, so it's fine" ],
       answer: 1,
       explain: "Reading from the environment is correct, but logging the request dumps the key into a file with weaker access controls. Keys (and PII) must never reach a log — redact by default." },
-    { type: "mcq",
+    { type: "scq",
       stem: "Your client's transport retries EVERY failed call up to 5 times with no delay. Which fix matters most?",
       options: [
         "Retry 10 times instead of 5",
@@ -478,7 +478,7 @@ window.QUIZ = {
         "Remove retries entirely — they cause duplicate charges" ],
       answer: 1,
       explain: "Retrying a 400 just fails identically and wastes money; hammering with no delay makes an overloaded provider worse. Retry transient failures only, back off with jitter, and bound the count." },
-    { type: "mcq",
+    { type: "scq",
       stem: "A feature asks the model for JSON like {\"priority\":\"low|medium|high\"} and passes the parsed result straight to a downstream system. What's missing?",
       options: [
         "A bigger model that never makes formatting mistakes",

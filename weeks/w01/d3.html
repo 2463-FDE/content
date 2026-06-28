@@ -663,7 +663,7 @@ window.QUIZ = {
   id: "w01-d3",
   title: "Check your understanding",
   questions: [
-    { type: "mcq",
+    { type: "scq",
       stem: "A client says: 'Can the AI just read our intake forms and pull out the key info?' What's the FDE's FIRST move?",
       options: [
         "Write a prompt that says 'summarize the key info' and test it",
@@ -672,7 +672,7 @@ window.QUIZ = {
         "Turn temperature up so the model is more thorough" ],
       answer: 2,
       explain: "The vague ask is a symptom; the requirements are the diagnosis. You can't engineer a prompt for fields you haven't pinned down — the synthesis conversation IS the work." },
-    { type: "mcq",
+    { type: "scq",
       stem: "Two analysts must see the SAME extracted due date when they run the tool on the same document. Which requirement is that, and what does it imply?",
       options: [
         "Grounding — retrieve the document into the window",
@@ -681,7 +681,7 @@ window.QUIZ = {
         "Chain-of-thought — make it reason step by step" ],
       answer: 1,
       explain: "Same input → same output is determinism. You elicit it (don't assume it), then implement it with low temperature + a constrained schema, and verify it in your eval set." },
-    { type: "mcq",
+    { type: "scq",
       stem: "You enforce a strict JSON schema and the output now always parses cleanly. A field comes back with the wrong date. What does this prove?",
       options: [
         "The schema is broken and should be removed",

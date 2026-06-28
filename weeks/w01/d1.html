@@ -339,7 +339,7 @@ window.QUIZ = {
   id: "w01-d1",
   title: "Check your understanding",
   questions: [
-    { type: "mcq",
+    { type: "scq",
       stem: "A client says 'your AI keeps forgetting the formatting rules halfway through long chats.' Most likely cause?",
       options: [
         "The model is too small and should be upgraded",
@@ -348,7 +348,7 @@ window.QUIZ = {
         "The system prompt was never sent" ],
       answer: 2,
       explain: "History grows every turn and competes for the finite window; the earliest tokens (your rules) get evicted first. A window problem, not a model problem." },
-    { type: "mcq",
+    { type: "scq",
       stem: "An FDE's FIRST diagnostic question about a misbehaving AI feature should be:",
       options: [
         "Which foundation model is it using?",
@@ -357,7 +357,7 @@ window.QUIZ = {
         "What programming language is the backend?" ],
       answer: 1,
       explain: "Diagnose the window before the model. Most issues are context/budget problems, not model-choice problems." },
-    { type: "mcq",
+    { type: "scq",
       stem: "Most hallucinations are best understood as…",
       options: [
         "The model intentionally lying",
