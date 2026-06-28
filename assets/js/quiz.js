@@ -180,6 +180,13 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     const host = document.getElementById("quiz");
-    if (host && window.QUIZ) render(host, window.QUIZ);
+    if (host && window.QUIZ) {
+      render(host, window.QUIZ);
+      // keep the quiz launcher card's question count in sync with the spec
+      const n = window.QUIZ.questions.length;
+      document.querySelectorAll(".quiz-count").forEach(e => e.textContent = n);
+      const card = document.querySelector('.activity-card[data-modal="quiz-modal"] .ac-t');
+      if (card && /\d/.test(card.textContent)) card.textContent = card.textContent.replace(/\d+/, n);
+    }
   });
 })();
