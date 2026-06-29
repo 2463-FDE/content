@@ -127,6 +127,12 @@ body {
 .reading-sources a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .reading-sources a:hover { text-decoration: underline; }
 
+/* Deferred interactive — placeholder where a live "try it" will go once the
+   backend example is stood up. Content first; interactivity is a future goal. */
+.ix-future { margin: 18px 0; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 10px; background: #faf8f4; }
+.ix-future .k { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; color: var(--dim); }
+.ix-future p { margin: 4px 0 0; font-size: 13.5px; color: var(--ink-soft); line-height: 1.45; }
+
 details.deep { margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; padding: 4px 14px; background:#fff; }
 details.deep summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
 details.deep[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 8px; }

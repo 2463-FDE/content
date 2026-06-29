@@ -171,7 +171,7 @@ Derived from the Week-1 readings — this is the gold standard new weeks must ma
 | Reading time / day | **16-20 min** core (~2,400-3,000 words prose) | meta lines (~16-20 min) |
 | Scrolly steps / reading | **7-9** `.step` sections | W1 pages (d1 = 9 steps) |
 | Diagram binding | every `.step` carries `data-diagram`/`data-step`; one live `#diagram` | shared `diagram.js` + `scrolly.js` |
-| Interactive | ≥1 `ix-run` "try it" block | `interactive.js` |
+| Interactive | **DEFERRED** — `.ix-future` placeholder + manifest entry (functional `ix-run` needs backend standup; future goal) | template v2 |
 | Comprehension check | **6 questions**, ~4-5 min, practice (not graded) | `quiz.js` modal |
 | Deep dive | 1 optional modal, ~10 min | `modals.js` |
 | Citations | Sources block, every URL 200, claims trace to research artifact | template v2 |
@@ -261,7 +261,7 @@ attempted — it does not stall the rest of the fan-out.
 | Gate | Critic | Checks | On fail |
 |------|--------|--------|---------|
 | **A** | Research | every claim has a 200 source URL; library version stamped + current (no deprecated APIs, e.g. LangChain pre-1.0); web-research actually run; pull saved to second-brain | repass: re-research the gap |
-| **B** | Reading metrics + citation | 2,400-3,000 words → 16-20 min @150 wpm; 7-9 steps; 6-Q check + deep-dive present; every claim traces to the research artifact (no invented facts); Sources block present, all URLs 200 | repass: trim/expand, re-cite |
+| **B** | Reading metrics + citation | 2,400-3,000 words → 16-20 min @150 wpm; 7-9 steps; 6-Q check + deep-dive present; deferred-interactive `.ix-future` placeholder(s) present (NOT functional ix-run); every claim traces to the research artifact (no invented facts); Sources block present, all URLs 200 | repass: trim/expand, re-cite |
 | **C** | Design / live-diagram | pull W1 readings as the reference design set; scrolly steps each bound to a *meaningful* diagram step (diagram drives the concept, not decoration); consistent components/classes; comparable interaction density; **browser screenshot-diff vs a W1 exemplar** for layout/hierarchy/AI-slop | repass: rework diagram/layout to match exemplar |
 | **D** | Question | **≥4 questions per technical concept-id** (feeds WEAK_TARGET=4 without repeats); tagged to correct concept-ids; grounded in research (no deprecated-API questions); difficulty spread; new concept-ids added to backend CONCEPTS taxonomy | repass: author more / re-tag |
 | **E** | Integration | `?day=wWWdN` scopes right; cards uniform; progress backfills; all new links 200 | fix wiring (serial) |
@@ -297,5 +297,9 @@ summary per task. Everything else stays in the sub-agents.
 - [ ] Backfill W1 thin technical concepts to ≥4 questions each (context-window,
       knowledge-graph, model-selection, prompt-engineering, token-optimization,
       output-guardrails, structured-output) — fold into the run.
+- [ ] Build the deferred "try it" interactives: each reading drops `.ix-future`
+      placeholders + logs them to `docs/future-interactives.md`. Stand up the
+      backend examples per the tech being taught, then replace placeholders with
+      functional `ix-run` blocks. (Content first; interactivity later.)
 - [ ] Decide W9-10 once the client is known (~W6-7), then re-run this workflow
       with domain-updated topics.
