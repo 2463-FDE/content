@@ -117,6 +117,16 @@ body {
 .callout.warn { background: #fff5f5; border-color: #ffc9c9; }
 .callout.warn .k { color: var(--bad); }
 
+/* Sources & deeper dive — reading template v2. Closes every reading with the
+   web-research source URLs so learners can verify currency / go deeper. */
+.reading-sources { margin: 40px 0 0; padding-top: 22px; border-top: 1px solid var(--line); }
+.reading-sources h2 { font-size: 18px; margin: 0 0 12px; }
+.reading-sources ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.reading-sources li { font-size: 14.5px; line-height: 1.45; color: var(--ink-soft); padding-left: 18px; position: relative; }
+.reading-sources li::before { content: "↗"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+.reading-sources a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.reading-sources a:hover { text-decoration: underline; }
+
 details.deep { margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; padding: 4px 14px; background:#fff; }
 details.deep summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
 details.deep[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 8px; }
