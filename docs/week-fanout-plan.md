@@ -120,17 +120,27 @@ related/current tech that looks missing. **Correct me where my read is wrong.**
 | Week | Topic (as written) | Likely-missing / currency flags |
 |------|--------------------|---------------------------------|
 | W1 | LLM Engineering for Production | Solid. Could name prompt caching + structured outputs explicitly. |
-| W2 | RAG & Knowledge Retrieval | **Stack mismatch:** curriculum says pgvector/Chroma/Pinecone, but our backend uses **Qdrant**. Teach the stack we run. Add rerankers (Cohere rerank / cross-encoders) + a nod to GraphRAG (ties to W4). |
-| W3 | Single-Agent Design & Memory | **LangChain v1.0** currency risk is highest here. **MCP (Model Context Protocol)** is missing and is now the standard tool/context interface — strong candidate to add. Provider-native tool use (Anthropic) over old LC tool wrappers. |
-| W4 | Multi-Agent & Knowledge Graphs | LangGraph persistence/checkpointers. Name **Neo4j** explicitly (we run it). Mention alt frameworks (CrewAI / AutoGen / OpenAI Agents SDK) even if LangGraph is primary. |
+| W2 | RAG & Knowledge Retrieval | Pinecone/Chroma/pgvector stay — good teaching choices. Optional: rerankers (Cohere rerank / cross-encoders) + a nod to GraphRAG (ties to W4). |
+| W3 | Single-Agent Design & Memory | **LangChain v1.0** currency risk is highest here. **Add MCP (Model Context Protocol)** to the LangChain v1 material — it's the current standard tool/context interface. Prefer provider-native tool use over old LC tool wrappers. |
+| W4 | Multi-Agent & Knowledge Graphs | LangGraph persistence/checkpointers. Neo4j is the standard KG database to teach. |
 | W5 | Spec-Driven Dev & Problem Scoping | Aligns with our own GSD/spec workflow. Light gap — maybe name a spec framework (spec-kit). |
-| W6 | AI-Augmented SDLC | **Coding agents missing:** Claude Code / Cursor / Aider belong here — core FDE tooling. Brownfield/LEGMOD is good. |
-| W7 | Observability, SRE & Guardrails | Beyond LangSmith: **Langfuse / Arize Phoenix** (OSS, current) + **OpenTelemetry GenAI** semantic conventions. |
+| W6 | AI-Augmented SDLC | **Add coding agents — focus on Claude Code**, mention/relate Cursor/Aider. Core FDE tooling. Brownfield/LEGMOD is good. |
+| W7 | Observability, SRE & Guardrails | **LangSmith stays core.** Langfuse/Phoenix go to Alt research (see below), not duplicate core. Optional: OpenTelemetry GenAI conventions. |
 | W8 | Security, Governance & Responsible AI | Anchor on **OWASP LLM Top 10** as the framework. Guardrails frameworks (NeMo Guardrails / Guardrails AI) alongside LLM Guard/Presidio. |
 | W9-10 | Client Specialization / Showcase | **Placeholders.** No client yet; assume healthcare + finance persist. Expect to know the real client by ~W6-7, then run this same fan-out with domain-updated topics. Possible client-specific brownfield project for W9-10 — handle when/if it comes up. |
 
-Cross-cutting theme: **teach the stack we actually run** (Qdrant, Neo4j, Redis,
-MinIO) and **the current standard** (MCP, LangChain v1.0, OSS eval/trace), not the
+### Alt-research day topics (Wed of W1-8)
+
+The Wed Alt-research day is where we surface alternatives to the week's core tool
+so learners see the landscape, not just our pick:
+
+- **W3 / W4 (LangChain / LangGraph weeks):** alt agent frameworks — CrewAI,
+  AutoGen, OpenAI Agents SDK — vs LangChain/LangGraph.
+- **W7 (Observability):** alt eval/trace platforms — Langfuse, Arize Phoenix,
+  Helicone — vs LangSmith.
+
+Cross-cutting theme: teach **the current standard** (MCP, LangChain v1.0) and our
+primary pick per area, with alternatives parked in Alt research — not the
 generic/older defaults a model reaches for first.
 
 ---

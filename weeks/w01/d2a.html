@@ -248,6 +248,16 @@ answer = resp.choices[0].message.content"
         </div>
       </section>
 
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://platform.claude.com/docs/en/about-claude/models/overview" target="_blank" rel="noopener">Anthropic — Claude models overview</a> — primary source for the tiered family (Opus / Sonnet / Haiku), the $5/$25, $3/$15, $1/$5 per-MTok pricing, the 1M vs 200K context windows, and the Bedrock / Vertex enterprise channels this page cites on the capability, cost, context, and residency axes.</li>
+          <li><a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" rel="noopener">Google — Gemini API pricing</a> — official per-million-token rates for the Gemini Pro and Flash tiers, backing the cost-axis comparison and the cross-vendor "every flagship ships a cheaper tier" point.</li>
+          <li><a href="https://developers.openai.com/api/docs/pricing" target="_blank" rel="noopener">OpenAI — API pricing</a> — primary source for GPT-5-line input/output token pricing, the 10% cached-input rate, and the data-residency regional-processing uplift referenced on the cost and compliance axes.</li>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic — Prompt caching</a> — documents cache reads at 0.1× normal input price, the concrete number behind the tooling-axis claim that a stable prefix can be reused "at roughly a tenth of normal input."</li>
+        </ul>
+      </section>
+
     </article>
 
     <aside class="side">

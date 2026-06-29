@@ -273,6 +273,16 @@ resp = model.call(prompt)"
         job.</p>
       </section>
 
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener">Anthropic — Prompting best practices</a> — the primary reference for the parts you engineered today: roles/system prompts, examples (few-shot), XML-tag delimiters, and letting the model think before it answers.</li>
+          <li><a href="https://developers.openai.com/api/docs/guides/prompt-engineering" target="_blank" rel="noopener">OpenAI — Prompt engineering guide</a> — the same techniques from the other major vendor: message-role authority, few-shot classification examples, delimiter/Markdown structuring, and supplying context to constrain answers (the grounding bridge to Week 2).</li>
+          <li><a href="https://developers.openai.com/api/docs/guides/structured-outputs" target="_blank" rel="noopener">OpenAI — Structured Outputs</a> — backs the output-contract slice: constraining generation to a JSON Schema so shape is guaranteed, plus programmatically detectable refusals instead of guessed values.</li>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/overview" target="_blank" rel="noopener">Anthropic — Prompt engineering overview</a> — frames prompting as starting from success criteria and evaluations, the "a prompt is code you measure" discipline behind the iteration-and-eval slice.</li>
+        </ul>
+      </section>
+
     </article>
 
     <aside class="side">

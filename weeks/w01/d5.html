@@ -265,6 +265,16 @@ def ask(prompt):
         </div>
       </section>
 
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://12factor.net/config" target="_blank" rel="noopener">The Twelve-Factor App — Config</a> — the canonical case for reading API keys and config from the environment, never committing them to source: exactly Layer 1's rule.</li>
+          <li><a href="https://platform.claude.com/docs/en/api/errors" target="_blank" rel="noopener">Claude API — Errors</a> — the real HTTP codes your transport layer reasons about (429 rate limits, 5xx/529 overloaded, 504 timeout) plus the per-response request id for log correlation.</li>
+          <li><a href="https://platform.claude.com/docs/en/api/client-sdks" target="_blank" rel="noopener">Claude API — CLI, SDKs, and libraries</a> — the official provider SDKs your model adapter wraps; each ships built-in streaming, retries, and typed error handling.</li>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/streaming" target="_blank" rel="noopener">Claude API — Streaming messages</a> — how server-sent-event streaming actually works, backing Layer 4b's time-to-first-token and mid-stream failure handling.</li>
+        </ul>
+      </section>
+
     </article>
 
     <aside class="side">

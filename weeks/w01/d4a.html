@@ -219,6 +219,15 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
         </div>
       </section>
 
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic — Prompt caching</a> — the primary doc for Lever 1: prefix matching, cache invalidation, and the per-model minimum cacheable prefix size this page cites.</li>
+          <li><a href="https://platform.claude.com/docs/en/about-claude/pricing" target="_blank" rel="noopener">Anthropic — Pricing</a> — confirms the exact numbers in the cost-math section: cache read 0.1×, writes 1.25×/2× base input, Sonnet $3/$15 and Opus $5/$25 per MTok.</li>
+          <li><a href="https://developers.openai.com/api/docs/guides/prompt-caching" target="_blank" rel="noopener">OpenAI — Prompt caching</a> — the same prefix-caching discipline at another provider: cached input up to ~90% cheaper, stable content first and variable content last.</li>
+        </ul>
+      </section>
+
     </article>
 
     <aside class="side">
