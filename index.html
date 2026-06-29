@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>2463-FDE · Forward Deployed Engineer Program</title>
 <link rel="stylesheet" href="assets/css/style.css">
+<script src="assets/js/progress.js"></script>
 </head>
 <body>
 <div class="topbar">
@@ -141,10 +142,23 @@ window.WEEKS = [
       const partsHtml = day.parts
         ? `<div class="cell-parts">` + day.parts.map(p => `<a href="${p.href}">${p.t}</a>`).join("") + `</div>`
         : "";
+      // Per-learner Start / Resume / Completed. A day flips to ✓ once the learner
+      // opens a later topic (progress.js backfills). Only days with reading pages
+      // get a button; future "soon" days don't.
+      const firstHref = day.href || (day.parts && day.parts[0] && day.parts[0].href) || null;
+      let progHtml = "";
+      if (firstHref) {
+        const dayId = "w" + String(week.w).padStart(2, "0") + "d" + (di + 1);
+        const st = (window.FDE_PROGRESS ? window.FDE_PROGRESS.status(dayId) : "none");
+        const label = st === "completed" ? "✓ Completed" : (st === "started" ? "↻ Resume" : "▶ Start");
+        const cls = "day-prog day-prog--" + (st === "completed" ? "done" : (st === "started" ? "resume" : "start"));
+        progHtml = `<a class="${cls}" href="${firstHref}">${label}</a>`;
+      }
       const el = document.createElement("div");
       el.className = "cal-cell" + (day.href ? " live" : (day.parts ? " parts" : " soon"));
       el.style.setProperty("--pc", ph.c);
       el.innerHTML = `<div class="ct">${title}</div><div class="cs">${day.s || ""}</div>` + partsHtml +
+        (progHtml ? `<div class="day-actions">${progHtml}</div>` : "") +
         `<div class="cmark">${marks}</div>` + (rituals ? `<div class="ritual-row">${rituals}</div>` : "");
       cal.appendChild(el);
     });

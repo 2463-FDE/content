@@ -208,15 +208,23 @@
   }
 
   // ---- Header / TTS toggle ------------------------------------------------
+  // Mirrors the content site's .topbar (index.html / client-delivery.html) so the
+  // navbar is identical across the whole program: 2463·FDE brand + crumb + the
+  // shared nav links. App-specific controls (TTS, whoami) sit on the right.
   function renderHeader() {
     var head = $("#appHeader");
     clear(head);
-    var brand = el("div", { class: "brand" }, [
-      el("span", { class: "brand__bolt", text: "⚡" }),
-      el("span", { class: "brand__name", text: "AI Interview" })
-    ]);
 
-    var right = el("div", { class: "head-right" });
+    head.appendChild(el("span", { class: "brand" }, [
+      el("a", { href: "index.html", html: "<b>2463</b>·FDE" })
+    ]));
+    head.appendChild(el("span", { class: "crumb", text: "AI Interview" }));
+    head.appendChild(el("span", { class: "spacer" }));
+
+    // Same nav links as the program + client-delivery topbars.
+    head.appendChild(el("a", { class: "topnav", href: "atlas/", text: "FDE Mindset Atlas" }));
+    head.appendChild(el("a", { class: "topnav", href: "client-delivery.html", text: "Client Delivery" }));
+    head.appendChild(el("a", { class: "topnav", href: "gauntlet.html", text: "🎤 AI Interview" }));
 
     if (state.name) {
       var ttsBtn = el("button", {
@@ -229,17 +237,13 @@
         if (!state.ttsOn) window.STT.tts.cancel();
         renderHeader();
       });
-      right.appendChild(ttsBtn);
+      head.appendChild(ttsBtn);
 
-      var who = el("div", { class: "whoami" }, [
+      head.appendChild(el("div", { class: "whoami" }, [
         el("span", { class: "whoami__name", text: state.name }),
         state.tier ? el("span", { class: "tier-pill", text: state.tier }) : null
-      ]);
-      right.appendChild(who);
+      ]));
     }
-
-    head.appendChild(brand);
-    head.appendChild(right);
   }
 
   // ===========================================================================
