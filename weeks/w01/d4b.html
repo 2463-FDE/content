@@ -211,7 +211,7 @@ return resp.text             # straight to the customer"
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://developers.openai.com/api/docs/guides/structured-outputs" target="_blank" rel="noopener">OpenAI — Structured model outputs</a> — the provider-side "responses must match this JSON schema" feature (strict mode) that raises the conformance hit rate behind Guardrail 1.</li>
-          <li><a href="https://platform.claude.com/docs/en/build-with-claude/tool-use/overview" target="_blank" rel="noopener">Anthropic — Tool use with Claude</a> — strict tool use for schema-conformant JSON, plus the <code>stop_reason</code> signals your code branches on to detect refusals before reading content.</li>
+          <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview" target="_blank" rel="noopener">Anthropic — Tool use with Claude</a> — strict tool use for schema-conformant JSON, plus the <code>stop_reason</code> signals your code branches on to detect refusals before reading content.</li>
           <li><a href="https://pydantic.dev/docs/validation/latest/concepts/validators/" target="_blank" rel="noopener">Pydantic — Validators</a> — the in-code validation layer (the belt to the provider's suspenders) that re-verifies every response and throws at the boundary.</li>
           <li><a href="https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations" target="_blank" rel="noopener">Anthropic — Reduce hallucinations</a> — primary backing for Guardrail 3: ground in source, demand citations per claim, and permit "I don't know."</li>
         </ul>

@@ -268,9 +268,9 @@ except Exception:
       <section class="reading-sources" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
-          <li><a href="https://docs.claude.com/en/docs/build-with-claude/streaming" target="_blank" rel="noopener">Anthropic — Streaming Messages</a> — official docs for server-sent-event streaming, the mechanism behind Pattern 1 (low time-to-first-token, and why long outputs need streaming to dodge HTTP timeouts).</li>
-          <li><a href="https://docs.claude.com/en/docs/build-with-claude/batch-processing" target="_blank" rel="noopener">Anthropic — Message Batches API</a> — primary source for Pattern 2: asynchronous bulk processing at ~50% off, with results returned by your <code>custom_id</code> in no guaranteed order.</li>
-          <li><a href="https://docs.claude.com/en/api/errors" target="_blank" rel="noopener">Anthropic — API Errors</a> — the error taxonomy the lesson branches on (400/401 vs 429/5xx, 504 timeout) and the warning that a streamed response can error <em>after</em> a 200 — Patterns 4, 6, and 7.</li>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/streaming" target="_blank" rel="noopener">Anthropic — Streaming Messages</a> — official docs for server-sent-event streaming, the mechanism behind Pattern 1 (low time-to-first-token, and why long outputs need streaming to dodge HTTP timeouts).</li>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/batch-processing" target="_blank" rel="noopener">Anthropic — Message Batches API</a> — primary source for Pattern 2: asynchronous bulk processing at ~50% off, with results returned by your <code>custom_id</code> in no guaranteed order.</li>
+          <li><a href="https://platform.claude.com/docs/en/api/errors" target="_blank" rel="noopener">Anthropic — API Errors</a> — the error taxonomy the lesson branches on (400/401 vs 429/5xx, 504 timeout) and the warning that a streamed response can error <em>after</em> a 200 — Patterns 4, 6, and 7.</li>
           <li><a href="https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/" target="_blank" rel="noopener">AWS Architecture Blog — Exponential Backoff And Jitter</a> — the canonical reference for Pattern 4: why bare exponential backoff still produces retry storms and how jitter spreads the herd.</li>
         </ul>
       </section>
