@@ -199,7 +199,7 @@
           state.tier = data.tier || null;
           state.session = data;
           saveCreds();
-          renderModeSelect();
+          landAfterLogin();
         } else {
           renderGate();
         }
@@ -215,17 +215,20 @@
     var head = $("#appHeader");
     clear(head);
 
-    head.appendChild(el("span", { class: "brand" }, [
-      el("a", { href: "index.html", html: "<b>2463</b>·FDE" })
+    // 3-zone navbar mirroring the content site: brand + Home (left), shared
+    // page nav (center), app controls + whoami (right).
+    head.appendChild(el("div", { class: "topbar-left" }, [
+      el("span", { class: "brand" }, [el("a", { href: "index.html", html: "<b>2463</b>·FDE" })]),
+      el("a", { class: "topnav", href: "index.html", text: "Home" })
     ]));
-    head.appendChild(el("span", { class: "crumb", text: "AI Interview" }));
-    head.appendChild(el("span", { class: "spacer" }));
 
-    // Same nav links as the program + client-delivery topbars.
-    head.appendChild(el("a", { class: "topnav", href: "atlas/", text: "FDE Mindset Atlas" }));
-    head.appendChild(el("a", { class: "topnav", href: "client-delivery.html", text: "Client Delivery" }));
-    head.appendChild(el("a", { class: "topnav", href: "gauntlet.html", text: "🎤 AI Interview" }));
+    head.appendChild(el("nav", { class: "topbar-center" }, [
+      el("a", { class: "topnav", href: "atlas/", text: "FDE Mindset Atlas" }),
+      el("a", { class: "topnav", href: "client-delivery.html", text: "Client Delivery" }),
+      el("a", { class: "topnav", href: "gauntlet.html", text: "🎤 AI Interview" })
+    ]));
 
+    var right = el("div", { class: "topbar-right" });
     if (state.name) {
       var ttsBtn = el("button", {
         class: "tts-toggle" + (state.ttsOn ? " is-on" : ""),
@@ -237,13 +240,14 @@
         if (!state.ttsOn) window.STT.tts.cancel();
         renderHeader();
       });
-      head.appendChild(ttsBtn);
+      right.appendChild(ttsBtn);
 
-      head.appendChild(el("div", { class: "whoami" }, [
+      right.appendChild(el("div", { class: "whoami" }, [
         el("span", { class: "whoami__name", text: state.name }),
         state.tier ? el("span", { class: "tier-pill", text: state.tier }) : null
       ]));
     }
+    head.appendChild(right);
   }
 
   // ===========================================================================
@@ -293,7 +297,7 @@
             state.tier = data.tier || null;
             state.session = data;
             saveCreds();
-            renderModeSelect();
+            landAfterLogin();
           } else {
             btn.disabled = false;
             btn.textContent = "Enter";
@@ -324,6 +328,20 @@
   // ===========================================================================
   function creds() {
     return { name: state.name, passcode: state.passcode, tier: state.tier };
+  }
+
+  // Where a freshly-signed-in learner lands. Deep-links from the curriculum
+  // calendar skip the hub: a "Sys-design" chip jumps into the System Design
+  // simulator, an "AI Interview" chip jumps to the scoped lobby. Otherwise the
+  // normal hub mode-select.
+  function landAfterLogin() {
+    if (state.deepLinkSd) {
+      if (state.deepLinkSd === "pick") window.DESIGN.open(creds(), renderModeSelect);
+      else window.DESIGN.openTrack(creds(), state.deepLinkSd, renderModeSelect);
+      return;
+    }
+    if (state.deepLinkDay) { renderLobby(); return; }
+    renderModeSelect();
   }
 
   function renderModeSelect() {
@@ -1491,8 +1509,21 @@
     // focus so a learner who clicks "AI Interview" on a day card lands scoped to
     // that day. Ignored unless it matches a known curriculum day.
     try {
-      var qd = new URLSearchParams(window.location.search).get("day");
-      if (qd && CURRICULUM_DAYS.some(function (d) { return d.v === qd; })) state.day = qd;
+      var qs = new URLSearchParams(window.location.search);
+      var qd = qs.get("day");
+      if (qd && CURRICULUM_DAYS.some(function (d) { return d.v === qd; })) {
+        state.day = qd;
+        // Deep-link intent: the learner clicked a day's "AI Interview" chip, so
+        // skip the hub mode-select and land them straight on the interview lobby
+        // (Start Interview, scoped to that day) instead of making them pick Mode.
+        state.deepLinkDay = true;
+      }
+      // ?sd= deep-link from the curriculum's "Sys-design" chip: jump straight
+      // into the System Design simulator so they can pre-plan before Friday.
+      // ?sd=fullstack / ?sd=agentic skips to that track's scenarios; any other
+      // truthy value (?sd=1) opens the multi-domain track picker.
+      var sd = qs.get("sd");
+      if (sd) state.deepLinkSd = (sd === "fullstack" || sd === "agentic") ? sd : "pick";
     } catch (e) { /* no-op */ }
     // Prefer the shared 2463 identity (entered on the program site). If present,
     // sign in silently and land on the hub. Otherwise show the access-code gate.

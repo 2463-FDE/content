@@ -9,12 +9,16 @@
 </head>
 <body>
 <div class="topbar">
-  <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
-  <span class="crumb">Forward Deployed Engineer · 10-Week Program</span>
-  <span class="spacer"></span>
-  <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
-  <a class="topnav" href="client-delivery.html">Client Delivery</a>
-  <a class="topnav" href="gauntlet.html">🎤 AI Interview</a>
+  <div class="topbar-left">
+    <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right"></div>
 </div>
 
 <div class="cal-wrap">
@@ -136,9 +140,12 @@ window.WEEKS = [
         rituals += `<a class="ritual iv" href="gauntlet.html?day=${dd}" title="Daily AI Interview — do it before end of day">🎤 AI Interview</a>`;
       }
       if (di === 0) rituals += `<a class="ritual cr" href="client-delivery.html?w=${week.w}">📋 Client request</a>`;
-      if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}">🎯 Sys-design · start</a>`;
+      // Sys-design rituals link into the AI Interview System Design simulator
+      // (multi-domain: full-stack + AI/agentic). Tue = start pre-planning,
+      // Fri = due. ?sd=1 opens the track picker so they pick their domain.
+      if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="gauntlet.html?sd=1" title="Open the System Design simulator — start pre-planning before Friday">🎯 Sys-design · start</a>`;
       if (week.w <= 8 && di === 2) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}">🔬 Alt research</a>`;
-      if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}">🎯 Sys-design · due</a>`;
+      if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="gauntlet.html?sd=1" title="System Design due — open the simulator">🎯 Sys-design · due</a>`;
       const partsHtml = day.parts
         ? `<div class="cell-parts">` + day.parts.map(p => `<a href="${p.href}">${p.t}</a>`).join("") + `</div>`
         : "";
@@ -157,9 +164,18 @@ window.WEEKS = [
       const el = document.createElement("div");
       el.className = "cal-cell" + (day.href ? " live" : (day.parts ? " parts" : " soon"));
       el.style.setProperty("--pc", ph.c);
-      el.innerHTML = `<div class="ct">${title}</div><div class="cs">${day.s || ""}</div>` + partsHtml +
-        (progHtml ? `<div class="day-actions">${progHtml}</div>` : "") +
-        `<div class="cmark">${marks}</div>` + (rituals ? `<div class="ritual-row">${rituals}</div>` : "");
+      // Layout contract: head (title+subtitle) at top, parts list in the body
+      // expanding downward, foot pinned to the bottom so Start + rituals land in
+      // the same spot on every card regardless of title-wrap / part count. Marks
+      // (◆ FDE / ★) are chips folded into the foot's tag row.
+      const tags = marks + rituals;
+      el.innerHTML =
+        `<div class="ct">${title}</div><div class="cs">${day.s || ""}</div>` +
+        partsHtml +
+        `<div class="cell-foot">` +
+          (progHtml ? `<div class="day-actions">${progHtml}</div>` : "") +
+          (tags ? `<div class="ritual-row">${tags}</div>` : "") +
+        `</div>`;
       cal.appendChild(el);
     });
   });

@@ -44,6 +44,12 @@ body {
 .topbar .brand b { color: var(--accent); }
 .topbar .crumb { color: var(--ink-soft); }
 .topbar .spacer { flex: 1; }
+/* 3-zone navbar: brand+Home (left), page nav (center), profile (right).
+   Left and right flex:1 so the center group sits in the true middle. */
+.topbar-left { flex: 1; display: flex; align-items: center; gap: 14px; min-width: 0; }
+.topbar-center { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; }
+.topbar-right { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.topbar-left .topnav { margin-left: 0; }
 .progressbar { height: 3px; background: var(--line); border-radius: 2px; flex: 0 0 160px; overflow: hidden; }
 .progressbar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s ease; }
 
@@ -503,13 +509,14 @@ body.is-trainer .trainer-only { display:block; }
 .cal-week .ww { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--pc); }
 .cal-week .wt { font-weight:650; font-size:15.5px; line-height:1.2; margin:3px 0; }
 .cal-week .wp { font-size:11.5px; color:var(--ink-soft); }
-.cal-cell { display:block; text-decoration:none; color:inherit; background:#fff; border:1px solid var(--line); border-top:3px solid var(--pc); border-radius:10px; padding:12px 13px; min-height:108px; position:relative; transition:transform .1s, box-shadow .1s, border-color .1s; }
+.cal-cell { display:flex; flex-direction:column; text-decoration:none; color:inherit; background:#fff; border:1px solid var(--line); border-top:3px solid var(--pc); border-radius:10px; padding:12px 13px; min-height:108px; position:relative; transition:transform .1s, box-shadow .1s, border-color .1s; }
 .cal-cell .ct { font-weight:650; font-size:14.5px; line-height:1.25; padding-right:38px; }
 .cal-cell .cs { font-size:12px; color:var(--ink-soft); margin-top:5px; line-height:1.35; }
-.cal-cell .cmark { margin-top:8px; display:flex; gap:8px; }
-.cal-cell .mk { font-size:11px; font-weight:700; }
-.cal-cell .mk.fde { color:#1c7ed6; }
-.cal-cell .mk.star { color:#f08c00; }
+/* foot pinned to the bottom — Start + tags land in the same spot on every card */
+.cell-foot { margin-top:auto; display:flex; flex-direction:column; gap:9px; padding-top:11px; }
+.cal-cell .mk { font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:20px; border:1px solid var(--line); white-space:nowrap; }
+.cal-cell .mk.fde { color:#1c7ed6; border-color:#d0ebff; background:#eef7ff; }
+.cal-cell .mk.star { color:#f08c00; border-color:#ffe8cc; background:#fff4e6; }
 .cal-cell.live:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(40,30,10,.1); border-color:var(--pc); }
 .cal-cell.soon { opacity:.6; }
 .cal-cell.soon:after { content:"soon"; position:absolute; top:10px; right:11px; font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.06em; }
@@ -522,14 +529,14 @@ body.is-trainer .trainer-only { display:block; }
 .cal-cell .ct-link { color:inherit; text-decoration:none; }
 .cal-cell.live .ct-link:hover { color:var(--accent); text-decoration:underline; }
 /* per-learner Start / Resume / Completed button on each day card */
-.day-actions { margin-top:10px; }
+.day-actions { margin-top:0; }
 .day-prog { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; text-decoration:none; padding:5px 12px; border-radius:8px; border:1px solid var(--line); transition:filter .1s, transform .1s; }
 .day-prog:hover { transform:translateY(-1px); }
 .day-prog--start { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
 .day-prog--resume { color:#fff; border-color:var(--accent); background:var(--accent); box-shadow:0 2px 8px -2px rgba(232,89,12,.5); }
 .day-prog--done { color:var(--good); border-color:#c3f0cd; background:#eefbf1; }
 
-.ritual-row { display:flex; flex-wrap:wrap; gap:5px; margin-top:9px; }
+.ritual-row { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:0; }
 .ritual { font-size:10.5px; font-weight:600; text-decoration:none; padding:2px 8px; border-radius:20px; border:1px solid var(--line); color:var(--ink-soft); white-space:nowrap; }
 .ritual:hover { filter:brightness(.97); }
 .ritual.cr { color:#0ca678; border-color:#c3fae8; background:#ebfbf4; }

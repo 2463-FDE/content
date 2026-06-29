@@ -28,7 +28,9 @@
     return null;
   }
   function badge(idt) {
-    const bar = document.querySelector(".topbar");
+    // Mount into the navbar's right zone when present (3-zone topbar); fall
+    // back to the bar itself on pages with the older single-row topbar.
+    const bar = document.querySelector(".topbar-right") || document.querySelector(".topbar");
     if (!bar) return;
     let b = bar.querySelector(".id-badge");
     if (!b) { b = document.createElement("span"); b.className = "id-badge"; bar.appendChild(b); }

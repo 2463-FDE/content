@@ -58,6 +58,11 @@ html, body {
 .brand b { color: var(--accent); }
 .app-header .crumb { color: var(--muted); }
 .app-header .spacer { flex: 1; }
+/* 3-zone navbar: brand+Home (left), page nav (center), controls+whoami (right).
+   Left and right flex:1 so the center group sits in the true middle. */
+.app-header .topbar-left { flex: 1; display: flex; align-items: center; gap: 14px; min-width: 0; }
+.app-header .topbar-center { flex: 0 0 auto; display: flex; align-items: center; gap: 16px; }
+.app-header .topbar-right { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
 .topnav { color: var(--muted); text-decoration: none; font-weight: 600; font-size: 14px; }
 .topnav:hover { color: var(--accent); }
 .head-right { display: flex; align-items: center; gap: 14px; }
