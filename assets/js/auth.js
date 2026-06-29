@@ -1,30 +1,40 @@
-/* auth.js — lightweight identity gate. First visit: enter access code (from
-   roster.js) -> marks who you are for progress tracking. Learner codes match
-   plaintext; trainer codes are verified against SHA-256 hashes (TRAINERS) so
-   trainer codes never appear in the public source. Sets window.FDE_getIdentity().
-   Not real security — just consistent attribution + answer-key gating. */
+/* auth.js — lightweight identity gate. First visit: enter access code -> the
+   Worker validates it (server-side, against KV logins + a hardcoded fallback) and
+   issues an HMAC-signed session token. No codes/hashes ship in page source anymore.
+   On success we store the identity ({code,name,role}) AND the session token in
+   localStorage; the token is sent as a bearer on trainer API calls. Sets
+   window.FDE_getIdentity(). Not bank-grade, but validation now lives on the server. */
 (function () {
   const KEY = "fde_identity";
+  const TOKEN_KEY = "fde_session";
+  const RUN = (window.FDE_RUN_URL || "").replace(/\/$/, "");
   function get() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } }
-  function set(idt) {
+  function set(idt, token) {
     localStorage.setItem(KEY, JSON.stringify(idt));
     localStorage.setItem("fde_trainee_id", idt.code);
     localStorage.setItem("fde_trainee_name", idt.name);
+    if (token) localStorage.setItem(TOKEN_KEY, token);
   }
-  async function sha256(s) {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+  function clear() {
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(TOKEN_KEY);
   }
+  // Server-side validation: POST the code to the Worker; on success it returns
+  // {ok, token, name, role}. Returns {idt, token} or null. Never throws.
   async function resolve(code) {
     const c = (code || "").trim();
-    if (!c) return null;
-    const plain = (window.ROSTER || []).find(r => r.code.toUpperCase() === c.toUpperCase());
-    if (plain) return { code: plain.code, name: plain.name, role: plain.role };
+    if (!c || !RUN) return null;
     try {
-      const h = await sha256(c);
-      const t = (window.TRAINERS || []).find(x => x.hash === h);
-      if (t) return { code: c, name: t.name, role: "trainer" };
-    } catch (e) { /* crypto unavailable (insecure context) */ }
+      const r = await fetch(RUN + "/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: c }),
+      });
+      const data = await r.json();
+      if (r.ok && data && data.ok) {
+        return { idt: { code: c, name: data.name, role: data.role }, token: data.token };
+      }
+    } catch (e) { /* network/parse error -> treated as not recognized */ }
     return null;
   }
   function badge(idt) {
@@ -36,7 +46,7 @@
     if (!b) { b = document.createElement("span"); b.className = "id-badge"; bar.appendChild(b); }
     const rolePill = (idt.role === "trainer") ? '<span class="role">trainer</span>' : '';
     b.innerHTML = `<span class="dot"></span><span>${idt.name}</span>${rolePill} <a href="#" class="logout">log out</a>`;
-    b.querySelector(".logout").addEventListener("click", e => { e.preventDefault(); localStorage.removeItem(KEY); location.reload(); });
+    b.querySelector(".logout").addEventListener("click", e => { e.preventDefault(); clear(); location.reload(); });
   }
   function overlay() {
     const o = document.createElement("div");
@@ -55,7 +65,7 @@
     async function submit() {
       go.disabled = true; err.textContent = "";
       const m = await resolve(inp.value);
-      if (m) { set(m); location.reload(); }
+      if (m) { set(m.idt, m.token); location.reload(); }
       else { err.textContent = "Code not recognized. Check with your trainer."; go.disabled = false; inp.focus(); }
     }
     go.addEventListener("click", submit);

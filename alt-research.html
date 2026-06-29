@@ -353,12 +353,13 @@ window.ALT = {
     try { return (typeof window.FDE_getIdentity === "function" && window.FDE_getIdentity()) || null; }
     catch (e) { return null; }
   }
-  // The 4 learners, sorted by code for a stable rotation order.
+  // Learner roster for the weekly rotation — DISPLAY/assignment only, NOT auth.
+  // Logins are server-side now (no codes on the page); these names just drive the
+  // per-learner alternative rotation. Keep in sync with the trainer roster.
+  // Sorted by name for a stable rotation order; matched against fde_identity.name.
+  const AR_LEARNERS = ["Armaan Dhanoa", "Jorge Ferreira", "Kalabe Kebede", "Mahalakshmi Chandrasekar"];
   function learners() {
-    return (window.ROSTER || [])
-      .filter(r => r.role === "learner")
-      .slice()
-      .sort((a, b) => a.code.localeCompare(b.code));
+    return AR_LEARNERS.slice().sort((a, b) => a.localeCompare(b)).map(name => ({ name }));
   }
   // Which learner index owns alternative `a` (0..3) in week `week`.
   function ownerIndex(week, a, n) { return (a + (week - 1)) % n; }
@@ -371,7 +372,7 @@ window.ALT = {
     const idt = getIdentity();
     let mine = -1, previewName = "";
     if (idt && n > 0) {
-      const li = ls.findIndex(r => r.code.toUpperCase() === (idt.code || "").toUpperCase());
+      const li = ls.findIndex(r => r.name === idt.name);
       if (li >= 0) {                       // a real learner
         mine = myAltIndex(week, li, n);
       } else if (idt.role === "tester") {  // tester previews the first learner's slot

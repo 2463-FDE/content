@@ -92,6 +92,22 @@ Goal (user): NO codes on the page at all; trainer generates a passcode + shares 
 - NOTE: `/auth/*` routes live in `backend/src/index.js` — build AFTER #5 deploys
   to avoid clobbering the same file.
 
+## FINAL STEP — clean-slate reset (after #6 + #7 ship + verified)
+Login changes alone do NOT fully reset progress. Two namespaces:
+- **Code-keyed** (auto-resets if #7 issues new codes): `uprog:<code>`, `cc:<code>:<day>`,
+  `q:`/`xo:` (try-it), `progress:` (/track), + browser localStorage
+  (`fde_progress_<code>`, `fde_summary_*`).
+- **Name-keyed** (does NOT reset on code change): `weak:<name>`, `best:`/`dbest:`,
+  `attempts:`/`attempts:sd:`, `dhist:<name>`. Plus session-keyed `iv:`/`drep:`.
+
+For a TRUE scratch reset: one-time KV purge of all per-user DATA prefixes
+(`uprog: cc: weak: best: dbest: attempts: dhist: iv: drep: q: xo: progress:`),
+PRESERVING `login:` entries and CJ-TEST. Combined with #7's fresh codes = genuine
+clean slate. Also bump a client reset marker so returning browsers discard stale
+localStorage instead of re-syncing it up (progress.js heals local→server, so a
+server-only wipe won't stick without this). Optionally add a per-learner "Reset"
+button in the trainer panel for ongoing use. Do this LAST so we don't wipe mid-build.
+
 ## Cross-cutting reminders
 - Backend (`backend/src/index.js`, `design.js`) is NOT git — deploys via
   `npx wrangler deploy`. Frontend (`content/`) is git → GitHub Pages.

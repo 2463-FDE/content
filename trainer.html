@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trainer · Logins | 2463-FDE</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+  /* ---- trainer page (reuses site design language) ---- */
+  .tr-wrap { max-width: 760px; margin: 0 auto; padding: 0 24px 70px; }
+  .tr-hero { padding: 40px 0 18px; }
+  .tr-hero h1 { font-size: 38px; margin: 0 0 8px; letter-spacing: -.5px; }
+  .tr-hero h1 b { color: var(--accent); }
+  .tr-hero p { color: var(--ink-soft); font-size: 17px; max-width: 620px; margin: 0; }
+
+  .tr-card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:24px 26px; box-shadow:0 6px 24px rgba(40,30,10,.06); margin:18px 0; }
+  .tr-card h2 { font-size:18px; margin:0 0 16px; }
+
+  .tr-form { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .tr-field { display:flex; flex-direction:column; gap:5px; }
+  .tr-field label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color:var(--ink-soft); }
+  .tr-field input, .tr-field select { font:inherit; font-size:15px; padding:9px 11px; border:1.5px solid var(--line); border-radius:9px; background:#fff; color:var(--ink); min-width:200px; }
+  .tr-field input:focus, .tr-field select:focus { outline:none; border-color:var(--accent); }
+
+  .tr-result { display:none; margin-top:16px; border:1px solid #ffd8bf; background:var(--accent-soft); border-radius:12px; padding:14px 16px; }
+  .tr-result .lbl { font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color:#c2410c; }
+  .tr-result .code { font-family:var(--mono); font-size:21px; font-weight:700; color:var(--ink); margin:6px 0 4px; user-select:all; }
+  .tr-result .hint { font-size:13px; color:var(--ink-soft); margin:0; }
+  .tr-result .copy { margin-top:8px; }
+
+  .tr-err { color:#c92a2a; font-size:14px; margin-top:10px; min-height:1em; }
+  .tr-msg { color:var(--ink-soft); font-size:14px; }
+
+  table.tr-list { width:100%; border-collapse:collapse; font-size:14.5px; }
+  table.tr-list th, table.tr-list td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); }
+  table.tr-list th { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); }
+  table.tr-list td.who { font-weight:650; }
+  .tr-pill { display:inline-block; font-size:11px; font-weight:700; border-radius:20px; padding:2px 9px; }
+  .tr-pill.role { background:#eef7ff; color:#1c7ed6; }
+  .tr-pill.builtin { background:#f1efe9; color:var(--ink-soft); }
+  .tr-revoke { font:inherit; font-size:13px; cursor:pointer; border:1px solid #ffc9c9; background:#fff5f5; color:#c92a2a; border-radius:8px; padding:5px 11px; }
+  .tr-revoke:hover { background:#ffe3e3; }
+  .tr-revoke[disabled] { opacity:.4; cursor:not-allowed; }
+
+  .tr-denied { max-width:520px; margin:80px auto; text-align:center; }
+  .tr-denied h2 { font-size:24px; margin:0 0 8px; }
+  .tr-denied p { color:var(--ink-soft); font-size:16px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right"></div>
+</div>
+
+<div id="tr-app"></div>
+
+<script src="assets/js/roster.js"></script>
+<script src="assets/js/auth.js"></script>
+<script>
+/* Trainer-only login management. auth.js gates the page (shows the access-code
+   overlay if logged out); this script then checks the resolved role. Only a
+   "trainer" session can add/list/revoke logins — the Worker also enforces this
+   server-side (a forged role here still fails without a valid trainer token). */
+(function () {
+  const RUN = (window.FDE_RUN_URL || "").replace(/\/$/, "");
+  const app = document.getElementById("tr-app");
+
+  function identity() { try { return JSON.parse(localStorage.getItem("fde_identity") || "null"); } catch (e) { return null; } }
+  function token() { return localStorage.getItem("fde_session") || ""; }
+  function authHeaders() { return { "content-type": "application/json", "Authorization": "Bearer " + token() }; }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c])); }
+
+  function renderDenied() {
+    app.innerHTML =
+      '<div class="tr-wrap"><div class="tr-denied">' +
+        '<h2>Trainers only</h2>' +
+        '<p>This page is for trainers. If you think you should have access, check with your lead for a trainer code.</p>' +
+      '</div></div>';
+  }
+
+  function renderApp() {
+    app.innerHTML =
+      '<div class="tr-wrap">' +
+        '<div class="tr-hero">' +
+          '<h1>Trainer · <b>Logins</b></h1>' +
+          '<p>Create an access code for a learner or trainer, share it once, and revoke it when they roll off. Codes are never stored in readable form — copy the generated code now, it won\'t be shown again.</p>' +
+        '</div>' +
+        '<div class="tr-card">' +
+          '<h2>Add a login</h2>' +
+          '<div class="tr-form">' +
+            '<div class="tr-field"><label for="f-name">Name</label><input id="f-name" type="text" placeholder="Full name" autocomplete="off" spellcheck="false"></div>' +
+            '<div class="tr-field"><label for="f-role">Role</label>' +
+              '<select id="f-role"><option value="learner">learner</option><option value="trainer">trainer</option><option value="practice">practice</option></select>' +
+            '</div>' +
+            '<button class="btn" id="f-go" type="button">Generate code</button>' +
+          '</div>' +
+          '<div class="tr-err" id="f-err"></div>' +
+          '<div class="tr-result" id="f-result">' +
+            '<div class="lbl">New access code for <span id="r-name"></span> (<span id="r-role"></span>)</div>' +
+            '<div class="code" id="r-code"></div>' +
+            '<p class="hint">Share this with them now and have them enter it on the program site. It cannot be recovered later.</p>' +
+            '<button class="btn tr-revoke copy" id="r-copy" type="button" style="border-color:var(--line);background:#fff;color:var(--ink)">Copy</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="tr-card">' +
+          '<h2>Existing logins</h2>' +
+          '<div id="list-msg" class="tr-msg">Loading…</div>' +
+          '<table class="tr-list" id="list-tbl" style="display:none"><thead><tr><th>Name</th><th>Role</th><th>Source</th><th></th></tr></thead><tbody id="list-body"></tbody></table>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById("f-go").addEventListener("click", addLogin);
+    loadList();
+  }
+
+  async function addLogin() {
+    const go = document.getElementById("f-go");
+    const err = document.getElementById("f-err");
+    const result = document.getElementById("f-result");
+    const name = document.getElementById("f-name").value.trim();
+    const role = document.getElementById("f-role").value;
+    err.textContent = ""; result.style.display = "none";
+    if (!name) { err.textContent = "Enter a name."; return; }
+    go.disabled = true;
+    try {
+      const r = await fetch(RUN + "/auth/add", { method: "POST", headers: authHeaders(), body: JSON.stringify({ name, role }) });
+      const data = await r.json();
+      if (r.ok && data && data.ok) {
+        document.getElementById("r-name").textContent = data.name;
+        document.getElementById("r-role").textContent = data.role;
+        document.getElementById("r-code").textContent = data.code;
+        result.style.display = "block";
+        document.getElementById("f-name").value = "";
+        document.getElementById("r-copy").onclick = () => { navigator.clipboard && navigator.clipboard.writeText(data.code); };
+        loadList();
+      } else if (r.status === 403) {
+        err.textContent = "Your session isn't a valid trainer session. Log out and back in with a trainer code.";
+      } else {
+        err.textContent = "Could not add login (" + (data && data.error ? data.error : r.status) + ").";
+      }
+    } catch (e) {
+      err.textContent = "Network error — is the backend reachable?";
+    }
+    go.disabled = false;
+  }
+
+  async function loadList() {
+    const msg = document.getElementById("list-msg");
+    const tbl = document.getElementById("list-tbl");
+    const body = document.getElementById("list-body");
+    try {
+      const r = await fetch(RUN + "/auth/list", { headers: authHeaders() });
+      const data = await r.json();
+      if (!(r.ok && data && data.ok)) { msg.textContent = "Could not load logins."; return; }
+      const logins = data.logins || [];
+      if (!logins.length) { msg.textContent = "No logins yet."; return; }
+      body.innerHTML = logins.map(l => {
+        const builtin = l.source === "builtin";
+        const revoke = builtin
+          ? '<button class="tr-revoke" disabled title="Built-in — cannot be revoked here">built-in</button>'
+          : '<button class="tr-revoke" data-name="' + esc(l.name) + '">Revoke</button>';
+        return '<tr><td class="who">' + esc(l.name) + '</td>' +
+          '<td><span class="tr-pill role">' + esc(l.role) + '</span></td>' +
+          '<td><span class="tr-pill ' + (builtin ? "builtin" : "role") + '">' + esc(l.source) + '</span></td>' +
+          '<td style="text-align:right">' + revoke + '</td></tr>';
+      }).join("");
+      msg.style.display = "none"; tbl.style.display = "table";
+      body.querySelectorAll(".tr-revoke[data-name]").forEach(b =>
+        b.addEventListener("click", () => revoke(b.getAttribute("data-name"))));
+    } catch (e) {
+      msg.textContent = "Network error — is the backend reachable?";
+    }
+  }
+
+  async function revoke(name) {
+    if (!confirm('Revoke ALL logins named "' + name + '"? Their code will stop working immediately.')) return;
+    try {
+      const r = await fetch(RUN + "/auth/revoke", { method: "POST", headers: authHeaders(), body: JSON.stringify({ name }) });
+      const data = await r.json();
+      if (r.ok && data && data.ok) loadList();
+      else alert("Could not revoke (" + (data && data.error ? data.error : r.status) + ").");
+    } catch (e) { alert("Network error — is the backend reachable?"); }
+  }
+
+  // auth.js gates login + reloads on success; gate on role once identity exists.
+  document.addEventListener("DOMContentLoaded", () => {
+    const idt = identity();
+    if (!idt) return;                       // auth.js is showing the access-code overlay
+    if (idt.role !== "trainer") renderDenied();
+    else renderApp();
+  });
+})();
+</script>
+</body>
+</html>
