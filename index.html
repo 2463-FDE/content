@@ -13,7 +13,7 @@
   <span class="spacer"></span>
   <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
   <a class="topnav" href="client-delivery.html">Client Delivery</a>
-  <a class="topnav" href="gauntlet.html">⚡ Gauntlet</a>
+  <a class="topnav" href="gauntlet.html">🎤 AI Interview</a>
 </div>
 
 <div class="cal-wrap">
@@ -127,6 +127,13 @@ window.WEEKS = [
       const marks = `${day.fde ? '<span class="mk fde">◆ FDE</span>' : ''}${day.star ? '<span class="mk star">★</span>' : ''}`;
       // recurring weekly rituals
       let rituals = "";
+      // Daily AI Interview — every day from program Day 2 onward. Day 1 (w1d1) has
+      // no material taught yet to interview on. Deep-links the gauntlet scoped to
+      // that day (cumulative through the prior day). Accent-filled so it stands out.
+      if (!(week.w === 1 && di === 0)) {
+        const dd = "w" + String(week.w).padStart(2, "0") + "d" + (di + 1);
+        rituals += `<a class="ritual iv" href="gauntlet.html?day=${dd}" title="Daily AI Interview — do it before end of day">🎤 AI Interview</a>`;
+      }
       if (di === 0) rituals += `<a class="ritual cr" href="client-delivery.html?w=${week.w}">📋 Client request</a>`;
       if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}">🎯 Sys-design · start</a>`;
       if (week.w <= 8 && di === 2) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}">🔬 Alt research</a>`;

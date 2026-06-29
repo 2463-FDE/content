@@ -213,7 +213,7 @@
     clear(head);
     var brand = el("div", { class: "brand" }, [
       el("span", { class: "brand__bolt", text: "⚡" }),
-      el("span", { class: "brand__name", text: "FDE Interview Gauntlet" })
+      el("span", { class: "brand__name", text: "AI Interview" })
     ]);
 
     var right = el("div", { class: "head-right" });
@@ -267,7 +267,7 @@
     });
     if (pid && pid.code) code.value = pid.code;
 
-    var btn = el("button", { class: "btn btn--primary btn--lg", id: "enterBtn", type: "submit" }, ["Enter the Gauntlet"]);
+    var btn = el("button", { class: "btn btn--primary btn--lg", id: "enterBtn", type: "submit" }, ["Enter"]);
 
     var form = el("form", { class: "gate-form" }, [
       el("label", { class: "field-label", text: "Access code" }),
@@ -292,19 +292,19 @@
             renderModeSelect();
           } else {
             btn.disabled = false;
-            btn.textContent = "Enter the Gauntlet";
+            btn.textContent = "Enter";
             if (data && data.error === "bad_passcode") window.showToast("Code not recognized. Check with your trainer.", "error");
             else window.showToast("Could not sign in.", "error");
           }
         })
         .catch(function () {
           btn.disabled = false;
-          btn.textContent = "Enter the Gauntlet";
+          btn.textContent = "Enter";
         });
     });
 
     var card = el("div", { class: "card gate-card screen-in" }, [
-      el("h1", { class: "gate-title", text: "The Gauntlet" }),
+      el("h1", { class: "gate-title", text: "AI Interview" }),
       el("p", { class: "gate-sub", text: "Speak your answers. Design real systems. AI critics score them — sharpen your interview and system-design reps." }),
       form,
       el("p", { class: "gate-back" }, [
@@ -339,7 +339,7 @@
     }
 
     var interviewCard = modeCard(
-      "Interview Gauntlet",
+      "Daily AI Interview",
       "10 spoken interview questions, scoped to your cohort's current day. An AI judge scores substance, mindset, and delivery.",
       "behavioral · scenario · technical",
       function () { renderLobby(); }
@@ -1307,7 +1307,7 @@
     return "<!DOCTYPE html><html><head><meta charset='utf-8'/>" +
       "<title>" + esc(title) + "</title><style>" + css + "</style></head>" +
       "<body><div class='report'>" +
-      "<p class='brandline'>⚡ FDE Interview Gauntlet</p>" +
+      "<p class='brandline'>🎤 2463-FDE · AI Interview</p>" +
       "<h1>Interview Feedback</h1>" +
       "<div class='meta'>" + metaBits.join("") + "</div>" +
       overallHtml +
@@ -1472,6 +1472,13 @@
     if (!window.CONFIG || !window.CONFIG.WORKER_URL || window.CONFIG.WORKER_URL === "REPLACE_WITH_WORKER_URL") {
       window.showToast("Backend not configured yet (config.js WORKER_URL).", "warn");
     }
+    // Deep-link from the curriculum calendar: ?day=w01d3 preselects the interview
+    // focus so a learner who clicks "AI Interview" on a day card lands scoped to
+    // that day. Ignored unless it matches a known curriculum day.
+    try {
+      var qd = new URLSearchParams(window.location.search).get("day");
+      if (qd && CURRICULUM_DAYS.some(function (d) { return d.v === qd; })) state.day = qd;
+    } catch (e) { /* no-op */ }
     // Prefer the shared 2463 identity (entered on the program site). If present,
     // sign in silently and land on the hub. Otherwise show the access-code gate.
     var pid = readFdeIdentity();
