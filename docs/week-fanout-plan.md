@@ -161,9 +161,111 @@ Cache-buster: bump `?v=` in `gauntlet.html` on any gauntlet asset change.
 
 ---
 
+## Established metrics (the spec critics enforce)
+
+Derived from the Week-1 readings — this is the gold standard new weeks must match.
+
+| Metric | Target | Source of truth |
+|--------|--------|-----------------|
+| Reading rate | **150 wpm** | every page meta line |
+| Reading time / day | **16-20 min** core (~2,400-3,000 words prose) | meta lines (~16-20 min) |
+| Scrolly steps / reading | **7-9** `.step` sections | W1 pages (d1 = 9 steps) |
+| Diagram binding | every `.step` carries `data-diagram`/`data-step`; one live `#diagram` | shared `diagram.js` + `scrolly.js` |
+| Interactive | ≥1 `ix-run` "try it" block | `interactive.js` |
+| Comprehension check | **6 questions**, ~4-5 min, practice (not graded) | `quiz.js` modal |
+| Deep dive | 1 optional modal, ~10 min | `modals.js` |
+| Citations | Sources block, every URL 200, claims trace to research artifact | template v2 |
+
+---
+
+## Workflow v2 — gated fan-out with repass loops (CANONICAL RUN SPEC)
+
+This supersedes the basic pipeline above. One orchestrated run covers **all weeks
+at once** (scope: **W2-8**; W9-10 deferred until the client is known). Sub-agents
+do the work; the organizer terminal only tracks status.
+
+### Phase shape (all weeks, one run)
+
+```
+Phase 1 — RESEARCH        45→35 day-agents in parallel (W2-8 = 35 reading-days)
+   each: /web-research → docs/research/wWW/dN.md → persist to second-brain
+   └─ GATE A (research critic) with repass loop
+
+Phase 2 — AUTHOR (parallel, each gated on its own research)
+   2a readings:   1 agent/day → weeks/wWW/dN.html
+        └─ GATE B (reading metrics + citation) + GATE C (design/diagram) repass loops
+   2b questions:  1 agent/concept-group → STRUCTURED question objects (returned, not
+        written inline — avoids parallel edits to the single backend file)
+        └─ GATE D (question critic) repass loop
+
+Phase 3 — WIRE shared single-files (SERIAL, one pass, all weeks in order)
+   index.html WEEKS[] · app.js CURRICULUM_DAYS · progress.js ORDER ·
+   backend/src/index.js BANK (insert the Phase-2b question objects)
+   → these are single files; parallel edits collide, so one serial pass appends
+     W2..W8 in sequence.
+
+Phase 4 — DEPLOY + GATE E (integration) + final report
+   git push (FE) · wrangler deploy (BE)
+   smoke per week: ?day=wWWdN scopes · cards uniform · progress backfills · links 200
+```
+
+Parallel-safe (own file each): research artifacts, reading pages.
+Serial (single shared file): WEEKS[], CURRICULUM_DAYS, progress ORDER, backend BANK.
+
+### Repass loop (every gate)
+
+```
+generate(artifact)
+for pass in 1..3:
+    verdict = critic(artifact)          # critic ≠ author (no self-rubber-stamp)
+    if verdict.pass: stop
+    if pass == 3:
+        flag_for_review(artifact, verdict, attempt_history)   # do NOT block the run
+        stop
+    regenerate(artifact, verdict.critiques)   # take the critiques, fix what failed
+```
+
+Critic findings drive regeneration until requirements are met. **Max 3 passes**,
+then the item is flagged for end-of-run human review with a summary of what was
+attempted — it does not stall the rest of the fan-out.
+
+### Critics
+
+| Gate | Critic | Checks | On fail |
+|------|--------|--------|---------|
+| **A** | Research | every claim has a 200 source URL; library version stamped + current (no deprecated APIs, e.g. LangChain pre-1.0); web-research actually run; pull saved to second-brain | repass: re-research the gap |
+| **B** | Reading metrics + citation | 2,400-3,000 words → 16-20 min @150 wpm; 7-9 steps; 6-Q check + deep-dive present; every claim traces to the research artifact (no invented facts); Sources block present, all URLs 200 | repass: trim/expand, re-cite |
+| **C** | Design / live-diagram | pull W1 readings as the reference design set; scrolly steps each bound to a *meaningful* diagram step (diagram drives the concept, not decoration); consistent components/classes; comparable interaction density; **browser screenshot-diff vs a W1 exemplar** for layout/hierarchy/AI-slop | repass: rework diagram/layout to match exemplar |
+| **D** | Question | tagged to correct concept-ids + day; grounded in research (no deprecated-API questions); difficulty spread; per-day count matches W1 | repass: re-tag/regrade |
+| **E** | Integration | `?day=wWWdN` scopes right; cards uniform; progress backfills; all new links 200 | fix wiring (serial) |
+
+### Organizer ↔ sub-agent reporting contract
+
+Sub-agents return to this terminal ONLY a compact record — never file contents or
+full critiques (keeps the organizer context lean across a 35-day run):
+
+```json
+{
+  "task": "w03d2 reading",
+  "status": "done | flagged",
+  "passes": 2,
+  "flags": ["..."],          // present only when status=flagged
+  "summary": "one short paragraph: what was produced + key decisions"
+}
+```
+
+The organizer aggregates these into a final run report: per-task status table,
+the flagged items (with attempt summaries) needing human review, and a one-line
+summary per task. Everything else stays in the sub-agents.
+
+---
+
 ## Open follow-ups
 
-- [ ] Retrofit Sources block onto the other 7 Week-1 readings (d2a, d2b, d3a,
-      d3b, d4a, d4b, d5) — each needs its own source verification.
-- [ ] Confirm tech-gap additions per week (table above) before research starts.
-- [ ] Decide W9-10 once the client is known (~W6-7).
+- [x] Retrofit Sources block onto all 7 remaining Week-1 readings (done; URLs
+      normalized to canonical, all 200).
+- [x] Confirm tech-gap additions per week (confirmed 2026-06-29).
+- [ ] Build the W2-8 run as a Workflow script implementing the phases + repass
+      loops + reporting contract above. Run only on explicit go.
+- [ ] Decide W9-10 once the client is known (~W6-7), then re-run this workflow
+      with domain-updated topics.
