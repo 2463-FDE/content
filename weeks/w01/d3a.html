@@ -116,15 +116,17 @@
         behavior without writing a single new rule.</p>
         <div class="ix-run"
              data-id="w01-d3a-extract"
-             data-system="Extract fields and reply with compact JSON only: {name, amount, due_date}. No prose."
-             data-examples='["Invoice from Acme Corp — please remit $4,200 by 2026-07-15.","Hi, this is Dana Lopez; the $980 balance is due August 3rd. Thanks!"]'
-             data-placeholder="Paste a messy invoice or email line — get back clean JSON."
-             data-yourturn="Quick note: we owe Nimbus Co about 1,250 dollars. (edit me — there's no due date here; watch what the model puts for due_date)"></div>
+             data-system=""
+             data-examples='["Summarize the important parts of this solicitation: Solicitation N00024-26-R-3007, responses due 2026-08-15, period of performance 12 months, set-aside: small business, estimated value $4.2M.","You extract fields from federal solicitations. Reply with ONLY compact JSON, no prose, matching this schema: {\"solicitation_id\": string, \"due_date\": \"YYYY-MM-DD\", \"pop_months\": number, \"set_aside\": \"small_business\"|\"8a\"|\"none\", \"value_usd\": number|null}. If a field is not stated, use null — never guess.\n\nExample input: RFP 36C10X26, replies by July 9 2026, 6-month base, full and open.\nExample output: {\"solicitation_id\":\"36C10X26\",\"due_date\":\"2026-07-09\",\"pop_months\":6,\"set_aside\":\"none\",\"value_usd\":null}\n\n&lt;solicitation&gt;\nSolicitation N00024-26-R-3007, responses due 2026-08-15, period of performance 12 months, set-aside: small business, estimated value $4.2M.\n&lt;/solicitation&gt;"]'
+             data-labels='["① Lazy practice","② Best practice"]'
+             data-yourturn-label="✎ Try it: convert →"
+             data-placeholder="Run the lazy one, then the engineered one — watch prose become parseable JSON."
+             data-yourturn="Summarize the important parts of this solicitation: Solicitation N00024-26-R-3007, responses due 2026-08-15, period of performance 12 months, set-aside: small business, estimated value $4.2M.&#10;&#10;✎ Your turn: harden the lazy prompt above into one you'd ship. Add a role, an explicit JSON schema, one worked example, wrap the input in &lt;solicitation&gt;…&lt;/solicitation&gt;, and say to use null for missing fields instead of guessing. Run both and watch the output go from prose to data your code can trust."></div>
         <p>But the cost discipline from Day 1 applies directly: every example is tokens in the window on <em>every call</em>,
         and the benefit has steep <strong>diminishing returns</strong> — zero to two is transformative, eight to twelve
-        usually isn't, and a giant example block can crowd out the user's real input. The extractor above shows how little
-        instruction you need once the format is demonstrated — but every demonstrated pair is tokens you re-send on every
-        single request. So the FDE question is never "do examples help?" (they
+        usually isn't, and a giant example block can crowd out the user's real input. The best-practice prompt above shows
+        the move: one demonstrated input→output pair pins the format far more reliably than another paragraph of
+        description — but that demonstrated pair is tokens you re-send on every single request. So the FDE question is never "do examples help?" (they
         do) but <strong>"what is the fewest examples that hits my quality bar?"</strong> Start at zero, measure, add one or
         two aimed squarely at the failures you observe, measure again.</p>
         <p>There's a subtler trap worth naming. Few-shot examples don't just teach format — they quietly teach

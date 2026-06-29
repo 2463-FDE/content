@@ -145,11 +145,15 @@
       const id = el.dataset.id || "run";
       const sys = el.dataset.system || "";
       let examples = []; try { examples = JSON.parse(el.dataset.examples || "[]"); } catch (e) {}
+      let labels = []; try { labels = JSON.parse(el.dataset.labels || "[]"); } catch (e) {}
       const yourTurn = el.dataset.yourturn || "";
+      const yourTurnLabel = el.dataset.yourturnLabel || "✎ Your turn";
       const url = window.FDE_RUN_URL;
-      // tabs: the example prompts (ready to run) + a "Your turn" one the learner edits
-      const tabs = examples.map((x, i) => ({ label: "Example " + (i + 1), text: x, edit: false }));
-      if (yourTurn) tabs.push({ label: "✎ Your turn", text: yourTurn, edit: true });
+      // tabs: the example prompts (ready to run) + a "Your turn" one the learner edits.
+      // data-labels (parallel to data-examples) and data-yourturn-label let each
+      // widget name its own tabs — e.g. "① Lazy practice" / "② Best practice".
+      const tabs = examples.map((x, i) => ({ label: labels[i] || ("Example " + (i + 1)), text: x, edit: false }));
+      if (yourTurn) tabs.push({ label: yourTurnLabel, text: yourTurn, edit: true });
       el.innerHTML =
         `<div class="ix-k">▶ Try it · live <span class="ix-sub">calls Claude · <b class="run-left">3</b> tries</span></div>` +
         `<p class="run-guide">Run the example${examples.length > 1 ? "s" : ""}, then ${yourTurn ? "open <b>Your turn</b>, edit the prompt," : "tweak the prompt"} and run it — watch the answer change.</p>` +

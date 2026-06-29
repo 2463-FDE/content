@@ -44,7 +44,7 @@
         '<div class="lc-brand"><b>2463</b>·FDE</div>' +
         '<h2>Enter your access code</h2>' +
         '<p>This marks who you are so your readings, checks, and surveys are saved under your name. Your trainer gives you the code.</p>' +
-        '<input type="text" class="lc-input" placeholder="e.g. AD-FDE!2026" autocomplete="off" spellcheck="false">' +
+        '<input type="text" class="lc-input" placeholder="Enter your access code" autocomplete="off" spellcheck="false">' +
         '<button class="btn lc-go" type="button">Continue</button>' +
         '<div class="lc-err"></div>' +
       '</div>';
