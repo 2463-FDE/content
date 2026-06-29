@@ -20,8 +20,10 @@ window.ROSTER = [
   { code: "CJ-TEST",     name: "Charles Jester",           role: "tester" }
 ];
 
-// Trainer codes — hashes only. DO NOT add plaintext trainer codes above.
+// Trainer codes — SHA-256 hashes only. DO NOT add plaintext trainer codes here
+// or in comments (this file ships to every browser). To add a trainer, hash the
+// code out-of-band: printf '%s' "CODE" | shasum -a 256
 window.TRAINERS = [
-  { hash: "93898d81b5806366e27aa2c52c6744e32a383e705ba7c00b6a1daad4eae5a400", name: "Charles Jester" }, // CJ-TRN!2026
-  { hash: "6c6aa8fdcecd3d6b72d1dbdedd366cdc03c8122cc14ebb6735d3f3e5cd400f67", name: "RH" }              // RH-TRN!2026
+  { hash: "93898d81b5806366e27aa2c52c6744e32a383e705ba7c00b6a1daad4eae5a400", name: "Charles Jester" },
+  { hash: "6c6aa8fdcecd3d6b72d1dbdedd366cdc03c8122cc14ebb6735d3f3e5cd400f67", name: "RH" }
 ];

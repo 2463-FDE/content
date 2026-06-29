@@ -293,6 +293,9 @@
           S.followAnswers = [];
           S._workspaceStartMs = 0; S._designElapsedMs = 0; S._sceneJson = null; S._scenePng = null;
           renderWorkspace();
+        } else if (data && data.error === "cap_reached") {
+          toast("You've used today's System Design attempt. Come back tomorrow — your best this week clears the mastery bar.", "warn");
+          renderTrackSelect();
         } else {
           toast("Could not start the session.");
           renderTrackSelect();
@@ -1256,6 +1259,16 @@
       S.name = creds.name; S.passcode = creds.passcode; S.tier = creds.tier || null;
       S.onExit = onExit || null;
       loadScenarios(track === "agentic" ? "agentic" : "fullstack");
+    },
+    // Direct deep-link into ONE scenario (skips track + picker entirely). Used by
+    // the weekly-challenge prep page (system-design.html → gauntlet.html?sd=<id>).
+    // Reuses the normal start flow — startSession only needs the scenario id; the
+    // backend returns the full public scenario. Track is inferred for the chip.
+    openScenario: function (creds, scenarioId, onExit) {
+      S.name = creds.name; S.passcode = creds.passcode; S.tier = creds.tier || null;
+      S.onExit = onExit || null;
+      S.track = /^ag-/.test(String(scenarioId)) ? "agentic" : "fullstack";
+      startSession({ id: scenarioId });
     },
     boards: function (creds, onExit) {
       S.name = creds.name; S.passcode = creds.passcode; S.tier = creds.tier || null;

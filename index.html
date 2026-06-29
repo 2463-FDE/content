@@ -142,12 +142,13 @@ window.WEEKS = [
         rituals += `<a class="ritual iv" href="gauntlet.html?day=${dd}" title="Daily AI Interview — do it before end of day">🎤 AI Interview</a>`;
       }
       if (di === 0) rituals += `<a class="ritual cr" href="client-delivery.html?w=${week.w}">📋 Client request</a>`;
-      // Sys-design rituals link into the AI Interview System Design simulator
-      // (multi-domain: full-stack + AI/agentic). Tue = start pre-planning,
-      // Fri = due. ?sd=1 opens the track picker so they pick their domain.
-      if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="gauntlet.html?sd=1" title="Open the System Design simulator — start pre-planning before Friday">🎯 Sys-design · start</a>`;
+      // Sys-design rituals link to the weekly-challenge prep page, scoped to the
+      // week (system-design.html?w=N). That page shows the curriculum-aware
+      // assigned scenario + a Start button into the simulator. Tue = start
+      // pre-planning, Fri = due / defend.
+      if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}" title="This week's System Design challenge — start pre-planning before Friday">🎯 Sys-design · start</a>`;
       if (week.w <= 8 && di === 2) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}">🔬 Alt research</a>`;
-      if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="gauntlet.html?sd=1" title="System Design due — open the simulator">🎯 Sys-design · due</a>`;
+      if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}" title="System Design due — open this week's challenge">🎯 Sys-design · due</a>`;
       const partsHtml = day.parts
         ? `<div class="cell-parts">` + day.parts.map(p => `<a href="${p.href}">${p.t}</a>`).join("") + `</div>`
         : "";

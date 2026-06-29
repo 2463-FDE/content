@@ -340,6 +340,10 @@
   // simulator, an "AI Interview" chip jumps to the scoped lobby. Otherwise the
   // normal hub mode-select.
   function landAfterLogin() {
+    if (state.deepLinkScenario) {
+      window.DESIGN.openScenario(creds(), state.deepLinkScenario, renderModeSelect);
+      return;
+    }
     if (state.deepLinkSd) {
       if (state.deepLinkSd === "pick") window.DESIGN.open(creds(), renderModeSelect);
       else window.DESIGN.openTrack(creds(), state.deepLinkSd, renderModeSelect);
@@ -1525,10 +1529,16 @@
       }
       // ?sd= deep-link from the curriculum's "Sys-design" chip: jump straight
       // into the System Design simulator so they can pre-plan before Friday.
-      // ?sd=fullstack / ?sd=agentic skips to that track's scenarios; any other
-      // truthy value (?sd=1) opens the multi-domain track picker.
+      // ?sd=fullstack / ?sd=agentic skips to that track's scenarios; ?sd=1 (or
+      // any other non-scenario value) opens the multi-domain track picker;
+      // ?sd=<scenarioId> (e.g. fs-rate-limiter) starts THAT scenario directly —
+      // this is how the weekly-challenge prep page (system-design.html) links in.
       var sd = qs.get("sd");
-      if (sd) state.deepLinkSd = (sd === "fullstack" || sd === "agentic") ? sd : "pick";
+      if (sd) {
+        if (sd === "fullstack" || sd === "agentic") state.deepLinkSd = sd;
+        else if (sd === "1" || sd === "pick") state.deepLinkSd = "pick";
+        else state.deepLinkScenario = sd;
+      }
     } catch (e) { /* no-op */ }
     // Prefer the shared 2463 identity (entered on the program site). If present,
     // sign in silently and land on the hub. Otherwise show the access-code gate.

@@ -71,6 +71,20 @@
   .sd-practice .pl-card .pl-k { font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--accent); margin-bottom:5px; }
   .sd-practice .pl-card p { margin:0; font-size:14.5px; line-height:1.5; color:var(--ink); }
   .sd-practice .pl-card code { font-family:var(--mono); font-size:.84em; background:#f1efe9; padding:1px 5px; border-radius:4px; }
+
+  /* ---- weekly simulator-challenge prep panel (fetched from /design/assignment) ---- */
+  .sd-assign { margin:0 0 14px; border:2px solid var(--accent); }
+  .sd-assign .sd-loading, .sd-assign .sd-err { color:var(--ink-soft); font-size:15px; padding:6px 0; }
+  .sd-assign .sd-grounded { font-size:14px; color:var(--ink-soft); margin:10px 0 0; }
+  .sd-assign .sd-grounded a { color:var(--accent); font-weight:700; text-decoration:none; }
+  .sd-assign .sd-grounded a:hover { text-decoration:underline; }
+  .sd-assign .sd-mastery { display:flex; gap:10px; align-items:flex-start; background:#f6f8f6; border:1px solid #d8e6d8; border-radius:12px; padding:12px 14px; margin:16px 0 0; font-size:14.5px; line-height:1.5; }
+  .sd-assign .sd-mastery b { color:var(--ink); }
+  .sd-start { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:18px 0 0; }
+  .sd-start-btn { display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:#fff; font-weight:700; font-size:16px; border:none; border-radius:11px; padding:13px 24px; text-decoration:none; transition:transform .12s, box-shadow .12s, filter .12s; }
+  .sd-start-btn:hover { transform:translateY(-2px); box-shadow:0 10px 24px rgba(40,30,10,.14); filter:brightness(1.04); }
+  .sd-start .sd-attempts { font-size:13.5px; color:var(--ink-soft); }
+  .sd-section-h { font-size:13px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--ink-soft); margin:30px 0 10px; }
 </style>
 </head>
 <body>
@@ -90,21 +104,27 @@
 <div class="sd-wrap">
   <div class="sd-hero">
     <h1>System <b>Design</b> Challenge</h1>
-    <p>One targeted system-design challenge per week, tied to your brownfield project and the week's curriculum.
-    <b>Released Tuesday, defended Friday.</b> The challenge mirrors the week's client request — but the FDE move is
-    designing for the constraint the client didn't name. A short design doc plus a whiteboard diagram; defend it Friday.</p>
+    <p>One targeted system-design challenge per week, tied to the week's curriculum.
+    <b>Released Tuesday, defended Friday.</b> Pick the week below: you'll get the simulator challenge you'll be
+    <b>scored</b> on in the AI Interview, plus your brownfield project's design angle. Research ahead — you get
+    <b>one attempt per day</b>, and your best this week clears the mastery bar.</p>
   </div>
 
   <div class="sd-banner">
     <div style="flex:1">
-      <div class="b-everyone"><b>Log in with your code</b> (top right) to see your project's challenge. The prompt,
+      <div class="b-everyone"><b>Log in with your code</b> (top right) to track your attempts. The prompt,
       constraints, and deliverable format are visible to everyone.</div>
-      <div class="trainer-only">🔑 You're in <b>trainer view</b> — the "what good looks like" rubric and the latent problem strong designs should surface are shown inside each challenge. Steer with questions; don't hand them the answer.</div>
+      <div class="trainer-only">🔑 You're in <b>trainer view</b> — the "what good looks like" rubric and the latent problem strong designs should surface are shown inside the brownfield challenge below. Steer with questions; don't hand them the answer.</div>
     </div>
   </div>
 
-  <div class="sd-projtabs" id="projtabs"></div>
   <div class="sd-weeks" id="weeks"></div>
+
+  <div class="sd-section-h">This week's simulator challenge — scored in the AI Interview</div>
+  <div class="sd-panel sd-assign" id="assignPanel"><div class="sd-loading">Loading this week's challenge…</div></div>
+
+  <div class="sd-section-h">Your brownfield project's design angle this week</div>
+  <div class="sd-projtabs" id="projtabs"></div>
   <div class="sd-panel" id="panel"></div>
 
   <div class="sd-practice">
@@ -142,6 +162,8 @@
 
 <footer class="foot">2463-FDE · System Design Challenge — design for the constraint the client didn't name</footer>
 
+<!-- WORKER_URL for the /design/assignment fetch (shared gauntlet config). -->
+<script src="assets/gauntlet/config.js"></script>
 <script>
 /* ============================================================================
    Per-project, per-week system-design challenge. Synthesized from
@@ -464,12 +486,100 @@ window.SD = {
     return `<ul class="sd-list">${items.map(i => `<li>${i}</li>`).join("")}</ul>`;
   }
 
+  // ---- weekly simulator-challenge assignment (fetched from the Worker) -------
+  const assignPanel = document.getElementById("assignPanel");
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function workerBase() { return String((window.CONFIG && window.CONFIG.WORKER_URL) || "").replace(/\/+$/, ""); }
+  function myCode() {
+    try { const idt = JSON.parse(localStorage.getItem("fde_identity") || "null"); return (idt && idt.code) ? idt.code : ""; }
+    catch (e) { return ""; }
+  }
+
+  // "What good looks like" is deliberately GENERIC (the per-scenario rubric is
+  // server-only so learners can't memorize it). This is the playbook, not the key.
+  const GOOD_LOOKS = [
+    "<b>Scope before you draw</b> — ask the client about scale, latency, data shape, security, and the success criteria. Jumping straight to boxes is the #1 thing we penalize.",
+    "<b>Drive a coherent high-level design</b> — major components + the core end-to-end workflow. High-level and minimal is correct for a ~20-min design.",
+    "<b>Deep-dive the 1–2 riskiest parts</b> — failure modes, scale, consistency. The deep dives carry the most weight (~40%). Don't gold-plate the easy parts.",
+    "<b>Defend the WHY, then adapt</b> — name a tradeoff and an alternative for each major choice; when a constraint changes in the follow-ups, rework live and narrate it."
+  ];
+
+  let assignLoadedWeek = null;
+  function loadAssignment(week) {
+    if (assignLoadedWeek === week) return;
+    assignLoadedWeek = week;
+    if (week === "cap") {
+      assignPanel.innerHTML =
+        `<div class="sd-eyebrow">Capstone · W9–W10</div>` +
+        `<h2>Capstone defense</h2>` +
+        `<p class="sd-tie">The capstone is defended at the gate — there's no single weekly simulator scenario. Use the brownfield capstone brief below, and keep repping the simulator from the AI Interview hub.</p>` +
+        `<div class="sd-start"><a class="sd-start-btn" href="gauntlet.html?sd=1">Open the simulator ▸</a></div>`;
+      return;
+    }
+    assignPanel.innerHTML = `<div class="sd-loading">Loading this week's challenge…</div>`;
+    const base = workerBase();
+    if (!base) { assignPanel.innerHTML = `<div class="sd-err">Backend not configured.</div>`; return; }
+    const code = myCode();
+    const url = base + "/design/assignment?w=" + encodeURIComponent(week) + (code ? "&code=" + encodeURIComponent(code) : "");
+    fetch(url)
+      .then(r => r.json())
+      .then(d => {
+        // Ignore a stale response if the learner clicked another week meanwhile.
+        if (assignLoadedWeek !== week) return;
+        if (d && d.ok) renderAssignment(d);
+        else assignPanel.innerHTML = `<div class="sd-err">Could not load this week's challenge. Try refreshing.</div>`;
+      })
+      .catch(() => {
+        if (assignLoadedWeek !== week) return;
+        assignPanel.innerHTML = `<div class="sd-err">Could not reach the server. Try refreshing.</div>`;
+      });
+  }
+
+  function renderAssignment(d) {
+    const sc = d.scenario || {};
+    const bar = typeof d.masteryBar === "number" ? d.masteryBar : 75;
+    const grounded = sc.liveSystem
+      ? `<p class="sd-grounded">Research ahead — this scenario is grounded in a real system: ` +
+        (sc.sourceUrl ? `<a href="${esc(sc.sourceUrl)}" target="_blank" rel="noopener">${esc(sc.liveSystem)}</a>` : esc(sc.liveSystem)) +
+        `. Read how they solved it before you design.</p>`
+      : "";
+    let attempts = "";
+    if (typeof d.attemptsToday === "number") {
+      const left = Math.max(0, (d.perDayCap || 1) - d.attemptsToday);
+      attempts = `<span class="sd-attempts">${left > 0 ? left + " attempt left today" : "No attempts left today — back tomorrow"}</span>`;
+    }
+    assignPanel.innerHTML =
+      `<div class="sd-eyebrow">This week's simulator challenge · Week ${esc(d.week)}</div>` +
+      `<h2>${esc(sc.title || "This week's challenge")}</h2>` +
+      `<div class="sd-cadence">` +
+        `<span class="sd-badge rel">Released <span class="dt">Tuesday</span></span>` +
+        `<span class="sd-badge due">Defended <span class="dt">Friday</span></span>` +
+      `</div>` +
+      `<div class="sd-sec">` +
+        `<div class="sd-h">The client brief (deliberately vague — scope it)</div>` +
+        `<div class="sd-prompt">${esc(sc.clientBrief || "")}</div>` +
+        grounded +
+      `</div>` +
+      `<div class="sd-sec">` +
+        `<div class="sd-h">What good looks like</div>` +
+        list(GOOD_LOOKS) +
+      `</div>` +
+      `<div class="sd-mastery">🎯 <div><b>One attempt per day.</b> Daily attempts are practice; your best of the week's attempts that clears <b>${bar}</b> is the mastery signal — a rotating, novel brief, so you can't game it by re-running. ${esc(d.deadlineNote || "")}</div></div>` +
+      `<div class="sd-start">` +
+        `<a class="sd-start-btn" href="gauntlet.html?sd=${encodeURIComponent(sc.id || "1")}">Start the challenge ▸</a>` +
+        attempts +
+      `</div>`;
+  }
+
   function render() {
     // sync tab + week active states
     projtabs.querySelectorAll(".sd-proj").forEach(b =>
       b.classList.toggle("on", b.dataset.proj === state.proj));
     weeksEl.querySelectorAll(".sd-week").forEach(b =>
       b.classList.toggle("on", b.dataset.week === state.week));
+
+    // Fetch + render the week's simulator challenge (skips re-fetch if unchanged).
+    loadAssignment(state.week);
 
     const proj = window.SD[state.proj];
     const wk = proj.weeks[state.week];

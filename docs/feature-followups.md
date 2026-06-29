@@ -52,15 +52,45 @@ Dashboard aggregating: `uprog:` (progress), `weak:`/`ledger:` (interview weak
 concepts), `cc:` (day concept-checks), `dbest:`/`dhist:` (system design),
 `iv:`/`best:` (interviews), day-summaries (`/track`). Real-time stats view +
 **weekly Claude-generated per-learner reports** (progress, weak points, action
-items) via a Cloudflare Cron Trigger using the API key. Gate behind trainer auth
-(ties to #7). Likely a new gated trainer page + a `/trainer/*` aggregation route.
+items) via a Cloudflare Cron Trigger using the API key.
 
-### #7 — Server-side login + HMAC session
-Move access codes out of public `roster.js` into Worker KV; Worker validates +
-issues an HMAC-signed session token (Web Crypto), verified per request; signing
-key as a wrangler secret; per-learner codes in KV (add/revoke). Strip the leaked
-trainer-code comments from `roster.js` + rotate the trainer codes. (Research:
-OWASP server-side validation; CF Workers Web Crypto HMAC.)
+**Access model (user, 2026-06-29): TRAINERS ONLY.** A trainer-only nav link
+renders in the navbar (shown only when the session role === "trainer"), routing to
+the reports/dashboard page. The trainer's LOGIN CODE is the access — no separate
+auth. So this rides entirely on #7's role-bearing session: the navbar reads the
+session token's role; learners never see the link; the `/trainer/*` aggregation
+routes require a trainer token (reject non-trainers server-side too, not just
+hidden in UI). Build AFTER #7 (needs the role-bearing session). A `/trainer/*`
+read-aggregation route + a weekly-report cron complete it.
+
+### #7 — Server-side login + HMAC session (DESIGN LOCKED 2026-06-29)
+Goal (user): NO codes on the page at all; trainer generates a passcode + shares it.
+- **roster.js gutted** — no learner codes, no trainer hashes shipped. (Interim:
+  leaked trainer-code comments already stripped; full removal here.) Login
+  validation moves entirely to the Worker.
+- **KV store:** `login:<sha256(code)>` -> `{name, role, createdAt}`. Validation:
+  user enters code -> Worker hashes -> KV lookup -> if found, issue session token.
+- **Session:** HMAC-signed token (Web Crypto, signing key = wrangler secret
+  `SESSION_SECRET`), stored in **localStorage** (bearer; GitHub Pages + Worker is
+  cross-origin so no cookie). Sent on API calls; Worker verifies + expiry (~30d).
+- **Routes:** `POST /auth/login {code}` -> {ok, token, name, role}; `POST
+  /auth/add {name, role}` (TRAINER token required) -> generates a random passcode,
+  stores `login:<hash>`, returns plaintext ONCE; `POST /auth/revoke {code|name}`
+  (trainer); `GET /auth/list` (trainer) -> roster (names/roles, NO codes).
+- **Bootstrap:** seed the first trainer login into KV via a one-time wrangler
+  command (generate a trainer passcode, store `login:<hash>` role=trainer). Give
+  the code to the human; they log in, then add everyone from the trainer page.
+- **Trainer "add login" UI:** a trainer-gated panel (in the trainer view / a
+  content page) — enter name + role -> shows the generated passcode once to copy
+  + share. Revoke = delete KV entry.
+- **Migration:** could optionally seed the existing 4 learner codes into KV so they
+  don't re-onboard; user chose bootstrap-trainer-only, so learners get fresh
+  trainer-generated codes (rotates the leaked ones automatically).
+- `auth.js` (+ gauntlet gate) rework to call `/auth/login` instead of validating
+  against roster.js; store/send the token. (Research: OWASP server-side
+  validation; CF Workers Web Crypto HMAC + timingSafeEqual.)
+- NOTE: `/auth/*` routes live in `backend/src/index.js` — build AFTER #5 deploys
+  to avoid clobbering the same file.
 
 ## Cross-cutting reminders
 - Backend (`backend/src/index.js`, `design.js`) is NOT git — deploys via
