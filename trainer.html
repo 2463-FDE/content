@@ -38,9 +38,17 @@
   .tr-pill { display:inline-block; font-size:11px; font-weight:700; border-radius:20px; padding:2px 9px; }
   .tr-pill.role { background:#eef7ff; color:#1c7ed6; }
   .tr-pill.builtin { background:#f1efe9; color:var(--ink-soft); }
+  .tr-reset { font:inherit; font-size:13px; cursor:pointer; border:1px solid var(--accent); background:var(--accent-soft); color:var(--accent); border-radius:8px; padding:5px 11px; margin-right:6px; }
+  .tr-reset:hover { filter:brightness(.97); }
   .tr-revoke { font:inherit; font-size:13px; cursor:pointer; border:1px solid #ffc9c9; background:#fff5f5; color:#c92a2a; border-radius:8px; padding:5px 11px; }
   .tr-revoke:hover { background:#ffe3e3; }
   .tr-revoke[disabled] { opacity:.4; cursor:not-allowed; }
+  .tr-tabs { display:flex; gap:4px; margin:0 0 20px; border-bottom:1px solid var(--line); }
+  .tr-tab { font:inherit; font-size:15px; font-weight:600; cursor:pointer; border:none; background:none; color:var(--ink-soft); padding:10px 16px; border-bottom:3px solid transparent; margin-bottom:-1px; }
+  .tr-tab:hover { color:var(--ink); }
+  .tr-tab.on { color:var(--accent); border-bottom-color:var(--accent); }
+  .tr-tabpanel[hidden] { display:none; }
+  .tr-sub { font-size:13.5px; color:var(--ink-soft); margin:-4px 0 12px; }
 
   .tr-denied { max-width:520px; margin:80px auto; text-align:center; }
   .tr-denied h2 { font-size:24px; margin:0 0 8px; }
@@ -112,54 +120,71 @@
     app.innerHTML =
       '<div class="tr-wrap tr-wide">' +
         '<div class="tr-hero">' +
-          '<h1>Trainer · <b>Logins</b></h1>' +
-          '<p>Create an access code for a learner or trainer, share it once, and revoke it when they roll off. Codes are never stored in readable form — copy the generated code now, it won\'t be shown again.</p>' +
+          '<h1>Trainer · <b>Dashboard</b></h1>' +
+          '<p>Cohort progress and weekly reports, plus login management — all in one place.</p>' +
         '</div>' +
-        '<div class="tr-card">' +
-          '<h2>Add a login</h2>' +
-          '<div class="tr-form">' +
-            '<div class="tr-field"><label for="f-name">Name</label><input id="f-name" type="text" placeholder="Full name" autocomplete="off" spellcheck="false"></div>' +
-            '<div class="tr-field"><label for="f-role">Role</label>' +
-              '<select id="f-role"><option value="learner">learner</option><option value="trainer">trainer</option><option value="practice">practice</option></select>' +
+        '<div class="tr-tabs" role="tablist">' +
+          '<button class="tr-tab on" data-tab="reports" type="button">📊 Reports</button>' +
+          '<button class="tr-tab" data-tab="logins" type="button">🔑 Logins</button>' +
+        '</div>' +
+        // ----- Reports panel -----
+        '<div class="tr-tabpanel" data-panel="reports">' +
+          '<div class="tr-card">' +
+            '<h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px">Cohort overview ' +
+              '<button class="btn secondary" id="ov-refresh" type="button" style="font-size:13px;padding:6px 12px">Refresh</button></h2>' +
+            '<div id="ov-msg" class="tr-msg">Loading…</div>' +
+            '<div style="overflow-x:auto">' +
+              '<table class="tr-ov" id="ov-tbl" style="display:none"><thead><tr>' +
+                '<th>Name</th><th>Role</th><th>Days done</th><th>Interview best</th><th>SD best</th><th>Mastery</th><th>Top weak concepts</th>' +
+              '</tr></thead><tbody id="ov-body"></tbody></table>' +
             '</div>' +
-            '<button class="btn" id="f-go" type="button">Generate code</button>' +
           '</div>' +
-          '<div class="tr-err" id="f-err"></div>' +
-          '<div class="tr-result" id="f-result">' +
-            '<div class="lbl">New access code for <span id="r-name"></span> (<span id="r-role"></span>)</div>' +
-            '<div class="code" id="r-code"></div>' +
-            '<p class="hint">Share this with them now and have them enter it on the program site. It cannot be recovered later.</p>' +
-            '<button class="btn tr-revoke copy" id="r-copy" type="button" style="border-color:var(--line);background:#fff;color:var(--ink)">Copy</button>' +
-          '</div>' +
-        '</div>' +
-        '<div class="tr-card">' +
-          '<h2>Existing logins</h2>' +
-          '<div id="list-msg" class="tr-msg">Loading…</div>' +
-          '<table class="tr-list" id="list-tbl" style="display:none"><thead><tr><th>Name</th><th>Role</th><th>Source</th><th></th></tr></thead><tbody id="list-body"></tbody></table>' +
-        '</div>' +
-        '<div class="tr-card">' +
-          '<h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px">Cohort overview ' +
-            '<button class="btn secondary" id="ov-refresh" type="button" style="font-size:13px;padding:6px 12px">Refresh</button></h2>' +
-          '<div id="ov-msg" class="tr-msg">Loading…</div>' +
-          '<div style="overflow-x:auto">' +
-            '<table class="tr-ov" id="ov-tbl" style="display:none"><thead><tr>' +
-              '<th>Name</th><th>Role</th><th>Days done</th><th>Interview best</th><th>SD best</th><th>Mastery</th><th>Top weak concepts</th>' +
-            '</tr></thead><tbody id="ov-body"></tbody></table>' +
+          '<div class="tr-card">' +
+            '<h2>Weekly report</h2>' +
+            '<div class="rep-pick">' +
+              '<div class="tr-field"><label for="rep-name">Learner</label>' +
+                '<select id="rep-name"><option value="">Select a learner…</option></select></div>' +
+              '<button class="btn secondary" id="rep-view" type="button">View latest</button>' +
+              '<button class="btn" id="rep-gen" type="button">Generate now</button>' +
+            '</div>' +
+            '<div class="tr-err" id="rep-err"></div>' +
+            '<div class="rep-body" id="rep-body"><p class="rep-empty">Pick a learner and view their latest weekly report, or generate one on demand.</p></div>' +
           '</div>' +
         '</div>' +
-        '<div class="tr-card">' +
-          '<h2>Weekly report</h2>' +
-          '<div class="rep-pick">' +
-            '<div class="tr-field"><label for="rep-name">Learner</label>' +
-              '<select id="rep-name"><option value="">Select a learner…</option></select></div>' +
-            '<button class="btn secondary" id="rep-view" type="button">View latest</button>' +
-            '<button class="btn" id="rep-gen" type="button">Generate now</button>' +
+        // ----- Logins panel -----
+        '<div class="tr-tabpanel" data-panel="logins" hidden>' +
+          '<div class="tr-card">' +
+            '<h2>Add a login</h2>' +
+            '<div class="tr-form">' +
+              '<div class="tr-field"><label for="f-name">Name</label><input id="f-name" type="text" placeholder="Full name" autocomplete="off" spellcheck="false"></div>' +
+              '<div class="tr-field"><label for="f-role">Role</label>' +
+                '<select id="f-role"><option value="learner">learner</option><option value="trainer">trainer</option><option value="practice">practice</option></select>' +
+              '</div>' +
+              '<button class="btn" id="f-go" type="button">Generate code</button>' +
+            '</div>' +
+            '<div class="tr-err" id="f-err"></div>' +
+            '<div class="tr-result" id="f-result">' +
+              '<div class="lbl">New access code for <span id="r-name"></span> (<span id="r-role"></span>)</div>' +
+              '<div class="code" id="r-code"></div>' +
+              '<p class="hint">Share this with them now and have them enter it on the program site. It cannot be recovered later.</p>' +
+              '<button class="btn tr-revoke copy" id="r-copy" type="button" style="border-color:var(--line);background:#fff;color:var(--ink)">Copy</button>' +
+            '</div>' +
           '</div>' +
-          '<div class="tr-err" id="rep-err"></div>' +
-          '<div class="rep-body" id="rep-body"><p class="rep-empty">Pick a learner and view their latest weekly report, or generate one on demand.</p></div>' +
+          '<div class="tr-card">' +
+            '<h2>Existing logins</h2>' +
+            '<p class="tr-sub">Forgot a code? <b>Reset code</b> issues a fresh one and disables the old. Codes are one-way — they can\'t be recovered, only reissued.</p>' +
+            '<div id="list-msg" class="tr-msg">Loading…</div>' +
+            '<table class="tr-list" id="list-tbl" style="display:none"><thead><tr><th>Name</th><th>Role</th><th>Source</th><th></th></tr></thead><tbody id="list-body"></tbody></table>' +
+          '</div>' +
         '</div>' +
       '</div>';
 
+    // tab switching
+    app.querySelectorAll(".tr-tab").forEach(t => t.addEventListener("click", () => {
+      const which = t.getAttribute("data-tab");
+      app.querySelectorAll(".tr-tab").forEach(x => x.classList.toggle("on", x === t));
+      app.querySelectorAll(".tr-tabpanel").forEach(p => { p.hidden = p.getAttribute("data-panel") !== which; });
+    }));
     document.getElementById("f-go").addEventListener("click", addLogin);
     document.getElementById("ov-refresh").addEventListener("click", loadOverview);
     document.getElementById("rep-view").addEventListener("click", () => viewReport(document.getElementById("rep-name").value));
@@ -294,17 +319,21 @@
       if (!logins.length) { msg.textContent = "No logins yet."; return; }
       body.innerHTML = logins.map(l => {
         const builtin = l.source === "builtin";
+        const reset = builtin ? "" :
+          '<button class="tr-reset" data-name="' + esc(l.name) + '" title="Issue a new code, kill the old">Reset code</button>';
         const revoke = builtin
           ? '<button class="tr-revoke" disabled title="Built-in — cannot be revoked here">built-in</button>'
           : '<button class="tr-revoke" data-name="' + esc(l.name) + '">Revoke</button>';
         return '<tr><td class="who">' + esc(l.name) + '</td>' +
           '<td><span class="tr-pill role">' + esc(l.role) + '</span></td>' +
           '<td><span class="tr-pill ' + (builtin ? "builtin" : "role") + '">' + esc(l.source) + '</span></td>' +
-          '<td style="text-align:right">' + revoke + '</td></tr>';
+          '<td style="text-align:right">' + reset + revoke + '</td></tr>';
       }).join("");
       msg.style.display = "none"; tbl.style.display = "table";
       body.querySelectorAll(".tr-revoke[data-name]").forEach(b =>
         b.addEventListener("click", () => revoke(b.getAttribute("data-name"))));
+      body.querySelectorAll(".tr-reset[data-name]").forEach(b =>
+        b.addEventListener("click", () => resetCode(b.getAttribute("data-name"))));
     } catch (e) {
       msg.textContent = "Network error — is the backend reachable?";
     }
@@ -317,6 +346,20 @@
       const data = await r.json();
       if (r.ok && data && data.ok) loadList();
       else alert("Could not revoke (" + (data && data.error ? data.error : r.status) + ").");
+    } catch (e) { alert("Network error — is the backend reachable?"); }
+  }
+
+  // Forgot/lost code: issue a fresh one (old stops working). Codes are one-way
+  // hashed, so the old code can't be recovered — only reissued.
+  async function resetCode(name) {
+    if (!confirm('Issue a NEW code for "' + name + '" and disable the old one?\n\nTheir interview / system-design history is kept; reading-progress (tied to the code) resets.')) return;
+    try {
+      const r = await fetch(RUN + "/auth/reset", { method: "POST", headers: authHeaders(), body: JSON.stringify({ name }) });
+      const data = await r.json();
+      if (r.ok && data && data.ok) {
+        window.prompt("New code for " + name + " — copy + share it now (it won't be shown again):", data.code);
+        loadList();
+      } else alert("Could not reset (" + (data && data.error ? data.error : r.status) + ").");
     } catch (e) { alert("Network error — is the backend reachable?"); }
   }
 
