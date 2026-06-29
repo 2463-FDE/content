@@ -184,6 +184,31 @@ This supersedes the basic pipeline above. One orchestrated run covers **all week
 at once** (scope: **W2-8**; W9-10 deferred until the client is known). Sub-agents
 do the work; the organizer terminal only tracks status.
 
+### Run config (confirmed 2026-06-29)
+
+- **Deploy gate:** auto-deploy (git push + wrangler) ONLY if the run finishes with
+  zero flagged items; if anything hit the 3-pass flag, stop before deploy for
+  human review.
+- **Day structure:** single reading page per day by default, but authors MAY split
+  a dense day into a/b parts (like W1's d2a/d2b) where the topic warrants it.
+- **Question volume:** per-concept, not per-day (see Interview question bank model).
+
+### Interview question bank model
+
+The interview pulls **10 questions per session** (`pickQuestions().slice(0,10)`)
+from the cumulative in-scope pool. `WEAK_TARGET=4` of those 10 are pulled from the
+learner's OPEN weak concepts (the seedWeakConcepts loop); `WEAK_PASS=70` clears a
+concept. So coverage is a **per-concept** number:
+
+- **Target: ≥4 questions per technical concept-id** — one per weak slot, so a weak
+  concept resurfaces 4 distinct questions before repeating.
+- New weeks add **technical** concepts only; behavioral/fde-mindset concepts are
+  week-0, shared across all weeks, already rich.
+- Per week ≈ (new technical concepts) × 4 ≈ **20-30 new questions/week**.
+- ⚠ W1 is currently UNDER this bar (context-window=1, knowledge-graph=1,
+  model-selection/prompt-engineering/token-optimization/output-guardrails=2 each).
+  Backfill W1 thin concepts to ≥4 alongside the run.
+
 ### Phase shape (all weeks, one run)
 
 ```
@@ -194,19 +219,21 @@ Phase 1 — RESEARCH        45→35 day-agents in parallel (W2-8 = 35 reading-da
 Phase 2 — AUTHOR (parallel, each gated on its own research)
    2a readings:   1 agent/day → weeks/wWW/dN.html
         └─ GATE B (reading metrics + citation) + GATE C (design/diagram) repass loops
-   2b questions:  1 agent/concept-group → STRUCTURED question objects (returned, not
-        written inline — avoids parallel edits to the single backend file)
+   2b questions:  1 agent/concept → ≥4 STRUCTURED question objects per concept
+        (returned, not written inline — avoids parallel edits to the single
+        backend file); proposes new concept-ids for the CONCEPTS taxonomy
         └─ GATE D (question critic) repass loop
 
 Phase 3 — WIRE shared single-files (SERIAL, one pass, all weeks in order)
    index.html WEEKS[] · app.js CURRICULUM_DAYS · progress.js ORDER ·
-   backend/src/index.js BANK (insert the Phase-2b question objects)
+   backend/src/index.js CONCEPTS (new concept-ids) + BANK (Phase-2b questions)
    → these are single files; parallel edits collide, so one serial pass appends
      W2..W8 in sequence.
 
-Phase 4 — DEPLOY + GATE E (integration) + final report
-   git push (FE) · wrangler deploy (BE)
+Phase 4 — GATE E (integration) + final report → DEPLOY (conditional)
    smoke per week: ?day=wWWdN scopes · cards uniform · progress backfills · links 200
+   deploy ONLY if zero flagged items (else stop for review):
+     git push (FE) · wrangler deploy (BE)
 ```
 
 Parallel-safe (own file each): research artifacts, reading pages.
@@ -236,7 +263,7 @@ attempted — it does not stall the rest of the fan-out.
 | **A** | Research | every claim has a 200 source URL; library version stamped + current (no deprecated APIs, e.g. LangChain pre-1.0); web-research actually run; pull saved to second-brain | repass: re-research the gap |
 | **B** | Reading metrics + citation | 2,400-3,000 words → 16-20 min @150 wpm; 7-9 steps; 6-Q check + deep-dive present; every claim traces to the research artifact (no invented facts); Sources block present, all URLs 200 | repass: trim/expand, re-cite |
 | **C** | Design / live-diagram | pull W1 readings as the reference design set; scrolly steps each bound to a *meaningful* diagram step (diagram drives the concept, not decoration); consistent components/classes; comparable interaction density; **browser screenshot-diff vs a W1 exemplar** for layout/hierarchy/AI-slop | repass: rework diagram/layout to match exemplar |
-| **D** | Question | tagged to correct concept-ids + day; grounded in research (no deprecated-API questions); difficulty spread; per-day count matches W1 | repass: re-tag/regrade |
+| **D** | Question | **≥4 questions per technical concept-id** (feeds WEAK_TARGET=4 without repeats); tagged to correct concept-ids; grounded in research (no deprecated-API questions); difficulty spread; new concept-ids added to backend CONCEPTS taxonomy | repass: author more / re-tag |
 | **E** | Integration | `?day=wWWdN` scopes right; cards uniform; progress backfills; all new links 200 | fix wiring (serial) |
 
 ### Organizer ↔ sub-agent reporting contract
@@ -267,5 +294,8 @@ summary per task. Everything else stays in the sub-agents.
 - [x] Confirm tech-gap additions per week (confirmed 2026-06-29).
 - [ ] Build the W2-8 run as a Workflow script implementing the phases + repass
       loops + reporting contract above. Run only on explicit go.
+- [ ] Backfill W1 thin technical concepts to ≥4 questions each (context-window,
+      knowledge-graph, model-selection, prompt-engineering, token-optimization,
+      output-guardrails, structured-output) — fold into the run.
 - [ ] Decide W9-10 once the client is known (~W6-7), then re-run this workflow
       with domain-updated topics.
