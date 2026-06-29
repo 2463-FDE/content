@@ -532,7 +532,11 @@
       recorder = window.STT.createRecorder({
         onStart: function () {},
         onUpdate: function (t) { wordHint.textContent = "~" + countWords(t) + " words"; },
-        onError: function (e) { var c = e && e.error; if (c === "not-allowed" || c === "service-not-allowed") { toast("Mic denied — type instead.", "error"); renderReview("", "typed"); } },
+        onError: function (e) {
+          var c = e && e.error;
+          if (c === "not-allowed" || c === "service-not-allowed") { toast("Mic denied — type instead.", "error"); renderReview("", "typed"); }
+          else if (c === "start_failed" || c === "aborted") { toast("Couldn't start the mic — try again, or type instead.", "error"); renderReady(); }
+        },
         onEnd: function () {}
       });
       stage.appendChild(el("div", { class: "recording-block" }, [

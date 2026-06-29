@@ -7,6 +7,13 @@
 
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
+  // Only ONE SpeechRecognition can run per page. A recorder left running (e.g. the
+  // clarify-mic with its graceful auto-restart) would make the next recorder's
+  // start() throw InvalidStateError. Track the active controller and stop it before
+  // starting a new one, so phase transitions (clarify -> explain, day -> day) never
+  // collide. This is what made the System Design explanation capture nothing.
+  var activeRec = null;
+
   function sttSupported() {
     return !!SR;
   }
@@ -75,12 +82,16 @@
         }
       }
       listening = false;
+      if (activeRec === ctrl) activeRec = null;
       if (typeof opts.onEnd === "function") opts.onEnd();
     };
 
-    return {
+    var ctrl = {
       start: function () {
         if (listening) return;
+        // Stop any other recorder still holding the single recognition slot.
+        if (activeRec && activeRec !== ctrl) { try { activeRec.stop(); } catch (e) { /* no-op */ } }
+        activeRec = ctrl;
         stoppedByUser = false;
         finalBuffer = "";
         lastInterim = "";
@@ -90,12 +101,14 @@
           if (typeof opts.onStart === "function") opts.onStart();
         } catch (err) {
           listening = false;
+          if (activeRec === ctrl) activeRec = null;
           if (typeof opts.onError === "function") opts.onError({ error: "start_failed", message: String(err) });
         }
       },
       stop: function () {
         stoppedByUser = true;
         listening = false;
+        if (activeRec === ctrl) activeRec = null;
         try {
           rec.stop();
         } catch (err) {
@@ -111,6 +124,7 @@
         return composed(lastInterim);
       }
     };
+    return ctrl;
   }
 
   // ---- Text to speech -----------------------------------------------------
