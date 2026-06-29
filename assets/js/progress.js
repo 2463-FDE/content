@@ -62,6 +62,19 @@ window.FDE_PROGRESS = (function () {
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d || !d.ok) return;
+        // Clean-slate reset: if the server's reset epoch advanced past what this
+        // browser last saw, drop ALL local progress/summary cache once (so a wiped
+        // server doesn't get re-healed from stale localStorage), then adopt server.
+        try {
+          var ep = String(d.resetEpoch || "0");
+          if (ep !== "0" && ep !== (localStorage.getItem("fde_reset_epoch") || "0")) {
+            Object.keys(localStorage).filter(function (k) { return /^fde_(progress|summary)_/.test(k); })
+              .forEach(function (k) { localStorage.removeItem(k); });
+            localStorage.setItem("fde_reset_epoch", ep);
+            try { window.dispatchEvent(new CustomEvent("fde-progress-sync")); } catch (e) {}
+            return; // server is the clean source of truth this load
+          }
+        } catch (e) { /* no-op */ }
         var server = d.progress || {};
         var local = read();
         var merged = {}, changedLocal = false, changedServer = false;
