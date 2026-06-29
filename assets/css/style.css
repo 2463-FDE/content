@@ -588,3 +588,11 @@ body.is-trainer .trainer-only { display:block; }
 .run-in[readonly] { background: #f6f4ef; color: var(--ink-soft); cursor: default; }
 .ix-run.is-locked .run-in, .is-locked .run-in { opacity: .92; }
 .run-out.saved::before { content: "↩ saved result · "; color: var(--dim); font-weight: 700; font-size: 12px; }
+
+/* Summarize Your Day — revisit panel after completion */
+.day-summary .ds-revisit { margin-top: 14px; padding-top: 12px; border-top: 1px solid #c3f0cd; }
+.day-summary .ds-revisit-k { font-size: 13px; font-weight: 700; color: var(--ink); }
+.day-summary .ds-revisit ul { margin: 6px 0 0; padding-left: 18px; }
+.day-summary .ds-revisit li { font-size: 13.5px; color: var(--ink-soft); text-transform: capitalize; }
+.day-summary .ds-note { font-size: 13px; color: var(--ink-soft); margin: 8px 0 0; font-style: italic; }
+.day-summary .ds-next { display: inline-block; margin-top: 12px; font-weight: 700; font-size: 14px; text-decoration: none; color: #fff; background: var(--accent); padding: 9px 18px; border-radius: 9px; }
