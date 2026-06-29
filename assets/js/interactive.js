@@ -152,37 +152,72 @@
       // tabs: the example prompts (ready to run) + a "Your turn" one the learner edits.
       // data-labels (parallel to data-examples) and data-yourturn-label let each
       // widget name its own tabs — e.g. "① Lazy practice" / "② Best practice".
-      const tabs = examples.map((x, i) => ({ label: labels[i] || ("Example " + (i + 1)), text: x, edit: false }));
-      if (yourTurn) tabs.push({ label: yourTurnLabel, text: yourTurn, edit: true });
+      // Preset example tabs are run-only (variant e0,e1,…) and their outputs are
+      // CACHED server-side; the editable "Your turn" tab (variant "edit") keeps the
+      // 3-try cap. Outputs persist, so a learner returning with usage spent still
+      // sees their last result.
+      const tabs = examples.map((x, i) => ({ label: labels[i] || ("Example " + (i + 1)), text: x, edit: false, variant: "e" + i }));
+      if (yourTurn) tabs.push({ label: yourTurnLabel, text: yourTurn, edit: true, variant: "edit" });
       el.innerHTML =
-        `<div class="ix-k">▶ Try it · live <span class="ix-sub">calls Claude · <b class="run-left">3</b> tries</span></div>` +
-        `<p class="run-guide">Run the example${examples.length > 1 ? "s" : ""}, then ${yourTurn ? "open <b>Your turn</b>, edit the prompt," : "tweak the prompt"} and run it — watch the answer change.</p>` +
+        `<div class="ix-k">▶ Try it · live <span class="ix-sub">calls Claude · <b class="run-left">3</b> edit-tries</span></div>` +
+        `<p class="run-guide">Run the example${examples.length > 1 ? "s" : ""} (saved — revisit any time), then ${yourTurn ? "open <b>Your turn</b>, edit the prompt," : "tweak the prompt"} and run it — watch the answer change.</p>` +
         `<div class="run-tabs">${tabs.map((t, i) => `<button type="button" class="run-tab${i === 0 ? " on" : ""}" data-i="${i}">${t.label}</button>`).join("")}</div>` +
         `<textarea class="ix-ta run-in" rows="3"></textarea>` +
         `<button type="button" class="btn run-go">Run ▸</button>` +
         `<div class="run-out"></div>`;
       const ta = el.querySelector(".run-in"), out = el.querySelector(".run-out"), go = el.querySelector(".run-go"), left = el.querySelector(".run-left");
       const tabEls = Array.from(el.querySelectorAll(".run-tab"));
+      const cache = {};   // variant -> last output (server-backed, loaded below)
+      let cur = 0;
+      function showOut(v) {
+        if (cache[v] != null) { out.className = "run-out ok saved"; out.textContent = cache[v]; }
+        else { out.className = "run-out"; out.textContent = ""; }
+      }
       function pick(i) {
+        cur = i;
         tabEls.forEach((t, j) => t.classList.toggle("on", j === i));
-        ta.value = tabs[i] ? tabs[i].text : "";
-        if (tabs[i] && tabs[i].edit) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+        const t = tabs[i] || { text: "", edit: false, variant: "e0" };
+        ta.value = t.text;
+        ta.readOnly = !t.edit;                 // presets: executable, not editable
+        el.classList.toggle("is-locked", !t.edit);
+        go.disabled = false;
+        if (t.edit) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+        showOut(t.variant);
       }
       tabEls.forEach((t, i) => t.addEventListener("click", () => pick(i)));
       if (tabs.length) pick(0);
       if (!url) { go.disabled = true; out.className = "run-out info"; out.textContent = "Live demo not enabled yet — backend pending. (Everything else on the page works.)"; return; }
+      // Load saved outputs + remaining edit-tries so a returning learner sees results.
+      (function () {
+        const idt = window.FDE_getIdentity ? window.FDE_getIdentity() : null;
+        const trainee = idt ? idt.code : "anon";
+        fetch(url + "/exec-cache?trainee=" + encodeURIComponent(trainee) + "&id=" + encodeURIComponent(id))
+          .then(r => r.ok ? r.json() : null).then(d => {
+            if (!d || !d.ok) return;
+            Object.assign(cache, d.outputs || {});
+            if (typeof d.remaining === "number") left.textContent = d.remaining;
+            showOut(tabs[cur] ? tabs[cur].variant : "e0");
+          }).catch(() => {});
+      })();
       go.addEventListener("click", async () => {
         const idt = window.FDE_getIdentity ? window.FDE_getIdentity() : null;
         const trainee = idt ? idt.code : "anon";
+        const t = tabs[cur] || { variant: "edit", edit: true };
         const prompt = ta.value.trim(); if (!prompt) return;
         go.disabled = true; out.className = "run-out"; out.textContent = "Running…";
         try {
-          const r = await fetch(url + "/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ trainee, id, prompt, system: sys }) });
+          const r = await fetch(url + "/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ trainee, id, prompt, system: sys, variant: t.variant }) });
           const d = await r.json();
-          if (r.status === 429) { out.className = "run-out info"; out.textContent = "You've used all 3 tries for this demo."; left.textContent = "0"; return; }
+          if (r.status === 429) {
+            if (d.text != null) { cache[t.variant] = d.text; out.className = "run-out ok saved"; out.textContent = d.text; }
+            else { out.className = "run-out info"; out.textContent = "You've used all 3 edit-tries for this demo."; }
+            left.textContent = "0"; go.disabled = false; return;
+          }
           if (!r.ok) { out.className = "run-out err"; out.textContent = d.error || "error"; go.disabled = false; return; }
-          out.className = "run-out ok"; out.textContent = d.text;
-          if (typeof d.remaining === "number") { left.textContent = d.remaining; if (d.remaining <= 0) return; }
+          cache[t.variant] = d.text;
+          out.className = "run-out ok" + (d.cached ? " saved" : "");
+          out.textContent = d.text;
+          if (typeof d.remaining === "number") left.textContent = d.remaining;
           go.disabled = false;
         } catch (e) { out.className = "run-out err"; out.textContent = "network error"; go.disabled = false; }
       });

@@ -583,3 +583,8 @@ body.is-trainer .trainer-only { display:block; }
 .cd-repo { display:inline-flex; align-items:center; gap:6px; margin:6px 0 2px; font-size:14px; font-weight:600; color:#fff; background:#24292f; padding:8px 14px; border-radius:8px; text-decoration:none; }
 .cd-repo:hover { background:#000; }
 @media (max-width:1000px){ .cal { grid-template-columns:1fr; } .cal-dayhead { display:none; } .cal-week { border-left-width:5px; margin-top:14px; } .cal-cell { min-height:0; } }
+
+/* Try-it: preset tabs are run-only (locked textarea); saved/cached results marked. */
+.run-in[readonly] { background: #f6f4ef; color: var(--ink-soft); cursor: default; }
+.ix-run.is-locked .run-in, .is-locked .run-in { opacity: .92; }
+.run-out.saved::before { content: "↩ saved result · "; color: var(--dim); font-weight: 700; font-size: 12px; }
