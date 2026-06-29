@@ -45,6 +45,27 @@
   .tr-denied { max-width:520px; margin:80px auto; text-align:center; }
   .tr-denied h2 { font-size:24px; margin:0 0 8px; }
   .tr-denied p { color:var(--ink-soft); font-size:16px; }
+
+  /* ---- reports: overview table + per-learner viewer ---- */
+  .tr-wide { max-width:1000px; }
+  table.tr-ov { width:100%; border-collapse:collapse; font-size:14px; }
+  table.tr-ov th, table.tr-ov td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.tr-ov th { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); white-space:nowrap; }
+  table.tr-ov td.who { font-weight:650; white-space:nowrap; }
+  table.tr-ov td.num { font-variant-numeric:tabular-nums; }
+  .ov-weak { color:var(--ink-soft); font-size:13px; }
+  .ov-na { color:#adb5bd; }
+  .tr-pill.mastered { background:#e6fcf5; color:#0ca678; }
+  .tr-pill.notmastered { background:#fff4e6; color:#e8590c; }
+  .rep-pick { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:8px; }
+  .rep-body { margin-top:16px; }
+  .rep-meta { font-size:12px; color:var(--ink-soft); margin:0 0 12px; }
+  .rep-sec { margin:0 0 14px; }
+  .rep-sec h3 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); margin:0 0 5px; }
+  .rep-sec p { margin:0; font-size:15px; line-height:1.5; }
+  .rep-sec ul { margin:4px 0 0; padding-left:20px; font-size:15px; line-height:1.5; }
+  .rep-empty { color:var(--ink-soft); font-size:14px; }
+  .btn.secondary { border-color:var(--line); background:#fff; color:var(--ink); }
 </style>
 </head>
 <body>
@@ -89,7 +110,7 @@
 
   function renderApp() {
     app.innerHTML =
-      '<div class="tr-wrap">' +
+      '<div class="tr-wrap tr-wide">' +
         '<div class="tr-hero">' +
           '<h1>Trainer · <b>Logins</b></h1>' +
           '<p>Create an access code for a learner or trainer, share it once, and revoke it when they roll off. Codes are never stored in readable form — copy the generated code now, it won\'t be shown again.</p>' +
@@ -116,10 +137,118 @@
           '<div id="list-msg" class="tr-msg">Loading…</div>' +
           '<table class="tr-list" id="list-tbl" style="display:none"><thead><tr><th>Name</th><th>Role</th><th>Source</th><th></th></tr></thead><tbody id="list-body"></tbody></table>' +
         '</div>' +
+        '<div class="tr-card">' +
+          '<h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px">Cohort overview ' +
+            '<button class="btn secondary" id="ov-refresh" type="button" style="font-size:13px;padding:6px 12px">Refresh</button></h2>' +
+          '<div id="ov-msg" class="tr-msg">Loading…</div>' +
+          '<div style="overflow-x:auto">' +
+            '<table class="tr-ov" id="ov-tbl" style="display:none"><thead><tr>' +
+              '<th>Name</th><th>Role</th><th>Days done</th><th>Interview best</th><th>SD best</th><th>Mastery</th><th>Top weak concepts</th>' +
+            '</tr></thead><tbody id="ov-body"></tbody></table>' +
+          '</div>' +
+        '</div>' +
+        '<div class="tr-card">' +
+          '<h2>Weekly report</h2>' +
+          '<div class="rep-pick">' +
+            '<div class="tr-field"><label for="rep-name">Learner</label>' +
+              '<select id="rep-name"><option value="">Select a learner…</option></select></div>' +
+            '<button class="btn secondary" id="rep-view" type="button">View latest</button>' +
+            '<button class="btn" id="rep-gen" type="button">Generate now</button>' +
+          '</div>' +
+          '<div class="tr-err" id="rep-err"></div>' +
+          '<div class="rep-body" id="rep-body"><p class="rep-empty">Pick a learner and view their latest weekly report, or generate one on demand.</p></div>' +
+        '</div>' +
       '</div>';
 
     document.getElementById("f-go").addEventListener("click", addLogin);
+    document.getElementById("ov-refresh").addEventListener("click", loadOverview);
+    document.getElementById("rep-view").addEventListener("click", () => viewReport(document.getElementById("rep-name").value));
+    document.getElementById("rep-gen").addEventListener("click", () => genReport(document.getElementById("rep-name").value));
     loadList();
+    loadOverview();
+  }
+
+  function fmtNum(v) { return v == null ? '<span class="ov-na">—</span>' : esc(String(v)); }
+
+  async function loadOverview() {
+    const msg = document.getElementById("ov-msg");
+    const tbl = document.getElementById("ov-tbl");
+    const body = document.getElementById("ov-body");
+    const sel = document.getElementById("rep-name");
+    msg.style.display = ""; msg.textContent = "Loading…"; tbl.style.display = "none";
+    try {
+      const r = await fetch(RUN + "/trainer/overview", { headers: authHeaders() });
+      const data = await r.json();
+      if (!(r.ok && data && data.ok)) { msg.textContent = r.status === 403 ? "Trainer session required." : "Could not load overview."; return; }
+      const learners = data.learners || [];
+      if (!learners.length) { msg.textContent = "No learners yet."; return; }
+      body.innerHTML = learners.map(l => {
+        const mastery = l.sdMastered
+          ? '<span class="tr-pill mastered">mastered</span>'
+          : (l.sdBest != null ? '<span class="tr-pill notmastered">not yet</span>' : '<span class="ov-na">—</span>');
+        const weak = (l.weakConcepts && l.weakConcepts.length)
+          ? '<span class="ov-weak">' + l.weakConcepts.slice(0, 4).map(esc).join(" · ") + '</span>'
+          : '<span class="ov-na">none open</span>';
+        const days = l.daysCompleted == null ? '<span class="ov-na" title="Login code not recoverable for this account">n/a</span>' : esc(String(l.daysCompleted));
+        return '<tr><td class="who">' + esc(l.name) + '</td>' +
+          '<td><span class="tr-pill role">' + esc(l.role) + '</span></td>' +
+          '<td class="num">' + days + '</td>' +
+          '<td class="num">' + fmtNum(l.interviewBest) + '</td>' +
+          '<td class="num">' + fmtNum(l.sdBest) + '</td>' +
+          '<td>' + mastery + '</td>' +
+          '<td>' + weak + '</td></tr>';
+      }).join("");
+      msg.style.display = "none"; tbl.style.display = "table";
+      // Populate the report picker (learners only — practice/trainer can be reported too, keep all).
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">Select a learner…</option>' +
+        learners.map(l => '<option value="' + esc(l.name) + '">' + esc(l.name) + ' (' + esc(l.role) + ')</option>').join("");
+      if (cur) sel.value = cur;
+    } catch (e) {
+      msg.textContent = "Network error — is the backend reachable?";
+    }
+  }
+
+  function renderReport(rep) {
+    const bodyEl = document.getElementById("rep-body");
+    if (!rep) { bodyEl.innerHTML = '<p class="rep-empty">No report stored yet for this learner. Click “Generate now”.</p>'; return; }
+    const when = rep.generatedAt ? new Date(rep.generatedAt).toLocaleString() : "";
+    const list = (arr) => (arr && arr.length) ? '<ul>' + arr.map(x => '<li>' + esc(x) + '</li>').join("") + '</ul>' : '<p class="rep-empty">None.</p>';
+    bodyEl.innerHTML =
+      '<p class="rep-meta">' + esc(rep.name || "") + (rep.week ? ' · ' + esc(rep.week) : '') + (when ? ' · generated ' + esc(when) : '') + '</p>' +
+      '<div class="rep-sec"><h3>Summary</h3><p>' + esc(rep.summary || "—") + '</p></div>' +
+      '<div class="rep-sec"><h3>Progress</h3><p>' + esc(rep.progress || "—") + '</p></div>' +
+      '<div class="rep-sec"><h3>Weak points</h3>' + list(rep.weakPoints) + '</div>' +
+      '<div class="rep-sec"><h3>Action items</h3>' + list(rep.actionItems) + '</div>';
+  }
+
+  async function viewReport(name) {
+    const err = document.getElementById("rep-err");
+    err.textContent = "";
+    if (!name) { err.textContent = "Pick a learner first."; return; }
+    document.getElementById("rep-body").innerHTML = '<p class="rep-empty">Loading…</p>';
+    try {
+      const r = await fetch(RUN + "/trainer/report?name=" + encodeURIComponent(name), { headers: authHeaders() });
+      const data = await r.json();
+      if (!(r.ok && data && data.ok)) { err.textContent = "Could not load report."; document.getElementById("rep-body").innerHTML = ""; return; }
+      renderReport(data.report);
+    } catch (e) { err.textContent = "Network error — is the backend reachable?"; }
+  }
+
+  async function genReport(name) {
+    const err = document.getElementById("rep-err");
+    const btn = document.getElementById("rep-gen");
+    err.textContent = "";
+    if (!name) { err.textContent = "Pick a learner first."; return; }
+    btn.disabled = true; const old = btn.textContent; btn.textContent = "Generating…";
+    document.getElementById("rep-body").innerHTML = '<p class="rep-empty">Generating report (calls Claude — a few seconds)…</p>';
+    try {
+      const r = await fetch(RUN + "/trainer/report/generate", { method: "POST", headers: authHeaders(), body: JSON.stringify({ name }) });
+      const data = await r.json();
+      if (!(r.ok && data && data.ok)) { err.textContent = r.status === 403 ? "Trainer session required." : "Could not generate report."; document.getElementById("rep-body").innerHTML = ""; return; }
+      renderReport(data.report);
+    } catch (e) { err.textContent = "Network error — is the backend reachable?"; }
+    btn.disabled = false; btn.textContent = old;
   }
 
   async function addLogin() {

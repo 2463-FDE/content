@@ -37,6 +37,25 @@
     } catch (e) { /* network/parse error -> treated as not recognized */ }
     return null;
   }
+  // Trainer-only nav link: shown site-wide (auth.js is global) when the session
+  // role is "trainer". Learners never see it. Server still enforces trainer on
+  // every /trainer/* route — this link is convenience, not the access control.
+  function trainerNav(idt) {
+    if (!idt || idt.role !== "trainer") return;
+    const center = document.querySelector(".topbar-center");
+    if (!center || center.querySelector(".trainer-nav")) return;
+    // Derive the path to trainer.html from an existing site-root link (brand/Home
+    // point at .../index.html), so the link resolves from subpages (weeks/, atlas/)
+    // too — they use relative ../../ prefixes, not absolute paths.
+    let href = "trainer.html";
+    const root = document.querySelector('.topbar a[href$="index.html"]');
+    if (root) href = root.getAttribute("href").replace(/index\.html$/, "trainer.html");
+    const a = document.createElement("a");
+    a.className = "topnav trainer-nav";
+    a.href = href;
+    a.textContent = "📊 Reports";
+    center.appendChild(a);
+  }
   function badge(idt) {
     // Mount into the navbar's right zone when present (3-zone topbar); fall
     // back to the bar itself on pages with the older single-row topbar.
@@ -75,7 +94,7 @@
   window.FDE_getIdentity = get;
   document.addEventListener("DOMContentLoaded", () => {
     const idt = get();
-    if (idt) { window.FDE_IDENTITY = idt; if (idt.role === "trainer") document.body.classList.add("is-trainer"); badge(idt); }
+    if (idt) { window.FDE_IDENTITY = idt; if (idt.role === "trainer") document.body.classList.add("is-trainer"); trainerNav(idt); badge(idt); }
     else overlay();
   });
 })();
