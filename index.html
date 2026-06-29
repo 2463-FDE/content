@@ -112,8 +112,10 @@ window.WEEKS = [
     { t:"Client showcase", s:"architecture defense · assessment", star:true } ]}
 ];
 (function () {
+  function render() {
   const DOW = ["Mon","Tue","Wed","Thu","Fri"];
   const legend = document.querySelector(".legend");
+  legend.innerHTML = ""; document.getElementById("cal").innerHTML = "";
   Object.values(window.PHASES).forEach(p => {
     const s = document.createElement("span"); s.className = "lg";
     s.innerHTML = `<i style="background:${p.c}"></i>${p.label}`; legend.appendChild(s);
@@ -149,9 +151,9 @@ window.WEEKS = [
       const partsHtml = day.parts
         ? `<div class="cell-parts">` + day.parts.map(p => `<a href="${p.href}">${p.t}</a>`).join("") + `</div>`
         : "";
-      // Per-learner Start / Resume / Completed. A day flips to ✓ once the learner
-      // opens a later topic (progress.js backfills). Only days with reading pages
-      // get a button; future "soon" days don't.
+      // Per-learner Start / Resume / Completed (server-backed via progress.js).
+      // A day flips to ✓ when the learner records the end-of-day STT summary.
+      // Only days with reading pages get a button; future "soon" days don't.
       const firstHref = day.href || (day.parts && day.parts[0] && day.parts[0].href) || null;
       let progHtml = "";
       if (firstHref) {
@@ -180,6 +182,10 @@ window.WEEKS = [
     });
   });
   function cell(cls, txt) { const d = document.createElement("div"); d.className = cls; d.textContent = txt; return d; }
+  }
+  render();
+  // Re-render when server progress arrives (browser-independent completion state).
+  window.addEventListener("fde-progress-sync", render);
 })();
 </script>
 <script src="assets/js/roster.js"></script>
