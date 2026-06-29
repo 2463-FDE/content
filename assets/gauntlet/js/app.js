@@ -424,7 +424,10 @@
     var used = typeof s.attemptsUsed === "number" ? s.attemptsUsed : 0;
     var maxPer = typeof s.maxPerDay === "number" ? s.maxPerDay : 0;
     var remaining = typeof s.attemptsRemaining === "number" ? s.attemptsRemaining : Math.max(0, maxPer - used);
-    var capped = remaining <= 0 && maxPer > 0;
+    // Practice/trainer identities are uncapped server-side — never show a daily
+    // limit or disable Start for them (the backend ignores attempts for practice).
+    var practice = isPractice();
+    var capped = !practice && remaining <= 0 && maxPer > 0;
 
     var startBtn = el("button", {
       class: "btn btn--primary btn--lg",
@@ -434,15 +437,23 @@
     if (capped) startBtn.disabled = true;
     startBtn.addEventListener("click", beginInterview);
 
-    var attemptsLine = el("p", { class: "attempts" }, [
-      "Interviews today: ",
-      el("strong", { text: String(used) }),
-      " of ",
-      el("strong", { text: String(maxPer || "∞") }),
-      " used — ",
-      el("strong", { class: remaining > 0 ? "ok" : "warn", text: String(remaining) }),
-      " remaining"
-    ]);
+    var attemptsLine = practice
+      ? el("p", { class: "attempts" }, [
+          "Practice mode — ",
+          el("strong", { class: "ok", text: "unlimited" }),
+          " interviews. ",
+          el("strong", { text: String(used) }),
+          " done today."
+        ])
+      : el("p", { class: "attempts" }, [
+          "Interviews today: ",
+          el("strong", { text: String(used) }),
+          " of ",
+          el("strong", { text: String(maxPer || "∞") }),
+          " used — ",
+          el("strong", { class: remaining > 0 ? "ok" : "warn", text: String(remaining) }),
+          " remaining"
+        ]);
 
     var capNote = capped
       ? el("p", { class: "cap-note", text: "You've used all of today's interviews. Come back tomorrow — the board resets daily (US Eastern)." })
