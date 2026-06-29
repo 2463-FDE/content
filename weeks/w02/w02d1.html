@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w02d1">
+<meta name="fde-concepts" content="retrieval-vs-finetuning,document-ingestion-pipeline,chunking-strategy,chunk-overlap,embedding-dimensions,hybrid-retrieval">
+<title>W2·D1 — RAG Fundamentals &amp; Chunking | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 2 · Day 1 · RAG Fundamentals &amp; Chunking</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>RAG: Giving the Model a Library Card</h1>
+        <div class="meta">
+          <span><b>Week 2</b> · Day 1</span>
+          <span>Foundation AI Engineering</span>
+          <span><b>~17 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Last week you learned that the model can only reason over what sits inside its context window.
+        This week you learn how to <em>choose what goes in there</em> when the source material is far too big to paste.
+        That is <strong>retrieval-augmented generation</strong> — RAG — and it is the single most common thing an FDE
+        builds at a client. Today is the foundation: what RAG is, when to reach for it instead of fine-tuning, and the
+        unglamorous-but-decisive craft of <strong>chunking</strong> — cutting documents into pieces small enough to
+        retrieve and large enough to mean something. Scroll the reading; the panel on the right assembles a real RAG
+        pipeline stage by stage, from raw corpus to a grounded answer.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>Two kinds of memory, joined</h2>
+        <p>An LLM ships with everything it knows baked into its weights during training. That is <strong>parametric
+        memory</strong> — frozen at a cutoff date, impossible to update without retraining, and with no idea what's in
+        <em>your</em> company's wiki, ticket history, or contracts. RAG fixes this by bolting on a second kind of memory:
+        a <strong>non-parametric</strong> store — an external index of your documents that you can search at query time
+        and read fresh into the window.</p>
+        <p>The original RAG paper put it precisely: combine a pre-trained parametric model with a non-parametric memory
+        (a dense vector index of an external corpus), and the system produces <strong>"more specific, diverse and
+        factual language"</strong> than the same model working from its weights alone. That phrase is the whole pitch.
+        RAG doesn't make the model smarter; it makes the model <em>better informed</em> for this one answer, by placing
+        the right source text in front of it.</p>
+        <p>Here's the mental model to carry through the week: RAG is a <strong>library card, not a brain transplant.</strong>
+        The model is still the same reader it always was. What changes is that, instead of answering from memory, it
+        first walks to the right shelf, pulls the relevant pages, and answers with those pages open on the desk. Every
+        design decision today — how you cut the books into pages, how you index them, how you find the right ones — is in
+        service of that one moment: getting the correct small slice of your corpus into the window beside the question.</p>
+        <p>And because retrieval feeds the window, everything from last week still applies. Retrieved context is budget
+        spent. Precision beats volume. The fact has to actually make it into the window to be used. RAG is the
+        discipline of <em>winning</em> the context-engineering problem you met on Day 1, at the scale of millions of
+        tokens you could never paste by hand.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">The first decision</div>
+        <h2>Retrieval vs fine-tuning — and when to skip both</h2>
+        <p>Before you build anything, you make a choice that clients constantly get wrong: should this knowledge live in
+        <strong>retrieval</strong> or in <strong>fine-tuning</strong>? They are not the same tool. Fine-tuning continues
+        training the model on your data, baking new behavior into the weights. Retrieval leaves the weights untouched and
+        supplies knowledge at runtime from an index you control.</p>
+        <p>The dividing line is mostly about <em>how often the knowledge changes</em>. Retrieval is the right call for
+        <strong>dynamic, frequently-changing knowledge and broad knowledge bases</strong>, because you can add or correct
+        information in the index without retraining anything — change a document, re-index it, done. Fine-tuning bakes
+        knowledge into weights, which makes it slow and expensive to update but excellent at <strong>stylistic and domain
+        nuance</strong>: a house voice, a legal register, a specialized jargon the base model fumbles. The mature answer
+        is usually <strong>not "either/or" but "both"</strong> — fine-tune for how the model should <em>sound</em>, use
+        RAG for the facts it must <em>get right today</em>. When a client says "we fine-tuned a model on our docs and it
+        still gives stale answers," you've found a team that used the wrong tool for changing facts.</p>
+        <p>There's a third option people forget, and it's often the correct one: <strong>do neither.</strong> If the
+        entire knowledge base fits in the context window, you can skip retrieval and just put the whole corpus in the
+        prompt. Anthropic's guidance draws the line concretely — for knowledge bases under roughly <strong>200,000 tokens
+        (about 500 pages)</strong>, paste it all in; RAG and chunking become <em>necessary</em> only when the corpus
+        exceeds what the window can hold. This matters because RAG is real engineering with real failure modes. Don't
+        build a retrieval pipeline for a 40-page employee handbook. The FDE move is to size the corpus first, then reach
+        for the simplest thing that fits.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">The pipeline</div>
+        <h2>Ingestion: load, split, embed, index</h2>
+        <p>Once you've decided the corpus is too big to paste, you build an <strong>ingestion pipeline</strong> — the
+        offline process that turns a pile of documents into a searchable index. It has four stages, and every RAG system
+        you'll ever touch is some version of these four: <strong>load</strong> the raw documents (PDFs, HTML, wiki pages,
+        database rows) into text; <strong>split</strong> that text into chunks; <strong>embed</strong> each chunk into a
+        vector; and <strong>index</strong> those vectors into a store you can query by similarity.</p>
+        <p>The reason to see it as a pipeline — rather than a black box — is that quality problems are almost always
+        traceable to one specific stage. A retrieval system returning garbage is rarely "the embeddings are bad." It's
+        far more often that the <em>load</em> step mangled tables into nonsense, or the <em>split</em> step cut a sentence
+        in half, or the <em>index</em> step is doing the wrong distance math. Knowing the four stages gives you a
+        checklist to walk when retrieval misbehaves, exactly like walking the window did for hallucinations last week.</p>
+        <p>The decisive stage — the one that quietly determines how good the whole system can ever be — is
+        <strong>split</strong>. Everything downstream inherits its choices. Embeddings can only represent the chunks you
+        give them; retrieval can only return the chunks you stored. If a chunk is a meaningless fragment, no amount of
+        clever indexing rescues it. So we spend the heart of today on splitting, which has a proper name: chunking.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Chunking</div>
+        <h2>Three families of chunking</h2>
+        <p><strong>Chunking</strong> is cutting documents into pieces that are small enough to retrieve precisely and
+        large enough to carry self-contained meaning. That tension is the whole art: chunks too big and you retrieve a
+        wall of text where one paragraph was relevant (and you blow the budget, and you bury the signal — last week's
+        lesson, again); chunks too small and you shred the context so badly that no single piece answers anything. There
+        are three core families, and the right one depends on your document structure and query patterns.</p>
+        <p><strong>Fixed-size</strong> is the simplest: cut every <em>N</em> characters or tokens, with an optional
+        overlap. It's fast, predictable, and completely blind to meaning — it will happily slice mid-sentence. It's a
+        fine baseline and sometimes all you need.</p>
+        <p><strong>Recursive</strong> is the recommended default for most prose. Instead of cutting blindly, it tries to
+        split along a hierarchy of natural boundaries — paragraphs first, then lines, then words, then individual
+        characters — only descending to the next level when a chunk is still too big. LangChain's
+        <code>RecursiveCharacterTextSplitter</code> does exactly this, with the default separator order
+        <code>["\n\n", "\n", " ", ""]</code>: paragraphs, then lines, then words, then characters. The effect is that it
+        keeps semantically-related text together as long as possible, only breaking finer when it has to. For ordinary
+        documents this is the one you reach for first.</p>
+        <p><strong>Semantic</strong> chunking is the most sophisticated: it embeds individual sentences and groups them by
+        similarity, so a chunk boundary falls where the <em>topic</em> shifts rather than where a character count runs
+        out. It produces the most context-aware chunks, at the cost of more computation up front. Reach for it when
+        document structure is messy and topic coherence matters more than speed.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: paste a document, pick a
+        strategy (fixed / recursive / semantic) and a chunk size, and watch the splitter draw the boundaries live so you
+        can <em>see</em> where each strategy cuts. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">The seam</div>
+        <h2>Overlap: stitching context across the cut</h2>
+        <p>Whichever family you pick, you've created a new problem the moment you cut: a fact can land <em>across</em> a
+        boundary. The chunk ends "...the maximum retry count is" and the next chunk begins "5, after which the job is
+        marked failed." Retrieve either chunk alone and the answer is broken in half. This is the single most common
+        chunking failure, and it has a standard remedy: <strong>chunk overlap</strong>.</p>
+        <p>Overlap means each chunk repeats the last slice of the previous one, so context that straddles a boundary
+        survives in at least one chunk intact. It exists specifically to <strong>mitigate information loss when context
+        is split across chunk boundaries</strong>. The common guidance is to set overlap to <strong>10–20% of the chunk
+        size</strong> — for a 500-token chunk, that's 50–100 tokens of overlap. Too little and you reopen the seam
+        problem; too much and you're storing and paying for the same text many times over, bloating the index for
+        diminishing returns. It's the same buy-quality-against-a-budget reasoning from Day 1, applied to the index this
+        time.</p>
+        <p>Notice how the parameters compound: chunk size and overlap together decide how many chunks you produce, how
+        much each one means in isolation, and how much redundancy you carry. There is no universal "correct" setting —
+        it depends on your documents and the questions people ask of them. The FDE habit is to treat chunk size and
+        overlap as <strong>tunable knobs you evaluate</strong>, not constants you copy from a tutorial. Later this week
+        you'll measure retrieval quality directly and tune these against numbers instead of vibes.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: slide chunk size and overlap
+        and watch a sample query's retrieved chunks change — including the boundary case where a fact split across two
+        chunks is recovered only once overlap is high enough. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Embeddings</div>
+        <h2>Turning chunks into vectors — and why dimensions matter</h2>
+        <p>Each chunk now gets turned into an <strong>embedding</strong>: a list of numbers — a vector — that captures the
+        chunk's meaning so that semantically similar text lands near it in vector space. This is what makes retrieval
+        "understand" that a query about "resetting my password" should match a chunk about "credential recovery" even
+        with no shared words. Retrieval is, mechanically, finding the stored vectors nearest the query's vector.</p>
+        <p>The vector's length — its <strong>number of dimensions</strong> — is a real engineering lever, not a detail.
+        OpenAI's current models illustrate the tradeoff: <code>text-embedding-3-large</code> defaults to
+        <strong>3072 dimensions</strong> and <code>text-embedding-3-small</code> to <strong>1536</strong>. More
+        dimensions can capture more nuance but cost more to store and compare across millions of chunks. Both models
+        support a <code>dimensions</code> parameter — based on a technique called Matryoshka representation — that lets
+        you <strong>shorten the vectors</strong> while keeping most of their quality. Strikingly, a 256-dimension
+        <code>text-embedding-3-large</code> vector still <strong>beats a full 1536-dimension ada-002</strong> on the MTEB
+        benchmark. The lesson: bigger isn't automatically better, and you can often trade a little accuracy for a large
+        reduction in storage and latency — a classic FDE cost-vs-quality dial.</p>
+        <p>One rule that trips up every beginner: the <strong>same embedding model must be used for both ingestion and
+        queries.</strong> Vectors from two different models live in different, incompatible spaces — nearest-neighbour
+        math between them is meaningless. Pick a model, embed your whole corpus with it, and embed every query with it
+        too. Changing embedding models later means re-embedding the entire corpus.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: type two phrases, embed both,
+        and see their cosine similarity — plus a side-by-side of how truncating the vector's dimensions changes the
+        score. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">The store</div>
+        <h2>Where vectors live: the vector index</h2>
+        <p>The vectors need a home that can answer "which stored vectors are nearest this query vector?" quickly, across
+        potentially millions of entries. That's a <strong>vector store</strong>, and you'll meet two common shapes of it
+        in the field: a vector extension on a database you already run, and a purpose-built vector database.</p>
+        <p><strong>pgvector</strong> turns Postgres into a vector store — attractive because the client already operates
+        Postgres and doesn't want a new system to babysit. It offers two approximate-nearest-neighbour index types:
+        <strong>HNSW</strong>, which gives a better speed/recall tradeoff, needs no training step, and can even be built
+        on an empty table; and <strong>IVFFlat</strong>. You create one like
+        <code>CREATE INDEX ON items USING hnsw (embedding vector_l2_ops) WITH (m = 16, ef_construction = 64);</code>, and
+        you choose a distance operator to match your embeddings — <code>&lt;-&gt;</code> for L2, <code>&lt;=&gt;</code>
+        for cosine, <code>&lt;#&gt;</code> for negative inner product. Crucially, <strong>without an index pgvector falls
+        back to exact search</strong> — correct, but slow at scale; the ANN index is what makes it fast. That distinction
+        — exact vs approximate — is one you'll explain to clients often.</p>
+        <p><strong>Chroma</strong> represents the purpose-built option, and it's notable for how much it does for you. You
+        attach an <strong>embedding function to a collection</strong>, and Chroma applies it transparently on
+        <code>add</code>, <code>update</code>, <code>upsert</code>, and <code>query</code> — you hand it text, it handles
+        the vectors. If you don't specify a function it uses a sensible default: <code>DefaultEmbeddingFunction</code>,
+        which is Sentence Transformers <strong>all-MiniLM-L6-v2</strong>, a <strong>384-dimension</strong> model that
+        runs locally with no API key. That makes it excellent for prototyping — but note the dimension gap with the
+        OpenAI models above, and remember the don't-mix-embedders rule when you graduate from prototype to production.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Retrieval quality</div>
+        <h2>Hybrid retrieval: two ways of finding, fused</h2>
+        <p>Now the payoff stage. A query comes in, you embed it, and you find the nearest chunks. But dense vector search
+        has a blind spot: it's brilliant at <em>meaning</em> and weak at <em>exact terms</em> — product codes, error
+        strings, names, rare jargon — where the literal token is what matters. The fix is <strong>hybrid
+        retrieval</strong>: run dense embedding search alongside classic lexical search (<strong>BM25</strong>) and fuse
+        the results. Hybrid <strong>outperforms either alone</strong> because embeddings catch semantic matches while
+        BM25 catches exact term and phrase matches. The two methods cover each other's weaknesses.</p>
+        <p>You can push retrieval quality further still, and Anthropic's <strong>Contextual Retrieval</strong> gives
+        concrete numbers worth memorizing. The technique prepends chunk-specific context to each chunk before embedding
+        and BM25 indexing — so a chunk that just says "the limit is 500" also carries "this is from the rate-limiting
+        section of the API docs." That change alone cut top-20 retrieval failures by <strong>35%</strong>; combined with
+        BM25 it reached <strong>49%</strong>; and adding a <strong>reranking</strong> step on top brought the total
+        reduction to <strong>67%</strong>. Reranking means over-fetching candidates, then using a more expensive model to
+        re-score and keep only the best few before they go in the window.</p>
+        <p>Step back and see the shape of the day. Each technique — recursive splitting, overlap, the right embedding
+        dimensions, an ANN index, hybrid search, contextual prefixes, reranking — is a lever on the same goal: get the
+        <em>right</em> small slice of a giant corpus into the window beside the question. That's RAG. It is the bridge
+        between last week's "the model can only use what's in the window" and the rest of the program, where you'll build,
+        measure, and harden these pipelines at a client. Tomorrow we go deeper into making retrieval actually accurate;
+        today you've built the map of the whole pipeline.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: run one query three ways —
+        dense-only, BM25-only, and hybrid — against a sample corpus and compare the top-k chunks each returns, so the
+        complementary strengths show up directly. Needs backend standup.</p></div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://arxiv.org/abs/2005.11401" target="_blank" rel="noopener">Lewis et al. — Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</a> — the original RAG paper: parametric + non-parametric memory, "more specific, diverse and factual" output.</li>
+          <li><a href="https://www.glean.com/blog/retrieval-augemented-generation-vs-fine-tuning" target="_blank" rel="noopener">Glean — RAG vs fine-tuning: complete guide</a> — when to retrieve, when to fine-tune, and why mature systems layer both.</li>
+          <li><a href="https://www.anthropic.com/news/contextual-retrieval" target="_blank" rel="noopener">Anthropic — Contextual Retrieval</a> — the &lt;200K-token skip-RAG rule, and the 35% / 49% / 67% failure-reduction numbers.</li>
+          <li><a href="https://docs.langchain.com/oss/python/integrations/splitters/recursive_text_splitter" target="_blank" rel="noopener">LangChain — Splitting recursively</a> — <code>RecursiveCharacterTextSplitter</code> separator order and chunk-overlap guidance.</li>
+          <li><a href="https://www.ibm.com/think/tutorials/chunking-strategies-for-rag-with-langchain-watsonx-ai" target="_blank" rel="noopener">IBM — Chunking strategies for RAG</a> — fixed-size vs recursive vs semantic, and how to choose.</li>
+          <li><a href="https://developers.openai.com/api/docs/guides/embeddings" target="_blank" rel="noopener">OpenAI — Vector embeddings guide</a> — 3-large/3-small dimensions and the Matryoshka <code>dimensions</code> parameter.</li>
+          <li><a href="https://github.com/pgvector/pgvector" target="_blank" rel="noopener">pgvector — README (v0.8.3)</a> — HNSW vs IVFFlat, the index DDL, and the distance operators.</li>
+          <li><a href="https://docs.trychroma.com/docs/embeddings/embedding-functions" target="_blank" rel="noopener">Chroma — Embedding Functions</a> — collection-attached embedders and the all-MiniLM-L6-v2 default.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Contextual Retrieval, pgvector DDL &amp; dimension math</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on RAG &amp; chunking</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 2 Day 1</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the numbers behind the pipeline</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The math and the knobs.</p>
+    <p><strong>When NOT to build RAG.</strong> If your whole corpus fits the window — Anthropic's rule of thumb is under
+    ~200,000 tokens, roughly 500 pages — skip retrieval and paste it all in. RAG and chunking earn their complexity only
+    once the corpus outgrows the window. Always size the corpus before you build a pipeline.</p>
+    <p><strong>The pgvector index, decoded.</strong>
+    <code>CREATE INDEX ON items USING hnsw (embedding vector_l2_ops) WITH (m = 16, ef_construction = 64);</code> — HNSW is
+    the ANN index type (better speed/recall than IVFFlat, no training step, buildable on an empty table); <code>m</code>
+    and <code>ef_construction</code> trade build time and memory for recall. Match the operator class to your distance:
+    <code>&lt;-&gt;</code> L2, <code>&lt;=&gt;</code> cosine, <code>&lt;#&gt;</code> negative inner product. With no index,
+    pgvector does exact (slow) search.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked example — chunk + overlap math</div>
+      <ul class="deliv-list">
+        <li>Chunk size: 500 tokens</li>
+        <li>Overlap at 15%: ~75 tokens repeated per boundary</li>
+        <li>A 50,000-token doc → ~118 chunks (vs ~100 with no overlap)</li>
+        <li>Each chunk embedded once with <code>text-embedding-3-small</code> (1536-dim)</li>
+      </ul>
+      <p style="margin:8px 0 0">The overlap costs ~18% more chunks (and storage) but rescues every fact that straddles a
+      boundary. Drop overlap to 0 and you save storage but reopen the seam problem; push it to 40% and you're paying to
+      store the same sentences three times. 10–20% is the sweet spot for a reason.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Dimensions are a dial.</strong> A 256-dim <code>text-embedding-3-large</code>
+    vector still beats full 1536-dim ada-002 on MTEB. Shortening vectors (Matryoshka) cuts storage and comparison cost
+    across millions of chunks — often a better lever than chasing the highest-dimension model. Just never mix embedding
+    models between ingestion and query: different models, incompatible spaces.</p>
+    <p style="margin-top:14px"><strong>Contextual Retrieval, in one line.</strong> Prepend chunk-specific context before
+    embedding + BM25 indexing → top-20 failures down 35%; with BM25 hybrid → 49%; add reranking → 67%. Cheap technique,
+    large effect.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 1 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Explain RAG as joining parametric (weights) and non-parametric (indexed corpus) memory</li>
+      <li>Choose between retrieval, fine-tuning, both, or neither for a given knowledge problem</li>
+      <li>Name the four ingestion stages and pick a chunking strategy with the right size and overlap</li>
+      <li>Reason about embedding dimensions, vector indexes, and why hybrid retrieval beats either method alone</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add to your <code>NOTES.md</code></li>
+      <li><b>①</b> one knowledge problem you'd solve with RAG, and one you'd solve with fine-tuning — and why</li>
+      <li><b>②</b> a chunk size + overlap you'd start with for your docs, with a one-line justification</li>
+      <li><b>③</b> one place hybrid retrieval (dense + BM25) would beat dense-only for your corpus</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 2, where we turn retrieval <em>accuracy</em> into something you can measure and
+    tune. Keep building that running engineering journal.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 2 — Retrieval quality &amp; evaluation →", href: "w02d2.html" };
+window.DIAGRAM = {
+  title: "RAG pipeline · corpus → grounded answer",
+  width: 500, height: 600,
+  nodes: [
+    { id:"task", step:0, kind:"example", x:14, y:14, w:472, h:66,
+      label:"QUERY  \"how do I rotate the API key?\"\n  corpus = 5,000 pages · far past a 200K window\n  → retrieve the right few chunks → answer, grounded" },
+
+    { id:"corpus", step:0, x:24, y:96, w:214, h:44, label:"Your corpus\n(non-parametric memory)" },
+    { id:"llm",    step:0, x:262, y:96, w:214, h:44, label:"LLM weights — frozen\n(parametric memory)" },
+
+    { id:"choose", step:1, x:110, y:156, w:280, h:42, label:"Retrieval vs fine-tuning?",
+      detail:"Retrieval for dynamic, frequently-changing facts (re-index, no retraining). Fine-tuning for voice / jargon, baked into weights. Mature systems do both. And if the whole corpus fits under ~200K tokens, skip retrieval entirely and paste it in." },
+
+    { id:"load",  step:2, x:18,  y:216, w:106, h:42, label:"① Load" },
+    { id:"split", step:2, x:138, y:216, w:106, h:42, label:"② Split" },
+    { id:"embed", step:2, x:258, y:216, w:106, h:42, label:"③ Embed" },
+    { id:"index", step:2, x:378, y:216, w:104, h:42, label:"④ Index" },
+
+    { id:"fixed", step:3, x:18,  y:290, w:140, h:40, label:"fixed-size" },
+    { id:"recur", step:3, x:180, y:290, w:140, h:40, label:"recursive ★",
+      detail:"RecursiveCharacterTextSplitter splits along [\"\\n\\n\",\"\\n\",\" \",\"\"] — paragraphs, then lines, then words, then characters — keeping related text together as long as possible. The default for prose." },
+    { id:"seman", step:3, x:342, y:290, w:140, h:40, label:"semantic" },
+
+    { id:"overlap", step:4, x:150, y:350, w:200, h:44, label:"chunk_overlap 10–20%",
+      detail:"Overlap repeats the tail of each chunk at the head of the next, so a fact split across a boundary survives intact in at least one chunk. ~50–100 tokens on a 500-token chunk." },
+
+    { id:"dims",  step:5, x:18,  y:408, w:222, h:64, label:"embeddings → vectors\n3-large 3072d · 3-small 1536d\nMatryoshka: shrink dims",
+      detail:"More dims = more nuance but more storage/compute. The dimensions parameter shortens vectors; a 256-dim 3-large still beats full 1536-dim ada-002 on MTEB. Use the SAME model for ingest + query." },
+    { id:"store", step:6, x:262, y:408, w:220, h:64, label:"vector store\npgvector HNSW / IVFFlat\nChroma (MiniLM 384d)",
+      detail:"pgvector adds vectors to Postgres: HNSW or IVFFlat index, operators <-> L2, <=> cosine, <#> inner product; no index = exact (slow) search. Chroma attaches an embedding function to a collection and applies it on add/query automatically." },
+
+    { id:"query", step:7, x:18,  y:496, w:120, h:46, label:"user query" },
+    { id:"dense", step:7, x:170, y:490, w:140, h:38, label:"dense (vectors)" },
+    { id:"bm25",  step:7, x:170, y:540, w:140, h:38, label:"BM25 (lexical)" },
+    { id:"topk",  step:7, x:342, y:496, w:140, h:60, label:"top-k chunks\n→ grounded answer",
+      detail:"Hybrid fuses dense (semantic) + BM25 (exact terms) and beats either alone. Contextual Retrieval cut top-20 failures 35% → 49% with BM25 → 67% with reranking." }
+  ],
+  edges: [
+    { id:"e_l_s", step:2, from:"load",  to:"split", dir:"-" },
+    { id:"e_s_e", step:2, from:"split", to:"embed", dir:"-" },
+    { id:"e_e_i", step:2, from:"embed", to:"index", dir:"-" },
+    { id:"e_split_recur", step:3, from:"split", to:"recur", label:"default", ly:-2 },
+    { id:"e_recur_ov", step:4, from:"recur", to:"overlap", label:"seam fix", ly:-2 },
+    { id:"e_embed_dims", step:5, from:"embed", to:"dims", label:"vectorize", lx:-8 },
+    { id:"e_index_store", step:6, from:"index", to:"store", label:"store", lx:6 },
+    { id:"e_q_d", step:7, from:"query", to:"dense", dir:"-" },
+    { id:"e_q_b", step:7, from:"query", to:"bm25", dir:"-" },
+    { id:"e_store_d", step:7, from:"store", to:"dense", label:"search", bend:-24, ly:-2 },
+    { id:"e_d_t", step:7, from:"dense", to:"topk", label:"fuse", ly:-2 },
+    { id:"e_b_t", step:7, from:"bm25", to:"topk", dir:"-" }
+  ],
+  captions: [
+    "RAG joins two memories: the LLM's <b>frozen weights</b> (parametric) and <b>your corpus</b> (non-parametric). The corpus can change without retraining — a library card, not a brain transplant.",
+    "First decision: <b>retrieval vs fine-tuning</b>. RAG for fresh, changing facts; fine-tuning for voice/jargon; often both — and if it fits under ~200K tokens, neither. <span style='opacity:.7'>(tap)</span>",
+    "Ingestion is a pipeline: <b>load → split → embed → index</b>. Everything downstream inherits the <b>split</b>.",
+    "Three chunking families: fixed-size, <b>recursive</b> (the prose default), and semantic. <span style='opacity:.7'>(tap recursive)</span>",
+    "<b>chunk_overlap</b> (10–20%) repeats the seam so a fact split across a boundary isn't lost. <span style='opacity:.7'>(tap)</span>",
+    "Each chunk becomes a <b>vector</b>. Dimensions are a dial — 3072d / 1536d, shrinkable via Matryoshka. <span style='opacity:.7'>(tap)</span>",
+    "Vectors live in a <b>vector store</b> — pgvector (HNSW/IVFFlat) or Chroma — indexed for fast nearest-neighbour search. <span style='opacity:.7'>(tap)</span>",
+    "At query time, <b>hybrid retrieval</b> fuses dense + BM25; contextual prefixes + reranking push failures down further. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w02-d1",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A client's knowledge base changes daily and is far larger than any context window. Which approach fits best?",
+      options: [
+        "Fine-tune a model on the knowledge base every morning",
+        "Retrieval (RAG) — add/update documents in the index without retraining",
+        "Paste the entire knowledge base into every prompt",
+        "Raise the model's temperature so it's more creative" ],
+      answer: 1,
+      explain: "Retrieval is preferred for dynamic, frequently-changing knowledge and broad corpora: new information goes into the index with no retraining. Fine-tuning bakes knowledge into weights (slow to update), and a corpus larger than the window can't be pasted in." },
+    { type: "scq",
+      stem: "When can you skip RAG and just put the whole corpus in the prompt?",
+      options: [
+        "Whenever the documents are PDFs",
+        "When the corpus fits the window — roughly under 200,000 tokens (~500 pages)",
+        "Only if you fine-tune first",
+        "Never — RAG is always required for documents" ],
+      answer: 1,
+      explain: "Anthropic's guidance: for knowledge bases under ~200K tokens (~500 pages) you can skip retrieval and put it all in the prompt. RAG and chunking become necessary only once the corpus exceeds the context window." },
+    { type: "tf",
+      stem: "RecursiveCharacterTextSplitter tries to split on paragraphs first, then lines, then words, then individual characters.",
+      answer: true,
+      explain: "True. Its default separator order is [\"\\n\\n\", \"\\n\", \" \", \"\"] — paragraphs → lines → words → characters — descending only when a chunk is still too big, so it keeps related text together as long as possible." },
+    { type: "mcq",
+      stem: "Which statements about embeddings and vector stores are correct? (select all that apply)",
+      options: [
+        "text-embedding-3-large defaults to 3072 dimensions; 3-small to 1536",
+        "You can shorten vectors with a dimensions parameter and keep most quality",
+        "You should use different embedding models for ingestion and for queries",
+        "Without an index, pgvector falls back to exact (slower) search",
+        "Chroma's default embedding function is all-MiniLM-L6-v2 at 384 dimensions" ],
+      answer: [0, 1, 3, 4],
+      explain: "3-large is 3072d and 3-small 1536d; the Matryoshka dimensions parameter shortens vectors with little quality loss; pgvector does exact search with no index; Chroma defaults to all-MiniLM-L6-v2 (384d). The false one: you must use the SAME embedding model for ingest and query — different models live in incompatible spaces." },
+    { type: "match",
+      stem: "Match each technique to what it does.",
+      pairs: [
+        { l: "chunk_overlap (10–20%)", r: "carry context across a chunk boundary" },
+        { l: "HNSW index in pgvector", r: "fast approximate nearest-neighbour search" },
+        { l: "BM25 in a hybrid retriever", r: "catch exact term / phrase matches" },
+        { l: "Matryoshka dimensions parameter", r: "shorten vectors to cut storage/latency" } ],
+      explain: "Overlap stitches facts split across boundaries; HNSW is an ANN index for speed/recall; BM25 covers the literal-term matches dense vectors miss; the dimensions parameter trades a little accuracy for much smaller, faster vectors." },
+    { type: "open",
+      stem: "In one or two sentences: why does hybrid retrieval (dense embeddings + BM25) outperform either method alone, and name one technique that pushes retrieval quality even further.",
+      hint: "Think about what dense vectors are good at vs what they miss — and Anthropic's failure-reduction numbers.",
+      model: "Dense embeddings catch semantic matches (different words, same meaning) but miss exact terms like product codes and error strings, which is exactly what BM25's lexical matching catches — so fusing them covers both failure modes and beats either alone. You can push further with Contextual Retrieval (prepending chunk-specific context before indexing) and reranking, which together cut top-20 retrieval failures by up to 67%." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

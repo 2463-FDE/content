@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w02d4">
+<meta name="fde-concepts" content="faithfulness,context-precision,context-recall,noise-sensitivity,seven-failure-points,llm-as-judge-eval">
+<title>W2·D4 — RAG Evaluation: Proving the Pipeline Works | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 2 · Day 4 · RAG Evaluation</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>RAG Evaluation: Proving the Pipeline Actually Works</h1>
+        <div class="meta">
+          <span><b>Week 2</b> · Day 4</span>
+          <span>Foundation AI Engineering</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">You've built a RAG system. It returns answers. They look right. That is exactly the moment
+        a Forward Deployed Engineer should get nervous — because "looks right" is not "is right," and the client is about
+        to bet a business process on it. Today you learn to <strong>measure</strong> a RAG pipeline the way the field
+        actually does it: splitting it into a <strong>retrieval half</strong> and a <strong>generation half</strong>, and
+        scoring each with metrics that turn vibes into numbers. By the end you can tell a client not just <em>that</em>
+        the system is wrong, but <em>where</em> it broke and which knob to turn. Scroll the reading; the panel on the
+        right assembles the evaluation pipeline one metric at a time.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>A RAG system is two systems, so it needs two scorecards</h2>
+        <p>Every RAG pipeline does two distinct jobs in sequence. First it <strong>retrieves</strong>: given a question,
+        it pulls some set of chunks out of a knowledge base. Then it <strong>generates</strong>: it hands those chunks to
+        an LLM and asks it to write an answer. These are different machines with different failure modes, and the single
+        biggest mistake in RAG evaluation is scoring them as one blob. A great answer from bad retrieval is luck; a bad
+        answer from perfect retrieval is a generation bug. You cannot fix either one until you know which one you have.</p>
+        <p>The field has converged on three core metrics that map cleanly onto the three things a RAG system must get
+        right: <strong>rank the useful chunks high</strong>, <strong>retrieve all the chunks you need</strong>, and
+        <strong>ground the answer in those chunks</strong>. Those three are <strong>context precision</strong>,
+        <strong>context recall</strong>, and <strong>faithfulness</strong>. The first two live on the retrieval side; the
+        last lives on the generation side. Keep that split in your head all day — it is the spine of every diagnosis you
+        will run.</p>
+        <p>Why does an FDE care so much about measurement specifically? Because on an engagement you do not get to say
+        "the AI is pretty good." You get asked "can we trust it to answer customer billing questions without a human in
+        the loop?" — and the only honest answer is a number with a method behind it. Evaluation is what converts a demo
+        into a system you can sign your name to. It is also what lets you change the pipeline next week and prove you made
+        it better instead of just different.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Retrieval · metric 1</div>
+        <h2>Context recall: did we even fetch the right information?</h2>
+        <p>Start on the retrieval side, with the most fundamental question of all: <strong>was the information the answer
+        needs actually in the chunks we retrieved?</strong> That is <strong>context recall</strong>. If the relevant
+        passage never made it into the context, nothing downstream can save you — the generator is being asked to answer
+        from material that doesn't contain the answer, and a confident hallucination is the predictable result.</p>
+        <p>Ragas computes context recall against a <strong>reference answer</strong> (the ground truth you supply). It
+        breaks that reference answer into individual claims, then checks each claim for whether it can be
+        <em>attributed</em> to the retrieved context. The score is the fraction of reference claims supported by what was
+        retrieved: <strong>(reference claims supported by the retrieved context) / (total claims in the reference)</strong>.
+        A recall of 1.0 means every fact the gold answer relies on was present somewhere in the chunks you pulled; a
+        recall of 0.4 means more than half the needed information never showed up.</p>
+        <p>This is the metric that tells you whether your retrieval architecture is <em>fundamentally sound</em>. Low
+        recall is not a tuning problem you can prompt your way out of — it means your chunking, your embeddings, your
+        index, or your top-k is dropping information the system genuinely requires. When recall is low, no amount of
+        clever generation prompting will help, because the raw material isn't there. That is why context recall, along
+        with faithfulness, is one of the two highest-signal metrics for most production systems: it directly answers "is
+        the retrieval layer good enough to build on?"</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Retrieval · metric 2</div>
+        <h2>Context precision: are the good chunks ranked at the top?</h2>
+        <p>Recall asks <em>whether</em> the needed chunks were retrieved. <strong>Context precision</strong> asks a
+        sharper question: <strong>are the relevant chunks ranked at the top</strong>, ahead of the irrelevant ones? A
+        retriever that returns the right passage as result number nine, buried under eight pieces of noise, technically
+        "found" it — but it has spent your context budget on garbage and pushed the signal to where the generator is
+        least likely to use it well.</p>
+        <p>Ragas computes context precision as <strong>mean precision@k across the retrieved chunks</strong>, where
+        precision@k = true positives@k / (true positives@k + false positives@k). The crucial nuance:
+        <strong>position matters</strong>. An irrelevant chunk ranked first hurts the score far more than the same
+        irrelevant chunk ranked lower down. This is deliberate — it mirrors reality, where junk at the top of the context
+        does the most damage to both cost and answer quality. A high-precision retriever puts the wheat first and the
+        chaff last (or, ideally, leaves the chaff out entirely).</p>
+        <p>Ragas ships this metric in a few flavors you'll choose between on real work. <code>LLMContextPrecisionWithReference</code>
+        scores chunks against a ground-truth reference; <code>LLMContextPrecisionWithoutReference</code> is reference-free
+        and instead compares each chunk to the generated response (useful when you don't have labeled answers); and
+        <code>IDBasedContextPrecision</code> is a non-LLM variant that matches retrieved chunk IDs against known-relevant
+        IDs — cheap and deterministic when you have that labeling. The reference-free variant is the one you reach for
+        first on a client engagement where nobody has built a labeled test set yet.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: paste a question and a ranked
+        list of retrieved chunks, mark which are relevant, and watch precision@k recompute live as you drag chunks up and
+        down the ranking — making the position penalty visible. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Generation · the headline metric</div>
+        <h2>Faithfulness: is the answer actually grounded in the context?</h2>
+        <p>Now cross to the generation side. Suppose retrieval did its job and the right information is sitting in the
+        context. The generator can <em>still</em> betray you by writing things the context does not support — adding a
+        detail it "knows" from pretraining, blending two facts into a false third, or simply making something up.
+        <strong>Faithfulness</strong> is the metric that catches this, and it is the single most important score in most
+        production RAG systems because it measures the most dangerous failure mode: <strong>hallucination</strong>.</p>
+        <p>Faithfulness measures how factually consistent a response is with the retrieved context, on a 0–1 scale. The
+        recipe: extract the individual claims made in the response, then verify each one against the retrieved context. A
+        claim counts as supported if the context backs it up (DeepEval frames the same idea from the other direction — a
+        claim is "truthful" if it does not <em>contradict</em> the retrieval context). The score is
+        <strong>(number of supported claims) / (total claims in the response)</strong>. A faithfulness of 1.0 means every
+        single statement in the answer can be traced back to the source material; 0.7 means roughly a third of the
+        answer's claims are floating free of any grounding.</p>
+        <p>DeepEval computes faithfulness the same way and makes the operational details concrete: it requires the
+        <code>input</code>, the <code>actual_output</code>, and the <code>retrieval_context</code>, and it applies a
+        <strong>default pass threshold of 0.5</strong> — with a <code>strict_mode</code> option that forces binary scoring
+        at a threshold of 1, meaning anything less than perfectly grounded fails. That threshold is a policy decision you
+        make with the client: a customer-facing medical or financial bot might demand strict mode, while an internal
+        brainstorming assistant can tolerate a softer bar.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: submit a response plus its
+        retrieved context and watch the faithfulness pipeline run — claims extracted one by one, each marked
+        supported / unsupported against the context, and the final supported-over-total fraction computed in front of you.
+        Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">The shared engine</div>
+        <h2>How the scoring actually works: LLM-as-judge</h2>
+        <p>You may have noticed that faithfulness, context recall, and context precision all share the same underlying
+        move: <strong>break text into claims, then verify each claim</strong>. That shared mechanism is
+        <strong>LLM-as-judge</strong> evaluation — instead of comparing strings exactly (which fails the moment the model
+        phrases a correct answer differently), an LLM extracts the claims and judges whether each is supported. This is
+        what lets these metrics work on free-form natural-language answers at all; exact-match scoring would call a
+        perfectly correct paraphrase "wrong."</p>
+        <p>The catch is cost and consistency. Running an LLM judge over every claim in every response, across a test set
+        of thousands of examples, is slow and expensive — and the judge is itself a model that can be wrong. The field has
+        responses to both problems. For faithfulness specifically, Ragas offers a <code>FaithfulnesswithHHEM</code>
+        variant that swaps the per-claim LLM calls for <strong>Vectara's HHEM-2.1-Open</strong>, a T5-based classifier
+        purpose-built to check whether one piece of text is supported by another. It performs the claim-verification step
+        far more cheaply than calling a general-purpose LLM once per claim, which matters enormously when you are scoring
+        a large eval set on every change.</p>
+        <p>The FDE takeaway: these metrics are not magic oracles, they are <strong>LLMs (or small classifiers) grading
+        other LLMs</strong>. Treat them as instruments with their own error bars. You validate the judge against a small
+        set of human-labeled examples, you pick the cheaper NLI classifier when you're scoring at volume, and you never
+        present a single eval number to a client without understanding how it was produced.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Robustness</div>
+        <h2>Noise sensitivity: what happens when the context is messy?</h2>
+        <p>The three core metrics assume a fairly clean setup. Real retrieval is messier — it returns a mix of relevant
+        and irrelevant chunks, and a robust system should stay correct anyway. <strong>Noise sensitivity</strong> measures
+        exactly this: <strong>how often the system produces incorrect claims when given relevant or irrelevant retrieved
+        documents</strong>. It is computed as <strong>(incorrect claims) / (total claims in the response)</strong>, and
+        unlike the metrics so far, <strong>lower is better</strong> — it's an error rate.</p>
+        <p>Why does this deserve its own metric when faithfulness already exists? Because they catch different things.
+        Faithfulness asks whether the answer is grounded in the context that was retrieved. Noise sensitivity probes
+        whether the <em>presence of noise</em> in that context knocks the system off course — whether throwing in
+        irrelevant documents causes the generator to pick up false claims it otherwise wouldn't. A system can be
+        reasonably faithful on clean inputs and still be fragile: add three off-topic chunks and its error rate spikes.
+        That fragility is invisible until you measure it, and it's precisely the kind of thing that surfaces in production
+        when retrieval quality drifts.</p>
+        <p>For an FDE, noise sensitivity is a stress test. Clients rarely have pristine knowledge bases — they have
+        duplicated docs, outdated pages, and near-miss chunks that look relevant but aren't. Measuring noise sensitivity
+        tells you how much the system's correctness depends on perfect retrieval, which in turn tells you how much
+        engineering effort to spend hardening the retriever versus hardening the generator's instructions to ignore
+        irrelevant context.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">The taxonomy</div>
+        <h2>The seven failure points: a shared map of how RAG breaks</h2>
+        <p>Metrics give you numbers; a <strong>taxonomy</strong> gives you names for what those numbers mean. The
+        canonical one comes from an experience report, "Seven Failure Points When Engineering a RAG System," and it is
+        worth memorizing because it gives you and the client a shared vocabulary for triage. The seven points are:
+        <strong>FP1 Missing Content</strong> (the answer simply isn't in the knowledge base), <strong>FP2 Missed the Top
+        Ranked Documents</strong> (it's in the base but didn't get retrieved into the top results), <strong>FP3 Not in
+        Context</strong> (retrieved, but lost to consolidation or context-window limits before generation),
+        <strong>FP4 Not Extracted</strong> (present in the context, but the LLM failed to pull it out), <strong>FP5 Wrong
+        Format</strong>, <strong>FP6 Incorrect Specificity</strong> (too vague or too detailed for the question), and
+        <strong>FP7 Incomplete</strong> (partial answer, missing pieces).</p>
+        <p>Here is the connection that makes the taxonomy operational: <strong>it maps onto the retrieval/generation
+        split you've been building all day</strong>. FP1 and FP2 are retrieval-side failures — the kind context recall and
+        context precision are designed to detect. FP4, "Not Extracted," is a <em>generation-side</em> failure that is
+        easy to confuse with retrieval failure: the answer <em>is</em> sitting in the context, but the model didn't use
+        it. That distinction is exactly why you must report retrieval and generation metrics <strong>separately</strong>.
+        If you only looked at end-to-end correctness, an FP4 and an FP1 look identical — both are wrong answers — but the
+        fix could not be more different. FP1 means rebuild retrieval; FP4 means fix the prompt or the generator.</p>
+        <p>This is the payoff of the whole day. A wrong answer is not a diagnosis, it's a symptom. The seven failure
+        points plus the metric split let you walk a misbehaving RAG system the way you learned to walk the context window
+        in Week 1: was the content in the base at all (FP1)? Did it get retrieved and ranked (FP2, context precision)?
+        Did it survive into the context (FP3)? Did the model extract it (FP4, faithfulness)? Each question points at a
+        different fix, and being able to name the failure in front of a client is a large part of what they are paying an
+        FDE for.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">What to actually do</div>
+        <h2>Prioritize: faithfulness and recall first</h2>
+        <p>You now have a toolbox of metrics, which raises a real risk: drowning the client in a dashboard of twelve
+        numbers nobody acts on. So lead with the two that carry the most signal. For most production systems,
+        <strong>faithfulness and context recall are the highest-signal metrics</strong>: faithfulness catches
+        hallucination — the most dangerous failure mode, the one that erodes trust fastest — and context recall tells you
+        whether the retrieval architecture is fundamentally sound enough to build on at all. If those two are healthy,
+        you have a system worth refining. If either is broken, you have a system worth rebuilding, and refining anything
+        else is rearranging deck chairs.</p>
+        <p>Around that core, add context precision when cost and latency matter (it tells you how much budget you're
+        wasting on junk chunks) and noise sensitivity when the knowledge base is messy or drifting. Report retrieval-side
+        and generation-side scores in separate columns, always — that's the discipline that keeps an FP4 from being
+        misdiagnosed as an FP1. And remember the tooling reality from earlier: Ragas (PyPI package <code>ragas</code>,
+        with its canonical repo now under the <code>vibrantlabsai</code> GitHub org) and DeepEval both implement these
+        metrics off the shelf, so you are wiring up well-defined instruments, not inventing scoring from scratch.</p>
+        <p>The mental shift to carry out of today is the same one that separates an engineer from someone poking at a
+        chatbox: <strong>you don't ship a RAG system, you ship a RAG system plus the evaluation that proves it works and
+        will keep working.</strong> The eval set is what lets you change embeddings, swap a model, or re-chunk the corpus
+        next month and demonstrate — with numbers, split by stage — that you made it better. That artifact, more than any
+        single clever retrieval trick, is what a client is actually buying when they hire someone to make their RAG
+        system trustworthy.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: run a full Ragas-style eval over
+        a small labeled question set and see all four metrics populate a stage-split scorecard — retrieval (recall,
+        precision) in one column, generation (faithfulness, noise sensitivity) in another — so the retrieval-vs-generation
+        diagnosis pops out at a glance. Needs backend standup.</p></div>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When a client says "the AI gave a wrong answer," the amateur swaps the model. The FDE asks: <strong>was this a
+          retrieval failure or a generation failure?</strong> Context recall and precision answer the first; faithfulness
+          answers the second; the seven failure points give the answer a name. Diagnose the stage before you touch the
+          knob — and never present the diagnosis without the eval that backs it.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/" target="_blank" rel="noopener">Ragas — List of available metrics</a> — the full metric catalogue and how the three core metrics map to what a RAG system must get right.</li>
+          <li><a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/faithfulness/" target="_blank" rel="noopener">Ragas — Faithfulness</a> — the supported-claims / total-claims definition and the cheaper <code>FaithfulnesswithHHEM</code> (Vectara HHEM-2.1-Open) variant.</li>
+          <li><a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/context_precision/" target="_blank" rel="noopener">Ragas — Context Precision</a> — mean precision@k, why rank position matters, and the reference / reference-free / ID-based variants.</li>
+          <li><a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/context_recall/" target="_blank" rel="noopener">Ragas — Context Recall</a> — measuring whether all needed information was retrieved, claim by claim against the reference.</li>
+          <li><a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/noise_sensitivity/" target="_blank" rel="noopener">Ragas — Noise Sensitivity</a> — the incorrect-claims / total-claims error rate under relevant and irrelevant documents.</li>
+          <li><a href="https://deepeval.com/docs/metrics-faithfulness" target="_blank" rel="noopener">DeepEval — Faithfulness</a> — the same metric with required inputs and the default 0.5 pass threshold (and <code>strict_mode</code>).</li>
+          <li><a href="https://pypi.org/project/ragas/" target="_blank" rel="noopener">ragas · PyPI</a> — the package (v0.4.3) whose canonical repo now lives under the <code>vibrantlabsai</code> GitHub org.</li>
+          <li><a href="https://arxiv.org/html/2401.05856v1" target="_blank" rel="noopener">Barnett et al. — Seven Failure Points When Engineering a RAG System</a> — the FP1–FP7 taxonomy and the retrieval-vs-extraction distinction.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Claim extraction, LLM-judges &amp; the cheaper NLI path</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on RAG evaluation</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 2 Day 4</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: how claim-based scoring actually runs</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The mechanism behind the numbers.</p>
+    <p><strong>Why not just string-match?</strong> Exact-match scoring breaks the instant a model phrases a correct
+    answer differently from your reference — "the policy renews annually" vs "it's a yearly renewal" would score as
+    wrong. So Ragas and DeepEval evaluate <em>claims</em>, not strings: an LLM extracts the discrete factual statements
+    from a piece of text, and then each statement is checked for support. This is the shared engine —
+    <strong>LLM-as-judge</strong> — under faithfulness, context recall, and context precision alike.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked example — scoring one answer</div>
+      <p style="margin:0 0 6px">Response: "Refunds take 5 business days and are issued to the original card; store credit
+      is also available." Suppose the retrieved context supports the 5-business-days claim and the original-card claim,
+      but says nothing about store credit.</p>
+      <ul class="deliv-list">
+        <li>Claim 1 — "refunds take 5 business days" → supported ✓</li>
+        <li>Claim 2 — "issued to the original card" → supported ✓</li>
+        <li>Claim 3 — "store credit is available" → not in context ✗</li>
+      </ul>
+      <p style="margin:8px 0 0"><strong>Faithfulness = 2 / 3 ≈ 0.67.</strong> Under DeepEval's default threshold of 0.5
+      this passes; under <code>strict_mode</code> (threshold 1) it fails, because one claim is ungrounded. The store-credit
+      line is a textbook hallucination — fluent, plausible, and unsupported.</p>
+    </div>
+    <p style="margin-top:14px"><strong>The cost lever.</strong> Extracting and verifying every claim with a general LLM,
+    over thousands of test cases, gets expensive fast. Ragas' <code>FaithfulnesswithHHEM</code> swaps the verification
+    step for Vectara's HHEM-2.1-Open, a small T5-based classifier built to judge whether one text is supported by
+    another — much cheaper per claim, which is what makes scoring a large eval set on every code change practical rather
+    than aspirational.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 4 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Split any RAG pipeline into a retrieval half and a generation half and score each separately</li>
+      <li>Define context recall, context precision, faithfulness, and noise sensitivity — and say what each one catches</li>
+      <li>Explain LLM-as-judge scoring and why the cheaper NLI classifier (HHEM) exists</li>
+      <li>Use the seven failure points to name a RAG failure and distinguish a retrieval miss (FP1/FP2) from a generation extraction failure (FP4)</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add an <code>EVAL.md</code> to your RAG project</li>
+      <li><b>①</b> the metric you'd report first for your use case, and why (faithfulness vs recall)</li>
+      <li><b>②</b> one failure you've seen, mapped to a numbered failure point (FP1–FP7)</li>
+      <li><b>③</b> the pass threshold you'd set for faithfulness, and the client reason behind it</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 5. Today you learned to measure the pipeline; the eval set you start here is the
+    artifact that lets you prove every later change made the system better, not just different.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 5 · Week 2 wrap →", href: "w02d5.html" };
+window.DIAGRAM = {
+  title: "RAG evaluation · two halves, four metrics",
+  width: 500, height: 700,
+  nodes: [
+    // the pipeline spine (left column)
+    { id:"q",    step:0, kind:"example", x:14, y:12, w:268, h:58,
+      label:"QUERY  \"How long do refunds take?\"\n  + reference answer (ground truth)\n  → retrieve top-k chunks → generate" },
+    { id:"retr", step:0, x:40, y:88,  w:216, h:40, label:"Retriever — pull top-k chunks" },
+    { id:"ctx",  step:0, x:40, y:146, w:216, h:48, label:"Retrieved context\n(relevant + noise chunks)" },
+    { id:"gen",  step:0, x:40, y:212, w:216, h:40, label:"LLM generation" },
+    { id:"resp", step:0, x:40, y:270, w:216, h:44, label:"Response (answer to score)" },
+
+    // retrieval-side metrics (right column, top)
+    { id:"recall", step:1, x:300, y:138, w:186, h:64, label:"CONTEXT RECALL\nall needed info retrieved?",
+      detail:"Retrieval-side. The reference answer is split into claims; the score is the fraction attributable to the retrieved context — (reference claims supported) / (total reference claims). Low recall means the retrieval architecture is unsound: the raw material isn't there, so no prompting can save the answer. One of the two highest-signal metrics." },
+    { id:"prec", step:2, x:300, y:88, w:186, h:42, label:"CONTEXT PRECISION\nrelevant chunks ranked high?",
+      detail:"Retrieval-side. Mean precision@k across retrieved chunks (TP@k / (TP@k + FP@k)). Position matters: an irrelevant chunk ranked first hurts far more than one ranked lower. Variants: with-reference, reference-free (compares chunks to the response), and non-LLM ID-based." },
+
+    // generation-side metrics (right column, lower)
+    { id:"faith", step:3, x:300, y:258, w:186, h:64, label:"FAITHFULNESS\nclaims grounded in context?",
+      detail:"Generation-side, the headline metric — it catches hallucination. (supported claims) / (total claims in the response), 0–1. DeepEval needs input + actual_output + retrieval_context and passes at a default 0.5 threshold (strict_mode forces threshold 1)." },
+
+    // shared engine
+    { id:"judge", step:4, x:300, y:340, w:186, h:62, label:"LLM-AS-JUDGE\nextract claims → verify",
+      detail:"The shared engine under recall, precision, and faithfulness: an LLM extracts claims then judges support, so paraphrases aren't punished like exact-match would. Faithfulness can swap per-claim LLM calls for Vectara's HHEM-2.1-Open (T5 NLI classifier) — much cheaper at scale." },
+
+    // robustness
+    { id:"noise", step:5, x:40, y:340, w:216, h:50, label:"NOISE SENSITIVITY\nerrors under noisy context (lower=better)",
+      detail:"Robustness metric: (incorrect claims) / (total claims) when given relevant OR irrelevant documents. Probes whether adding noise knocks the system off course — a system can be faithful on clean inputs yet fragile when retrieval drifts." },
+
+    // taxonomy
+    { id:"fp", step:6, x:40, y:418, w:446, h:140,
+      label:"SEVEN FAILURE POINTS\nFP1 Missing Content   FP2 Missed Top-Ranked\nFP3 Not in Context    FP4 Not Extracted\nFP5 Wrong Format      FP6 Incorrect Specificity\nFP7 Incomplete\nFP1/FP2 = retrieval   ·   FP4 = generation",
+      detail:"The canonical RAG failure taxonomy. FP1/FP2 are retrieval-side (what recall & precision catch); FP4 'Not Extracted' is generation-side — the answer IS in the context but the model didn't use it. FP1 and FP4 produce identical wrong answers but need opposite fixes, which is why retrieval and generation metrics must be reported separately." },
+
+    // priority
+    { id:"prio", step:7, x:40, y:578, w:446, h:104,
+      label:"REPORT BY STAGE\nRetrieval: recall + precision\nGeneration: faithfulness + noise sensitivity\nLead with FAITHFULNESS + RECALL (highest signal)",
+      detail:"Faithfulness catches the most dangerous failure (hallucination); context recall tells you if retrieval is fundamentally sound. Healthy on both = refine; broken on either = rebuild. Always split retrieval vs generation columns so an FP4 isn't misread as an FP1." }
+  ],
+  edges: [
+    { id:"e1", step:0, from:"q",    to:"retr" },
+    { id:"e2", step:0, from:"retr", to:"ctx" },
+    { id:"e3", step:0, from:"ctx",  to:"gen" },
+    { id:"e4", step:0, from:"gen",  to:"resp" },
+    { id:"e_recall", step:1, from:"recall", to:"ctx", label:"vs reference", ly:-2 },
+    { id:"e_prec",   step:2, from:"prec",   to:"ctx", label:"rank@k", ly:-2 },
+    { id:"e_faith",  step:3, from:"faith",  to:"resp", label:"grounded?", ly:-2 },
+    { id:"e_judge1", step:4, from:"judge",  to:"faith", dir:"-" },
+    { id:"e_noise",  step:5, from:"noise",  to:"resp", label:"error rate", lx:-8, ly:-2 }
+  ],
+  captions: [
+    "A RAG system is <b>two systems</b>: a retriever and a generator. The answer alone can't tell you which one broke — so we score each half. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "<b>Context recall</b> (retrieval): was all the needed info actually retrieved? Reference claims supported ÷ total reference claims. <span style='opacity:.7'>(tap)</span>",
+    "<b>Context precision</b> (retrieval): are the relevant chunks ranked at the <b>top</b>? Mean precision@k — and rank position matters. <span style='opacity:.7'>(tap)</span>",
+    "<b>Faithfulness</b> (generation): are the answer's claims grounded in the context? Supported claims ÷ total claims — this catches hallucination. <span style='opacity:.7'>(tap)</span>",
+    "All three share one engine: <b>LLM-as-judge</b> extracts claims and verifies them — or a cheaper NLI classifier (HHEM) does it at scale. <span style='opacity:.7'>(tap)</span>",
+    "<b>Noise sensitivity</b>: how often the system errs when the context is messy. Lower is better — it's an error rate. <span style='opacity:.7'>(tap)</span>",
+    "The <b>seven failure points</b> name what broke. FP1/FP2 are retrieval; FP4 'Not Extracted' is generation — same wrong answer, opposite fix. <span style='opacity:.7'>(tap)</span>",
+    "So <b>report by stage</b> and lead with <b>faithfulness + recall</b> — the highest-signal pair. Healthy on both → refine; broken on either → rebuild. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w02-d4",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "Why must a RAG system be evaluated with separate retrieval-side and generation-side metrics?",
+      options: [
+        "It makes the dashboard look more thorough to the client",
+        "A wrong answer from a retrieval miss and a wrong answer from a generation failure look identical end-to-end but need opposite fixes",
+        "Retrieval metrics are cheaper to compute than generation metrics",
+        "Generation never fails once retrieval is correct" ],
+      answer: 1,
+      explain: "An FP1 (content never retrieved) and an FP4 (in the context but not extracted) both produce a wrong answer. Only the stage-split metrics tell you whether to rebuild retrieval or fix the generator — which is why they're reported separately." },
+    { type: "scq",
+      stem: "Faithfulness is computed as:",
+      options: [
+        "Exact string match between the response and the reference answer",
+        "(supported claims) / (total claims in the response), 0–1",
+        "(relevant chunks) / (retrieved chunks)",
+        "The fraction of reference claims found in the retrieved context" ],
+      answer: 1,
+      explain: "Faithfulness extracts the claims in the response and scores the fraction supported by the retrieved context. Option 4 describes context recall; option 3 is precision-flavored; exact match would punish correct paraphrases." },
+    { type: "tf",
+      stem: "In context precision, an irrelevant chunk ranked first hurts the score more than the same chunk ranked lower.",
+      answer: true,
+      explain: "True. Context precision is mean precision@k and is position-aware on purpose — junk at the top does the most damage to budget and answer quality, so it's penalized harder." },
+    { type: "mcq",
+      stem: "Which statements about LLM-as-judge scoring are correct? (select all that apply)",
+      options: [
+        "It extracts claims and verifies each, rather than matching strings exactly",
+        "It underlies faithfulness, context recall, and context precision",
+        "Faithfulness can use Vectara's HHEM-2.1-Open classifier to verify claims more cheaply than per-claim LLM calls",
+        "The judge is infallible and never needs validation against humans",
+        "It requires the answer to exactly match the reference wording" ],
+      answer: [0, 1, 2],
+      explain: "Claim extraction + verification is the shared engine behind all three metrics, and HHEM is the cheaper NLI path for faithfulness. The judge is itself a model that can be wrong, and the whole point of claim-based scoring is to NOT require exact wording." },
+    { type: "match",
+      stem: "Match each metric or failure point to what it tells you.",
+      pairs: [
+        { l: "Context recall", r: "did retrieval fetch all the needed information?" },
+        { l: "Faithfulness", r: "are the answer's claims grounded in the context?" },
+        { l: "Noise sensitivity", r: "does messy context push the error rate up?" },
+        { l: "FP4 Not Extracted", r: "answer was in the context but the model didn't use it" } ],
+      explain: "Recall is retrieval completeness; faithfulness is generation grounding; noise sensitivity is robustness to irrelevant chunks; FP4 is the generation-side extraction failure that masquerades as a retrieval miss." },
+    { type: "open",
+      stem: "A client's support bot confidently states a refund policy detail that is wrong. In one or two sentences, walk the diagnosis using today's tools — what would you measure, and how does the result change the fix?",
+      hint: "Think retrieval-side vs generation-side, and which failure point each implies.",
+      model: "First check context recall / whether the correct policy chunk was even retrieved: if it wasn't, that's a retrieval failure (FP1/FP2) and the fix is chunking, embeddings, or top-k. If the right chunk WAS in the context, check faithfulness — a low score with the fact present means FP4 'Not Extracted,' a generation failure fixed by prompting or a different generator, not by rebuilding retrieval." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

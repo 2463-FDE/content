@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w02d2">
+<meta name="fde-concepts" content="embedding-dimensionality,matryoshka-representation-learning,similarity-metrics,ann-index-hnsw,ann-index-ivfflat,sparse-vs-dense-retrieval">
+<title>W2·D2 — Embeddings &amp; Vector Stores | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 2 · Day 2 · Embeddings &amp; Vector Stores</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Embeddings &amp; Vector Stores: turning meaning into geometry</h1>
+        <div class="meta">
+          <span><b>Week 2</b> · Day 2</span>
+          <span>Foundation AI Engineering</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Yesterday you chunked documents; today you make those chunks <em>findable</em>. An
+        <strong>embedding</strong> turns a piece of text into one fixed-length list of numbers — a vector — and a
+        <strong>vector store</strong> is the database that holds millions of them and answers "what's closest to this?"
+        in milliseconds. Every retrieval decision an FDE makes downstream — quality, speed, memory, monthly bill — is
+        set here, by four small choices: how long the vector is, how you measure closeness, how you index, and where you
+        store it. The panel on the right builds the whole pipeline one stage at a time. Get these four right and RAG
+        works; get them wrong and no amount of prompt tuning saves you.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>One model turns text into one fixed-length vector</h2>
+        <p>Start with the single operation everything else hangs on. An <strong>embedding model</strong> takes a piece of
+        text — a chunk, a query, a product description — and returns a <strong>fixed-length vector</strong>: an ordered
+        list of floating-point numbers. "Fixed-length" is the part to hold onto. Whether you feed it one word or a full
+        page, the output is the <em>same</em> length every time. OpenAI's current models make this concrete:
+        <code>text-embedding-3-small</code> returns 1,536 numbers by default and <code>text-embedding-3-large</code>
+        returns 3,072, and both accept up to <strong>8,192 input tokens</strong> per call.</p>
+        <p>Why bother? Because once text is a vector, "related meaning" becomes "near in space," and "find me relevant
+        documents" becomes a math problem a computer can do fast: rank every stored vector by its distance to the query
+        vector and return the closest. That is the entire mechanical basis of semantic search and of the retrieval half
+        of RAG. The model does the hard part — mapping language into a geometry where distance tracks meaning — and your
+        job is to manage the consequences of that geometry.</p>
+        <p>So the FDE framing for today is deliberately narrow. You are not training embedding models; you are
+        <em>operating</em> them. Four operational choices flow from this one vector: <strong>how many dimensions</strong>
+        it should have, <strong>which similarity metric</strong> ranks it, <strong>which index</strong> makes the search
+        fast at scale, and <strong>which vector store</strong> you run it in. Each choice trades quality against cost and
+        speed, and — critically — several of them are <em>locked at index-creation time</em>, so getting them right up
+        front is cheaper than discovering them in production. The rest of the reading walks those four choices in order.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Choice 1 · dimensionality</div>
+        <h2>Dimensionality is a budget decision, not a "bigger is better" one</h2>
+        <p>The length of the vector — its <strong>dimensionality</strong> — is your first lever. More dimensions can
+        capture more nuance, and that is exactly why <code>text-embedding-3-large</code> (3,072 dims) tends to score
+        higher than <code>text-embedding-3-small</code> (1,536 dims) on retrieval benchmarks. But every extra dimension
+        is a real cost paid on every vector you ever store: more <strong>storage</strong> on disk, more
+        <strong>memory</strong> in the index, and more <strong>compute</strong> per comparison. Double the dimensions and
+        you roughly double the bytes for your entire corpus.</p>
+        <p>That cost is the part beginners ignore and FDEs lead with. A million chunks at 3,072 float dimensions is a very
+        different memory and infrastructure footprint than a million at 1,536 — and the search itself is slower because
+        every distance calculation has twice as many numbers to chew through. When a client asks why their vector
+        database is expensive or their latency is creeping up, "we picked the biggest embedding by reflex" is one of the
+        most common answers.</p>
+        <p>There is also a hard ceiling lurking here that catches teams off guard: <strong>dimensionality can exceed an
+        index's limits.</strong> As you'll see in a moment, the most popular Postgres extension for vectors won't build
+        its fast index on a raw 3,072-dim vector at all. So dimensionality is never just "how good is it?" — it's "how
+        good, at what storage and memory cost, and will my chosen index even accept it?" Decide it against a budget, the
+        same way you sized the context window on Day 1.</p>
+        <div class="ix-predict"
+          data-q="A team picks text-embedding-3-large (3,072 dims) for a 5-million-chunk corpus 'to be safe,' then complains storage and query latency are both high. What's the first thing you'd investigate — before changing the model?"
+          data-a="Whether the <b>dimensionality</b> is buying quality they actually need. 3,072 dims means double the storage and double the per-comparison compute of 1,536 across <i>all 5M</i> vectors. The FDE move is to measure retrieval quality at a <b>shorter</b> dimension (the model is built for exactly this — next step) and keep the smaller vector if quality holds. Bigger embeddings are a cost decision, not a free upgrade.">
+        </div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Choice 1b · Matryoshka</div>
+        <h2>You can shorten the vector — by design</h2>
+        <p>Here is the lever that makes dimensionality genuinely tunable instead of fixed at the model's default. Both
+        <code>text-embedding-3-*</code> models were <strong>trained so you can shorten the vector</strong> — OpenAI
+        describes it as removing some numbers from the end of the sequence — <em>without</em> the embedding losing its
+        concept-representing properties. You request a shorter vector by passing the <code>dimensions</code> API
+        parameter, and you get back a smaller, faster, cheaper-to-store embedding that still works.</p>
+        <p>This isn't a hack; it comes from a training technique called <strong>Matryoshka Representation Learning</strong>
+        (MRL) — named for the nesting dolls. A single embedding is trained to encode information
+        <strong>coarse-to-fine</strong>, so the first <em>k</em> dimensions are usable as a standalone embedding all by
+        themselves. The leading numbers carry the broad strokes; later numbers add detail. MRL can yield embeddings up to
+        roughly <strong>14× smaller</strong> with much faster retrieval and <em>no extra inference cost</em> — you run the
+        same model, you just keep fewer of the outputs.</p>
+        <p>The headline result is the one to quote to a skeptical client: a <code>text-embedding-3-large</code> vector cut
+        to just <strong>256 dimensions</strong> still outperforms an unshortened older <code>text-embedding-ada-002</code>
+        vector at its full 1,536 dimensions on the MTEB benchmark. Twelve times smaller, still better. One operational
+        warning, though: if you truncate the vector <strong>yourself</strong> after generation rather than via the
+        <code>dimensions</code> parameter, you must <strong>re-normalize</strong> the resulting vector — otherwise the
+        distance math (next step) silently goes wrong. Shorten on purpose, and re-normalize if you do it by hand.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a dimensionality slider — embed a fixed query and corpus once, then drag from 3,072 down to 256 dims (Matryoshka truncation) and watch retrieval recall and storage size move together, so you can find the smallest vector that still hits your quality bar. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Choice 2 · similarity metric</div>
+        <h2>The similarity metric decides what "closest" means</h2>
+        <p>You have vectors; now you need to rank them. A <strong>similarity metric</strong> is the distance or similarity
+        function that scores how close two vectors are, and there are three you'll meet constantly:
+        <strong>cosine</strong> similarity (the angle between vectors), <strong>dot product / inner product</strong>, and
+        <strong>Euclidean / L2</strong> distance (straight-line distance). For normalized text embeddings, cosine is the
+        common choice — it ignores magnitude and compares direction, and it normalizes scores to a tidy
+        <strong>[-1, 1]</strong> range.</p>
+        <p>Two rules make this an FDE topic rather than trivia. First, <strong>the metric must match how the embeddings
+        were trained</strong> — pick the wrong one and your "closest" results are quietly garbage even though nothing
+        errors out. Second, in most vector stores the metric is <strong>fixed at index creation</strong> and cannot be
+        changed afterward. Choosing it is a one-way door; switching later means rebuilding the index. So this is a
+        decision you make deliberately on day one, not something you tune later.</p>
+        <p>Every store exposes its own menu. <strong>Pinecone</strong> offers cosine, Euclidean (squared), and dotproduct,
+        chosen at index creation. <strong>Chroma</strong> supports <code>l2</code> (squared Euclidean), <code>cosine</code>,
+        and <code>ip</code> (inner product) — and its <em>default space is <code>l2</code></em>, which cannot be changed
+        after the index is created, so if you wanted cosine you had to say so up front. <strong>pgvector</strong> is the
+        most generous, exposing six distance operators: <code>&lt;-&gt;</code> (L2), <code>&lt;#&gt;</code> (negative
+        inner product), <code>&lt;=&gt;</code> (cosine), <code>&lt;+&gt;</code> (L1), and the binary
+        <code>&lt;~&gt;</code> (Hamming) and <code>&lt;%&gt;</code> (Jaccard). The defaults differ across stores, so
+        "we used cosine in dev, why are the results different in the new database?" usually means somebody accepted a
+        different default metric without noticing.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Choice 3 · ANN index · HNSW</div>
+        <h2>HNSW: high recall and fast queries, paid for in build time and memory</h2>
+        <p>Comparing the query against <em>every</em> stored vector — exact search — is accurate but doesn't scale; at
+        millions of vectors it's too slow. So vector stores use <strong>approximate nearest neighbor (ANN)</strong>
+        indexes that trade a little accuracy for enormous speed. The dominant one is <strong>HNSW</strong> — Hierarchical
+        Navigable Small World. It builds a multilayer graph you can navigate quickly, giving <strong>high recall and fast
+        queries</strong>. The price: it is <strong>slower to build</strong> and uses <strong>more memory</strong> than the
+        alternatives.</p>
+        <p>HNSW behavior is governed by three knobs worth memorizing because they show up in every store. <code>m</code>
+        is how many neighbor links each node keeps (graph density). <code>ef_construction</code> is how hard the index
+        works while building (higher = better graph, slower build). <code>ef_search</code> is how hard it works at query
+        time (higher = better recall, slower queries). In <strong>pgvector</strong> the defaults are <code>m = 16</code>
+        and <code>ef_construction = 64</code>, with query-time <code>hnsw.ef_search</code> defaulting to
+        <strong>40</strong>. <strong>Chroma</strong> uses the same family of knobs with different names and defaults:
+        <code>ef_construction</code> defaults to <strong>100</strong>, <code>ef_search</code> to <strong>100</strong>, and
+        <code>max_neighbors</code> (its <code>m</code>) to <strong>16</strong>.</p>
+        <p>The practical reading: these are your recall-versus-speed dials. If a client's retrieval is "fast but
+        occasionally misses the obvious document," raising <code>ef_search</code> trades a little query latency for better
+        recall <em>without</em> re-embedding anything. If index <em>builds</em> are painfully slow on a large corpus,
+        <code>ef_construction</code> is where that time is going. Knowing which knob moves which cost is exactly the kind
+        of thing that turns a vague "search feels off" complaint into a one-line config change.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Choice 3b · ANN index · IVFFlat</div>
+        <h2>IVFFlat: lighter and faster to build, but you trade recall</h2>
+        <p>HNSW isn't the only option, and the alternative teaches the tradeoff clearly. <strong>IVFFlat</strong>
+        (inverted-file flat) takes a different approach: it <strong>partitions the vectors into lists</strong> — clusters
+        — and at query time only <strong>probes a subset</strong> of those lists rather than scanning everything. Because
+        it isn't maintaining a rich navigable graph, it is <strong>faster to build and lighter on memory</strong> than
+        HNSW.</p>
+        <p>The catch comes in two parts. First, IVFFlat <strong>needs training data</strong>: it has to see a
+        representative sample of your vectors to choose where the cluster boundaries go, which means you generally build
+        it <em>after</em> you have data loaded, not on an empty table. Second, it <strong>generally delivers lower
+        recall</strong> than HNSW — if the relevant vector lives in a list you didn't probe, you simply miss it.</p>
+        <p>So the FDE decision rule is straightforward. Reach for <strong>HNSW</strong> when recall and query speed matter
+        most and you can afford the heavier build and memory — which is most production semantic-search workloads. Reach
+        for <strong>IVFFlat</strong> when you need fast, cheap index builds and lighter memory and can tolerate somewhat
+        lower recall, or when your corpus changes often enough that HNSW's slow builds hurt. Both are exposed by
+        pgvector, so you can switch between them on the same data without leaving Postgres — but you choose with the
+        recall/build/memory triangle in mind, not by habit.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Choice 4 · where it lives</div>
+        <h2>Vector stores — and the dimensionality limit that bites teams</h2>
+        <p>Now, where do these vectors actually live? You'll meet three workhorses. <strong>pgvector</strong> (current
+        release 0.8.3) is an extension that puts vectors <em>inside Postgres</em>, so your embeddings sit alongside your
+        relational data with no extra service to run; it provides both HNSW and IVFFlat indexes.
+        <strong>Chroma</strong> is a developer-friendly store with a simple collections API and a newer
+        <strong>SPANN</strong> index for distributed / Chroma Cloud deployments (its configuration isn't yet
+        user-customizable). <strong>Pinecone</strong> is a managed, serverless vector database that supports dense
+        indexes for semantic search, sparse indexes for lexical search, and document records that mix dense + sparse +
+        full-text ranking.</p>
+        <p>Now the gotcha that connects today's first choice to its last. In pgvector there are <em>two different
+        limits</em> and they're far apart. The <strong>storage</strong> limit — how many dimensions a column can hold —
+        is generous: a <code>vector</code> column holds up to 16,000 dimensions (and <code>halfvec</code> likewise to
+        16,000). But the <strong>index</strong> limit — the max dimensions HNSW or IVFFlat can actually index — is much
+        lower: a <code>vector</code> column can only be indexed up to <strong>2,000</strong> dimensions, while
+        <code>halfvec</code> (half-precision) can be indexed up to <strong>4,000</strong>.</p>
+        <p>Put those together with a raw <code>text-embedding-3-large</code> embedding at 3,072 dimensions and you get the
+        classic trap: the vector is <strong>fully storable</strong> in a <code>vector</code> column (3,072 is well under
+        16,000), so inserts succeed and everything looks fine — but it <strong>exceeds the 2,000-dim index limit</strong>,
+        so the moment you try to build an ANN index the whole thing fails. The fixes are exactly the levers from earlier
+        in the reading: store it as <strong>halfvec</strong> (indexable to 4,000), or <strong>shorten</strong> the
+        embedding below 2,000 dims using the Matryoshka <code>dimensions</code> parameter. This is why dimensionality and
+        store choice aren't separate decisions — they constrain each other, and the time to notice is before you load five
+        million rows.</p>
+        <div class="ix-spot"
+          data-snippet="-- Postgres + pgvector
+CREATE TABLE chunks (id bigserial, embedding vector(3072));  -- text-embedding-3-large
+-- inserts: all succeed, looks fine ✓
+CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
+-- ERROR: column cannot be indexed"
+          data-q="The table accepted every row, but the index build fails. Why — and what are the two fixes, in today's terms?"
+          data-a="A 3,072-dim vector is <b>storable</b> in a <code>vector</code> column (limit 16,000) but <b>exceeds the 2,000-dim index limit</b> for <code>vector</code>, so HNSW won't build. Two grounded fixes: (1) use <b><code>halfvec</code></b>, which is indexable up to 4,000 dims, or (2) <b>shorten the embedding below 2,000 dims</b> via the Matryoshka <code>dimensions</code> parameter (re-normalize if you truncate by hand). Same vector, two ways out — both decided <i>before</i> you load the corpus.">
+        </div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Beyond dense · hybrid</div>
+        <h2>Dense isn't the only kind of vector — sparse + dense = hybrid</h2>
+        <p>One last reframe before tomorrow. Everything so far has been <strong>dense</strong> retrieval: the embedding
+        is a few thousand mostly-nonzero numbers that capture <em>meaning</em>, so "car" and "automobile" land near each
+        other. But meaning isn't everything. Sometimes you need an <strong>exact term</strong> — a part number, an error
+        code, a surname — and a semantic embedding can blur right past it. That's the job of <strong>sparse</strong>
+        retrieval: lexical vectors (think BM25 or SPLADE) that are mostly zeros with weight on the specific words that
+        appear. Sparse captures exact matches; dense captures meaning.</p>
+        <p><strong>Hybrid retrieval</strong> combines both, so you get semantic recall <em>and</em> exact-term precision in
+        one query — which is why production RAG so often ends up hybrid rather than pure dense. One technical constraint
+        rides along with sparse vectors: they <strong>typically require a dot-product metric</strong>. Pinecone makes
+        this explicit — a sparse (lexical) index <strong>must use the <code>dotproduct</code> metric</strong>; it's the
+        only valid option for sparse. This is also why Pinecone exposes dense indexes, sparse indexes, and document
+        records that fuse dense + sparse + full-text ranking as distinct things.</p>
+        <p>Tie the day together. The vector you create has a <strong>length</strong> (dimensionality, tunable via
+        Matryoshka), it's ranked by a <strong>metric</strong> (cosine / dot / L2, fixed at index creation), made fast by
+        an <strong>index</strong> (HNSW for recall, IVFFlat for cheap builds), kept in a <strong>store</strong> (pgvector,
+        Chroma, or Pinecone, each with its own limits), and optionally paired with a <strong>sparse</strong> partner for
+        hybrid search. Tomorrow we go deep on retrieval strategies — dense vs sparse, fusion, and re-ranking — but those
+        all run on the geometry you wired up today. Get the four choices right here and retrieval has a fighting chance;
+        get them wrong and there's nothing downstream that fixes it.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a dense-vs-sparse playground — run the same query (e.g. an exact part number) through a dense embedding and a sparse lexical vector side by side, then blend them into a hybrid score, so you can feel where semantic recall helps and where exact-term matching wins. Needs backend standup.</p></div>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a metric explorer — embed two phrases and score them under cosine, dot product, and L2 at once, watching how the ranking and the score range ([-1, 1] for cosine) change with the metric. Needs backend standup.</p></div>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When an FDE designs a retrieval layer, the first questions aren't about models — they're
+          <strong>"how long are the vectors, which metric ranks them, which index serves them, and does my store accept
+          that dimensionality?"</strong> Several of those answers are locked at index-creation time, so you decide them on
+          a whiteboard before loading data — not after a five-million-row migration tells you the index won't build.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://developers.openai.com/api/docs/guides/embeddings" target="_blank" rel="noopener">OpenAI — Vector embeddings</a> — model dimensions (1536 / 3072), the 8,192-token input limit, the <code>dimensions</code> shortening parameter, the re-normalization rule, and the 256-dim-beats-ada-002 result.</li>
+          <li><a href="https://arxiv.org/abs/2205.13147" target="_blank" rel="noopener">Matryoshka Representation Learning (arXiv:2205.13147)</a> — why a single embedding can be truncated coarse-to-fine and stay useful.</li>
+          <li><a href="https://github.com/pgvector/pgvector" target="_blank" rel="noopener">pgvector (GitHub)</a> — the six distance operators, HNSW/IVFFlat indexes and defaults, and the storage-vs-index dimensionality limits.</li>
+          <li><a href="https://docs.pinecone.io/guides/index-data/create-an-index" target="_blank" rel="noopener">Pinecone — Create an index</a> — metrics chosen at index creation, dense vs sparse indexes, and the dotproduct rule for sparse.</li>
+          <li><a href="https://docs.trychroma.com/docs/collections/configure" target="_blank" rel="noopener">Chroma — Configure Collections</a> — the l2/cosine/ip spaces (default l2, fixed at creation), HNSW knobs, and SPANN on Chroma Cloud.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">The dimensionality-vs-index-limit math</div>
+          <div class="ac-meta">optional · +8 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on embeddings &amp; vector stores</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 2 Day 2</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: dimensionality vs index limits</h2>
+    <p class="quiz-sub">Optional. ~8 minutes. The numbers behind the picture.</p>
+    <p><strong>Two limits, far apart.</strong> In pgvector, how many dimensions a column can <em>store</em> is not the
+    same as how many it can <em>index</em>. Storage is generous; the ANN index is the bottleneck.</p>
+    <div class="model-answer show">
+      <div class="ma-k">pgvector limits (storage vs index)</div>
+      <ul class="deliv-list">
+        <li><code>vector</code> — store up to <b>16,000</b> dims · index (HNSW/IVFFlat) up to <b>2,000</b> dims</li>
+        <li><code>halfvec</code> — store up to <b>16,000</b> dims · index up to <b>4,000</b> dims</li>
+        <li><code>bit</code> — store up to <b>64,000</b> dims</li>
+        <li><code>sparsevec</code> — store up to <b>16,000</b> non-zero elements · HNSW index up to <b>1,000</b> non-zeros</li>
+      </ul>
+      <p style="margin:8px 0 0">A raw <code>text-embedding-3-large</code> vector is <b>3,072</b> dims. It stores fine in a
+      <code>vector</code> column (under 16,000) but <b>exceeds the 2,000-dim index limit</b> — so the ANN index won't
+      build. Fix it by storing as <b><code>halfvec</code></b> (indexable to 4,000) or <b>shortening</b> below 2,000 dims
+      via the Matryoshka <code>dimensions</code> parameter.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Why shortening is safe.</strong> <code>text-embedding-3-*</code> models are trained
+    with Matryoshka Representation Learning, encoding information coarse-to-fine so the leading <em>k</em> dimensions stand
+    alone. A <code>3-large</code> vector cut to <b>256</b> dims still beats a full <b>1,536</b>-dim
+    <code>ada-002</code> on MTEB — up to ~14× smaller with no extra inference cost. Caveat: truncate via the
+    <code>dimensions</code> parameter, or <b>re-normalize</b> if you cut the vector by hand.</p>
+    <p style="margin-top:14px"><strong>HNSW defaults to keep handy.</strong> pgvector: <code>m = 16</code>,
+    <code>ef_construction = 64</code>, <code>ef_search = 40</code>. Chroma: <code>ef_construction = 100</code>,
+    <code>ef_search = 100</code>, <code>max_neighbors = 16</code>. Higher <code>ef_search</code> = better recall, slower
+    queries — tunable at query time without re-embedding.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 2 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Explain what an embedding is and why dimensionality is a storage / memory / compute budget decision</li>
+      <li>Use Matryoshka truncation (the <code>dimensions</code> parameter) to shrink vectors, and know when to re-normalize</li>
+      <li>Pick a similarity metric (cosine / dot / L2) and explain why it's fixed at index creation</li>
+      <li>Choose between HNSW and IVFFlat on the recall / build-time / memory triangle, and tune <code>ef_search</code></li>
+      <li>Spot the pgvector storage-vs-index dimensionality trap and apply both fixes (halfvec or shorten)</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add to your <code>NOTES.md</code></li>
+      <li><b>①</b> the embedding model + dimensionality you'd pick for your project, with the cost rationale</li>
+      <li><b>②</b> the similarity metric you'd set at index creation, and why</li>
+      <li><b>③</b> the vector store you'd run, and one limit it imposes on your dimensionality choice</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 3, where we turn this geometry into real retrieval strategies — dense vs sparse,
+    hybrid fusion, and re-ranking.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 3 · Retrieval strategies →", href: "w02d3.html" };
+window.DIAGRAM = {
+  title: "Embedding pipeline · text → ranked match",
+  width: 500, height: 600,
+  nodes: [
+    // the one operation everything hangs on (dark payload card)
+    { id:"task", step:0, kind:"example", x:14, y:14, w:472, h:84,
+      label:"CHUNK  \"to reset your password, open Settings -> Security\"\n  embed()  ->  [ 0.021, -0.134, 0.087, 0.004, ... ]\n  ONE fixed-length vector  ·  same length for any input" },
+
+    // the vector + its dimensionality
+    { id:"vec",  step:0, x:28, y:112, w:336, h:56, label:"EMBEDDING VECTOR\n[ 0.021, -0.134, 0.087, ... ]",
+      detail:"text-embedding-3-small returns 1,536 dims; 3-large returns 3,072. Both accept up to 8,192 input tokens. Once text is a vector, 'related meaning' becomes 'near in space' and retrieval becomes ranking by distance." },
+    { id:"dims", step:1, x:374, y:112, w:112, h:56, label:"1536 / 3072\ndims",
+      detail:"Dimensionality is a budget: more dims can capture more nuance but cost more storage, memory, and compute on EVERY vector — and may exceed an index's limits. Decide it against a budget, not by reflex." },
+
+    // matryoshka shortening
+    { id:"mrl",  step:2, x:28, y:184, w:458, h:46, label:"Matryoshka: cut the tail -> 256 dims (re-normalize if manual)",
+      detail:"text-embedding-3-* are trained coarse-to-fine (MRL), so the first k dims stand alone. Shorten via the dimensions parameter for up to ~14x smaller vectors, no extra inference cost. A 3-large@256 still beats ada-002@1536 on MTEB." },
+
+    // similarity metric
+    { id:"metric", step:3, x:28, y:246, w:458, h:54, label:"SIMILARITY METRIC\ncosine  ·  dot / inner product  ·  L2   (fixed at index creation)",
+      detail:"Must match how embeddings were trained, and is fixed at index creation in most stores. Cosine normalizes to [-1,1] and is common for normalized text. pgvector exposes six operators; Chroma defaults to l2; Pinecone offers cosine / euclidean / dotproduct." },
+
+    // the two ANN indexes
+    { id:"hnsw", step:4, x:28, y:316, w:222, h:80, label:"HNSW graph\nhigh recall · fast query\nslow build · more memory",
+      detail:"Hierarchical Navigable Small World: multilayer graph, high recall, fast queries; slower build, more memory. Knobs: m (links), ef_construction (build effort), ef_search (query effort). pgvector m=16, ef_construction=64, ef_search=40; Chroma ef_construction=100, ef_search=100, max_neighbors=16." },
+    { id:"ivf",  step:5, x:264, y:316, w:222, h:80, label:"IVFFlat lists\nprobe a subset\nlighter · lower recall",
+      detail:"Partitions vectors into lists and probes a subset at query time. Faster to build and lighter than HNSW, but needs training data and generally lower recall. Use when cheap fast builds matter more than maximum recall." },
+
+    // vector stores + the limit gotcha
+    { id:"store", step:6, x:28, y:412, w:458, h:78, label:"VECTOR STORES\npgvector  ·  Chroma  ·  Pinecone",
+      detail:"pgvector 0.8.3 lives inside Postgres (HNSW + IVFFlat). Chroma: simple collections API + SPANN on Chroma Cloud. Pinecone: serverless, dense + sparse + document records. pgvector trap: a 3072-dim vector STORES in a vector column (limit 16,000) but EXCEEDS the 2,000-dim INDEX limit — use halfvec (4,000) or shorten." },
+
+    // hybrid
+    { id:"sparse", step:7, x:28, y:506, w:458, h:62, label:"SPARSE + DENSE = HYBRID   (sparse -> dotproduct)",
+      detail:"Dense = meaning; sparse (BM25 / SPLADE) = exact terms. Hybrid captures both. Sparse indexes typically require a dot-product metric — Pinecone's sparse index MUST use dotproduct." }
+  ],
+  edges: [
+    { id:"e_embed",  step:0, from:"task",   to:"vec",    label:"embed()", ly:-2 },
+    { id:"e_dims",   step:1, from:"vec",    to:"dims",   label:"how long?", ly:-2 },
+    { id:"e_mrl",    step:2, from:"dims",   to:"mrl",    label:"shorten", lx:30, ly:-2 },
+    { id:"e_metric", step:3, from:"mrl",    to:"metric", label:"rank by", ly:-2 },
+    { id:"e_hnsw",   step:4, from:"metric", to:"hnsw",   label:"index", lx:-10 },
+    { id:"e_ivf",    step:5, from:"metric", to:"ivf",    label:"or", lx:10 },
+    { id:"e_sh",     step:6, from:"hnsw",   to:"store",  label:"", dir:"-" },
+    { id:"e_si",     step:6, from:"ivf",    to:"store",  label:"", dir:"-" },
+    { id:"e_hy",     step:7, from:"store",  to:"sparse", label:"+ lexical", ly:-2 }
+  ],
+  captions: [
+    "One model turns any text into <b>one fixed-length vector</b>. Related meaning becomes 'near in space.' <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "The vector's length — its <b>dimensionality</b> (1536 / 3072) — is a storage, memory, and compute budget, not a free upgrade. <span style='opacity:.7'>(tap)</span>",
+    "<b>Matryoshka</b> lets you cut the tail to a shorter vector and keep the meaning — up to ~14x smaller. Re-normalize if you truncate by hand. <span style='opacity:.7'>(tap)</span>",
+    "A <b>similarity metric</b> (cosine / dot / L2) decides what 'closest' means — and it's <b>fixed at index creation</b>. <span style='opacity:.7'>(tap)</span>",
+    "<b>HNSW</b> gives high recall and fast queries, paid for in slow builds and memory. Tune m / ef_construction / ef_search. <span style='opacity:.7'>(tap)</span>",
+    "<b>IVFFlat</b> partitions into lists and probes a subset — lighter and faster to build, but lower recall. <span style='opacity:.7'>(tap)</span>",
+    "Pick a <b>store</b>: pgvector, Chroma, or Pinecone — each with its own limits. The pgvector trap: storable != indexable for 3072-dim vectors. <span style='opacity:.7'>(tap)</span>",
+    "Add a <b>sparse</b> lexical partner for exact terms -> <b>hybrid</b>. Sparse needs a dot-product metric. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w02-d2",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "You stored raw text-embedding-3-large vectors (3,072 dims) in a pgvector vector column. Inserts all succeeded, but CREATE INDEX ... USING hnsw fails. Why?",
+      options: [
+        "The column is corrupted and must be recreated",
+        "3,072 dims is storable (limit 16,000) but exceeds the 2,000-dim index limit for a vector column",
+        "HNSW does not support cosine distance",
+        "You must always train IVFFlat before HNSW" ],
+      answer: 1,
+      explain: "pgvector separates storage limits from index limits. A vector column stores up to 16,000 dims but can only be indexed up to 2,000. Fix it with halfvec (indexable to 4,000) or shorten the embedding below 2,000 dims via the Matryoshka dimensions parameter." },
+    { type: "scq",
+      stem: "You're creating a SPARSE (lexical) index in Pinecone for exact-term matching. Which similarity metric must you use?",
+      options: [
+        "cosine",
+        "euclidean (squared)",
+        "dotproduct",
+        "any of them — sparse works with all metrics" ],
+      answer: 2,
+      explain: "Sparse-vector indexes in Pinecone must use the dotproduct metric — it is the only valid option for sparse. Sparse indexes generally require a dot-product metric." },
+    { type: "tf",
+      stem: "After creating a Chroma collection with the default space, you can switch its distance metric to cosine without rebuilding.",
+      answer: false,
+      explain: "No. Chroma's default space is l2, and the space cannot be changed after the index is created. In most vector stores the metric is fixed at index creation — choose it up front." },
+    { type: "mcq",
+      stem: "Which statements about HNSW vs IVFFlat are correct? (select all that apply)",
+      options: [
+        "HNSW generally gives higher recall but is slower to build and uses more memory",
+        "IVFFlat partitions vectors into lists and probes only a subset at query time",
+        "IVFFlat needs training data to choose its cluster boundaries",
+        "IVFFlat generally gives higher recall than HNSW",
+        "Raising ef_search at query time lowers recall" ],
+      answer: [0, 1, 2],
+      explain: "HNSW = high recall, fast query, slow build, more memory. IVFFlat = lists + probe-a-subset, lighter and faster to build, needs training data, and generally LOWER recall than HNSW. Higher ef_search RAISES recall (at the cost of slower queries)." },
+    { type: "match",
+      stem: "Match each store/model fact to its value.",
+      pairs: [
+        { l: "pgvector HNSW default m", r: "16" },
+        { l: "Chroma default distance space", r: "l2 (squared Euclidean)" },
+        { l: "text-embedding-3-large default dims", r: "3,072" },
+        { l: "Cosine similarity score range", r: "[-1, 1]" } ],
+      explain: "pgvector HNSW defaults to m=16 (and ef_construction=64, ef_search=40). Chroma defaults to the l2 space. text-embedding-3-large returns 3,072 dims by default (small returns 1,536). Cosine normalizes scores to [-1, 1]." },
+    { type: "open",
+      stem: "In one or two sentences: why can you shorten a text-embedding-3-* vector with little quality loss, and what's the one operational gotcha you'd warn a teammate about?",
+      hint: "Think about how the model was trained (coarse-to-fine) and what happens if you cut the vector yourself.",
+      model: "The models are trained with Matryoshka Representation Learning, encoding information coarse-to-fine so the leading k dimensions stand alone as a usable embedding — that's why a 3-large vector cut to 256 dims still beats ada-002 at 1,536 on MTEB. The gotcha: shorten via the dimensions API parameter, and if you truncate the vector yourself after generation you must re-normalize it or the distance math goes wrong." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w02d5">
+<meta name="fde-concepts" content="faithfulness,context-precision,recursive-character-splitting,bi-encoder-retrieval,cross-encoder-rerank,hnsw-index">
+<title>W2·D5 — RAG Eval Harness + End-to-End RAG | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 2 · Day 5 · RAG Eval Harness + End-to-End RAG</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Building a RAG Eval Harness — and the Pipeline It Measures</h1>
+        <div class="meta">
+          <span><b>Week 2</b> · Day 5</span>
+          <span>Foundation AI Engineering</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">All week you've been assembling the pieces of retrieval-augmented generation. Today you wire them
+        into one end-to-end pipeline — documents in, grounded answers out — and then do the thing that separates a demo
+        from a delivery: you build the <strong>eval harness</strong> that tells you, with numbers, whether the pipeline
+        actually works. A RAG system you can't measure is a RAG system you can't improve, and "it seemed fine when I
+        tried it" is not something you say to a client. Scroll the reading; the panel on the right assembles the full
+        pipeline stage by stage, then loops the harness back over it to score what came out.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>A pipeline you can't measure is a pipeline you can't ship</h2>
+        <p>This is the milestone day for Week 2: everything you've learned about chunking, embeddings, vector stores, and
+        retrieval gets connected into one working path — raw documents on the left, a grounded answer on the right. That
+        path is <strong>end-to-end RAG</strong>, and by the end of today you'll have run one and, more importantly,
+        <em>scored</em> one.</p>
+        <p>Here's the reframe that makes you an engineer instead of a tinkerer: a RAG pipeline has many knobs — chunk size,
+        overlap, how many candidates you retrieve, whether you rerank, which index parameters you set — and every one of
+        them changes the output in ways you cannot eyeball. Change the chunk size and answers might get better, or worse,
+        or better for some questions and worse for others. The only honest way to know is to <strong>measure</strong>. An
+        <strong>eval harness</strong> is the apparatus that turns "feels better" into a number you can defend in a
+        client review.</p>
+        <p>Two ingredients make a harness. First, a <strong>labeled test set</strong> — questions paired with the context
+        that should answer them — so you have something to measure against. Second, a set of <strong>metrics</strong> that
+        score each run. The reigning open-source toolkit for RAG specifically is <strong>Ragas</strong>, and it exposes a
+        canonical four: <strong>Faithfulness</strong> (is the answer grounded in the retrieved context, with no
+        unsupported claims?), <strong>Context Precision</strong> (are the retrieved chunks actually relevant — signal vs.
+        noise?), <strong>Context Recall</strong> (did retrieval surface everything needed?), and <strong>Response
+        Relevancy</strong> (does the answer directly address the question that was asked?). Hold those four in your head;
+        every stage we build today is something one of them will catch when it breaks.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Stage 1 · ingest</div>
+        <h2>Chunking is a retrieval decision, not a formatting chore</h2>
+        <p>RAG starts by breaking your documents into pieces small enough to embed and retrieve. It's tempting to treat
+        this as plumbing — split on every N characters and move on — but <strong>chunking is one of the most load-bearing
+        decisions in the whole pipeline.</strong> Chunk too large and a single chunk smears several topics together, so a
+        retrieval hit drags in noise; chunk too small and you sever the sentence from the context that gives it meaning.</p>
+        <p>The workhorse here is LangChain's <strong>RecursiveCharacterTextSplitter</strong>. Instead of blindly cutting
+        at a fixed offset, it splits on a <strong>priority-ordered list of separators</strong> — the default is
+        <code>["\n\n", "\n", " ", ""]</code> — trying the largest semantic unit first (paragraph breaks), and only
+        recursing down to finer separators (line breaks, then spaces, then raw characters) when a piece is still larger
+        than the target <code>chunk_size</code>. The effect is that it tries hard to keep paragraphs, then sentences,
+        intact before it resorts to chopping mid-word.</p>
+        <p>The second knob is <code>chunk_overlap</code>: it repeats the trailing characters of one chunk at the start of
+        the next, so a fact that straddles a boundary isn't orphaned — context flows across the seam. In the library's
+        base defaults, <code>chunk_size</code> is 4000 and <code>chunk_overlap</code> is 200 characters, though those are
+        starting points you'll tune per corpus, not laws. The FDE instinct: when retrieval quality is mysteriously bad,
+        the chunker is one of the first places to look, because every downstream stage inherits the boundaries it drew.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: paste a document, drag
+        <code>chunk_size</code> and <code>chunk_overlap</code> sliders, and watch the recursive splitter redraw chunk
+        boundaries live — see exactly where a paragraph survives intact versus gets severed. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Stage 2 · index</div>
+        <h2>Embeddings go into an index built for approximate search</h2>
+        <p>Each chunk is turned into an embedding — a vector — and stored in a <strong>vector store</strong>. Searching
+        millions of vectors by brute force is too slow, so production stores use an <strong>approximate
+        nearest-neighbor (ANN) index</strong>. The dominant one is <strong>HNSW</strong> — Hierarchical Navigable Small
+        World — a graph structure that lets a query "navigate" toward its nearest neighbors in roughly logarithmic hops
+        instead of scanning everything.</p>
+        <p>HNSW has knobs, and they encode a recall-versus-cost trade you'll set deliberately. In <strong>pgvector</strong>
+        (Postgres' vector extension, 0.8.3), you create one like
+        <code>CREATE INDEX ON items USING hnsw (embedding vector_l2_ops) WITH (m = 16, ef_construction = 64)</code>. The
+        build-time parameters <code>m</code> (default 16) and <code>ef_construction</code> (default 64) govern how rich
+        the graph is: <strong>higher values raise recall but cost more build time and memory.</strong> At query time,
+        <code>ef_search</code> (default 40) trades the other way — <strong>raise it for better recall at the cost of query
+        latency.</strong> That's the whole tuning story in one sentence: graph quality is paid for at build time, search
+        thoroughness is paid for at query time.</p>
+        <p>pgvector earns its keep with two more things you'll reach for on real engagements: <strong>iterative index
+        scans</strong> (since 0.8.0) that keep filtered queries accurate when a <code>WHERE</code> clause prunes the
+        candidate set, and <strong>hybrid search</strong> that combines vector similarity with Postgres' built-in
+        full-text search — fused via Reciprocal Rank Fusion or a cross-encoder. If you'd rather not run Postgres, a
+        lighter option is <strong>Chroma</strong> (1.5.9): a
+        <code>chromadb.PersistentClient(path=...)</code>, a <code>get_or_create_collection</code>, then
+        <code>collection.add(documents=..., metadatas=..., ids=...)</code> which embeds automatically, and
+        <code>collection.query(query_texts=..., n_results=...)</code> to search — vector, hybrid, and full-text all
+        supported. Same shape, smaller footprint.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Stage 3 · retrieve</div>
+        <h2>The bi-encoder casts a wide, cheap net</h2>
+        <p>Now a question arrives. The first retrieval stage uses a <strong>bi-encoder</strong>: the query and every
+        document are embedded <em>independently</em> into vectors, and you find the nearest ones. The word
+        "independently" is the whole point — because each document's vector doesn't depend on the query, you can
+        <strong>precompute and index all document embeddings ahead of time</strong> (that's exactly what Stage 2 did) and,
+        at query time, only embed the one incoming query and run a fast ANN lookup.</p>
+        <p>That makes the bi-encoder <strong>cheap and scalable</strong>: it can sweep an enormous corpus in milliseconds.
+        The cost of that speed is precision — encoding the query and document in isolation means the model never gets to
+        directly compare them, so the ranking is approximate. The standard move is therefore to retrieve <strong>more
+        candidates than you need</strong> — on the order of <strong>~100</strong> — and treat them as a shortlist rather
+        than a final answer. You're casting a wide net on purpose, accepting some junk in the haul because the next stage
+        will sort it out.</p>
+        <p>This is where <strong>Context Recall</strong> lives as a metric. If the chunk that truly answers the question
+        never makes it into that shortlist of ~100, no amount of clever reranking or generation downstream can recover it
+        — the answer is doomed before it starts. Low recall at this stage is the most expensive failure in RAG, because
+        it's invisible: the model will still produce a confident, fluent answer, just an ungrounded one.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: type a query, watch the
+        bi-encoder pull back its top ~100 candidates with similarity scores, and inspect whether the gold chunk made the
+        shortlist. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Stage 4 · rerank</div>
+        <h2>The cross-encoder pays for precision where it counts</h2>
+        <p>The second stage is the <strong>cross-encoder reranker</strong>, and it's the mirror image of the bi-encoder.
+        Instead of encoding query and document separately, it feeds the <strong>query and a candidate document together,
+        jointly, through a single transformer</strong> to produce one relevance score. Because the model sees both at
+        once, it can reason about how they actually relate — far more accurate than comparing two pre-baked vectors.</p>
+        <p>The catch is cost: there's nothing to precompute, because the score depends on the specific query-document
+        pair. You'd never run a cross-encoder over your whole corpus — it would be ruinously slow. So you apply it
+        <strong>only to the ~100 candidates the bi-encoder already shortlisted</strong>, rerank them, and keep the true
+        top-k. This is the canonical <strong>two-stage retrieval</strong> pattern: a cheap, wide first pass for recall,
+        then an expensive, narrow second pass for precision — <strong>spending compute only where it changes the
+        answer.</strong></p>
+        <p>That trade maps cleanly onto the metric you'll watch here, <strong>Context Precision</strong>: of the chunks
+        you ultimately hand the generator, what fraction are genuinely relevant, and are the relevant ones ranked highest?
+        A good reranker is precisely the lever that pushes the signal up and the noise down. When a client says "the
+        retrieval pulls back vaguely-related stuff and the answers wander," a reranker is very often the fix — and now you
+        can prove it moved Context Precision rather than just asserting it feels sharper.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Stage 5 · generate</div>
+        <h2>Generation grounded in the chunks that survived</h2>
+        <p>With a tight, reranked top-k in hand, the final stage is generation: the model writes an answer
+        <strong>conditioned on the retrieved context</strong>. This is the payoff of everything upstream — the model isn't
+        answering from its parametric memory, it's answering from the specific passages you placed in front of it. Good
+        retrieval makes this stage almost easy; bad retrieval makes it impossible, because the model can only ground its
+        answer in what it was actually given.</p>
+        <p>And this is exactly where the connection to Week 1 snaps shut. A <strong>hallucination</strong>, remember, is
+        usually a window problem — the needed fact was never in front of the model. RAG's entire job is to fix that by
+        getting the right context into the window. But "we added RAG" is not the same as "the answers are grounded." The
+        retrieval might miss; the reranker might bury the gold chunk; the generator might drift past its sources and
+        embellish a claim none of them support. You have no idea which of those is happening — and "it looked fine in the
+        three examples I tried" is not evidence, because the failures you didn't try are exactly the ones that reach a
+        client. You only know once you measure the output systematically. That is the precise hand-off into the harness.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Stage 6 · evaluate</div>
+        <h2>Four metrics score what the pipeline produced</h2>
+        <p>Now the harness loops back over the run and grades it. <strong>Ragas</strong> gives you the canonical four, and
+        each catches a different failure you just walked past.</p>
+        <p><strong>Faithfulness</strong> is the grounding metric, and it's worth understanding mechanically because you'll
+        explain it to clients. An LLM judge <strong>decomposes the generated answer into atomic claims</strong>, then
+        checks <strong>each claim against the retrieved context</strong> — can this specific statement be inferred from
+        what we actually retrieved? The score is simply <strong>supported claims ÷ total claims</strong>, a number from 0
+        to 1. Crucially, faithfulness measures grounding, <em>not</em> correctness against a reference: an answer can be
+        100% faithful to its context and still wrong if the context was wrong — but if faithfulness is low, the model is
+        inventing claims its own sources don't support. That's your hallucination alarm.</p>
+        <p><strong>Response Relevancy</strong> attacks a different failure — the technically-grounded answer that dodges
+        the question. Ragas computes it by <strong>generating artificial questions from the answer</strong> (default 3),
+        embedding them, and averaging their cosine similarity to the original user input:
+        <code>score = (1/N) Σ cos(E_g_i, E_o)</code>. The intuition: if you can reconstruct the user's question from the
+        answer, the answer was on-target; if the reverse-engineered questions wander off, the answer didn't really respond
+        to what was asked. Together with <strong>Context Precision</strong> and <strong>Context Recall</strong> on the
+        retrieval side, these four give you a scorecard that pinpoints <em>where</em> the pipeline failed, not just
+        <em>that</em> it did — low recall points at Stage 3, low precision at Stage 4, low faithfulness at Stage 5.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: run Ragas Faithfulness on a
+        generated answer, see the answer decomposed into atomic claims, and watch each claim get marked supported or
+        unsupported against the retrieved context. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Closing the loop</div>
+        <h2>Where the test set comes from — and why this is the milestone</h2>
+        <p>Every metric above needs something to score against, which means the harness needs a <strong>labeled test
+        set</strong>: questions paired with the context that should answer them. On a real engagement you rarely have one
+        sitting around, and hand-writing hundreds of question/answer pairs is slow and biased toward the obvious cases.
+        Ragas solves this by <strong>generating a test set synthetically</strong> from your own documents.</p>
+        <p>The generation runs in two phases. First it <strong>builds a KnowledgeGraph</strong> from the documents and
+        <strong>enriches it with transformations</strong> — extracting entities, relationships, and summaries that turn a
+        pile of text into something queryable. Then its <strong>TestsetGenerator synthesizes queries</strong> across a
+        deliberate mix of types: roughly <strong>50% SingleHopSpecific</strong> (answerable from one chunk), <strong>25%
+        MultiHopAbstract</strong>, and <strong>25% MultiHopSpecific</strong> (questions that require stitching several
+        chunks together). That distribution matters: a test set of only single-hop questions would flatter a pipeline
+        that's actually terrible at the multi-hop reasoning real users demand.</p>
+        <p>And that's the milestone. You now hold the full loop: <strong>chunk → index → retrieve → rerank → generate</strong>,
+        wrapped in a harness that <strong>synthesizes a test set and scores every run on four metrics</strong>. This is
+        the difference between handing a client a demo and handing them a system — because the moment you can measure, you
+        can tune. Change the chunk size and re-run the harness; the numbers tell you if it helped. Add a reranker; watch
+        Context Precision move. That tight measure-tune-remeasure loop, not any single clever trick, is what makes a RAG
+        pipeline actually get good. Diagnose with numbers, ship with evidence.</p>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>Anyone can stand up a RAG demo in an afternoon; what a client pays an FDE for is the harness around it. When
+          someone asks "is the AI any good?", the amateur answer is "it seems pretty good" and the engineer's answer is "on
+          our synthetic test set it scores 0.91 faithfulness and 0.78 context precision, and here's the chunk-size change
+          that moved precision +0.06." Build the ruler before you build the thing you measure.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/" target="_blank" rel="noopener">Ragas — List of available metrics</a> — the canonical RAG metric set: Faithfulness, Context Precision, Context Recall, Response Relevancy.</li>
+          <li><a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/faithfulness/" target="_blank" rel="noopener">Ragas — Faithfulness</a> — how the LLM judge decomposes an answer into claims and scores supported ÷ total.</li>
+          <li><a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/answer_relevance/" target="_blank" rel="noopener">Ragas — Response / Answer Relevancy</a> — the generate-artificial-questions-and-average-cosine method.</li>
+          <li><a href="https://docs.ragas.io/en/stable/getstarted/rag_testset_generation/" target="_blank" rel="noopener">Ragas — Testset Generation for RAG</a> — KnowledgeGraph build, transformations, and the default query-type distribution.</li>
+          <li><a href="https://docs.langchain.com/oss/python/integrations/splitters/recursive_text_splitter" target="_blank" rel="noopener">LangChain — Splitting recursively</a> — priority-ordered separators and the recursive splitting behavior.</li>
+          <li><a href="https://github.com/langchain-ai/langchain/blob/master/libs/text-splitters/langchain_text_splitters/character.py" target="_blank" rel="noopener">langchain-text-splitters — character.py</a> — default separator list (L253).</li>
+          <li><a href="https://github.com/langchain-ai/langchain/blob/master/libs/text-splitters/langchain_text_splitters/base.py" target="_blank" rel="noopener">langchain-text-splitters — base.py</a> — TextSplitter <code>__init__</code> defaults (chunk_size 4000, chunk_overlap 200).</li>
+          <li><a href="https://www.sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html" target="_blank" rel="noopener">Sentence Transformers — Retrieve &amp; Re-Rank</a> — the two-stage bi-encoder + cross-encoder pattern.</li>
+          <li><a href="https://github.com/pgvector/pgvector" target="_blank" rel="noopener">pgvector — GitHub</a> — HNSW index, tuning parameters, iterative scans, and hybrid search.</li>
+          <li><a href="https://github.com/chroma-core/chroma" target="_blank" rel="noopener">Chroma — GitHub</a> — PersistentClient, collections, automatic embedding, and query API.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">HNSW tuning &amp; the two-stage cost trade</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on the pipeline &amp; the harness</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 2 Day 5</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: HNSW tuning &amp; the two-stage cost trade</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The numbers behind the picture.</p>
+    <p><strong>HNSW is a recall/cost dial, in three parts.</strong> Two parameters are paid at build time and one at query
+    time. In pgvector 0.8.3 the build-time defaults are <code>m = 16</code> and <code>ef_construction = 64</code>; raising
+    either makes a richer graph that retrieves more of the true neighbors (higher recall) but costs more build time and
+    memory. The query-time parameter <code>ef_search</code> defaults to 40; raising it explores more of the graph per
+    query — higher recall, higher latency. Build quality and search thoroughness are separate budgets.</p>
+    <p><strong>Why two stages instead of one.</strong> A cross-encoder is more accurate than a bi-encoder because it
+    encodes the query and document jointly — but that's also why it can't be precomputed and can't scale to a whole
+    corpus. The pattern resolves the tension: let the cheap bi-encoder reduce, say, a million chunks to ~100 candidates,
+    then spend the expensive cross-encoder only on those 100.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked example — where the compute goes</div>
+      <ul class="deliv-list">
+        <li>Corpus: 1,000,000 chunks, all bi-encoder vectors precomputed and HNSW-indexed</li>
+        <li>Stage 1 (bi-encoder + HNSW): embed 1 query, ANN lookup → ~100 candidates · milliseconds</li>
+        <li>Stage 2 (cross-encoder): 100 joint query-document passes · the expensive part, but bounded at 100</li>
+        <li>Generation: conditioned on the reranked top-k only</li>
+      </ul>
+      <p style="margin:8px 0 0">Run the cross-encoder over all 1,000,000 chunks instead and the same query would take
+      <strong>~10,000×</strong> the rerank compute — which is exactly why nobody does it. The two-stage split spends
+      precision only on the shortlist that could plausibly contain the answer.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Recall caveat.</strong> The reranker can only reorder what the bi-encoder handed
+    it. If the gold chunk isn't in the ~100 candidates, no reranking recovers it — so when Context Recall is low, the fix
+    lives in Stage 1 (better chunking, embeddings, or a larger candidate set), not in the reranker.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 5 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Wire an end-to-end RAG pipeline: chunk → index → retrieve → rerank → generate</li>
+      <li>Explain why two-stage retrieval (bi-encoder recall, cross-encoder precision) spends compute where it counts</li>
+      <li>Name the canonical Ragas four and say which pipeline stage each one diagnoses</li>
+      <li>Generate a synthetic test set and use it to score a run, then tune a knob and prove the change with numbers</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>A working <code>rag_pipeline</code> end to end over a small corpus</li>
+      <li><b>①</b> a synthetic test set generated with Ragas from your own documents</li>
+      <li><b>②</b> a harness run reporting Faithfulness, Context Precision, Context Recall, Response Relevancy</li>
+      <li><b>③</b> one knob you changed (chunk size, candidate count, or reranker on/off) and the metric delta it produced</li>
+    </ul>
+    <p class="goals-foot">This is the Week 2 milestone — the pipeline plus the ruler that measures it. Next week we build
+    on a system you can actually evaluate rather than one you can only hope about.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Back to Program →", href: "../../index.html" };
+window.DIAGRAM = {
+  title: "End-to-end RAG · measured by the harness",
+  width: 500, height: 690,
+  nodes: [
+    // the pipeline column (left)
+    { id:"docs",  step:0, kind:"example", x:24, y:18, w:236, h:58,
+      label:"DOCUMENTS / CORPUS\n  raw text in — grounded answer out\n  pipeline: chunk → index → retrieve → rerank → generate" },
+    { id:"chunk", step:1, x:40, y:92, w:204, h:52, label:"Recursive splitter (chunk)",
+      detail:"RecursiveCharacterTextSplitter splits on a priority-ordered separator list ['\\n\\n','\\n',' ',''], keeping the largest semantic unit intact and recursing finer only when a piece exceeds chunk_size. chunk_overlap (base defaults: size 4000, overlap 200) repeats trailing characters into the next chunk so facts don't get orphaned at a boundary." },
+    { id:"index", step:2, x:40, y:158, w:204, h:56, label:"Embed → HNSW index",
+      detail:"Chunks become vectors stored in an ANN index. pgvector 0.8.3 HNSW: m=16, ef_construction=64 (build-time, raise for recall at cost of build time/memory), ef_search=40 (query-time, raise for recall at cost of latency). Also: iterative scans for filtered queries, hybrid vector+full-text via RRF. Chroma is the lighter PersistentClient alternative." },
+    { id:"retr",  step:3, x:40, y:228, w:204, h:52, label:"Bi-encoder retrieve ~100",
+      detail:"Query and documents are embedded independently, so document vectors are precomputed and only the query is embedded at run time — cheap and scalable over a huge corpus, but approximate. So retrieve a wide shortlist (~100), not a final answer. If the gold chunk misses this net, nothing downstream recovers it (low Context Recall)." },
+    { id:"rerank",step:4, x:40, y:294, w:204, h:52, label:"Cross-encoder rerank → top-k",
+      detail:"The cross-encoder encodes the query and each candidate jointly through one transformer for a far more accurate relevance score — too costly for the whole corpus, so it runs only on the ~100 shortlisted candidates. This is the precision lever (Context Precision): push signal up, noise down." },
+    { id:"gen",   step:5, x:40, y:360, w:204, h:54, label:"Generate (grounded answer)",
+      detail:"The model answers conditioned on the reranked top-k — grounded in the passages you placed in front of it, not its parametric memory. Good retrieval makes this easy; bad retrieval makes grounding impossible." },
+
+    // the eval harness (right) — loops back over the run
+    { id:"eval",  step:6, x:280, y:228, w:200, h:120, label:"RAGAS EVAL HARNESS",
+      detail:"Four canonical metrics. Faithfulness: an LLM judge decomposes the answer into atomic claims and scores supported ÷ total (0–1) against the retrieved context — the grounding / hallucination alarm. Response Relevancy: generate ~3 artificial questions from the answer, average their cosine similarity to the user input. Context Precision (relevant chunks, rank-aware) + Context Recall (did retrieval get everything) cover the retrieval side." },
+    { id:"test",  step:7, x:280, y:92, w:200, h:96, label:"Synthetic test set\n(TestsetGenerator)",
+      detail:"No labeled set on a real engagement? Ragas builds a KnowledgeGraph from your docs, enriches it with transformations, then synthesizes queries: ~50% SingleHopSpecific, ~25% MultiHopAbstract, ~25% MultiHopSpecific. A mix on purpose — single-hop-only would flatter a pipeline that's bad at multi-hop reasoning." }
+  ],
+  edges: [
+    { id:"e1", step:1, from:"docs",   to:"chunk",  label:"split", lx:-4 },
+    { id:"e2", step:2, from:"chunk",  to:"index",  label:"embed", lx:-4 },
+    { id:"e3", step:3, from:"index",  to:"retr",   label:"query", lx:-4 },
+    { id:"e4", step:4, from:"retr",   to:"rerank", label:"~100 → rerank", lx:-4 },
+    { id:"e5", step:5, from:"rerank", to:"gen",    label:"top-k", lx:-4 },
+    { id:"e6", step:6, from:"gen",    to:"eval",   label:"score the run", ly:-6 },
+    { id:"e7", step:7, from:"test",   to:"eval",   label:"questions to score against", lx:6 },
+    { id:"e8", step:7, from:"test",   to:"retr",   label:"feed test queries", bend:-34, lx:6 }
+  ],
+  captions: [
+    "End-to-end <b>RAG</b>: raw documents in, grounded answer out, through five stages — and a harness that scores what comes out. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "<b>Chunking</b> is a retrieval decision: the recursive splitter keeps paragraphs intact and overlaps boundaries so facts aren't orphaned. <span style='opacity:.7'>(tap)</span>",
+    "Chunks become vectors in an <b>HNSW index</b> — build-time <code>m</code>/<code>ef_construction</code> and query-time <code>ef_search</code> trade recall against cost. <span style='opacity:.7'>(tap)</span>",
+    "The <b>bi-encoder</b> embeds query and docs independently — cheap, scalable, approximate — so it casts a wide net of <b>~100</b> candidates. <span style='opacity:.7'>(tap)</span>",
+    "The <b>cross-encoder</b> reranks those ~100 by encoding query+doc jointly — expensive but precise, run only where it counts. <span style='opacity:.7'>(tap)</span>",
+    "<b>Generation</b> is conditioned on the reranked top-k — grounded in what you retrieved, not parametric memory. <span style='opacity:.7'>(tap)</span>",
+    "The <b>Ragas harness</b> scores the run: Faithfulness, Context Precision, Context Recall, Response Relevancy — each pinpoints a different stage. <span style='opacity:.7'>(tap)</span>",
+    "A <b>synthetic test set</b> (single- and multi-hop) closes the loop, giving the harness questions to measure against. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w02-d5",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "Why does a production retrieval stage use a bi-encoder first and a cross-encoder second, rather than just the cross-encoder?",
+      options: [
+        "Cross-encoders are less accurate, so they only confirm the bi-encoder",
+        "The bi-encoder's independent embeddings can be precomputed and scanned cheaply over the whole corpus; the cross-encoder is accurate but too costly to run on everything, so it reranks only the shortlist",
+        "Bi-encoders work on text and cross-encoders only work on images",
+        "It's an arbitrary convention with no performance reason" ],
+      answer: 1,
+      explain: "The bi-encoder embeds query and docs independently, so document vectors are precomputed and ANN-searched fast across a huge corpus — cheap recall. The cross-encoder encodes the pair jointly for higher accuracy but can't be precomputed, so it's applied only to the ~100 candidates the bi-encoder shortlisted. Wide cheap pass, then narrow expensive pass." },
+    { type: "scq",
+      stem: "The gold chunk that answers a query never appears in the bi-encoder's ~100 candidates. Which metric catches this, and can reranking fix it?",
+      options: [
+        "Faithfulness; yes, a better reranker recovers it",
+        "Response Relevancy; yes, by rephrasing the answer",
+        "Context Recall; no — the reranker can only reorder what it was given, so the fix is upstream",
+        "Context Precision; no, but generation will recover it" ],
+      answer: 2,
+      explain: "Missing the relevant chunk from the shortlist is a Context Recall failure. The cross-encoder only reorders the candidates it receives, so if the gold chunk isn't there, no reranking recovers it — fix Stage 1 (chunking, embeddings, larger candidate set)." },
+    { type: "tf",
+      stem: "A RAG answer that scores high on Faithfulness is guaranteed to be factually correct.",
+      answer: false,
+      explain: "No. Faithfulness measures whether each claim in the answer can be inferred from the retrieved context (supported ÷ total claims) — it's a grounding metric, not a correctness-against-truth metric. An answer can be perfectly faithful to context that was itself wrong." },
+    { type: "mcq",
+      stem: "Which statements about HNSW tuning in pgvector are correct? (select all that apply)",
+      options: [
+        "Higher m and ef_construction raise recall at the cost of build time and memory",
+        "Higher ef_search raises recall at the cost of query latency",
+        "ef_search is a build-time parameter that has no effect on queries",
+        "Raising every parameter is free and always strictly better",
+        "Defaults are m=16, ef_construction=64, ef_search=40" ],
+      answer: [0, 1, 4],
+      explain: "m and ef_construction are build-time and trade recall against build cost/memory; ef_search is query-time and trades recall against latency; the pgvector defaults are m=16, ef_construction=64, ef_search=40. ef_search is not build-time, and nothing here is free — each is a recall/cost dial." },
+    { type: "match",
+      stem: "Match each pipeline concern to the mechanism or metric behind it.",
+      pairs: [
+        { l: "Keep paragraphs intact, overlap boundaries", r: "recursive character splitting" },
+        { l: "Is the answer grounded in retrieved context?", r: "Faithfulness (claims supported ÷ total)" },
+        { l: "Did retrieval surface all the needed chunks?", r: "Context Recall" },
+        { l: "No labeled questions to evaluate against", r: "Ragas synthetic test set generation" } ],
+      explain: "The recursive splitter prefers large semantic units and overlaps seams; Faithfulness decomposes the answer into claims and scores the supported fraction; Context Recall measures completeness of retrieval; and Ragas synthesizes a test set (KnowledgeGraph → transformations → query mix) when none exists." },
+    { type: "open",
+      stem: "In two or three sentences: explain how Ragas computes Response Relevancy, and what failure it is designed to catch that Faithfulness would miss.",
+      hint: "Think about reverse-engineering the question from the answer — and the answer that's grounded but off-topic.",
+      model: "Response Relevancy generates a few artificial questions (default 3) from the answer, embeds them, and averages their cosine similarity to the original user input — high similarity means the answer maps back to what was asked. It catches the grounded-but-evasive answer: a response can be perfectly faithful to the retrieved context yet not actually address the user's question, which Faithfulness (a grounding-only metric) would happily score high." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w02d3">
+<meta name="fde-concepts" content="dense-vs-sparse-retrieval,hybrid-retrieval,reciprocal-rank-fusion,cross-encoder-reranking,late-interaction-colbert">
+<title>W2·D3 — Retrieval Strategies: Dense, Sparse, Hybrid &amp; Re-ranking | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+  <span class="crumb">Week 2 · Day 3 · Retrieval Strategies</span>
+  <span class="spacer"></span>
+  <span class="progressbar"><i></i></span>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Retrieval Strategies: Dense, Sparse, Hybrid &amp; Re-ranking</h1>
+        <div class="meta">
+          <span><b>Week 2</b> · Day 3</span>
+          <span>Foundation AI Engineering</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">A RAG system is only as good as the slice of text it puts in the window — and the job of
+        choosing that slice is <strong>retrieval</strong>. Today you learn the two ways a system can find relevant text
+        (<strong>dense</strong> semantic search and <strong>sparse</strong> keyword search), why each one fails on the
+        queries the other handles, how to <strong>fuse</strong> them into one ranked list, and how a second-stage
+        <strong>re-ranker</strong> turns a wide, recall-heavy candidate set into a small, precise one. This is the
+        machinery behind "why didn't it find the right document?" — the single most common RAG complaint you'll hear at a
+        client. The panel on the right builds the production pipeline one stage at a time.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>Retrieval is where RAG lives or dies</h2>
+        <p>Yesterday's window lesson left you with one rule: <strong>more retrieved text is not more intelligence</strong> —
+        precision of retrieval is. Today we open that black box. When a user asks a question, the system has to reach into
+        a corpus of thousands or millions of chunks and pull back the handful that actually answer it. <em>How</em> it
+        decides which chunks are relevant is the whole ballgame. Get retrieval right and a small, cheap model looks
+        brilliant; get it wrong and the best model on earth confidently answers from the wrong passage.</p>
+        <p>There are two fundamentally different ways to score "is this chunk relevant to this query," and they come from
+        two different views of what text <em>means</em>. <strong>Dense (semantic) search</strong> compares the meaning of
+        the query and the chunk. <strong>Sparse (lexical / keyword) search</strong> compares the literal words they share.
+        Here is the fact that organizes the entire day: these two approaches <strong>fail on opposite kinds of
+        queries</strong>, which is precisely why mature systems run both. That complementarity is the entire motivation
+        for hybrid search.</p>
+        <p>Keep a running example in your head, the one Weaviate uses: a user asks <em>"How to catch an Alaskan
+        Pollock."</em> A dense system reads "catch" as a concept and may surface documents about fishing technique in
+        general. A sparse system locks onto the literal phrase "Alaskan Pollock" and finds the exact species page. Each
+        one is right about part of the query and blind to the other part. Hold that example — we'll walk it through every
+        stage of the pipeline.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Approach 1</div>
+        <h2>Dense search understands meaning — and only meaning</h2>
+        <p><strong>Dense retrieval</strong> turns both the query and every chunk into an embedding — a vector of a few
+        hundred to a few thousand numbers that positions the text in a "meaning space." Texts that mean similar things
+        land near each other, even when they share no words. So a query about "automobile maintenance" can match a chunk
+        about "car repair," and a question phrased one way can find a document phrased another way. This is the superpower:
+        dense search <strong>captures meaning and matches synonyms and paraphrases</strong>. It is what makes RAG feel like
+        the system "understands" the question rather than grepping for strings.</p>
+        <p>But that strength is also the failure mode. Because dense search reasons in meaning-space, it is weak exactly
+        where the literal token matters more than the concept: <strong>exact-keyword hits and domain-specific
+        terminology</strong>. Product SKUs, error codes, part numbers, drug names, legal citations, a rare proper noun —
+        these are tokens whose <em>identity</em> is the point, and an embedding tends to smear them toward "things that
+        look semantically similar" instead of demanding the exact match. Ask a dense system for "error TS-4471" and it may
+        cheerfully return passages about errors in general, because in meaning-space "TS-4471" isn't very far from
+        "TS-4470."</p>
+        <p>That is the trade you are buying: dense search reads <em>"catch"</em> in our Pollock query as the fishing
+        concept and pulls general fishing content, while potentially under-weighting the specific phrase the user actually
+        cares about. Brilliant on intent, shaky on exactness.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Approach 2</div>
+        <h2>Sparse search nails exact terms — and only exact terms</h2>
+        <p><strong>Sparse retrieval</strong> is the classical information-retrieval approach, the family that includes
+        <strong>BM25</strong>. It represents text as a sparse vector over the vocabulary — mostly zeros, with weights on
+        the specific terms a document contains — and scores a chunk by how well its terms match the query's terms,
+        adjusted for how rare and how frequent each term is. It is, in spirit, a very smart keyword search. Its strength
+        is the mirror image of dense's weakness: sparse retrieval <strong>excels at exact term matching</strong>, so the
+        literal phrase "Alaskan Pollock," the SKU, the error code, the rare proper noun all light up reliably.</p>
+        <p>And its weakness is the mirror image of dense's strength. Sparse search has no notion of meaning. If the user
+        writes "car repair" and the document says "automobile maintenance," sparse search sees zero shared terms and
+        scores it near nothing — it cannot disambiguate or bridge synonyms and paraphrases. In our example, sparse
+        retrieval matches the literal "Alaskan Pollock" perfectly but is oblivious to whether the surrounding query is
+        about fishing, cooking, or conservation; it matched the string, not the intent.</p>
+        <p>So now you have the full picture and the reason hybrid exists. <strong>Dense vectors disambiguate meaning;
+        sparse keyword scoring catches the exact tokens</strong> — and each is blind precisely where the other sees. They
+        are not competitors to choose between. They are <strong>complementary signals</strong>, and the engineer's move is
+        to run both and combine them. That combination is hybrid search, and the rest of the pipeline is about doing the
+        combining well.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">The merge problem</div>
+        <h2>You can't just add the two scores together</h2>
+        <p>Running dense and sparse in parallel is easy. Combining their outputs correctly is where naïve implementations
+        quietly break. Here's the trap: <strong>BM25 scores and sparse-weight outputs are not normalized to the dense
+        vector's range.</strong> A cosine similarity from a dense index typically lives between 0 and 1; a BM25 score can
+        be any positive number — 8, 23, 40 — depending on term rarity and document length. If you simply add the two
+        scores, the sparse component, living on a much larger numeric scale, <strong>dominates the combined score</strong>
+        and your "hybrid" system is really just sparse search wearing a costume.</p>
+        <p>So normalization and explicit weighting are <strong>mandatory before production</strong>, not a nice-to-have.
+        The most common control is an <strong>alpha convex combination</strong>: you scale both signals into a comparable
+        range and compute <code>alpha · dense + (1 − alpha) · sparse</code>, where alpha is a dial between 0 (pure sparse)
+        and 1 (pure dense). Tuning that single number is one of the highest-leverage things you'll do on a RAG engagement,
+        and the defaults are worth memorizing.</p>
+        <div class="ix-predict"
+          data-q="A client's catalog search uses hybrid retrieval but users complain it 'ignores meaning and only matches on keywords.' Inspecting the config, you see dense and sparse scores are summed with no normalization. What's happening, and what's the fix?"
+          data-a="The <b>sparse (BM25) scores aren't normalized to the dense range</b>, so on their larger numeric scale they <b>dominate the sum</b> — the system is effectively pure keyword search even though dense is 'on.' Fix: normalize both signals into a comparable range and combine with an explicit weight, e.g. an <b>alpha convex combination</b> <code>alpha·dense + (1−alpha)·sparse</code>, then tune alpha (≈0.75 favors natural-language meaning, ≈0.25 favors keyword specificity).">
+        </div>
+        <p>The rules of thumb: <strong>alpha ≈ 0.75</strong> is a good default for natural-language queries (lean on
+        meaning), <strong>alpha ≈ 0.5</strong> balances both signals evenly, and <strong>alpha ≈ 0.25</strong> favors
+        high-keyword-specificity queries — SKUs, technical IDs, named entities — where the literal token matters most. A
+        single product can even pick alpha per query type: conversational questions ride high alpha, while a query that's
+        obviously a part number drops alpha toward sparse. That's not a parlor trick; it's reading the query and spending
+        your retrieval budget where the signal is.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a query box with a live
+        alpha slider — type a question, drag alpha from 0 to 1, and watch the dense-leaning vs sparse-leaning result
+        lists reorder in real time. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Fusion done right</div>
+        <h2>RRF: fuse by rank, not by score</h2>
+        <p>Weighting works, but it still asks you to make two incompatible score scales commensurable. There's a more
+        robust trick that sidesteps the whole normalization headache: <strong>Reciprocal Rank Fusion (RRF)</strong>.
+        Instead of combining raw scores, RRF combines the two <em>ranked lists</em>. Each document gets a fused score from
+        the sum of its reciprocal ranks across the lists — roughly <code>Σ 1 / (k + rank)</code> over each retriever that
+        returned it. A document ranked #1 by dense and #3 by sparse accumulates a strong combined score; a document only
+        one retriever liked, far down its list, contributes little.</p>
+        <p>The beauty is that <strong>rank is unitless</strong>. RRF never looks at the magnitude of a BM25 score or a
+        cosine similarity — only at the <em>order</em> each retriever produced. That makes it inherently
+        <strong>robust to incompatible score scales</strong> between BM25 and dense retrieval, which is exactly the
+        problem that sinks naïve score-summing. It's why RRF is the default fusion method in production stacks: Weaviate
+        ships it as the default <code>rankedFusion</code>, with a score-based <code>relativeScoreFusion</code> available as
+        the alternative when you specifically want magnitudes to matter.</p>
+        <p>Practically, you'll choose between the two families a lot. Reach for <strong>RRF / rank fusion</strong> when
+        your two retrievers have wildly different score distributions and you want a safe, low-tuning default. Reach for a
+        <strong>weighted score combination (alpha)</strong> when you've done the normalization work and want fine,
+        per-query-type control over how much meaning vs keyword matters. Either way the goal is identical: one merged,
+        sensibly-ordered candidate list out of two very different retrievers.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Stage 1 of 2</div>
+        <h2>Hybrid retrieval buys recall — on purpose</h2>
+        <p>Now zoom out to the shape of a real production system, because this is the pattern clients actually run. It's
+        <strong>two-stage</strong>. Stage one is <strong>hybrid retrieval</strong>: dense and sparse each pull a
+        <em>wide</em> candidate set — say each returns the top ~100 — and you fuse them. The explicit goal of stage one is
+        <strong>recall</strong>: cast a wide net so that the truly relevant chunk is somewhere in the candidate pool, even
+        if it's not yet at the top. You are deliberately accepting some junk in exchange for near-certainty that the right
+        answer is in the bucket.</p>
+        <p>This is a mindset shift worth naming. In stage one you are <em>not</em> trying to be precise. A hundred-plus
+        candidates is far too many to hand a language model — yesterday's lesson tells you stuffing all of them into the
+        window is the amateur move that buries the signal and shrinks the answer room. So why pull so many? Because
+        <strong>you can't re-rank a document you never retrieved.</strong> Stage one's only job is to make sure nothing
+        important got missed. Precision is somebody else's problem — specifically, stage two's.</p>
+        <p>The phrase to carry to a client whiteboard: <strong>"hybrid boosts recall; reranking restores precision."</strong>
+        That single sentence explains the whole architecture and tells a team why both stages exist. Skip stage two and
+        you drown the model in candidates; skip stage one's width and stage two has nothing good to promote. They're a
+        matched pair.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Stage 2 of 2</div>
+        <h2>Re-ranking restores precision</h2>
+        <p>Stage two takes that wide candidate set and collapses it to the small final set the model will actually see —
+        the top 3, 5, or 10. The workhorse here is a <strong>cross-encoder re-ranker</strong>, and the architectural
+        difference from stage one is the whole point. Dense retrieval embeds the query and the document
+        <em>separately</em> and compares the two vectors — fast, because you precompute every document's embedding once,
+        but coarse, because the model never sees the query and document together. A <strong>cross-encoder</strong> feeds
+        the query and each candidate document <strong>jointly</strong> through a transformer and outputs a single, precise
+        relevance score. It can reason about how the query and that specific document interact — which is far more accurate
+        and far too expensive to run across the whole corpus, but perfectly affordable across ~100 candidates.</p>
+        <p>The production-standard example is <strong>Cohere Rerank 3.5</strong>: a cross-encoder that takes the query
+        plus candidate documents and returns a relevance-scored ordering, with a <strong>4096-token context window</strong>
+        and state-of-the-art results on the BEIR and multilingual retrieval benchmarks. You hand it your fused 100, it
+        hands you back the same documents re-ordered by true relevance, and you keep the top few. That reordering is where
+        the precision the user feels actually comes from.</p>
+        <p>And the payoff is measurable, not hand-wavy. Pinecone's <strong>cascading retrieval</strong> runs dense and
+        sparse in parallel, then re-ranks the merged candidates into one unified score; adding the reranker
+        <strong>improved performance by up to 48%, averaging 24%, over dense-only vector search.</strong> That's the
+        single most important number to take to a skeptical client: the re-ranking stage is not polish, it's often a
+        double-digit accuracy jump for a bounded, cheap-per-query cost. When someone asks "is re-ranking worth the extra
+        hop?", that range is your answer.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a side-by-side viewer showing
+        the fused top-20 candidate list before re-ranking and after a cross-encoder pass, with each document's rank change
+        animated — so you can see precision being restored. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Variations &amp; where it runs</div>
+        <h2>Late interaction, and hybrid right in Postgres</h2>
+        <p>Cross-encoders aren't the only re-ranking tool, and you should know the one clients increasingly ask about:
+        <strong>late-interaction models</strong>, the ColBERT family. Instead of crushing a whole document into one
+        vector, ColBERT stores a <strong>per-token embedding</strong> for the document and scores a query against it with
+        <strong>MaxSim</strong> — for each query token, take its best-matching document token, then sum those maxima. This
+        recovers fine-grained linguistic nuance that a single document vector flattens away. Because storing per-token
+        embeddings for an entire corpus is heavy, the practical pattern is the same two-stage shape: <strong>retrieve
+        cheaply with single-vector search, then re-rank the candidates with the late-interaction model</strong> — getting
+        ColBERT's nuance without scanning the whole corpus token-by-token. Qdrant supports exactly this as a
+        late-interaction rerank stage.</p>
+        <p>Finally, a grounding fact for the many clients who'd rather not add another database: <strong>you can do hybrid
+        natively in Postgres.</strong> The <strong>pgvector</strong> extension ships a <code>sparsevec</code> type for
+        keyword/lexical sparse vectors alongside the <code>halfvec</code> half-precision type — both introduced in pgvector
+        0.7.0 — which means you can keep a dense vector column and a sparse vector column <em>in the same table</em> and
+        run both halves of hybrid retrieval inside one database. pgvector 0.8.0 also added <strong>iterative index
+        scans</strong>, which prevent over-filtering by continuing to scan an HNSW or IVFFlat index until enough rows pass
+        your <code>WHERE</code>-clause filters — a real fix for the classic "my metadata filter starved the vector search"
+        bug. (Version hygiene matters: the current stable release as of mid-2026 is <strong>pgvector 0.8.3</strong>, so any
+        "we're on a current version" claim should point past 0.8.0.)</p>
+        <p>Step back and you have a portable mental model that survives whichever vendor a client has chosen. Whether it's
+        Pinecone's cascading retrieval, Weaviate's rankedFusion, Qdrant's server-side hybrid with ColBERT rerank, or
+        pgvector columns in plain Postgres, the <em>shape</em> is identical: <strong>run dense and sparse, fuse them into a
+        wide high-recall candidate set, then re-rank down to a small high-precision final set.</strong> Learn the shape,
+        and every product is just a different set of knobs on the same machine.</p>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When a client says "our RAG can't find the right document," resist the urge to swap the embedding model.
+          Walk the retrieval pipeline instead: <strong>Is sparse even in the mix, or is it dense-only missing the exact
+          terms? Are the two scores normalized, or is BM25 silently dominating? Is the candidate set wide enough to
+          contain the answer? Is there a re-ranking stage at all?</strong> Most "bad retrieval" is one of those four knobs
+          set wrong — and each has a fix you can ship this week, none of which is "buy a bigger model."</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://docs.pinecone.io/guides/search/hybrid-search" target="_blank" rel="noopener">Pinecone — Hybrid search</a> — why dense and sparse are complementary, the BM25 normalization trap, and the alpha convex-combination defaults (0.75 / 0.5 / 0.25).</li>
+          <li><a href="https://weaviate.io/blog/hybrid-search-explained" target="_blank" rel="noopener">Weaviate — Hybrid Search Explained</a> — the "Alaskan Pollock" example, and RRF (<code>rankedFusion</code>) vs <code>relativeScoreFusion</code>.</li>
+          <li><a href="https://qdrant.tech/articles/hybrid-search/" target="_blank" rel="noopener">Qdrant — Hybrid Search with Reranking</a> — the two-stage "hybrid boosts recall; reranking restores precision" pattern and ColBERT late-interaction reranking.</li>
+          <li><a href="https://docs.cohere.com/changelog/rerank-v3.5" target="_blank" rel="noopener">Cohere — Announcing Rerank-v3.5</a> — cross-encoder reranker, 4096-token context, SOTA on BEIR and multilingual retrieval.</li>
+          <li><a href="https://www.pinecone.io/blog/cascading-retrieval/" target="_blank" rel="noopener">Pinecone — Introducing cascading retrieval</a> — dense + sparse in parallel then rerank; up to 48% (avg 24%) improvement over dense-only.</li>
+          <li><a href="https://www.postgresql.org/about/news/pgvector-080-released-2952/" target="_blank" rel="noopener">PostgreSQL — pgvector 0.8.0 Released</a> — iterative index scans that prevent over-filtering under <code>WHERE</code>-clause filters.</li>
+          <li><a href="https://github.com/pgvector/pgvector" target="_blank" rel="noopener">pgvector — README</a> — the <code>sparsevec</code> and <code>halfvec</code> types enabling dense + sparse columns in one Postgres table.</li>
+          <li><a href="https://github.com/pgvector/pgvector/blob/master/CHANGELOG.md" target="_blank" rel="noopener">pgvector — CHANGELOG</a> — release history; current stable is 0.8.3 (2026-06-17).</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">RRF math &amp; tuning alpha by query type</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on retrieval strategies</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 2 Day 3</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: RRF math &amp; tuning alpha</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The arithmetic behind fusion and the dial behind hybrid.</p>
+    <p><strong>Why raw scores don't add up.</strong> A dense cosine similarity sits in a tidy 0–1 range. A BM25 score has
+    no fixed ceiling — it grows with how rare a query term is and how concentrated it is in the document, so it routinely
+    lands at 8, 20, 40. Add them directly and the sparse number simply swamps the dense one. That's the trap: an
+    un-normalized sum is sparse search pretending to be hybrid.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked example — Reciprocal Rank Fusion</div>
+      <p>RRF ignores magnitudes entirely and fuses by <em>rank</em>. With the common constant <code>k = 60</code>, a
+      document's fused score is the sum over each list of <code>1 / (k + rank)</code>:</p>
+      <ul class="deliv-list">
+        <li>Doc A — dense rank 1, sparse rank 30 → 1/61 + 1/90 ≈ 0.0164 + 0.0111 = <strong>0.0275</strong></li>
+        <li>Doc B — dense rank 4, sparse rank 2 → 1/64 + 1/62 ≈ 0.0156 + 0.0161 = <strong>0.0317</strong></li>
+        <li>Doc C — dense rank 2, not in sparse list → 1/62 + 0 ≈ <strong>0.0161</strong></li>
+      </ul>
+      <p style="margin:8px 0 0">Doc B wins — not because either retriever ranked it #1, but because <em>both</em> ranked
+      it high. Notice no BM25 magnitude ever entered the math; that's why RRF shrugs off incompatible score scales and is
+      the sane default fusion method.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Tuning alpha by query type.</strong> If you use weighted fusion instead, treat
+    alpha as a per-query-type dial: <strong>≈0.75</strong> for conversational natural-language questions (lean on
+    meaning), <strong>≈0.5</strong> to balance, and <strong>≈0.25</strong> when the query is dominated by exact tokens —
+    SKUs, error codes, part numbers, named entities. A lightweight classifier (or even a regex that detects ID-shaped
+    queries) can pick alpha per request, so "reset my password" rides high alpha while "TS-4471" drops toward sparse.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 3 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Explain why dense and sparse retrieval fail on opposite query types, and why that makes them complementary</li>
+      <li>Diagnose an un-normalized hybrid score (BM25 dominating) and fix it with weighting or RRF</li>
+      <li>Choose between weighted alpha fusion and rank fusion, and pick a sensible alpha for a given query type</li>
+      <li>Describe the two-stage "hybrid for recall, re-rank for precision" pipeline and justify the re-ranker's cost</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add to your <code>NOTES.md</code></li>
+      <li><b>①</b> a query from your domain that dense search would handle well, and one sparse would handle well</li>
+      <li><b>②</b> the fusion method you'd default to (alpha or RRF) and why</li>
+      <li><b>③</b> where you'd put the re-ranker, and the candidate-set width you'd feed it</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 4, where we build on retrieval toward the rest of the RAG pipeline. This keeps
+    growing the engineering journal you started in Week 1.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 4 — next in Week 2 →", href: "w02d4.html" };
+window.DIAGRAM = {
+  title: "Two-stage hybrid retrieval pipeline",
+  width: 500, height: 660,
+  nodes: [
+    // the query (dark payload card)
+    { id:"query", step:0, kind:"example", x:120, y:14, w:260, h:54,
+      label:"QUERY  \"How to catch an Alaskan Pollock\"\n  intent: fishing  ·  exact term: \"Alaskan Pollock\"" },
+
+    // two retrievers
+    { id:"dense", step:1, x:24, y:96, w:210, h:66, label:"DENSE / semantic\nmeaning + synonyms\n(misses exact terms)",
+      detail:"Embeds query and chunk into 'meaning space'; near vectors = similar meaning, even with no shared words. Captures synonyms and paraphrase ('car repair' ↔ 'automobile maintenance'), but smears exact tokens — SKUs, error codes, rare proper nouns — toward 'semantically close'." },
+    { id:"sparse", step:2, x:266, y:96, w:210, h:66, label:"SPARSE / BM25 lexical\nexact keywords + IDs\n(misses meaning)",
+      detail:"Classical IR (BM25): sparse vector over the vocabulary, scored by term overlap weighted by rarity and frequency. Nails the literal phrase 'Alaskan Pollock', SKUs, error codes — but sees zero shared terms between synonyms, so it's blind to meaning." },
+
+    // fusion options
+    { id:"fuse", step:3, x:70, y:190, w:360, h:50, label:"FUSE  ·  normalize first!\nalpha · dense + (1−alpha) · sparse",
+      detail:"BM25 scores aren't normalized to the dense 0–1 range, so a raw sum lets sparse dominate. Normalize, then weight: alpha≈0.75 favors natural-language meaning, 0.5 balances, ≈0.25 favors keyword-specific queries (SKUs, IDs, named entities)." },
+    { id:"rrf", step:4, x:70, y:252, w:360, h:46, label:"…or RRF  ·  Σ 1/(k+rank)  ·  scale-robust",
+      detail:"Reciprocal Rank Fusion combines ranked lists by summing reciprocal ranks, never raw scores — so it shrugs off incompatible BM25 vs cosine scales. Weaviate's default rankedFusion; relativeScoreFusion is the score-based alternative." },
+
+    // stage 1 output: wide candidate set
+    { id:"cand", step:5, x:110, y:320, w:280, h:56, label:"WIDE candidate set  (~100 + 100)\nSTAGE 1 — high RECALL",
+      detail:"Each retriever returns a wide net (~100) and you fuse them. Goal is recall, not precision: make sure the right chunk is in the bucket. You can't re-rank a document you never retrieved." },
+
+    // stage 2: re-rank
+    { id:"rerank", step:6, x:110, y:404, w:280, h:64, label:"CROSS-ENCODER re-rank\n(Cohere Rerank 3.5, 4096-tok)\nSTAGE 2 — restores PRECISION",
+      detail:"A cross-encoder feeds query + each candidate jointly through a transformer for a precise relevance score — too costly for the whole corpus, affordable over ~100. Pinecone cascading retrieval: up to 48% (avg 24%) better than dense-only." },
+    { id:"final", step:6, x:170, y:486, w:160, h:44, label:"final top-k → LLM" },
+
+    // variations
+    { id:"colbert", step:7, x:14, y:556, w:224, h:80, label:"Late interaction (ColBERT)\nper-token emb · MaxSim\nrerank stage",
+      detail:"ColBERT stores per-token embeddings and scores with MaxSim (best doc token per query token, summed) — recovers nuance a single vector flattens. Heavy to store, so used as a rerank stage: retrieve cheap, rerank with late interaction (Qdrant)." },
+    { id:"pg", step:7, x:262, y:556, w:224, h:80, label:"pgvector native hybrid\nvector + sparsevec columns\n(0.8.0 iterative scans)",
+      detail:"pgvector's sparsevec (and halfvec) types — both from 0.7.0 — let dense + sparse columns live in one Postgres table. 0.8.0 added iterative index scans that prevent over-filtering under WHERE clauses. Current stable: 0.8.3." }
+  ],
+  edges: [
+    { id:"e_qd", step:1, from:"query", to:"dense",  label:"semantic", lx:-8 },
+    { id:"e_qs", step:2, from:"query", to:"sparse", label:"lexical",  lx:8 },
+    { id:"e_df", step:3, from:"dense", to:"fuse" },
+    { id:"e_sf", step:3, from:"sparse", to:"fuse" },
+    { id:"e_cand", step:5, from:"fuse", to:"cand", label:"merge", ly:-2 },
+    { id:"e_rr",   step:6, from:"cand", to:"rerank", label:"narrow", ly:-2 },
+    { id:"e_fin",  step:6, from:"rerank", to:"final" },
+    { id:"e_cb",   step:7, from:"colbert", to:"rerank", label:"alt", bend:-26 }
+  ],
+  captions: [
+    "One <b>query</b> carries two kinds of signal at once: an <b>intent</b> ('fishing') and an <b>exact term</b> ('Alaskan Pollock'). No single retriever is great at both. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "<b>Dense / semantic</b> search reads meaning — great on synonyms and paraphrase, but smears exact tokens. <span style='opacity:.7'>(tap)</span>",
+    "<b>Sparse / BM25</b> search nails exact terms and IDs — but is blind to meaning. The two fail on <b>opposite</b> queries, so we run both. <span style='opacity:.7'>(tap)</span>",
+    "<b>Fuse</b> the two — but normalize first: un-normalized BM25 dominates. Weighted <b>alpha</b> dials meaning vs keyword. <span style='opacity:.7'>(tap)</span>",
+    "Or fuse by <b>RRF</b> — sum reciprocal ranks, ignore raw scores — robust to incompatible scales. <span style='opacity:.7'>(tap)</span>",
+    "<b>Stage 1</b>: a deliberately <b>wide</b> candidate set. The goal is <b>recall</b> — get the right chunk in the bucket. <span style='opacity:.7'>(tap)</span>",
+    "<b>Stage 2</b>: a <b>cross-encoder re-ranker</b> scores query+doc jointly and collapses to the final top-k — <b>precision restored</b>. <span style='opacity:.7'>(tap)</span>",
+    "Variations on the same shape: <b>ColBERT</b> late-interaction rerank, or <b>pgvector</b> hybrid right in Postgres. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w02-d3",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A user searches your catalog for the exact part number 'TS-4471' and a dense-only RAG system returns vaguely related parts instead of the exact one. Why?",
+      options: [
+        "The embedding model is too small",
+        "Dense search reasons in meaning-space, so it under-weights exact-token identity like SKUs and codes",
+        "The temperature is set too high",
+        "The context window overflowed" ],
+      answer: 1,
+      explain: "Dense / semantic search captures meaning and synonyms but is weak exactly where the literal token matters — SKUs, error codes, rare proper nouns. That's the canonical case for adding sparse (BM25) retrieval, which excels at exact term matching." },
+    { type: "scq",
+      stem: "Your 'hybrid' system sums dense cosine scores (0–1) and BM25 scores directly. Users say it behaves like pure keyword search. What's wrong?",
+      options: [
+        "Dense is disabled",
+        "BM25 scores aren't normalized to the dense range, so on their larger scale they dominate the sum",
+        "Alpha is set to 1.0",
+        "The re-ranker is missing" ],
+      answer: 1,
+      explain: "BM25 scores aren't normalized to the dense vector range; without explicit weighting/normalization the sparse component dominates the combined score. Normalize and weight (alpha convex combination) — or fuse by rank with RRF instead." },
+    { type: "tf",
+      stem: "Reciprocal Rank Fusion (RRF) combines retrievers by summing their raw relevance scores.",
+      answer: false,
+      explain: "No — RRF sums reciprocal ranks (Σ 1/(k+rank)), not raw scores. Using rank instead of magnitude is exactly what makes it robust to incompatible score scales between BM25 and dense retrieval. It's Weaviate's default rankedFusion." },
+    { type: "mcq",
+      stem: "In the standard two-stage pipeline, which statements are true? (select all that apply)",
+      options: [
+        "Stage 1 (hybrid retrieval) aims for recall by pulling a wide candidate set",
+        "Stage 2 (re-ranking) restores precision by collapsing candidates to a small final set",
+        "A cross-encoder scores the query and each candidate document jointly",
+        "You should feed all ~100 candidates straight to the LLM to maximize accuracy",
+        "Re-ranking the whole corpus is cheaper than re-ranking the candidate set" ],
+      answer: [0, 1, 2],
+      explain: "Hybrid boosts recall (wide net so the answer is in the bucket); re-ranking restores precision (cross-encoder scores query+doc jointly, then keep the top few). You do NOT dump all candidates into the window, and cross-encoders are too expensive to run over the whole corpus — that's why re-ranking operates on the candidate set." },
+    { type: "match",
+      stem: "Match each retrieval concept to what it does.",
+      pairs: [
+        { l: "Dense / semantic search", r: "matches meaning and synonyms, misses exact terms" },
+        { l: "Sparse / BM25 search", r: "matches exact keywords and IDs, misses meaning" },
+        { l: "Cross-encoder re-ranker", r: "scores query+document jointly for precise relevance" },
+        { l: "ColBERT late interaction", r: "per-token embeddings scored with MaxSim, used to rerank" } ],
+      explain: "Dense and sparse are complementary (opposite failure modes); a cross-encoder (e.g. Cohere Rerank 3.5) reads query and doc together for a precise score; ColBERT stores per-token embeddings and scores via MaxSim, typically as a rerank stage after cheap single-vector retrieval." },
+    { type: "open",
+      stem: "In one or two sentences: when would you set alpha ≈ 0.25 in an alpha convex-combination hybrid, and what does that choice do to dense vs sparse?",
+      hint: "Think about what kind of query has its meaning IN the literal tokens.",
+      model: "Set alpha ≈ 0.25 for high-keyword-specificity queries — SKUs, technical IDs, part numbers, named entities — where the exact token is the point. Since the formula is alpha·dense + (1−alpha)·sparse, a low alpha down-weights dense (meaning) and up-weights sparse (exact keyword), which is what those queries need; natural-language questions would instead use alpha ≈ 0.75 to lean on meaning." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

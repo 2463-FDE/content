@@ -11,7 +11,7 @@ window.FDE_PROGRESS = (function () {
 
   // Canonical curriculum order. Extend as later weeks are authored — only days
   // with reading pages belong here (they drive backfill + the calendar buttons).
-  var ORDER = ["w01d1", "w01d2", "w01d3", "w01d4", "w01d5"];
+  var ORDER = ["w01d1", "w01d2", "w01d3", "w01d4", "w01d5", "w02d1", "w02d2", "w02d3", "w02d4", "w02d5"];
 
   function key() {
     try {
