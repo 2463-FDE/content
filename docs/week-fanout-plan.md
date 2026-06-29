@@ -292,8 +292,14 @@ summary per task. Everything else stays in the sub-agents.
 - [x] Retrofit Sources block onto all 7 remaining Week-1 readings (done; URLs
       normalized to canonical, all 200).
 - [x] Confirm tech-gap additions per week (confirmed 2026-06-29).
-- [ ] Build the W2-8 run as a Workflow script implementing the phases + repass
-      loops + reporting contract above. Run only on explicit go.
+- [x] Build the run as a Workflow script — `content/docs/workflows/week-fanout.js`
+      (generalized, args-driven by week). Run W3-8 with
+      `Workflow({ scriptPath, args:{ week, phase, days:[{d,topic,sub},...] } })`.
+- [x] **W2 (RAG) shipped 2026-06-29** — first gated run, 0 flagged across 92
+      agents. 5 readings live, 124 questions + 20 day-aligned concepts deployed.
+      Shakedown fixes folded into the script: (1) concept-reconciliation step
+      (parallel research coined dup ids); (2) no question-critic truncation;
+      (3) explicit `weeks/wWW/wWWdN.html` filename convention.
 - [ ] Backfill W1 thin technical concepts to ≥4 questions each (context-window,
       knowledge-graph, model-selection, prompt-engineering, token-optimization,
       output-guardrails, structured-output) — fold into the run.
