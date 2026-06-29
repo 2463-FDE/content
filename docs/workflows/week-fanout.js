@@ -129,7 +129,7 @@ const readings = await parallel(DAYS.map((day) => () => gated(
     `- "Sources & deeper dive" <section class="reading-sources"> before </article> with the brief's verified URLs.\n`+
     `- DO NOT build functional ix-run blocks. Where a live try-it belongs, insert <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: ... Needs backend standup.</p></div> and report each in futureInteractives.\n`+
     `- window.FDE_NEXT to the next day (w${WW}d${day.d+1}.html, or ../../index.html for the last day).\n`+
-    `- Relative paths ../../assets/... and the template's <script src> includes.\n`+
+    `- Relative paths ../../assets/... and the template's <script src> includes (incl. progress.js + day-summary.js — the end-of-reading STT summary that completes the day).\n`+
     `Return summary, wordCount (prose), steps, futureInteractives.`+fix(cr),
     { schema: READING_SCHEMA, label:`${day.slug}:reading`, phase:'Readings' }),
   (_r) => agent(

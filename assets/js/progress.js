@@ -30,19 +30,12 @@ window.FDE_PROGRESS = (function () {
   // "none" | "started" | "completed"
   function status(day) { return read()[day] || "none"; }
 
-  // Mark a day in progress and backfill earlier days as completed. Never
-  // downgrades a day that's already completed (revisiting is fine).
+  // Mark a day in progress. Marks ONLY this day started — peeking ahead at a
+  // future topic must NOT auto-complete the days you skipped. Completion is an
+  // explicit act: recording the end-of-day STT summary (see day-summary.js).
+  // Never downgrades a day that's already completed (revisiting is fine).
   function markStarted(day) {
     var p = read();
-    var idx = ORDER.indexOf(day);
-    if (idx === -1) {
-      if (p[day] !== "completed") p[day] = "started";
-      write(p);
-      return;
-    }
-    for (var i = 0; i < idx; i++) {
-      if (p[ORDER[i]] !== "completed") p[ORDER[i]] = "completed";
-    }
     if (p[day] !== "completed") p[day] = "started";
     write(p);
   }

@@ -127,6 +127,23 @@ body {
 .reading-sources a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .reading-sources a:hover { text-decoration: underline; }
 
+/* End-of-reading STT day summary — the completion trigger. */
+.day-summary { margin: 36px 0 0; padding: 20px; border: 1px solid #ffd8bf; border-radius: 14px; background: var(--accent-soft); }
+.day-summary .ds-k { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; font-weight: 700; color: var(--accent); }
+.day-summary h2 { font-size: 20px; margin: 4px 0 6px; }
+.day-summary .ds-sub { font-size: 14px; color: var(--ink-soft); margin: 0 0 12px; line-height: 1.5; }
+.day-summary .ds-box { width: 100%; box-sizing: border-box; min-height: 84px; resize: vertical; padding: 10px 12px; font: inherit; font-size: 14px; line-height: 1.5; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.day-summary .ds-controls { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.day-summary .ds-btn { font: inherit; font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 9px; border: 1px solid var(--line); cursor: pointer; background: #fff; transition: filter .1s, transform .1s; }
+.day-summary .ds-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.day-summary .ds-btn:disabled { opacity: .5; cursor: default; }
+.day-summary .ds-rec { color: var(--accent); border-color: var(--accent); }
+.day-summary .ds-rec.is-rec { color: #fff; background: var(--bad); border-color: var(--bad); }
+.day-summary .ds-save { color: #fff; background: var(--accent); border-color: var(--accent); box-shadow: 0 2px 8px -2px rgba(232,89,12,.5); }
+.day-summary .ds-status { font-size: 13px; color: var(--ink-soft); font-weight: 600; }
+.day-summary.is-done { border-color: #c3f0cd; background: #eefbf1; }
+.day-summary.is-done .ds-status { color: var(--good); }
+
 /* Deferred interactive — placeholder where a live "try it" will go once the
    backend example is stood up. Content first; interactivity is a future goal. */
 .ix-future { margin: 18px 0; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 10px; background: #faf8f4; }
