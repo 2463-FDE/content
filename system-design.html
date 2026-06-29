@@ -106,15 +106,15 @@
     <h1>System <b>Design</b> Challenge</h1>
     <p>One targeted system-design challenge per week, tied to the week's curriculum.
     <b>Released Tuesday, defended Friday.</b> Pick the week below: you'll get the simulator challenge you'll be
-    <b>scored</b> on in the AI Interview, plus your brownfield project's design angle. Research ahead — you get
-    <b>one attempt per day</b>, and your best this week clears the mastery bar.</p>
+    <b>scored</b> on in the AI Interview — a different domain each week, to stretch you outside your project. Research ahead so you
+    come with questions: <b>one attempt per day</b>, and your best this week clears the mastery bar.</p>
   </div>
 
   <div class="sd-banner">
     <div style="flex:1">
       <div class="b-everyone"><b>Log in with your code</b> (top right) to track your attempts. The prompt,
       constraints, and deliverable format are visible to everyone.</div>
-      <div class="trainer-only">🔑 You're in <b>trainer view</b> — the "what good looks like" rubric and the latent problem strong designs should surface are shown inside the brownfield challenge below. Steer with questions; don't hand them the answer.</div>
+      <div class="trainer-only">🔑 You're in <b>trainer view</b> — the per-scenario grading rubric stays server-side so learners can't memorize it. Steer with questions; don't hand them the answer.</div>
     </div>
   </div>
 
@@ -122,10 +122,6 @@
 
   <div class="sd-section-h">This week's simulator challenge — scored in the AI Interview</div>
   <div class="sd-panel sd-assign" id="assignPanel"><div class="sd-loading">Loading this week's challenge…</div></div>
-
-  <div class="sd-section-h">Your brownfield project's design angle this week</div>
-  <div class="sd-projtabs" id="projtabs"></div>
-  <div class="sd-panel" id="panel"></div>
 
   <div class="sd-practice">
     <h3>Practice library</h3>
@@ -173,335 +169,38 @@
    Trainer-only:    rubric ("what good looks like") + latent (the problem to surface).
    Weeks 1-8 are weekly cadence; "cap" is the W9-W10 capstone defense (no weekly cadence).
    ========================================================================== */
-window.SD = {
-  healthcare: {
-    label: "Healthcare",
-    short: "patient intake + records portal",
-    persona: "Dr. Maya Okonkwo, COO — Riverbend Community Health",
-    weeks: {
-      1: {
-        title: "LLM Engineering for Production",
-        tie: "Production-grade LLM clients — retries, timeouts, structured output, cost/latency, safe logging.",
-        prompt: "Design the production LLM client and the PHI-safe logging path for the patient-intake assistant. The headline architectural question: <b>where does PHI enter and leave this system?</b> Design the client wrapper (timeout, retry, structured-output parse, cost guard) and the logging policy that keeps patient data out of the leak surface.",
-        reqs: [
-          "<b>Resilience:</b> request timeout, bounded retry with backoff, structured-output parsing + validation, a token/cost guard.",
-          "<b>PHI containment (NFR):</b> no request bodies in logs — a redaction policy at the boundary; secrets out of the repo (the handed-over <code>.env</code> is committed and untracked).",
-          "<b>Trust the architecture, not the README:</b> the \"HIPAA compliant\" claim is self-asserted — TLS + plaintext-at-rest is not compliance.",
-          "<b>$20-Pro / 40-hr realism:</b> one $20 Pro plan, ~40 hr/wk. No fine-tuning, no premium-model spend — design within a cost-per-summary cap."
-        ],
-        deliverable: "A 1–2 page design doc + a <b>data-flow / seam diagram</b> (Excalidraw or whiteboard) showing every boundary PHI crosses and where redaction happens. Defended Friday. This is the safe client + the finding — not \"build the AI feature.\"",
-        rubric: "Strong designs treat the AI ask as secondary and the leak as primary: they put redaction at the logging boundary (not a scrub afterward), get the <code>.env</code> out of the repo, and name \"a single log export is a reportable breach\" in the client's language.",
-        latent: "Secrets in the repo (D9) + PHI in plaintext logs (D1) = an instant ePHI breach surface. The client asked for AI; the design has to contain the leak first. \"HIPAA compliant\" is a claim, not an architecture."
-      },
-      2: {
-        title: "RAG & Knowledge Retrieval",
-        tie: "Retrieval pipelines, chunking/embeddings, and eval harnesses for retrieval quality.",
-        prompt: "Design retrieval over the clinic's patient-history corpus so a clinician opening a chart gets the right past records — and design the eval harness that proves it. Make <b>patient identity</b> a first-class concern in the design, not an afterthought.",
-        reqs: [
-          "<b>Pipeline:</b> chunking + embedding + index strategy with a recall/precision eval over the contractor's gold-set.",
-          "<b>Identity (the real design axis):</b> an MPI / match-key strategy — the same human appears as 3 patient IDs from self-service intake.",
-          "<b>Eval that catches it (NFR):</b> retrieval correctness over a <i>fragmented</i> source — your report needs a duplicate-rate metric and a fragment-coverage gap, not just relevance.",
-          "<b>$20-Pro quota:</b> cap corpus size; embed once and cache — never re-embed per run."
-        ],
-        deliverable: "A retrieval architecture doc + eval-harness design + a diagram of the ingest→index→retrieve path with the identity-resolution layer marked. Defended Friday.",
-        rubric: "Strong designs notice the duplicate human in the dump <i>before</i> talking retrieval quality, propose a match-key/MPI layer, and make the eval report surface fragmentation. They reframe \"make retrieval better\" → \"retrieval is grounded on a partial record.\"",
-        latent: "No MPI / match-key (D5): self-service intake silently forks one patient into N chart fragments. Retrieval looks fine but returns a partial allergy/med list — a patient-safety risk no chunking or re-ranking can fix."
-      },
-      3: {
-        title: "Single-Agent Design & Memory",
-        tie: "A single tool-using agent with conversation memory; tool-call design, failure handling.",
-        prompt: "Design the front-desk eligibility assistant: one tool-using agent with visit-scoped memory that runs a 270/271 payer eligibility check. The design that matters is the <b>resilience of the external payer dependency</b> — and the failure posture when the payer is down.",
-        reqs: [
-          "<b>Agent:</b> one <code>check_eligibility</code> tool + visit-scoped memory + explicit tool-failure handling.",
-          "<b>Dependency resilience (the real ask):</b> non-blocking, timeout-bounded payer call behind a circuit breaker; graceful degradation (serve last-known eligibility, let intake proceed).",
-          "<b>Availability NFR:</b> intake availability must not depend on payer uptime (164.308 contingency) — a payer blip cannot freeze registration.",
-          "<b>$20-Pro / 40-hr realism:</b> design within the plan; mock the payer for testing rather than burning calls."
-        ],
-        deliverable: "An agent + tool design doc + a <b>sequence / failure-mode diagram</b> (happy path, payer timeout, payer outage → degrade). Defended Friday.",
-        rubric: "Strong designs connect the support-ticket \"the whole screen froze\" to the 20-min payer outage to the synchronous <code>requests.get()</code> with no timeout — then design sync→async + breaker + degrade.",
-        latent: "Synchronous external calls with no timeout/circuit breaker (D4) mean a payer outage takes down intake itself, not just eligibility. It's an availability cliff mislabeled \"slow sometimes.\""
-      },
-      4: {
-        title: "Multi-Agent & Knowledge Graphs",
-        tie: "Multiple coordinated agents + a knowledge graph over entities/relationships.",
-        prompt: "Design a knowledge graph (patient→encounter→provider→record) and a small multi-agent flow that assembles a patient's full picture for the patient-facing view. The load-bearing design decision is <b>authorization at the graph boundary</b>.",
-        reqs: [
-          "<b>Schema:</b> entity/relationship model for patient→encounter→provider→record (seed a sample; don't ingest everything).",
-          "<b>AuthZ at the boundary (the real ask):</b> an ownership/authorization check before any record is returned — record IDs are guessable sequential ints.",
-          "<b>Don't amplify the flaw (NFR):</b> the \"assemble full picture\" feature multiplies exposure if shipped naively; also avoid N+1 across encounters. Minimum-necessary, no IDOR.",
-          "<b>$20-Pro realism:</b> a seeded KG sample is enough — the security finding is the headline, not graph scale."
-        ],
-        deliverable: "A KG schema + a multi-agent assembly design + a diagram with the authorization checkpoint marked, plus an IDOR repro note from the HAR. Defended Friday.",
-        rubric: "Strong designs take the HAR, try the next sequential ID themselves, and design authZ at the data boundary — recognizing the assembly feature amplifies the IDOR. They keep the KG small and lead with the security finding.",
-        latent: "IDOR on record reads (D11): guessable IDs + missing ownership checks let any authenticated user pull any chart — mass PHI exposure + minimum-necessary violation, amplified by the new feature."
-      },
-      5: {
-        title: "Spec-Driven Dev & Problem Scoping",
-        tie: "Writing a rigorous spec + acceptance criteria before coding; scoping a fuzzy ask into a precise problem.",
-        prompt: "The client says \"scheduling double-books the same slot — just fix the calendar.\" Scope the <b>real</b> problem and write a rigorous spec + acceptance criteria for booking idempotency and slot concurrency. Design only — do not build.",
-        reqs: [
-          "<b>Reframe:</b> show why this is a correctness defect (retry → duplicate; race on slot), not a calendar-UI bug.",
-          "<b>Design:</b> idempotency-key on booking + a DB unique-constraint/transaction on <code>slot_id</code>.",
-          "<b>Acceptance criteria + test vectors (NFR):</b> no double-book under client retry or concurrent booking; model the booking state machine.",
-          "<b>$20-Pro / 40-hr realism:</b> spec week — the deliverable is a precise spec, not an implementation."
-        ],
-        deliverable: "A spec package: a problem-scoping doc (\"calendar bug\" → idempotency + concurrency), acceptance criteria, retry + concurrent-booking test vectors, and a state-machine diagram. Defended Friday.",
-        rubric: "Strong designs lead the client from \"calendar UI bug\" to \"a retry produced a duplicate / two writers raced on one slot,\" then specify idempotency + a unique constraint + a transaction. They resist starting to build.",
-        latent: "No idempotency + no slot-concurrency control (D5): \"double-booking\" is a correctness defect. Fixing the calendar UI without idempotency just reshuffles the race — and double-books clinician time + bills."
-      },
-      6: {
-        title: "AI-Augmented SDLC (Legacy / Brownfield)",
-        tie: "Using AI to comprehend inherited/legacy code; characterization tests; safe-change workflow on brownfield.",
-        prompt: "Design a safe-change workflow for the brittle HL7 v2 → internal mapper using AI-augmented comprehension. Goal: stop it silently dropping allergy (AL1) and medication (RXA) segments — without a risky big-bang rewrite.",
-        reqs: [
-          "<b>Comprehend before changing:</b> an AI-assisted report of what the parser maps and what it drops, by segment.",
-          "<b>Pin behavior:</b> characterization tests over current behavior + a <i>failing</i> test demonstrating the dropped AL1/RXA.",
-          "<b>Safe redesign (NFR):</b> a schema-validated mapping (clinical-data integrity, 164.312(c)); incremental change, not a rewrite.",
-          "<b>$20-Pro realism:</b> use AI comprehension within the Pro quota; scope to the parser, not the whole interop service."
-        ],
-        deliverable: "A legacy-comprehension report + a test strategy + a schema-validated-mapping ADR + a before/after mapping diagram. Defended Friday. Not a full rewrite.",
-        rubric: "Strong designs diff an inbound HL7 message against the produced internal record to find the dropped segments, pin current behavior with characterization tests first, then design validation. The failing AL1/RXA test is the proof.",
-        latent: "Brittle HL7v2→internal mapping silently drops allergy/med fields (D6): \"the integration works\" because it never errors — it just loses clinical data. A clinician sees an empty allergy list and prescribes against it (164.312(c))."
-      },
-      7: {
-        title: "Observability / SRE / Guardrails",
-        tie: "Golden-signal instrumentation, tracing, alerting; guardrails on LLM output.",
-        prompt: "Design the observability + guardrails for the intake path and the AI-summary feature. Two threads converge: instrument the unmonitored availability cliff (golden signals + an SLO alert), and put a grounding guardrail on the LLM output so it can't invent clinical content.",
-        reqs: [
-          "<b>Observability:</b> structured tracing on the critical intake/eligibility span + a golden-signals dashboard spec + one working SLO alert (latency or error-rate).",
-          "<b>LLM guardrail (the second thread):</b> output grounding/validation on the AI summary — refuse-unknown rather than hallucinate.",
-          "<b>NFR:</b> MTTR on the availability cliff (today every outage is found by patients first); no hallucinated clinical content (safety + liability).",
-          "<b>$20-Pro realism:</b> scope to one instrumented path + one guardrail — not full-platform observability."
-        ],
-        deliverable: "An observability design (traced span + dashboard + alert) + a guardrail design for the summary + a diagram of the instrumented path and the guardrail checkpoint. Defended Friday.",
-        rubric: "Strong designs tie the W3 availability cliff (\"intake froze ~20 min, no alert fired\") to \"the client is last to know,\" and the ungrounded summary (it invented a medication) to clinical safety — and keep scope to one path + one guardrail.",
-        latent: "No observability on the intake/eligibility path → availability cliffs are invisible (no alert, no MTTR). The LLM summary has no output guardrail → hallucinated clinical content is a safety + liability risk."
-      },
-      8: {
-        title: "Security / Governance / Responsible AI",
-        tie: "Data governance, responsible-AI design, PII handling, third-party/vendor risk.",
-        prompt: "The board wants automatic AI visit-summaries for every patient — \"turn it on for everyone.\" Design the data-governance + responsible-AI architecture: <b>what PHI may cross the boundary to an LLM vendor, under what agreement, after what de-identification.</b>",
-        reqs: [
-          "<b>De-identify first:</b> a Safe-Harbor scrub (all 18 identifiers) on any record before it hits an LLM or analytics path.",
-          "<b>Vendor governance:</b> a data-flow map of what leaves the PHI boundary + a BAA / vendor-risk memo (the current vendor contract is a standard ToS, no BA addendum).",
-          "<b>Recommendation gate (NFR):</b> 164.502(e) — no impermissible disclosure; 164.514 de-identification. The \"de-identified\" export drops only the <code>name</code> column.",
-          "<b>$20-Pro realism:</b> unit-test the redactor offline — do not validate it by spamming the LLM."
-        ],
-        deliverable: "A responsible-AI design package: a unit-tested Safe-Harbor redactor design, a PHI-boundary data-flow diagram, and a BAA/vendor-governance memo with a go/no-go recommendation gate. Defended Friday.",
-        rubric: "Strong designs recognize the flagship feature is an unsignaled breach (PHI to a vendor with no BAA, no de-id), and enumerate the 18 Safe-Harbor identifiers against the \"de-identified\" export to show 17 still remain.",
-        latent: "PHI to an LLM vendor with no BAA + no de-identification (D13) is an impermissible disclosure (164.502(e)). The \"de-identified\" analytics export is re-identifiable — missing 17 of 18 Safe-Harbor identifiers."
-      },
-      cap: {
-        title: "Capstone Defense — Audit-Readiness Architecture",
-        tie: "W9–W10 specialization + integration: defend an end-to-end architecture to a skeptical client/auditor. No weekly cadence — this is the capstone.",
-        prompt: "Defend an end-to-end architecture that proves <b>audit-readiness</b>. Integrate the W1–W8 findings and the specialization track: an append-only access trail + breach-detection + accounting-of-disclosures, on top of RBAC/least-privilege and consent-enforced ROI. Anchor it to the auditor's actual questions: <i>\"who viewed patient Y in the last 90 days, and can you prove a valid authorization for each disclosure?\"</i>",
-        reqs: [
-          "<b>Access trail:</b> an append-only access/audit trail (not the mutable <code>audit_logs</code> table that's really app logging) + one working breach-detection alert (impermissible-access signal).",
-          "<b>Disclosure accounting:</b> a report generator answering \"who viewed patient Y\" and \"produce an accounting of disclosures for patient X\" over seeded data.",
-          "<b>Access control:</b> RBAC scopes (treatment vs ROI vs billing, 164.502(b)) + ROI authorization (164.508 / 164.522) + an MFA recommendation.",
-          "<b>NFR + realism:</b> the 60-day breach clock (164.404) can't start on a discovery you can't make; prototype over seeded data and <i>integrate</i> the arc — don't rebuild it."
-        ],
-        deliverable: "A capstone defense: an integrated architecture doc + ADR catalog + a system diagram, plus a working breach-detection alert and a disclosure-accounting prototype. Defended to a skeptical client/auditor, framed in audit-readiness, patient-safety, and dollars.",
-        rubric: "Strong defenses tie the auditor's two questions back to the W1 mutable-audit-log finding, integrate the whole arc (W1 logging → W4 authZ → W8 governance → W9 RBAC/ROI), and speak the client's language. They ship a focused capstone slice, not everything.",
-        latent: "No breach-detection / append-only access trail (D2/D14): the 60-day breach clock can't start on a discovery you can't make, and \"who viewed this patient?\" is unanswerable today — breach-notification obligations (164.404) are structurally unmeetable."
-      }
-    }
-  },
-
-  finance: {
-    label: "Finance",
-    short: "loan origination + servicing",
-    persona: "Dana, VP of Lending Ops — Meridian Lending Co.",
-    weeks: {
-      1: {
-        title: "LLM Engineering for Production",
-        tie: "Production-grade LLM clients — retries, timeouts, structured output, cost/latency, safe logging.",
-        prompt: "Design the production LLM client and the PCI/PII-safe logging path for the loan-summary assistant. The architectural question that frames it all: <b>map the LOS↔LSS seam — where do money and cardholder data flow across it?</b> Design the wrapper and the redacting log path.",
-        reqs: [
-          "<b>Resilience:</b> timeout, bounded retry, structured-output parse + validation, a cost guard.",
-          "<b>Redaction (NFR):</b> never log PAN, CVV/SAD, or SSN — the handed-over log has all three at INFO; secrets out of the repo (bureau creds + committed <code>.env</code>).",
-          "<b>Flag the latent bombs:</b> CVV in logs is a flat PCI prohibition; <code>balance = balance - float(payment)</code> is a money-math defect to name now.",
-          "<b>$20-Pro / 40-hr realism:</b> one $20 Pro plan, ~40 hr/wk — no premium-model spend; design to a cost cap."
-        ],
-        deliverable: "A design doc + a <b>LOS↔LSS seam / data-flow diagram</b> marking where money + cardholder data cross and where redaction happens. Defended Friday. Build the safe client + the finding — not the AI feature.",
-        rubric: "Strong designs spot all three on first read (CVV/PAN/SSN at INFO, secrets in repo, float money math), put redaction at the logging boundary, and name them in business-risk terms: PCI failure + breach exposure today.",
-        latent: "PII/PAN/CVV in logs (D5): storing CVV (Sensitive Authentication Data) is a flat PCI prohibition; PAN+SSN in plaintext is a breach already in prod. Secrets in repo (D13) + float money math (D1) are a latent TILA/reconciliation bomb."
-      },
-      2: {
-        title: "RAG & Knowledge Retrieval",
-        tie: "Retrieval pipelines, chunking/embeddings, eval harnesses for retrieval quality + corpus hygiene.",
-        prompt: "Design retrieval over the lending-policy corpus + past decisions so loan officers self-serve underwriting-policy questions. Design ingest hygiene and an eval harness — and confront what happens when someone asks \"why was application #4471 denied?\"",
-        reqs: [
-          "<b>Pipeline:</b> chunk/embed/index the policy docs with a retrieval eval harness.",
-          "<b>Corpus hygiene (NFR):</b> an offline redaction check on ingest — the \"knowledge base\" dump has unredacted SSNs + PANs; raw applications in a vector store are a fresh breach surface.",
-          "<b>Surface the gap:</b> \"why denied #4471?\" returns nothing because decisions aren't stored as retrievable, reasoned records — your eval report must expose that.",
-          "<b>$20-Pro quota:</b> embed only a sampled subset; cache embeddings; do redaction checks with regex/validators, not LLM calls."
-        ],
-        deliverable: "A retrieval architecture + ingest-hygiene design + eval harness whose report surfaces both the missing-decision-record gap and PII/PAN in the corpus, plus a corpus-hygiene ADR + diagram. Defended Friday.",
-        rubric: "Strong designs let the empty \"why denied?\" result expose the missing decision record (foreshadowing the W3 fair-lending fight) and catch the raw SSN/PAN in the corpus — designing a redaction gate on ingest, not a search tweak.",
-        latent: "The decision history isn't retrievable because it isn't recorded (D4) — you can't answer \"why denied?\" (fair-lending exposure). And the RAG corpus itself leaks PII/PAN — raw applications in an embedding store is a fresh breach surface."
-      },
-      3: {
-        title: "Single-Agent Design & Memory",
-        tie: "A single tool-using agent with memory; tool-call design + failure handling.",
-        prompt: "Design a single-agent decisioning assistant around the newly licensed AI credit-scoring model — a score tool + decision memory — that decisions an application and reports the result. The design that matters: <b>an append-only decision-event record and accurate, specific adverse-action reasons.</b>",
-        reqs: [
-          "<b>Agent:</b> one score tool + decision memory; a sync→async note for the credit-pull + bureau + model chain (it blocks the request thread today).",
-          "<b>Decision record (the real ask):</b> persist an append-only decision-event (inputs, model outputs, reason codes) at decision time.",
-          "<b>Reason mapping (NFR):</b> map model features → specific, accurate adverse-action reasons — ECOA/Reg B, and CFPB Circular 2023-03 allows no AI exemption.",
-          "<b>$20-Pro realism:</b> design + test reason mapping against fixtures; don't spam the live model."
-        ],
-        deliverable: "An agent + decision-record design + a reason-mapping ADR (model features → specific reasons) + a diagram of the decisioning flow with the append-only record marked. Defended Friday.",
-        rubric: "Strong designs recognize that a generic \"purchasing history\" reason is an ECOA violation even though \"the model works,\" and persist an immutable decision trail. Sync→async is secondary here — the fair-lending defensibility is the point.",
-        latent: "The model gives generic adverse-action reasons → an ECOA violation despite \"the model works\" — CFPB allows no AI exemption. And no immutable decision audit trail (D4) means Meridian can't defend any denial."
-      },
-      4: {
-        title: "Multi-Agent & Knowledge Graphs",
-        tie: "Coordinated multi-agent workflow + a knowledge graph over entities/relationships.",
-        prompt: "Design a knowledge graph (borrower→application→decision→offer→disclosure) and a multi-agent disclosure-assembly flow that auto-generates the offer + disclosure docs on approval. The defect to design out: <b>float money math that silently breaches TILA APR/finance-charge tolerance.</b>",
-        reqs: [
-          "<b>Schema:</b> a KG with clean provenance links application→decision→offer→disclosure (today there are gaps).",
-          "<b>Correct money (the real ask):</b> Decimal / integer minor-units end-to-end with an explicit rounding policy — the disclosed APR is computed with <code>float</code>.",
-          "<b>Compliance NFR:</b> stay inside the Reg Z / TILA APR + finance-charge tolerances; externalize the fee/APR rules (hardcoded + divergent across three files) + TILA test vectors.",
-          "<b>$20-Pro realism:</b> a prototype + ADR; a full rules engine goes to the roadmap."
-        ],
-        deliverable: "A KG schema + a multi-agent disclosure-assembly design + a TILA-tolerance finding (the float-vs-Decimal worked example) + an ADR (Decimal/minor-units + externalized rules) + a diagram. Defended Friday.",
-        rubric: "Strong designs walk the float-vs-Decimal worked example until the disclosed APR crosses the tolerance line, then design Decimal money + externalized rule config. They treat it as a compliance defect, not a cosmetic rounding nit.",
-        latent: "Float rounding silently breaches TILA APR/finance-charge tolerance (D1): every affected loan ships a legally inaccurate disclosure. Hardcoded, divergent fee logic (D6) makes it a compliance defect, not a rounding nit."
-      },
-      5: {
-        title: "Spec-Driven Dev & Problem Scoping",
-        tie: "Rigorous spec + acceptance criteria before coding; scoping a fuzzy ask precisely.",
-        prompt: "The client says \"let customers pay online — card and ACH — just add a payment form.\" Scope the <b>real</b> problem and write a spec + acceptance criteria for payment idempotency, PCI tokenization, and no-SAD storage. Design only — do not build.",
-        reqs: [
-          "<b>Reframe:</b> \"add a payment form\" → idempotency + PCI scope reduction. The \"charged twice\" tickets are a retried POST with no idempotency key producing two rows.",
-          "<b>Design:</b> an idempotency-key on the payment POST + tokenization (never store PAN; never store CVV/SAD at all).",
-          "<b>Acceptance criteria + test vectors (NFR):</b> retry, concurrent-payment, and tokenization cases — money-correctness (no double charge) + PCI-DSS.",
-          "<b>$20-Pro / 40-hr realism:</b> spec week — the deliverable is a precise spec, not an implementation."
-        ],
-        deliverable: "A spec package: a problem-scoping doc, idempotency-key design, PCI-tokenization + no-SAD-storage design, acceptance criteria + test vectors, and a payment-flow diagram. Defended Friday.",
-        rubric: "Strong designs reframe \"payment form\" → idempotency + tokenization + no-SAD storage, using the double-charge tickets as the entry point — and recognize the right design reduces PCI scope. They don't start building.",
-        latent: "No idempotency on payment POST (D2): double-charges are a money-correctness + trust failure. PCI scope explosion — storing PAN, logging CVV/SAD — is a direct PCI-DSS violation; tokenization is what shrinks the scope."
-      },
-      6: {
-        title: "AI-Augmented SDLC (Legacy / Brownfield)",
-        tie: "Using AI to comprehend inherited code; characterization tests; safe brownfield change.",
-        prompt: "Design a safe-change workflow for the servicing module (adjust-balance / waive-fee) using AI-augmented comprehension. The designs that matter: <b>RBAC + maker-checker on money-moving actions, and an append-only ledger (balance = projection)</b> — without a risky rewrite.",
-        reqs: [
-          "<b>Comprehend before changing:</b> an AI-assisted report of who can do what + how the balance mutates (any authenticated user can hit <code>adjust-balance</code> / <code>waive-fee</code> today; no role check, no second approver).",
-          "<b>Pin behavior:</b> characterization tests + a <i>failing</i> test showing the lost update (concurrent payment + fee waiver overwrite a single <code>balance</code> column).",
-          "<b>Safe redesign (NFR):</b> RBAC + maker-checker / segregation of duties + an append-only ledger — SOX §404; no single actor moves money silently.",
-          "<b>$20-Pro realism:</b> AI comprehension within the Pro quota; this is the report + tests + ADR, not the dashboard build."
-        ],
-        deliverable: "A legacy-comprehension report + a test strategy (incl. the failing lost-update test) + an ADR (RBAC + maker-checker + append-only ledger) + a diagram. Defended Friday. Not the dashboard build.",
-        rubric: "Strong designs demonstrate the lost update with the concurrent payment + waiver, then design maker-checker + an append-only ledger (balance = projection). They see the dashboard ask amplifies the authz gap.",
-        latent: "Weak authz / no segregation of duties (D8): any rep (or a compromised account) can silently move money — insider-fraud + SOX §404 control failure. A mutable balance with no ledger (D12) has no provenance an auditor can trust."
-      },
-      7: {
-        title: "Observability / SRE / Guardrails",
-        tie: "Golden-signal instrumentation, tracing, alerting; reconciliation as a control; guardrails.",
-        prompt: "Design the payment-path observability and <b>reconciliation as a control</b>: tracing on the payment span, a daily ledger-vs-settlement reconciliation job + break report, and an alert when they don't tie out. \"Month-end noise\" is the symptom of a missing control.",
-        reqs: [
-          "<b>Observability:</b> structured tracing on the payment span (today's logs have none).",
-          "<b>Reconciliation (the real ask):</b> a daily job comparing the ledger to the processor settlement file + a break report — they don't tie out, and nobody reconciles the variance.",
-          "<b>Alert + NFR:</b> one alert on a reconciliation break or error-rate SLO — SOX-material control gap; the W5 unidempotent double-funds are invisible without instrumentation.",
-          "<b>$20-Pro realism:</b> run on a sampled month; one instrumented path + one control."
-        ],
-        deliverable: "An observability + reconciliation design: a traced payment span, a daily reconciliation job + break-report spec, and one alert. Plus a diagram of the payment path with the reconciliation control marked. Defended Friday.",
-        rubric: "Strong designs reframe \"month-end noise\" as a missing reconciliation control, tie the settlement file to the ledger and watch the variance fail to reconcile, and find the buried W5 double-funds.",
-        latent: "No reconciliation between ledger and settlement (D7): the \"month-end noise\" is a SOX-material control gap. The unidempotent double-funds are invisible without instrumentation."
-      },
-      8: {
-        title: "Security / Governance / Responsible AI",
-        tie: "Responsible-AI design, model governance, fair-lending monitoring, data governance.",
-        prompt: "The board loves the AI scorer and wants it rolled out wider \"with a nice page about how advanced it is.\" Design the responsible-AI / fair-lending governance instead: a <b>reason-code → specific-consumer-reason mapping, a model card, and fair-lending disparity monitoring.</b>",
-        reqs: [
-          "<b>Reason mapping:</b> map reason codes → specific, accurate consumer reasons, tested against the model's real drivers (adverse-action reasons currently cluster on two generic strings).",
-          "<b>Model governance:</b> a model card / documentation — none exists today.",
-          "<b>Fair-lending monitoring (NFR):</b> denial-reason accuracy + a disparity check — the ZIP approval-rate pattern is the disparate-impact prompt; ECOA/Reg B + CFPB Circular 2023-03 (no AI exemption). Rolling wider multiplies exposure.",
-          "<b>$20-Pro realism:</b> test the mapping with fixtures, don't spam the live model; governance artifacts, not a model rebuild."
-        ],
-        deliverable: "A responsible-AI / fair-lending governance package: a tested reason-code mapping, a model card, and a fair-lending monitoring spec (denial-reason accuracy + disparity check) + a diagram. Defended Friday.",
-        rubric: "Strong designs read the generic-reason clustering + the ZIP approval-rate pattern as disparate-impact signals and design monitoring + documentation — not a marketing page. Responsible-AI is reason accuracy, not advertising.",
-        latent: "The AI scorer is an ECOA liability at scale (D10): generic reasons, no governance, no disparity monitoring, no model card. CFPB Circular 2023-03 = no AI exemption; rolling it wider multiplies fair-lending exposure."
-      },
-      cap: {
-        title: "Capstone Defense — Controls & Audit-Trail Architecture",
-        tie: "W9–W10 specialization + integration: defend an end-to-end architecture to a skeptical client/auditor (Sam + Priya). No weekly cadence — this is the capstone.",
-        prompt: "Defend an end-to-end architecture. The board wants a \"delete my data\" privacy button; the design has to show why a hard delete <b>creates</b> violations and propose <b>retention-aware redaction</b> instead — integrated with the W3 decision log, W6 ledger/maker-checker, and W7 reconciliation, plus the KYC/AML specialization (CIP→CDD/UBO→OFAC→monitoring/SAR).",
-        reqs: [
-          "<b>Retention design:</b> a policy table mapping fields → Reg B / SOX retention vs redact — applications, adverse-action reasons (Reg B), and financial records (SOX) are legally required to be retained, including the W3 decision audit trail.",
-          "<b>KYC/AML (specialization):</b> a CIP → CDD + beneficial-owner (UBO) + OFAC/sanctions + ongoing-monitoring/SAR pipeline; \"checks ID\" ≠ KYC.",
-          "<b>Integrated controls review:</b> tie together W3 (decision log), W6 (ledger + maker-checker), W7 (reconciliation) into one defensible control + audit stack.",
-          "<b>NFR + realism:</b> a hard \"delete my data\" would erase records the law requires keeping; prototype/integrate over seeded data — don't rebuild the arc."
-        ],
-        deliverable: "A capstone defense: an integrated architecture doc (retention-aware redaction + KYC/AML pipeline + integrated controls) + ADR catalog + a system diagram. Defended to a skeptical client/auditor, framed in fair-lending defensibility, money-correctness, and audit-readiness.",
-        rubric: "Strong defenses show that hard-delete would erase Reg B/SOX-required records — including the decision audit trail that proves fair-lending compliance — and design retention-aware redaction instead, integrating the whole arc. They ship a focused capstone slice.",
-        latent: "Retention conflict (D4): a hard \"delete my data\" would erase records Reg B/SOX require keeping, including the decision audit trail that proves fair-lending compliance. The right design is retention-aware redaction, not deletion — and checks-ID ≠ KYC."
-      }
-    }
-  }
-};
-
 (function () {
-  const projtabs = document.getElementById("projtabs");
-  const weeksEl  = document.getElementById("weeks");
-  const panel    = document.getElementById("panel");
-  const PROJ_KEYS = Object.keys(window.SD);
-  // ordered week keys: 1..8 then the capstone
+  const weeksEl = document.getElementById("weeks");
+  const assignPanel = document.getElementById("assignPanel");
   const WEEK_KEYS = ["1","2","3","4","5","6","7","8","cap"];
-
-  let state = { proj: PROJ_KEYS[0], week: "1" };
-  (function () { const q = new URLSearchParams(location.search); const w = q.get("w"); if (w && WEEK_KEYS.includes(String(w))) state.week = String(w); const p = q.get("p"); if (p && PROJ_KEYS.includes(p)) state.proj = p; })();
-
-  // ---- project tabs ----
-  PROJ_KEYS.forEach(key => {
-    const p = window.SD[key];
-    const btn = document.createElement("button");
-    btn.className = "sd-proj";
-    btn.dataset.proj = key;
-    btn.innerHTML =
-      `<div class="pj-k">Brownfield Project</div>` +
-      `<div class="pj-t">${p.label}</div>` +
-      `<div class="pj-s">${p.short}</div>` +
-      `<div class="pj-persona">${p.persona}</div>`;
-    btn.addEventListener("click", () => { state.proj = key; render(); });
-    projtabs.appendChild(btn);
-  });
+  let state = { week: "1" };
+  (function () { const q = new URLSearchParams(location.search); const w = q.get("w"); if (w && WEEK_KEYS.includes(String(w))) state.week = String(w); })();
 
   // ---- week selector ----
   WEEK_KEYS.forEach(wk => {
     const btn = document.createElement("button");
     btn.className = "sd-week";
     btn.dataset.week = wk;
-    const isCap = wk === "cap";
-    btn.innerHTML = isCap
-      ? `<span class="wn">Capstone</span>W9–10`
-      : `<span class="wn">Week</span>${wk}`;
+    btn.innerHTML = wk === "cap" ? `<span class="wn">Capstone</span>W9\u201310` : `<span class="wn">Week</span>${wk}`;
     btn.addEventListener("click", () => { state.week = wk; render(); });
     weeksEl.appendChild(btn);
   });
 
-  function list(items) {
-    return `<ul class="sd-list">${items.map(i => `<li>${i}</li>`).join("")}</ul>`;
-  }
-
-  // ---- weekly simulator-challenge assignment (fetched from the Worker) -------
-  const assignPanel = document.getElementById("assignPanel");
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
   function workerBase() { return String((window.CONFIG && window.CONFIG.WORKER_URL) || "").replace(/\/+$/, ""); }
   function myCode() {
     try { const idt = JSON.parse(localStorage.getItem("fde_identity") || "null"); return (idt && idt.code) ? idt.code : ""; }
     catch (e) { return ""; }
   }
+  function list(items) { return `<ul class="sd-list">${items.map(i => `<li>${i}</li>`).join("")}</ul>`; }
 
   // "What good looks like" is deliberately GENERIC (the per-scenario rubric is
   // server-only so learners can't memorize it). This is the playbook, not the key.
   const GOOD_LOOKS = [
-    "<b>Scope before you draw</b> — ask the client about scale, latency, data shape, security, and the success criteria. Jumping straight to boxes is the #1 thing we penalize.",
-    "<b>Drive a coherent high-level design</b> — major components + the core end-to-end workflow. High-level and minimal is correct for a ~20-min design.",
-    "<b>Deep-dive the 1–2 riskiest parts</b> — failure modes, scale, consistency. The deep dives carry the most weight (~40%). Don't gold-plate the easy parts.",
-    "<b>Defend the WHY, then adapt</b> — name a tradeoff and an alternative for each major choice; when a constraint changes in the follow-ups, rework live and narrate it."
+    "<b>Scope before you draw</b> \u2014 ask the client about scale, latency, data shape, security, and the success criteria. Jumping straight to boxes is the #1 thing we penalize.",
+    "<b>Drive a coherent high-level design</b> \u2014 major components + the core end-to-end workflow. High-level and minimal is correct for a ~20-min design.",
+    "<b>Deep-dive the 1\u20132 riskiest parts</b> \u2014 failure modes, scale, consistency. The deep dives carry the most weight (~40%). Don't gold-plate the easy parts.",
+    "<b>Defend the WHY, then adapt</b> \u2014 name a tradeoff and an alternative for each major choice; when a constraint changes in the follow-ups, rework live and narrate it."
   ];
 
   let assignLoadedWeek = null;
@@ -510,53 +209,49 @@ window.SD = {
     assignLoadedWeek = week;
     if (week === "cap") {
       assignPanel.innerHTML =
-        `<div class="sd-eyebrow">Capstone · W9–W10</div>` +
+        `<div class="sd-eyebrow">Capstone \u00b7 W9\u2013W10</div>` +
         `<h2>Capstone defense</h2>` +
-        `<p class="sd-tie">The capstone is defended at the gate — there's no single weekly simulator scenario. Use the brownfield capstone brief below, and keep repping the simulator from the AI Interview hub.</p>` +
-        `<div class="sd-start"><a class="sd-start-btn" href="gauntlet.html?sd=1">Open the simulator ▸</a></div>`;
+        `<p class="sd-tie">The capstone is defended at the gate \u2014 there's no single weekly simulator scenario. Keep repping the simulator from the AI Interview hub.</p>` +
+        `<div class="sd-start"><a class="sd-start-btn" href="gauntlet.html?sd=1">Open the simulator \u25b8</a></div>`;
       return;
     }
-    assignPanel.innerHTML = `<div class="sd-loading">Loading this week's challenge…</div>`;
+    assignPanel.innerHTML = `<div class="sd-loading">Loading this week's challenge\u2026</div>`;
     const base = workerBase();
     if (!base) { assignPanel.innerHTML = `<div class="sd-err">Backend not configured.</div>`; return; }
     const code = myCode();
     const url = base + "/design/assignment?w=" + encodeURIComponent(week) + (code ? "&code=" + encodeURIComponent(code) : "");
-    fetch(url)
-      .then(r => r.json())
-      .then(d => {
-        // Ignore a stale response if the learner clicked another week meanwhile.
-        if (assignLoadedWeek !== week) return;
-        if (d && d.ok) renderAssignment(d);
-        else assignPanel.innerHTML = `<div class="sd-err">Could not load this week's challenge. Try refreshing.</div>`;
-      })
-      .catch(() => {
-        if (assignLoadedWeek !== week) return;
-        assignPanel.innerHTML = `<div class="sd-err">Could not reach the server. Try refreshing.</div>`;
-      });
+    fetch(url).then(r => r.json()).then(d => {
+      if (assignLoadedWeek !== week) return;
+      if (d && d.ok) renderAssignment(d);
+      else assignPanel.innerHTML = `<div class="sd-err">Could not load this week's challenge. Try refreshing.</div>`;
+    }).catch(() => {
+      if (assignLoadedWeek !== week) return;
+      assignPanel.innerHTML = `<div class="sd-err">Could not reach the server. Try refreshing.</div>`;
+    });
   }
 
   function renderAssignment(d) {
     const sc = d.scenario || {};
     const bar = typeof d.masteryBar === "number" ? d.masteryBar : 75;
     const grounded = sc.liveSystem
-      ? `<p class="sd-grounded">Research ahead — this scenario is grounded in a real system: ` +
+      ? `<p class="sd-grounded">Research ahead \u2014 this scenario is grounded in a real system: ` +
         (sc.sourceUrl ? `<a href="${esc(sc.sourceUrl)}" target="_blank" rel="noopener">${esc(sc.liveSystem)}</a>` : esc(sc.liveSystem)) +
         `. Read how they solved it before you design.</p>`
       : "";
     let attempts = "";
     if (typeof d.attemptsToday === "number") {
       const left = Math.max(0, (d.perDayCap || 1) - d.attemptsToday);
-      attempts = `<span class="sd-attempts">${left > 0 ? left + " attempt left today" : "No attempts left today — back tomorrow"}</span>`;
+      attempts = `<span class="sd-attempts">${left > 0 ? left + " attempt left today" : "No attempts left today \u2014 back tomorrow"}</span>`;
     }
     assignPanel.innerHTML =
-      `<div class="sd-eyebrow">This week's simulator challenge · Week ${esc(d.week)}</div>` +
+      `<div class="sd-eyebrow">This week's simulator challenge \u00b7 Week ${esc(d.week)}</div>` +
       `<h2>${esc(sc.title || "This week's challenge")}</h2>` +
       `<div class="sd-cadence">` +
         `<span class="sd-badge rel">Released <span class="dt">Tuesday</span></span>` +
         `<span class="sd-badge due">Defended <span class="dt">Friday</span></span>` +
       `</div>` +
       `<div class="sd-sec">` +
-        `<div class="sd-h">The client brief (deliberately vague — scope it)</div>` +
+        `<div class="sd-h">The client brief (deliberately vague \u2014 scope it)</div>` +
         `<div class="sd-prompt">${esc(sc.clientBrief || "")}</div>` +
         grounded +
       `</div>` +
@@ -564,81 +259,17 @@ window.SD = {
         `<div class="sd-h">What good looks like</div>` +
         list(GOOD_LOOKS) +
       `</div>` +
-      `<div class="sd-mastery">🎯 <div><b>One attempt per day.</b> Daily attempts are practice; your best of the week's attempts that clears <b>${bar}</b> is the mastery signal — a rotating, novel brief, so you can't game it by re-running. ${esc(d.deadlineNote || "")}</div></div>` +
+      `<div class="sd-mastery">\ud83c\udfaf <div><b>One attempt per day.</b> Daily attempts are practice; your best of the week's attempts that clears <b>${bar}</b> is the mastery signal \u2014 a rotating, novel brief, so you can't game it by re-running. ${esc(d.deadlineNote || "")}</div></div>` +
       `<div class="sd-start">` +
-        `<a class="sd-start-btn" href="gauntlet.html?sd=${encodeURIComponent(sc.id || "1")}">Start the challenge ▸</a>` +
+        `<a class="sd-start-btn" href="gauntlet.html?sd=${encodeURIComponent(sc.id || "1")}">Start the challenge \u25b8</a>` +
         attempts +
       `</div>`;
   }
 
   function render() {
-    // sync tab + week active states
-    projtabs.querySelectorAll(".sd-proj").forEach(b =>
-      b.classList.toggle("on", b.dataset.proj === state.proj));
-    weeksEl.querySelectorAll(".sd-week").forEach(b =>
-      b.classList.toggle("on", b.dataset.week === state.week));
-
-    // Fetch + render the week's simulator challenge (skips re-fetch if unchanged).
+    weeksEl.querySelectorAll(".sd-week").forEach(b => b.classList.toggle("on", b.dataset.week === state.week));
     loadAssignment(state.week);
-
-    const proj = window.SD[state.proj];
-    const wk = proj.weeks[state.week];
-    if (!wk) { panel.innerHTML = `<p>No challenge for this week yet.</p>`; return; }
-
-    const isCap = state.week === "cap";
-    const weekLabel = isCap ? "Capstone (W9–W10)" : `Week ${state.week}`;
-
-    // cadence badges — weekly cadence Tue/Fri; capstone is defended at the gate
-    const cadence = isCap
-      ? `<div class="sd-cadence">` +
-          `<span class="sd-badge rel">Released <span class="dt">W9 Mon</span></span>` +
-          `<span class="sd-badge due">Defended <span class="dt">at the gate</span></span>` +
-        `</div>`
-      : `<div class="sd-cadence">` +
-          `<span class="sd-badge rel">Released <span class="dt">Tuesday</span></span>` +
-          `<span class="sd-badge due">Due / Defended <span class="dt">Friday</span></span>` +
-        `</div>`;
-
-    let html =
-      `<div class="sd-eyebrow">${proj.label} · ${proj.short} · ${weekLabel}</div>` +
-      `<h2>${wk.title}</h2>` +
-      cadence +
-      `<p class="sd-tie">Curriculum tie-in: ${wk.tie}</p>`;
-
-    // The challenge prompt (everyone)
-    html +=
-      `<div class="sd-sec">` +
-        `<div class="sd-h">The design challenge</div>` +
-        `<div class="sd-prompt">${wk.prompt}` +
-          `<span class="who">Tied to this week's client request — see <a href="client-delivery.html">Client Delivery → ${proj.label}, ${weekLabel}</a>.</span>` +
-        `</div>` +
-      `</div>`;
-
-    // Requirements / constraints (everyone)
-    html +=
-      `<div class="sd-sec">` +
-        `<div class="sd-h">Requirements &amp; constraints the design must address</div>` +
-        list(wk.reqs) +
-      `</div>`;
-
-    // Deliverable format (everyone)
-    html +=
-      `<div class="sd-sec">` +
-        `<div class="sd-h">Deliverable format</div>` +
-        `<div class="sd-deliv">${wk.deliverable}</div>` +
-      `</div>`;
-
-    // Rubric + latent problem (TRAINER ONLY)
-    html +=
-      `<div class="sd-sec trainer-only">` +
-        `<div class="sd-h" style="color:#c2410c">🔑 What good looks like (rubric)</div>` +
-        `<div class="sd-deliv" style="background:#fff7ed;border-color:#ffd8bf">${wk.rubric}</div>` +
-        `<div class="trainer-note"><div class="k">Latent problem the strong designs should surface</div><p style="margin:0">${wk.latent}</p></div>` +
-      `</div>`;
-
-    panel.innerHTML = html;
   }
-
   render();
 })();
 </script>

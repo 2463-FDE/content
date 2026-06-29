@@ -157,15 +157,26 @@
       // 3-try cap. Outputs persist, so a learner returning with usage spent still
       // sees their last result.
       const tabs = examples.map((x, i) => ({ label: labels[i] || ("Example " + (i + 1)), text: x, edit: false, variant: "e" + i }));
-      if (yourTurn) tabs.push({ label: yourTurnLabel, text: yourTurn, edit: true, variant: "edit" });
+      if (yourTurn) {
+        // The authoring "✎ Your turn …" instruction was being buried INSIDE the
+        // textarea (where the learner edits over it and can't read it). Split it
+        // out: the text before the ✎ marker is the editable starter prompt; the
+        // ✎ part becomes a highlighted instruction block above the box.
+        const mark = yourTurn.indexOf("✎");
+        const starter = mark >= 0 ? yourTurn.slice(0, mark).trim() : yourTurn;
+        const note = mark >= 0 ? yourTurn.slice(mark).replace(/^✎\s*/, "").trim() : "";
+        tabs.push({ label: yourTurnLabel, text: starter, note: note, edit: true, variant: "edit" });
+      }
       el.innerHTML =
         `<div class="ix-k">▶ Try it · live <span class="ix-sub">calls Claude · <b class="run-left">3</b> edit-tries</span></div>` +
         `<p class="run-guide">Run the example${examples.length > 1 ? "s" : ""} (saved — revisit any time), then ${yourTurn ? "open <b>Your turn</b>, edit the prompt," : "tweak the prompt"} and run it — watch the answer change.</p>` +
         `<div class="run-tabs">${tabs.map((t, i) => `<button type="button" class="run-tab${i === 0 ? " on" : ""}" data-i="${i}">${t.label}</button>`).join("")}</div>` +
+        `<div class="run-note" hidden></div>` +
         `<textarea class="ix-ta run-in" rows="3"></textarea>` +
         `<button type="button" class="btn run-go">Run ▸</button>` +
         `<div class="run-out"></div>`;
       const ta = el.querySelector(".run-in"), out = el.querySelector(".run-out"), go = el.querySelector(".run-go"), left = el.querySelector(".run-left");
+      const note = el.querySelector(".run-note");
       const tabEls = Array.from(el.querySelectorAll(".run-tab"));
       const cache = {};   // variant -> last output (server-backed, loaded below)
       let cur = 0;
@@ -180,6 +191,10 @@
         ta.value = t.text;
         ta.readOnly = !t.edit;                 // presets: executable, not editable
         el.classList.toggle("is-locked", !t.edit);
+        if (note) {                            // visible "what to do" block (your-turn tab)
+          if (t.note) { note.textContent = t.note; note.hidden = false; }
+          else { note.hidden = true; note.textContent = ""; }
+        }
         go.disabled = false;
         if (t.edit) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
         showOut(t.variant);
