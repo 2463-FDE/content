@@ -39,8 +39,12 @@
     var concepts = (meta("fde-concepts") || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean);
     var nextHref = (window.FDE_NEXT && window.FDE_NEXT.href) || "";
     var nextLabel = (window.FDE_NEXT && window.FDE_NEXT.label) || "Next ▸";
-    var dnum = (day.match(/d(\d+)/) || [])[1] || "";
-    var nextSameDay = !!dnum && new RegExp("d0*" + dnum + "[a-z]\\.html$").test(nextHref);
+    // Every part of a multi-part day now runs the SAME full check as a standalone
+    // day — its own quiz gate + a 90-120s graded spoken summary — and each part
+    // completes the day. Previously d2a-style non-final parts were a lightweight
+    // "part note" (8-char box, no quiz gate, markStarted only), so a learner who
+    // did the quiz + summary on a part saw the day never complete. Uniform now. (BUG 2)
+    var nextSameDay = false;
     var partId = (location.pathname.split("/").pop() || day).replace(/\.html$/, "");
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
@@ -53,8 +57,9 @@
       : "Out loud, 90-120 seconds: summarize today's content in your own words — the key ideas, how they connect, and where you'd use them at a client. This + the comprehension check completes the day and flags anything to revisit."));
 
     // Gate checklist — at-a-glance status so a learner can see a step is already
-    // satisfied and doesn't need re-running. Only the day-complete gate has two
-    // requirements; a part-wrap page just saves its part note.
+    // satisfied and doesn't need re-running. Every page (standalone day or a part
+    // of a multi-part day) has the same two requirements: comprehension check +
+    // spoken summary. (nextSameDay is always false now — see BUG 2 note above.)
     var checkRows = {};
     if (!nextSameDay) {
       var checklist = el("div", "ds-checklist");
@@ -72,7 +77,12 @@
       checkRows.quiz(quizDone());
       checkRows.rec(summaryDone(partId));
       window.addEventListener("fde-quiz-done", function (e) {
-        if (!e || !e.detail || e.detail.page === location.pathname) checkRows.quiz(true);
+        if (e && e.detail && e.detail.page !== location.pathname) return;
+        checkRows.quiz(true);
+        // BUG 3: if the learner did the summary BEFORE the quiz, finishing the
+        // quiz now should complete the day instead of stranding them — they
+        // already met the summary gate, so don't make them re-click "Complete".
+        if (box.value.trim().length >= minChars) runComplete();
       });
     }
 
@@ -127,9 +137,22 @@
     box.addEventListener("input", refresh);
 
     // ---- save / complete ----
-    saveBtn.addEventListener("click", function () {
+    // Reusable so it can fire from the Complete button OR from fde-quiz-done when
+    // the learner did the summary first (BUG 3). `daycompleting` guards against a
+    // double run (e.g. click + quiz-done racing) so we never grade twice.
+    var daycompleting = false;
+    function runComplete() {
+      if (daycompleting) return;
       var text = box.value.trim();
       if (text.length < minChars) return;
+      // Require the comprehension check too. If it's not done yet, don't strand
+      // the learner — leave the button live; fde-quiz-done will retrigger this.
+      if (!quizDone()) {
+        checkRows.rec && checkRows.rec(summaryDone(partId));
+        status.textContent = "One more step — finish the Comprehension check (right) and the day completes automatically.";
+        return;
+      }
+      daycompleting = true;
       if (listening) { listening = false; try { rec.stop(); } catch (e) {} recBtn.classList.remove("is-rec"); recBtn.textContent = "🎙 Record"; }
       var id = ident();
       var code = (id && id.code) || "anon";
@@ -139,20 +162,6 @@
       } catch (e) {}
       if (checkRows.rec) checkRows.rec(true);
 
-      // Non-final part: just save a part note, don't gate or complete.
-      if (nextSameDay) {
-        try { fetch(WORKER + "/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "part-note", trainee: code, id: day + ":" + partId, day: day, text: text }), keepalive: true }).catch(function () {}); } catch (e) {}
-        if (window.FDE_PROGRESS) window.FDE_PROGRESS.markStarted(day);
-        wrap.classList.add("is-done"); saveBtn.disabled = true; recBtn.disabled = true;
-        status.textContent = "✓ Saved — on to the next part.";
-        return;
-      }
-
-      // Day-complete path: require the comprehension check too.
-      if (!quizDone()) {
-        status.textContent = "One more step — finish the Comprehension check (right) first, then complete the day.";
-        return;
-      }
       saveBtn.disabled = true; recBtn.disabled = true; status.textContent = "Grading your summary…";
       fetch(WORKER + "/concept-check", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -182,7 +191,8 @@
         wrap.classList.add("is-done"); status.textContent = "✓ Day complete (grading unavailable).";
         if (nextHref) { revisit.innerHTML = ""; var a = el("a", "ds-next", nextLabel || "Next ▸"); a.setAttribute("href", nextHref); revisit.appendChild(a); revisit.style.display = ""; }
       });
-    });
+    }
+    saveBtn.addEventListener("click", runComplete);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

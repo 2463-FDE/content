@@ -46,13 +46,23 @@ window.FDE_PROGRESS = (function () {
   function markCompleted(day) { set(day, "completed"); }
 
   // ---- server sync ----
-  function push(day, st) {
+  function push(day, st, attempt) {
     var c = code(); if (!c || !WORKER) return;
+    attempt = attempt || 0;
     try {
       fetch(WORKER + "/uprog", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: c, day: day, status: st }), keepalive: true,
-      }).catch(function () {});
+      }).then(function (r) {
+        // Don't swallow a failed completion write. Retry once, then warn — the
+        // local cache still holds it and sync() will heal on next load, but a
+        // visible warning beats a learner who "completed" with nothing on the
+        // server. (BUG 4)
+        if (!r || !r.ok) throw new Error("uprog " + (r && r.status));
+      }).catch(function (e) {
+        if (attempt < 1) { setTimeout(function () { push(day, st, attempt + 1); }, 1500); }
+        else { try { console.warn("[FDE] progress push failed for", day, st, "— cached, will heal on next load:", e && e.message); } catch (x) {} }
+      });
     } catch (e) { /* offline — cache holds it; reconcile on next load */ }
   }
 

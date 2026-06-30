@@ -19,7 +19,12 @@
   function getResults() { try { return JSON.parse(localStorage.getItem(LSRES) || "{}"); } catch (e) { return {}; } }
   function doneBadge() { const s = document.createElement("span"); s.className = "done-check"; s.textContent = "✓ Completed"; return s; }
   function record(rec) {
-    try { const all = getResults(); all[rec.id] = rec; localStorage.setItem(LSRES, JSON.stringify(all)); } catch (e) {}
+    // Key by PAGE, not by Q.id. Quiz ids are reused across days ("task" is on
+    // d1, d2a, w02d1, w02d2; "ex" on d3a/d4a/d4b), so id-keying let a later
+    // same-id quiz overwrite an earlier day's record — flipping its `page` and
+    // breaking that day's completion gate (day-summary quizDone() matches by
+    // page). Page is unique per reading, so every day keeps its own record. (BUG 1)
+    try { const all = getResults(); all[rec.page] = rec; localStorage.setItem(LSRES, JSON.stringify(all)); } catch (e) {}
     const url = window.FDE_TRACK_URL;
     if (url && navigator.sendBeacon) { try { navigator.sendBeacon(url, new Blob([JSON.stringify(rec)], { type: "application/json" })); } catch (e) {} }
     else if (url) { try { fetch(url, { method: "POST", body: JSON.stringify(rec), headers: { "Content-Type": "application/json" }, keepalive: true }); } catch (e) {} }
@@ -70,7 +75,7 @@
     const idt = window.FDE_getIdentity ? window.FDE_getIdentity() : null;
     const trainee = idt ? idt.code : (localStorage.getItem(LSID) || "anon");
     const bypass = idt && (idt.role === "tester" || idt.role === "trainer");
-    const already = !!getResults()[Q.id];
+    const already = !!getResults()[location.pathname]; // page-keyed, matches record() + quizDone()
     host.innerHTML = "";
 
     const h = document.createElement("h2"); h.textContent = Q.title || "Check your understanding";
