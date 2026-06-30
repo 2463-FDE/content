@@ -438,17 +438,17 @@ window.CLIENT = {
       2: {
         title: "RAG & Knowledge Retrieval",
         tie: "Retrieval pipelines, chunking/embeddings, eval harnesses for retrieval quality + corpus hygiene.",
-        ask: "Our loan officers keep pinging compliance with the same underwriting-policy questions. Could you build a helper that answers from our lending-policy docs and our past decisions? I dumped the policy folder plus a big 'knowledge base' of past applications so it has plenty of context. One officer tried asking it 'why was app #4471 denied?' and it came back empty, which was weird. Keep the cost low — we're on basically a Pro plan.",
+        ask: "Our loan officers keep pinging compliance with the same underwriting-policy questions. Could you build a helper that answers from our lending-policy docs and our past decisions? I dumped the policy folder plus a big 'knowledge base' of past applications so it has plenty of context. One officer tried asking it 'why was app #6012 denied?' and it came back empty, which was weird. Keep the cost low — we're on basically a Pro plan.",
         handover: [
           "<code>policies/</code>: <code>underwriting_guidelines.md</code>, <code>fee_schedule.md</code> — clean policy docs.",
           "<code>kb_dump/applications.jsonl</code>: past applications including raw <code>ssn</code>, <code>pan</code>, <code>dob</code> fields — unredacted, in the same corpus you'd embed.",
-          "Query trace: \"why was application #4471 denied?\" → 0 retrieved documents.",
+          "Query trace: \"why was application #6012 denied?\" → 0 retrieved documents.",
           "<code>decisions</code> table: <code>decisions(app_id, outcome)</code> — outcome only; no reason, no model drivers, no timestamp.",
           "An officer's note: \"We approve/deny in the tool, but I can never find *why* later.\""
         ],
         dig: [
           "What sensitive fields are inside the 'knowledge base' you're about to embed into a vector store?",
-          "Why does \"why was #4471 denied?\" return nothing — is the answer not retrievable, or was it never recorded?",
+          "Why does \"why was #6012 denied?\" return nothing — is the answer not retrievable, or was it never recorded?",
           "If a regulator asked for the reason behind one specific denial, could you produce it from this data?",
           "What belongs in a retrieval corpus, and what must be redacted or kept out entirely?"
         ],
