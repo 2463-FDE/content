@@ -54,25 +54,25 @@ window.WEEKS = [
   { w:1, phase:"found", title:"LLM Engineering for Production", days:[
     { t:"LLM fundamentals", s:"context windows · tokens · sampling · hallucination · AI coding", href:"weeks/w01/d1.html" },
     { t:"Model selection & API patterns", s:"Claude/GPT/Gemini · streaming · retries", parts:[{t:"1 · Model selection",href:"weeks/w01/d2a.html"},{t:"2 · API patterns",href:"weeks/w01/d2b.html"}] },
-    { t:"Prompt engineering & FDE Situation", s:"prompting · requirements synthesis", fde:true, parts:[{t:"1 · Prompt engineering",href:"weeks/w01/d3a.html"},{t:"2 · Requirements synthesis",href:"weeks/w01/d3b.html"}] },
+    { t:"Prompt engineering & FDE Situation", s:"prompting · requirements synthesis", parts:[{t:"1 · Prompt engineering",href:"weeks/w01/d3a.html"},{t:"2 · Requirements synthesis",href:"weeks/w01/d3b.html"}] },
     { t:"Token optimization & guardrails", s:"caching · compression · validation", parts:[{t:"1 · Token optimization",href:"weeks/w01/d4a.html"},{t:"2 · Output guardrails",href:"weeks/w01/d4b.html"}] },
     { t:"Code review + LLM API Client", s:"prompt library · project milestone", star:true, href:"weeks/w01/d5.html" } ]},
   { w:2, phase:"found", title:"RAG & Knowledge Retrieval", days:[
     { t:"RAG fundamentals + chunking", s:"retrieval vs fine-tuning · ingestion", href:"weeks/w02/w02d1.html" },
     { t:"Embeddings + vector stores", s:"dimensionality · pgvector/Chroma/Pinecone", href:"weeks/w02/w02d2.html" },
-    { t:"Retrieval strategies", s:"dense · sparse · hybrid · re-ranking", fde:true, href:"weeks/w02/w02d3.html" },
+    { t:"Retrieval strategies", s:"dense · sparse · hybrid · re-ranking", href:"weeks/w02/w02d3.html" },
     { t:"RAG evaluation", s:"faithfulness · recall · failure modes", href:"weeks/w02/w02d4.html" },
     { t:"RAG eval harness + E2E RAG", s:"project milestone", star:true, href:"weeks/w02/w02d5.html" } ]},
   { w:3, phase:"agent", title:"Single-Agent Design & Memory", days:[
     { t:"Agent architecture", s:"ReAct · Plan-and-Execute · Reflexion" },
     { t:"Tool/function calling + HITL", s:"JSON schema · idempotency · approval gates" },
-    { t:"Memory patterns", s:"episodic · semantic · procedural · state", fde:true },
+    { t:"Memory patterns", s:"episodic · semantic · procedural · state" },
     { t:"Eval-driven dev + tracing", s:"success metrics · LangSmith · replay" },
     { t:"Live agent demo", s:"completed agent · project milestone", star:true } ]},
   { w:4, phase:"agent", title:"Multi-Agent & Knowledge Graphs", days:[
     { t:"Multi-agent patterns + LangGraph", s:"supervisor · hierarchical · state machines" },
     { t:"Agent communication", s:"handoffs · shared state · anti-patterns" },
-    { t:"Cost/latency + Knowledge Graphs", s:"KG as institutional memory · 6R", fde:true },
+    { t:"Cost/latency + Knowledge Graphs", s:"KG as institutional memory · 6R" },
     { t:"Pipeline requirements", s:"boundaries · approval gates · observability" },
     { t:"Architecture defense", s:"multi-agent code walkthrough · assessment", star:true } ]},
   { w:5, phase:"sdlc", title:"Spec-Driven Dev & Problem Scoping", days:[
@@ -84,25 +84,25 @@ window.WEEKS = [
   { w:6, phase:"sdlc", title:"AI-Augmented SDLC", days:[
     { t:"AI-augmented dev workflow", s:"AI across full SDLC · spec → implementation" },
     { t:"Legacy comprehension", s:"parse codebases · extract logic · LEGMOD/brownfield" },
-    { t:"Cross-team orchestration + AI review", s:"quality gates · design thinking", fde:true },
+    { t:"Cross-team orchestration + AI review", s:"quality gates · design thinking" },
     { t:"Continuous validation", s:"validation intervals" },
     { t:"Quality control audit", s:"acceptance-criteria validation · milestone", star:true } ]},
   { w:7, phase:"obs", title:"Observability, SRE & Guardrails", days:[
     { t:"Probabilistic vs deterministic", s:"monitoring LLMs · latency/cost/hallucination rate" },
     { t:"Model drift + structured logging", s:"distribution/embedding shift" },
-    { t:"Distributed tracing + CI/CD for AI", s:"eval runs · staged rollouts · gates", fde:true },
+    { t:"Distributed tracing + CI/CD for AI", s:"eval runs · staged rollouts · gates" },
     { t:"Reliability guardrails", s:"input validation · circuit breakers · graceful degr." },
     { t:"Observability stack review", s:"instrumentation · assessment", star:true } ]},
   { w:8, phase:"sec", title:"Security, Governance & Responsible AI", days:[
     { t:"AI threats", s:"prompt injection · jailbreak · data leakage · tool misuse" },
     { t:"Secure LLM design + data privacy", s:"RBAC · least-privilege · PII masking" },
-    { t:"Compliance + AI governance", s:"SOX/HIPAA/GDPR/EU-AI-Act · audit · oversight", fde:true },
+    { t:"Compliance + AI governance", s:"SOX/HIPAA/GDPR/EU-AI-Act · audit · oversight" },
     { t:"AI security in CI/CD", s:"scanning · secrets · LLM Guard/Presidio" },
     { t:"Security audit + technical exam", s:"milestone + assessment", star:true } ]},
   { w:9, phase:"cap", title:"Client Specialization Track", days:[
     { t:"Capstone track kickoff", s:"advanced track-specific foundation" },
     { t:"Project implementation", s:"build" },
-    { t:"Project implementation", s:"track-relevant model", fde:true },
+    { t:"Project implementation", s:"track-relevant model" },
     { t:"Project impl + cert selection", s:"build · choose certification" },
     { t:"Project review + cert prep", s:"review" } ]},
   { w:10, phase:"cap", title:"Project Work & Client Showcase", days:[
@@ -132,7 +132,7 @@ window.WEEKS = [
     cal.appendChild(wc);
     week.days.forEach((day, di) => {
       const title = day.href ? `<a class="ct-link" href="${day.href}">${day.t}</a>` : day.t;
-      const marks = `${day.fde ? '<span class="mk fde">◆ FDE</span>' : ''}${day.star ? '<span class="mk star">★</span>' : ''}`;
+      const marks = `${day.star ? '<span class="mk star">★</span>' : ''}`; // ◆ FDE is now a recurring Thursday ritual (below), not a per-day mark
       // recurring weekly rituals
       let rituals = "";
       // Daily AI Interview — every day from program Day 2 onward. Day 1 (w1d1) has
@@ -143,6 +143,8 @@ window.WEEKS = [
         rituals += `<a class="ritual iv" href="gauntlet.html?day=${dd}" title="Daily AI Interview — do it before end of day">🎤 AI Interview</a>`;
       }
       if (di === 0) rituals += `<a class="ritual cr" href="client-delivery.html?w=${week.w}">📋 Client request</a>`;
+      // Weekly FDE Session — Thursday, from week 2 onward (week 1 is onboarding).
+      if (week.w >= 2 && di === 3) rituals += `<span class="ritual fde" title="Weekly FDE Situation session — Thursday">◆ FDE Situation</span>`;
       // Sys-design rituals link to the weekly-challenge prep page, scoped to the
       // week (system-design.html?w=N). That page shows the curriculum-aware
       // assigned scenario + a Start button into the simulator. Tue = start
@@ -150,6 +152,8 @@ window.WEEKS = [
       if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}" title="This week's System Design challenge — start pre-planning before Friday">🎯 Sys-design · start</a>`;
       if (week.w <= 8 && di === 2) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}">🔬 Alt research</a>`;
       if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}" title="System Design due — open this week's challenge">🎯 Sys-design · due</a>`;
+      // Alt Research presentation is due Friday — reminder badge (researched Wed).
+      if (week.w <= 8 && di === 4) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}" title="Alt Research presentation due — present this week's findings">🔬 Alt research · due</a>`;
       const partsHtml = day.parts
         ? `<div class="cell-parts">` + day.parts.map(p => `<a href="${p.href}">${p.t}</a>`).join("") + `</div>`
         : "";

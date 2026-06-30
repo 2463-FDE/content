@@ -1,8 +1,10 @@
 /* quiz.js — end-of-reading comprehension check.
-   Non-punitive: answer every question, then SUBMIT ONCE at the bottom for
-   feedback. No per-question "check" clicks. Still a COMPLETION gate: submitting
-   unlocks the next-reading nav (enforces order so we can track who did what).
-   Tester/trainer roles bypass the gate (free navigation for review).
+   Non-punitive: each question grades + reveals the answer IMMEDIATELY on answer,
+   and the check AUTO-COMPLETES the moment the last question is answered — no
+   Submit button. (mcq "select all" is the one exception: it needs a small per-
+   question "Check answer" button, since multi-select can't grade on one click.)
+   Completing unlocks the next-reading nav (enforces order so we can track who did
+   what) and fires `fde-quiz-done`. Tester/trainer roles bypass the gate.
 
    Question types:
      scq   {type:"scq",  stem, options[], answer:<idx>, explain}
@@ -85,57 +87,62 @@
     sub.innerHTML = bypass
       ? "Practice check. (You're in tester/trainer view — navigation is unlocked.)"
       : already
-        ? "You've already completed this check — it counts toward your day. Answer and resubmit any time to retry."
-        : "Answer all the questions, then hit Submit once at the bottom. Instant feedback, retry freely — it's practice, not a grade.";
+        ? "You've already completed this check — it counts toward your day. Answer again any time to retry."
+        : "Answer each question to see the correct answer and why, right away. The check completes itself once you've answered them all — no submit button.";
     host.appendChild(sub);
 
     const state = Q.questions.map(() => ({ done: false, correct: null }));
-    const commits = [];
+    let finalized = false;
 
-    // bottom submit bar (declared first so buildQ callbacks can refresh it)
+    // Progress hint only — no Submit button. Each question grades on answer, and
+    // the check auto-completes (records + unlocks the next-reading nav + fires
+    // fde-quiz-done) the moment the last question is answered.
     const bar = document.createElement("div"); bar.className = "quiz-submitbar";
-    const submit = document.createElement("button"); submit.className = "btn"; submit.type = "button"; submit.textContent = "Submit answers"; submit.disabled = true;
     const hint = document.createElement("span"); hint.className = "qs-hint";
-    function refreshBar() {
-      const n = state.filter(s => s.done).length, total = Q.questions.length;
-      submit.disabled = n < total;
-      hint.textContent = n < total ? `${n}/${total} answered` : "All answered — submit when ready.";
-    }
+    bar.appendChild(hint);
+    const summary = document.createElement("div"); summary.className = "quiz-summary";
 
-    Q.questions.forEach((q, qi) => host.appendChild(buildQ(q, qi, state, commits, refreshBar)));
-
-    bar.appendChild(submit); bar.appendChild(hint);
-    host.appendChild(bar);
-    const summary = document.createElement("div"); summary.className = "quiz-summary"; host.appendChild(summary);
-    refreshBar();
-
-    submit.addEventListener("click", () => {
-      let got = 0;
-      commits.forEach(c => { if (c()) got++; });
-      submit.style.display = "none"; hint.style.display = "none";
-      summary.innerHTML = `<b>Check complete.</b> ${got}/${Q.questions.length} on this pass — practice, so retry any time. ` +
+    function finalize() {
+      finalized = true;
+      const total = Q.questions.length;
+      const got = state.filter(s => s.correct === true).length;
+      bar.style.display = "none";
+      summary.innerHTML = `<b>Check complete.</b> ${got}/${total} on this pass — practice, so retry any time. ` +
         `<button class="btn-link retry">Try again ↻</button>`;
       summary.classList.add("show");
       summary.querySelector(".retry").addEventListener("click", () => render(host, Q));
-      record({ id: Q.id, trainee, type: "quiz", got, total: Q.questions.length, items: state.map(s => s.correct), ts: new Date().toISOString(), page: location.pathname });
+      record({ id: Q.id, trainee, type: "quiz", got, total, items: state.map(s => s.correct), ts: new Date().toISOString(), page: location.pathname });
       setNextGate(true);
       if (!h.querySelector(".done-check")) h.appendChild(doneBadge());
       markLauncherDone();
       try { window.dispatchEvent(new CustomEvent("fde-quiz-done", { detail: { page: location.pathname } })); } catch (e) {}
-    });
+    }
+    // Called by each question once it's been answered+graded.
+    function onAnswered() {
+      const n = state.filter(s => s.done).length, total = Q.questions.length;
+      hint.textContent = n < total ? `${n}/${total} answered` : "";
+      if (n === total && !finalized) finalize();
+    }
+
+    Q.questions.forEach((q, qi) => host.appendChild(buildQ(q, qi, state, onAnswered)));
+    host.appendChild(bar);
+    host.appendChild(summary);
+    onAnswered();
 
     // gate state on load
     setNextGate(bypass || already);
   }
 
-  // Build one question in ANSWER mode (no grading yet). Registers commits[qi],
-  // a function that grades the question, reveals feedback, and returns correctness.
-  function buildQ(q, qi, state, commits, refresh) {
+  // Build one question that grades IMMEDIATELY on answer — reveals the correct
+  // answer + explanation and locks the choices — then calls done() so render()
+  // can auto-complete the check once every question has been answered.
+  function buildQ(q, qi, state, done) {
     const qd = document.createElement("div"); qd.className = "q q-" + (q.type || "scq");
     const stem = document.createElement("div"); stem.className = "stem";
     const kind = { scq: "Choose one", mcq: "Select all that apply", tf: "True or false", match: "Match each pair", open: "Write & self-check" }[q.type] || "";
     stem.innerHTML = `<span class="q-kind">${kind}</span>${qi + 1}. ${q.stem}`;
     qd.appendChild(stem);
+    let graded = false; // one-shot per question; retry is whole-quiz via "Try again"
 
     if (q.type === "open") {
       const ta = document.createElement("textarea"); ta.className = "q-open"; ta.rows = 2; ta.placeholder = q.hint || "Write your answer, then reveal the model answer.";
@@ -144,13 +151,14 @@
       const rate = document.createElement("div"); rate.className = "selfrate"; rate.innerHTML = "<span>How did yours compare?</span>";
       [["got", "Nailed it"], ["partly", "Partly"], ["missed", "Missed it"]].forEach(([k, l]) => {
         const b = document.createElement("button"); b.type = "button"; b.className = "sr"; b.textContent = l;
-        b.addEventListener("click", () => { rate.querySelectorAll(".sr").forEach(x => x.classList.remove("on")); b.classList.add("on"); state[qi] = { done: true, correct: k === "got" }; refresh(); });
+        b.addEventListener("click", () => {
+          rate.querySelectorAll(".sr").forEach(x => x.classList.remove("on")); b.classList.add("on");
+          state[qi] = { done: true, correct: k === "got" }; graded = true; done();
+        });
         rate.appendChild(b);
       });
-      const reveal = () => { model.classList.add("show"); rate.classList.add("show"); rev.style.display = "none"; };
-      rev.addEventListener("click", reveal);
+      rev.addEventListener("click", () => { model.classList.add("show"); rate.classList.add("show"); rev.style.display = "none"; ta.disabled = true; });
       qd.append(ta, rev, model, rate);
-      commits[qi] = () => { reveal(); ta.disabled = true; rate.querySelectorAll(".sr").forEach(b => b.disabled = true); return state[qi].correct === true; };
       return qd;
     }
 
@@ -164,40 +172,38 @@
         wrap.appendChild(row);
       });
       const ex = explainEl(q);
+      // Grade automatically the moment every pair has a selection.
       wrap.querySelectorAll("select").forEach(s => s.addEventListener("change", () => {
-        const all = Array.from(wrap.querySelectorAll("select")).every(x => x.value);
-        state[qi] = { done: all, correct: null }; refresh();
+        if (graded) return;
+        const sels = Array.from(wrap.querySelectorAll("select"));
+        if (!sels.every(x => x.value)) return;
+        graded = true; let ok = true;
+        sels.forEach(s2 => { const i = +s2.dataset.i; s2.disabled = true; const right = s2.value === q.pairs[i].r; s2.classList.add(right ? "correct" : "wrong"); if (!right) ok = false; });
+        ex.classList.add("show"); state[qi] = { done: true, correct: ok }; done();
       }));
       qd.append(wrap, ex);
-      commits[qi] = () => {
-        let ok = true;
-        wrap.querySelectorAll("select").forEach(s => {
-          const i = +s.dataset.i; s.disabled = true;
-          const right = s.value === q.pairs[i].r;
-          s.classList.add(right ? "correct" : "wrong"); if (!right) ok = false;
-        });
-        ex.classList.add("show"); state[qi].correct = ok; return ok;
-      };
       return qd;
     }
 
     if (q.type === "mcq") {
+      // Multi-select can't grade on a single click, so it gets one small "Check
+      // answer" button — the only per-question click in the whole quiz.
       const order = shuffle(q.options.map((o, i) => ({ o, i })));
       const opts = [];
+      const ans = new Set(q.answer);
+      const ex = explainEl(q);
+      const check = document.createElement("button"); check.className = "btn-soft q-check"; check.type = "button"; check.textContent = "Check answer"; check.disabled = true;
       order.forEach(({ o, i }) => {
         const b = document.createElement("button"); b.className = "opt opt-multi"; b.type = "button"; b.textContent = o; b.dataset.i = i;
         b.addEventListener("click", () => {
-          if (b.hasAttribute("disabled")) return;
+          if (graded) return;
           b.classList.toggle("chosen");
-          const any = opts.some(x => x.classList.contains("chosen"));
-          state[qi] = { done: any, correct: null }; refresh();
+          check.disabled = !opts.some(x => x.classList.contains("chosen"));
         });
         opts.push(b); qd.appendChild(b);
       });
-      const ex = explainEl(q);
-      const ans = new Set(q.answer);
-      qd.appendChild(ex);
-      commits[qi] = () => {
+      check.addEventListener("click", () => {
+        if (graded) return; graded = true;
         let ok = true;
         opts.forEach(b => {
           b.setAttribute("disabled", "true");
@@ -207,40 +213,37 @@
           if (chosen && !correct) { b.classList.add("wrong"); ok = false; }
           if (!chosen && correct) ok = false;
         });
-        ex.classList.add("show"); state[qi].correct = ok; return ok;
-      };
+        check.style.display = "none"; ex.classList.add("show");
+        state[qi] = { done: true, correct: ok }; done();
+      });
+      qd.appendChild(check); qd.appendChild(ex);
       return qd;
     }
 
-    // scq + tf — single-select, no commit-on-click; selection is changeable until submit
+    // scq + tf — single decisive answer: grade the instant they pick.
     let options, answerIdx;
     if (q.type === "tf") { options = ["True", "False"]; answerIdx = q.answer ? 0 : 1; }
     else { options = q.options; answerIdx = q.answer; }
     const order = shuffle(options.map((o, i) => ({ o, i })));
     const ex = explainEl(q);
     const btns = [];
-    let selIdx = null;
     order.forEach(({ o, i }) => {
       const b = document.createElement("button"); b.className = "opt" + (q.type === "tf" ? " opt-tf" : ""); b.type = "button"; b.textContent = o; b.dataset.i = i;
       b.addEventListener("click", () => {
-        if (b.hasAttribute("disabled")) return;
-        btns.forEach(x => x.classList.remove("chosen"));
-        b.classList.add("chosen"); selIdx = i;
-        state[qi] = { done: true, correct: null }; refresh();
+        if (graded) return; graded = true;
+        const selIdx = i;
+        btns.forEach(x => {
+          x.setAttribute("disabled", "true"); x.classList.remove("chosen");
+          if (+x.dataset.i === answerIdx) x.classList.add("correct");
+          if (+x.dataset.i === selIdx && selIdx !== answerIdx) x.classList.add("wrong");
+        });
+        ex.classList.add("show");
+        state[qi] = { done: true, correct: selIdx === answerIdx };
+        done();
       });
       btns.push(b); qd.appendChild(b);
     });
     qd.appendChild(ex);
-    commits[qi] = () => {
-      btns.forEach(x => {
-        x.setAttribute("disabled", "true");
-        x.classList.remove("chosen");
-        if (+x.dataset.i === answerIdx) x.classList.add("correct");
-        if (+x.dataset.i === selIdx && selIdx !== answerIdx) x.classList.add("wrong");
-      });
-      ex.classList.add("show");
-      const correct = selIdx === answerIdx; state[qi].correct = correct; return correct;
-    };
     return qd;
   }
 
