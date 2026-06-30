@@ -141,7 +141,7 @@ body {
 .reading-sources a:hover { text-decoration: underline; }
 
 /* End-of-reading STT day summary — the completion trigger. */
-.day-summary { margin: 36px 0 0; padding: 20px; border: 1px solid #ffd8bf; border-radius: 14px; background: var(--accent-soft); }
+.day-summary { margin: 36px 0 0; padding: 20px; border: 1px solid var(--accent-line); border-radius: 14px; background: var(--accent-soft); }
 .day-summary .ds-k { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; font-weight: 700; color: var(--accent); }
 .day-summary h2 { font-size: 20px; margin: 4px 0 6px; }
 .day-summary .ds-sub { font-size: 14px; color: var(--ink-soft); margin: 0 0 12px; line-height: 1.5; }
@@ -151,10 +151,10 @@ body {
 .day-summary .ds-btn:hover:not(:disabled) { transform: translateY(-1px); }
 .day-summary .ds-btn:disabled { opacity: .5; cursor: default; }
 .day-summary .ds-rec { color: var(--accent); border-color: var(--accent); }
-.day-summary .ds-rec.is-rec { color: var(--surface); background: var(--bad); border-color: var(--bad); }
-.day-summary .ds-save { color: var(--surface); background: var(--accent); border-color: var(--accent); box-shadow: 0 2px 8px -2px rgba(232,89,12,.5); }
+.day-summary .ds-rec.is-rec { color: #fff; background: var(--bad); border-color: var(--bad); }
+.day-summary .ds-save { color: #fff; background: var(--accent); border-color: var(--accent); box-shadow: 0 2px 8px -2px rgba(232,89,12,.5); }
 .day-summary .ds-status { font-size: 13px; color: var(--ink-soft); font-weight: 600; }
-.day-summary.is-done { border-color: #c3f0cd; background: #eefbf1; }
+.day-summary.is-done { border-color: var(--good-line); background: var(--good-soft); }
 .day-summary.is-done .ds-status { color: var(--good); }
 
 /* Deferred interactive — placeholder where a live "try it" will go once the
@@ -257,7 +257,7 @@ details.deep[open] summary { border-bottom: 1px solid var(--line); margin-bottom
 .quiz .explain { font-size: 14px; color: var(--ink-soft); margin: 6px 2px 0; display: none; }
 .quiz .explain.show { display: block; }
 .quiz .actions { margin-top: 22px; display: flex; align-items: center; gap: 14px; }
-.btn { cursor: pointer; border: none; background: var(--accent); color: var(--surface); font: inherit; font-weight: 600; padding: 11px 20px; border-radius: 9px; }
+.btn { cursor: pointer; border: none; background: var(--accent); color: #fff; font: inherit; font-weight: 600; padding: 11px 20px; border-radius: 9px; }
 .btn:disabled { background: var(--dim); cursor: default; }
 .scorebox { font-weight: 600; }
 .scorebox.pass { color: var(--good); }
@@ -298,7 +298,7 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .sv-scale label { flex:1; }
 .sv-scale input { position:absolute; opacity:0; }
 .sv-scale span { display:block; text-align:center; border:1.5px solid var(--line); border-radius:7px; padding:6px 0; cursor:pointer; font-size:14px; }
-.sv-scale input:checked + span { background:var(--accent); color:var(--surface); border-color:var(--accent); }
+.sv-scale input:checked + span { background:var(--accent); color: #fff; border-color:var(--accent); }
 .sv-cap { display:flex; justify-content:space-between; font-size:11px; color:var(--dim); margin-top:2px; }
 .sv-week { margin-top: 22px; display:grid; gap:16px; }
 .sv-q label { display:block; font-weight:600; margin-bottom:6px; font-size:15px; }
@@ -340,7 +340,7 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .selfrate { display:none; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; font-size:14px; color:var(--ink-soft); }
 .selfrate.show { display:flex; }
 .selfrate .sr { cursor:pointer; border:1.5px solid var(--line); background:var(--surface); font:inherit; font-size:13px; padding:6px 12px; border-radius:20px; }
-.selfrate .sr.on { background:var(--accent); color:var(--surface); border-color:var(--accent); }
+.selfrate .sr.on { background:var(--accent); color: #fff; border-color:var(--accent); }
 .quiz-summary { display:none; margin-top:24px; padding-top:18px; border-top:1px solid var(--line); font-size:15px; }
 .quiz-summary.show { display:block; }
 .btn-link { background:none; border:none; color:var(--accent); font:inherit; font-weight:600; cursor:pointer; padding:0 0 0 4px; }
@@ -399,7 +399,7 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .closing .deliverable { margin-top:16px; padding-top:14px; border-top:1px dashed #ffd8bf; }
 
 /* floating quiz launcher */
-.quiz-fab { position:fixed; right:26px; bottom:26px; z-index:60; background:var(--accent); color:var(--surface); border:none; border-radius:30px; padding:15px 24px; font:inherit; font-weight:700; box-shadow:0 10px 28px rgba(232,89,12,.38); cursor:pointer; transition:transform .12s; }
+.quiz-fab { position:fixed; right:26px; bottom:26px; z-index:60; background:var(--accent); color: #fff; border:none; border-radius:30px; padding:15px 24px; font:inherit; font-weight:700; box-shadow:0 10px 28px rgba(232,89,12,.38); cursor:pointer; transition:transform .12s; }
 .quiz-fab:hover { transform:translateY(-2px); }
 
 /* modal */
@@ -429,7 +429,7 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 #quiz .opt-multi { position:relative; padding-left:40px; }
 #quiz .opt-multi:before { content:""; position:absolute; left:14px; top:50%; transform:translateY(-50%); width:16px; height:16px; border:1.5px solid var(--dim); border-radius:4px; }
 #quiz .opt-multi.chosen:before { background:var(--accent); border-color:var(--accent); }
-#quiz .opt-multi.chosen:after { content:"✓"; position:absolute; left:17px; top:50%; transform:translateY(-50%); color:var(--surface); font-size:12px; }
+#quiz .opt-multi.chosen:after { content:"✓"; position:absolute; left:17px; top:50%; transform:translateY(-50%); color: #fff; font-size:12px; }
 /* true/false */
 #quiz .q-tf .opt-tf { display:inline-block; width:calc(50% - 5px); text-align:center; margin-right:8px; }
 #quiz .q-tf .opt-tf:nth-of-type(2) { margin-right:0; }
@@ -437,12 +437,12 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 #quiz .q-match .match-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:center; margin:8px 0; }
 #quiz .match-l { font-weight:600; }
 #quiz .q-match select { font:inherit; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; }
-#quiz .q-match select.correct { border-color:var(--good); background:#ebfbee; }
-#quiz .q-match select.wrong { border-color:var(--bad); background:#fff5f5; }
+#quiz .q-match select.correct { border-color:var(--good); background:var(--good-soft); }
+#quiz .q-match select.wrong { border-color:var(--bad); background:var(--bad-soft); }
 #quiz .q .btn { margin-top:10px; }
 /* gated next nav */
 .snav-btn.snav-next.locked { color:var(--dim); border-color:var(--line); cursor:not-allowed; background:var(--surface-2); }
-.snav-btn.snav-next:not(.locked) { background:var(--accent); color:var(--surface); border-color:var(--accent); }
+.snav-btn.snav-next:not(.locked) { background:var(--accent); color: #fff; border-color:var(--accent); }
 
 /* lesson responsive */
 @media (max-width:920px) {
@@ -498,7 +498,7 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .side-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .activity-card { text-align:left; cursor:pointer; border:1.5px solid var(--line); border-radius:12px; background:var(--surface); padding:13px 14px; font:inherit; color:var(--ink); transition:border-color .12s, transform .12s, box-shadow .12s; }
 .activity-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 20px rgba(40,30,10,.08); }
-.activity-card.accent { background:var(--accent-soft); border-color:#ffd8bf; }
+.activity-card.accent { background:var(--accent-soft); border-color:var(--accent-line); }
 .activity-card .ac-k { font-size:12px; font-weight:700; color:var(--accent); margin-bottom:5px; }
 .activity-card .ac-t { font-size:14.5px; font-weight:600; line-height:1.3; }
 .activity-card .ac-meta { font-size:12px; color:var(--ink-soft); margin-top:6px; }
@@ -506,7 +506,7 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .side-nav { display:flex; gap:8px; }
 .snav-btn { flex:1; text-align:center; text-decoration:none; border:1.5px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink); font:inherit; font-size:13.5px; font-weight:600; padding:10px 6px; cursor:pointer; }
 a.snav-btn:hover { border-color:var(--accent); color:var(--accent); }
-.snav-btn.goals { background:var(--accent); color:var(--surface); border-color:var(--accent); }
+.snav-btn.goals { background:var(--accent); color: #fff; border-color:var(--accent); }
 .snav-btn.goals:hover { filter:brightness(.96); }
 .snav-btn.dim { color:var(--dim); cursor:default; }
 
@@ -537,7 +537,7 @@ a.snav-btn:hover { border-color:var(--accent); color:var(--accent); }
 body.is-trainer .trainer-only { display:block; }
 .trainer-note { border:1.5px dashed var(--accent-ink); background:var(--warn-soft); border-radius:12px; padding:14px 16px; margin:16px 0; }
 .trainer-note .k { font-size:11px; text-transform:uppercase; letter-spacing:.12em; font-weight:700; color:var(--accent-ink); margin-bottom:4px; }
-.id-badge .role { font-size:11px; text-transform:uppercase; letter-spacing:.08em; background:var(--accent); color:var(--surface); padding:1px 7px; border-radius:10px; margin-left:2px; }
+.id-badge .role { font-size:11px; text-transform:uppercase; letter-spacing:.08em; background:var(--accent); color: #fff; padding:1px 7px; border-radius:10px; margin-left:2px; }
 
 /* ---------- calendar homepage ---------- */
 .topnav { color:var(--ink-soft); text-decoration:none; font-weight:600; font-size:14px; margin-left:16px; }
@@ -579,7 +579,7 @@ body.is-trainer .trainer-only { display:block; }
 .day-prog { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; text-decoration:none; padding:5px 12px; border-radius:8px; border:1px solid var(--line); transition:filter .1s, transform .1s; }
 .day-prog:hover { transform:translateY(-1px); }
 .day-prog--start { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
-.day-prog--resume { color:var(--surface); border-color:var(--accent); background:var(--accent); box-shadow:0 2px 8px -2px rgba(232,89,12,.5); }
+.day-prog--resume { color: #fff; border-color:var(--accent); background:var(--accent); box-shadow:0 2px 8px -2px rgba(232,89,12,.5); }
 .day-prog--done { color:var(--good); border-color:#c3f0cd; background:#eefbf1; }
 
 .ritual-row { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:0; }
@@ -589,7 +589,7 @@ body.is-trainer .trainer-only { display:block; }
 .ritual.sd { color:#7048e8; border-color:#e5dbff; background:#f3effe; }
 .ritual.ar { color:#1c7ed6; border-color:#d0ebff; background:#eef7ff; }
 /* AI Interview — accent-filled so the daily action stands out from the muted rituals */
-.ritual.iv { color:var(--surface); border-color:var(--accent); background:var(--accent); font-weight:700; box-shadow:0 2px 8px -2px rgba(232,89,12,.5); }
+.ritual.iv { color: #fff; border-color:var(--accent); background:var(--accent); font-weight:700; box-shadow:0 2px 8px -2px rgba(232,89,12,.5); }
 .ritual.iv:hover { filter:brightness(1.06); }
 
 /* repo link button (client-delivery) */
@@ -604,12 +604,12 @@ html[data-theme="dark"] .cd-repo { background:#2b313a; }
 .run-out.saved::before { content: "↩ saved result · "; color: var(--dim); font-weight: 700; font-size: 12px; }
 
 /* Summarize Your Day — revisit panel after completion */
-.day-summary .ds-revisit { margin-top: 14px; padding-top: 12px; border-top: 1px solid #c3f0cd; }
+.day-summary .ds-revisit { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--good-line); }
 .day-summary .ds-revisit-k { font-size: 13px; font-weight: 700; color: var(--ink); }
 .day-summary .ds-revisit ul { margin: 6px 0 0; padding-left: 18px; }
 .day-summary .ds-revisit li { font-size: 13.5px; color: var(--ink-soft); text-transform: capitalize; }
 .day-summary .ds-note { font-size: 13px; color: var(--ink-soft); margin: 8px 0 0; font-style: italic; }
-.day-summary .ds-next { display: inline-block; margin-top: 12px; font-weight: 700; font-size: 14px; text-decoration: none; color: var(--surface); background: var(--accent); padding: 9px 18px; border-radius: 9px; }
+.day-summary .ds-next { display: inline-block; margin-top: 12px; font-weight: 700; font-size: 14px; text-decoration: none; color: #fff; background: var(--accent); padding: 9px 18px; border-radius: 9px; }
 
 /* Try-it "Your turn" — the what-to-do instruction, as a visible highlighted block
    ABOVE the textarea (was buried inside the editable box and unreadable). */
@@ -700,3 +700,21 @@ html[data-theme="dark"] .prose code { background: var(--code-bg); }
 .ds-check-row.done .ds-check-mark { background: var(--good); border-color: var(--good); color: #fff; }
 html[data-theme="dark"] .done-check { background: rgba(81,207,102,.14); border-color: rgba(81,207,102,.45); }
 html[data-theme="dark"] .ds-check-row.done .ds-check-mark { color: #0c1f12; }
+
+
+/* ---- single-submit quiz: pre-grade selection + bottom submit ---- */
+#quiz .opt.chosen { border-color:var(--accent); background:var(--accent-soft); }
+#quiz .opt-multi.chosen:before { background:var(--accent); border-color:var(--accent); }
+.quiz-submitbar { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:24px 0 4px; padding-top:18px; border-top:1px solid var(--line); }
+.quiz-submitbar .qs-hint { font-size:13.5px; color:var(--ink-soft); }
+.quiz-submitbar .btn:disabled { background:var(--dim); }
+
+/* ---- quiz launcher card: completed state ---- */
+.activity-card.is-done { border-color:var(--good); }
+.activity-card.is-done .ac-k { color:var(--good); }
+.activity-card .ac-done { display:inline-flex; align-items:center; gap:4px; margin-left:8px; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:700; color:var(--good); background:var(--good-soft); border:1px solid var(--good-line); vertical-align:middle; }
+
+/* ---- weekly-view additional-task markers: dark-mode legibility ---- */
+html[data-theme="dark"] .cal-cell .mk.star { color:#ffc04d; border-color:rgba(245,159,0,.40); background:rgba(245,159,0,.12); }
+html[data-theme="dark"] .ritual.cr { color:#5fe3c0; border-color:rgba(56,217,169,.40); background:rgba(56,217,169,.12); }
+html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247,.45); background:rgba(132,94,247,.14); }
