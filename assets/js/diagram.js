@@ -106,7 +106,7 @@
       const mx = (pa.x + pb.x) / 2 + (e.lx || 0);
       const my = (pa.y + pb.y) / 2 + (e.bend ? e.bend / 2 : 0) - 6 + (e.ly || 0);
       const lg = el("g", { class: "d-el d-edge d-elabel", "data-step": e.step });
-      const halo = el("text", { x: mx, y: my, "text-anchor": "middle", stroke: "#fbfaf7", "stroke-width": 5 });
+      const halo = el("text", { x: mx, y: my, "text-anchor": "middle", class: "d-halo", "stroke-width": 5 });
       halo.textContent = e.label;
       const t = el("text", { x: mx, y: my, "text-anchor": "middle" });
       t.textContent = e.label;

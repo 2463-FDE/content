@@ -186,6 +186,10 @@ details.deep[open] summary { border-bottom: 1px solid var(--line); margin-bottom
 .d-example.hot text { fill: var(--surface); }
 /* edge labels live in a top layer; keep them crisp */
 .d-elabel text { font-size: 11.5px; }
+/* halo = a knockout behind the label so the line doesn't cut through it. Must be
+   the themed page bg, NOT a hardcoded light color, or it's a white blob in dark
+   mode (illegible). Overrides the inherited .d-edge text fill for the halo only. */
+.d-elabel .d-halo { stroke: var(--bg); fill: var(--bg); }
 .d-clickable { cursor: pointer; }
 .dgm-pop { position:absolute; left:14px; right:14px; top:34px; background:#1f2329; color:#f3f1ec; border-radius:10px; padding:12px 14px; font-size:13.5px; line-height:1.5; box-shadow:0 10px 30px rgba(0,0,0,.3); z-index:5; }
 .dgm-pop .dp-close { position:absolute; top:6px; right:10px; cursor:pointer; color:#b7bcc4; }
