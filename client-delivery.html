@@ -116,10 +116,10 @@ window.CLIENT = {
         handover: [
           "The repo itself — <code>2463-FDE/riverbend-portal</code> (clone it and run). At the root: a tracked <code>.env</code> containing <code>DB_PASSWORD=</code> and <code>PAYER_API_KEY=</code>. The <code>.gitignore</code> lists <code>node_modules/</code> and <code>*.pyc</code> — but not <code>.env</code>.",
           "Log file <code>logs/intake-service.log</code>, representative line: <code>INFO 09:14:02 POST /intake body={\"name\":\"Maria Gonzalez\",\"dob\":\"1971-03-02\",\"ssn\":\"412-55-9981\",\"insurance_id\":\"BCBS4471\"}</code> — one per POST.",
-          "Schema dump <code>schema.sql</code>: <code>patients(id, name, dob, ssn, address, notes, created_at)</code> — <code>ssn</code> and <code>notes</code> are plain <code>TEXT</code>; no tokenized or encrypted columns.",
+          "Schema dump <code>db/schema.sql</code>: <code>patients(id, mrn, name, dob, ssn, address, notes, created_at)</code> — <code>ssn</code> and <code>notes</code> are plain <code>TEXT</code>; no tokenized or encrypted columns (ADR 0002 deliberately skips column-level encryption).",
           "<code>README.md</code>, first line: \"All PHI is encrypted and the system is fully HIPAA compliant.\"",
           "Front-desk Jira ticket RIV-088: \"Registration spins ~4–5s after Save before it confirms.\"",
-          "One-paragraph architecture note: a set of FastAPI services (intake, eligibility, records, scheduling, ROI) behind a gateway → Postgres. No AI in the system yet — the board's 'AI assistant' is greenfield, which is exactly your week-1 build."
+          "One-paragraph architecture note: a set of FastAPI services (intake, eligibility, records, scheduling, interop, ROI) behind a gateway → Postgres. No AI in the system yet — the board's 'AI assistant' is greenfield, which is exactly your week-1 build."
         ],
         dig: [
           "What exact fields get written to <code>intake-service.log</code> on every request — and who can read that log file?",
@@ -144,11 +144,11 @@ window.CLIENT = {
         tie: "Retrieval pipelines, chunking/embeddings, and eval harnesses for retrieval quality.",
         ask: "Our clinicians are constantly complaining that they have to click through a patient's entire history to find anything relevant. Could you build a retrieval helper that surfaces the most relevant past records the moment they open a chart? The last contractor left a little 'gold set' of example questions and expected answers you can test against — it all looked great when he demoed it. I've exported a chunk of our patients and encounters tables for you. Don't go too crazy on cost, our AI budget is basically a Claude Pro plan.",
         handover: [
-          "Export <code>patients.csv</code> (~5k rows). Three rows stand out: <code>1042 | Maria Gonzalez | 1971-03-02</code>, <code>1330 | Maria Gonzales | 1971-03-02</code>, <code>1588 | M. Gonzalez | 1971-02-03</code> — different MRNs, all created via self-service intake.",
+          "Export <code>patients.csv</code> (patients-table dump). Three rows stand out: <code>1042 | Maria Gonzalez | 1971-03-02</code>, <code>1330 | Maria Gonzales | 1971-03-02</code>, <code>1588 | M. Gonzalez | 1971-02-03</code> — different patient IDs but the same SSN (<code>412-55-9981</code>) and address, all created via self-service intake.",
           "Export <code>encounters.csv</code>: allergy and med rows are scattered across those three IDs — the penicillin allergy is recorded only under patient <code>1330</code>.",
           "Contractor's <code>goldset.json</code>: query \"show me Maria Gonzalez's allergies\" → expected answer cites records from patient <code>1042</code> only.",
           "Intake config <code>intake.yaml</code>: <code>self_service_intake: true</code>, <code>match_key: none</code> (no de-dup on name/DOB/SSN at create).",
-          "Clinician Slack screenshot: \"Why does the allergy list look different depending on which chart I open for the same lady?\""
+          "Clinician Jira ticket RIV-160 (Dr. Nguyen): \"Why does the allergy list look different depending on which chart I open for the same lady (Maria Gonzalez)? One chart shows penicillin, another shows none.\""
         ],
         dig: [
           "Scan the patient export — is each human really one patient ID, or could one person appear more than once?",
@@ -230,8 +230,9 @@ window.CLIENT = {
         ask: "Our scheduling keeps double-booking the same slot and it's getting embarrassing — two patients show up for one appointment. The team's pretty sure it's a glitch in the calendar widget, so could you just fix the calendar so it stops doing that? I pulled some example rows and the booking code for you. It seems to happen more when the system's busy.",
         handover: [
           "<code>appointments.csv</code>: two rows, both <code>slot_id=88231</code>, both <code>status=confirmed</code>, created_at <code>09:31:04.120</code> and <code>09:31:04.519</code> (~400ms apart), different patient IDs.",
-          "Booking handler <code>book.py</code>: <code>if not slot_taken(slot_id): insert_appointment(...)</code> — read-check-then-insert, no transaction.",
-          "Server log: <code>POST /appointments</code> took 2.11s, the client auto-retried, a second <code>POST /appointments</code> landed 380ms later — both returned success.",
+          "Billing Jira ticket RIV-175: \"A couple patients say they got two appointment confirmations for one booking, and two people showed up for the same slot once. Probably a calendar glitch.\"",
+          "Booking handler <code>scheduling-service/book.py</code>: <code>if not slot_taken(slot_id): insert_appointment(...)</code> — read-check-then-insert, no transaction, no <code>UNIQUE</code> on <code>slot_id</code>.",
+          "Server log: a <code>POST /appointments</code> for slot 88231 took 2.11s; a second <code>POST /appointments</code> for the same slot landed ~400ms later (a different patient) — both returned 201.",
           "Frontend network tab: the booking request carries no idempotency key / request-id header.",
           "DDL for <code>appointments</code>: <code>slot_id INTEGER</code> — no <code>UNIQUE</code> and no composite constraint on the slot."
         ],
@@ -257,7 +258,7 @@ window.CLIENT = {
         tie: "Using AI to comprehend inherited/legacy code; characterization tests; safe-change workflow on brownfield.",
         ask: "We're finally wiring up the feed from the hospital's system — it sends us those HL7 messages. The integration 'works' in that data shows up, but before we lean on it for care I want to actually trust it. Can you go through the parser and make sure it's solid? I've attached the parser code and a few sample messages our integration guy saved. It's been quietly running for months with zero errors, which is reassuring.",
         handover: [
-          "<code>interop-service/hl7_parser.py</code>: <code>fields = segment.split('|')</code> with hard-coded indices (<code>fields[3]</code>, <code>fields[5]</code>), the whole loop wrapped in <code>try: ... except: pass</code>.",
+          "<code>interop-service/hl7_parser.py</code>: <code>fields = line.split('|')</code> with hard-coded indices from a <code>SEGMENT_MAP</code> (PID <code>fields[5]</code>=name, <code>fields[7]</code>=dob), the parse loop wrapped in <code>try: ... except Exception: pass</code>.",
           "Sample inbound message <code>adt_sample.hl7</code> contains <code>AL1|1|DA|penicillin</code> (allergy) and <code>RXA|...|amoxicillin</code> (med) segments.",
           "The internal record the mapper produces from that exact message: <code>allergies: []</code>, <code>medications: []</code>.",
           "The parser's index map only covers <code>PID</code> and <code>PV1</code> segments; <code>AL1</code> and <code>RXA</code> aren't in it.",
@@ -345,7 +346,7 @@ window.CLIENT = {
         ask: "A payer audit is coming and I want us buttoned up. Tighten the security generally, and — staff keep asking — can we finally add the records-request (ROI) feature so we stop emailing PDFs around? Everyone here logs in with their own account, so access control is basically handled; I just want it to look clean for the auditor.",
         handover: [
           "RBAC config <code>roles.yaml</code>: a single role <code>staff</code>; billing, ROI, front-desk, and clinicians all map to it → all can read clinical <code>notes</code>.",
-          "Half-built <code>roi-service</code>: <code>GET /disclosures/{patient_id}</code> returns records with no check for a 164.508 authorization and no honoring of 164.522 restrictions.",
+          "The <code>roi-service</code> <code>GET /disclosures/{patient_id}</code> returns a patient's full records with no check for a 45 CFR 164.508 authorization, no honoring of 164.522 restrictions, and no disclosure logged (the only trace is a bare <code>disclosures</code> row with no authorization_id/purpose).",
           "Current ROI process doc: \"Staff email the records as a PDF to the requester\" — no log of who disclosed what, to whom, or when.",
           "Auth config: password login only, <code>mfa_enabled: false</code>.",
           "Access-log sample: a billing clerk's account opened a patient's psychotherapy <code>notes</code> — allowed, and unremarkable to the system."
@@ -409,11 +410,11 @@ window.CLIENT = {
         tie: "Production-grade LLM clients — retries, timeouts, structured output, cost/latency, safe logging.",
         ask: "Hey, welcome aboard — excited to have you! To get going: give the loan application form a little polish, and the board's been hammering me about 'AI,' so spin up a small assistant that can summarize an application for a loan officer. Nothing fancy, just show momentum this week. The vendor who built the platform went under, so it's a bit of a black box, but the repo has everything including the keys so you can just run it. We process payments fine today, so don't worry about that part.",
         handover: [
-          "The repo itself — <code>2463-FDE/meridian-lending</code>. Bureau creds hardcoded in <code>services/origination-service/app/config.py</code>: <code>EXPERIAN_KEY = \"EXAMPLE-LEAKED-KEY-rotate-me\"</code>; plus a tracked <code>.env</code>.",
+          "The repo itself — <code>2463-FDE/meridian-lending</code>. Bureau creds are hardcoded in <code>services/decision-service/app/config.py</code> (where the credit pull now runs): <code>EXPERIAN_KEY = \"EXAMPLE-LEAKED-KEY-rotate-me\"</code> and <code>CORE_BANKING_API_KEY = \"cb_live_…\"</code> — with a stale duplicate copy still in <code>services/origination-service/app/config.py</code>, and all of them re-committed in a tracked root <code>.env</code> (which also carries the card-processor key).",
           "<code>logs/payment-service.log</code> line: <code>INFO charge req={\"pan\":\"4111111111111111\",\"cvv\":\"123\",\"ssn\":\"412-55-9981\",\"amount\":250.00}</code>.",
           "<code>services/servicing-service/app/balance.py</code>: <code>new_balance = current - float(amount)</code> — money is stored and computed as <code>float</code>.",
           "DB schema <code>db/init/001_schema.sql</code>: <code>payments(id, loan_id, pan, cvv, amount, method, created_at)</code> — full PAN and CVV columns present.",
-          "<code>README.md</code>: \"Cardholder data is encrypted and we are PCI compliant.\"",
+          "<code>README.md</code> banner: \"Cardholder data is encrypted and we are PCI-DSS compliant. Every credit decision is audited.\"",
           "One-paragraph architecture note: a set of FastAPI services (origination/intake, KYC, decision, disclosure, payment, servicing) behind a gateway → Postgres + Redis. The LOS (origination) boards funded loans to the LSS (servicing) across a thin direct-DB seam. No AI in the system yet — the board's 'AI assistant' is greenfield, which is exactly your week-1 build."
         ],
         dig: [
@@ -468,7 +469,7 @@ window.CLIENT = {
         tie: "A single tool-using agent with memory; tool-call design + failure handling.",
         ask: "Big news — we licensed a new AI credit-scoring model and it's noticeably more accurate. I want you to wrap it in an assistant that decisions an application and tells the officer the result, clean and simple. I attached some sample outputs. It does slow down when a lot of apps come in at once, but accuracy is what matters. Move fast on this one, the board's watching.",
         handover: [
-          "<code>decision-service/app/decision.py</code>: credit pull → bureau call → model run are a synchronous chain on the request thread (origination calls it inline over HTTP, so the block propagates back to the applicant); load-test note: \"timeouts at >20 concurrent apps.\"",
+          "<code>services/decision-service/app/decision.py</code>: credit pull → bureau call → model run are a synchronous chain on the request thread (origination calls it inline over HTTP, so the block propagates back to the applicant); load-test note: \"timeouts at >20 concurrent apps.\"",
           "Sample model output: <code>{score: 612, decision: 'deny', adverse_action_reason: 'purchasing history'}</code> — the same generic string recurs across many denials.",
           "No decision record is persisted: nothing stores the inputs, the model's actual top features, or a timestamp.",
           "A denied applicant's adverse-action letter draft: reason = \"purchasing history\" (a nearest-checkbox, not the real driver).",
@@ -496,7 +497,7 @@ window.CLIENT = {
         tie: "Coordinated multi-agent workflow + a knowledge graph over entities/relationships.",
         ask: "Once an app is approved, generating the offer and the disclosure documents is still totally manual. Can you automate it — produce the offer and the TILA disclosures right after approval? I attached the disclosure service and a worked example. The numbers look basically right to me. The fee and APR rules are scattered around the code a bit, but it works.",
         handover: [
-          "<code>disclosure-service/app/apr.py</code>: APR and finance charge are computed with <code>float</code>.",
+          "<code>services/disclosure-service/app/apr.py</code>: APR and finance charge are computed with <code>float</code>.",
           "Worked example, straight from <code>apr.py</code>'s own docstring (principal 18000, 7.99%, 48mo): float APR = <code>7.142%</code>, correct <code>Decimal</code> APR = <code>7.157%</code> — a gap large enough to exceed the Reg Z APR tolerance.",
           "The origination-fee % is hardcoded in three files in the disclosure service and has drifted by copy-paste: <code>apr.py</code> <code>0.025</code>, <code>fees.py</code> <code>0.030</code>, <code>offer.py</code> <code>0.03</code>.",
           "Data model: no clean link <code>application→decision→offer→disclosure</code> (provenance gaps).",
@@ -526,7 +527,7 @@ window.CLIENT = {
         handover: [
           "Three support tickets: \"I was charged twice.\" Payment logs show one retried POST produced two <code>payments</code> rows for the same charge.",
           "Payment log: <code>POST /payments</code> took 2.4s (slow), the client retried, a second <code>POST /payments</code> landed 410ms later — both inserted.",
-          "<code>payment-service/app/payments.py</code>: stores the full <code>pan</code> in the <code>payments</code> table and logs the <code>cvv</code> at INFO.",
+          "<code>services/payment-service/app/payments.py</code>: stores the full <code>pan</code> in the <code>payments</code> table and logs the <code>cvv</code> at INFO.",
           "The payment request carries no idempotency key / client-supplied request id — and the new payment-service captures the charge, then calls servicing to apply it, so a retry double-charges across two services.",
           "<code>payments</code> DDL: <code>pan TEXT</code> — no tokenization and no unique constraint on the charge reference."
         ],
@@ -552,12 +553,13 @@ window.CLIENT = {
         tie: "Using AI to comprehend inherited code; characterization tests; safe brownfield change.",
         ask: "I need a servicing dashboard so our reps can actually manage accounts — adjust balances, waive fees, fix the occasional mistake. Right now it's clunky and they hate it. I attached the servicing service. Our reps are trusted folks, so don't over-engineer the permissions; just make it usable.",
         handover: [
-          "<code>servicing-service</code>: <code>POST /accounts/{id}/adjust-balance</code> and <code>/waive-fee</code> accept any authenticated user — no role check, no second-approver step.",
+          "<code>services/servicing-service/app/main.py</code>: <code>POST /accounts/{id}/adjust-balance</code> and <code>/waive-fee</code> accept any authenticated user — no role check, no second-approver step.",
           "Balance code: a single <code>balance</code> column is <code>UPDATE</code>d in place; there is no ledger or transaction log.",
           "Reproduced bug: a payment and a concurrent fee-waiver both read <code>balance=500</code>, both write → the final balance is wrong (a lost update).",
           "A controller's question: \"Show me every change to account 7781's balance and who made it\" — not answerable today.",
           "No maker-checker and no segregation of duties on any money-affecting endpoint.",
-          "The gateway authenticates the session and forwards <code>X-User-Role</code>, but <code>servicing-service</code> ignores it — the role is on the wire, nothing reads it."
+          "The gateway authenticates the session and forwards <code>X-User-Role</code>, but <code>servicing-service</code> ignores it — the role is on the wire, nothing reads it.",
+          "A new role-differentiated frontend (<code>frontend/components/AppBar.tsx</code>) shapes only what each role <i>sees</i> — it hides the Servicing nav from borrowers and varies views by role — but enforces nothing server-side: every route is reachable by URL and the money-moving endpoints still accept any authenticated caller (security-by-UI-obscurity; the weak-authz debt D8 is preserved intact)."
         ],
         dig: [
           "Who exactly can move money or waive a fee today — is there any second approver in the path?",
@@ -584,7 +586,7 @@ window.CLIENT = {
           "A month of <code>payments</code> rows + the processor <code>settlement.csv</code>: the totals differ by a small, persistent amount that nobody reconciles.",
           "Raw payment-path logs with no trace IDs — a few double-fund events (from the W5 idempotency gap) are buried in them.",
           "Finance email: \"month-end is always a little noisy, we just adjust to the bank number.\"",
-          "A <code>servicing-service/app/reconciliation.py</code> stub exists but never runs on a schedule and reports no breaks; <code>docs/runbook.md</code> notes finance reconciles by hand and \"totals do not tie out.\"",
+          "A <code>services/servicing-service/app/reconciliation.py</code> stub exists but never runs on a schedule and reports no breaks; <code>docs/runbook.md</code> notes finance reconciles by hand and \"totals do not tie out.\"",
           "No alerting on payment error rate, and none on a reconciliation break.",
           "The split is now across two services — <code>payment-service</code> captures the charge and <code>servicing-service</code> applies it — with no shared trace ID tying the two halves together at month-end."
         ],
@@ -611,12 +613,12 @@ window.CLIENT = {
         tie: "Responsible-AI design, model governance, fair-lending monitoring, data governance.",
         ask: "The board loves the AI scorer — let's roll it out to more products and put together a slick page on how advanced our underwriting is. I attached the recent decision logs; the model's humming along. Let's make this a marketing moment. Wider is better, right?",
         handover: [
-          "Decision logs from the W3 model: adverse-action reasons cluster on just two generic strings, regardless of the real driver.",
+          "Decision logs from the W3 model: every denial carries the same generic adverse-action string (\"purchasing history\") — the scorecard draws from a hardcoded two-item list (<code>GENERIC_REASONS</code> in <code>decision.py</code>) and emits one regardless of the real driver.",
           "No model card, no model documentation, and no record of the features/version used per decision.",
           "No fair-lending disparity check and no monitoring of denial-reason accuracy anywhere.",
           "Approval-rate breakdown by ZIP code shows a noticeable pattern across certain areas.",
           "CFPB Circular 2023-03 note: ML/black-box models must still give the specific driver — no AI exemption.",
-          "<code>decision-service</code> records only the outcome — no model id, version, or feature set per decision — so there is no registry to govern or roll back as the scorer is rolled wider."
+          "<code>services/decision-service</code> records only the outcome — no model id, version, or feature set per decision — so there is no registry to govern or roll back as the scorer is rolled wider."
         ],
         dig: [
           "Across many decisions, how many *distinct* adverse-action reasons does the model actually emit?",
@@ -641,7 +643,7 @@ window.CLIENT = {
         tie: "Deep specialization in the client's regulatory domain (KYC/AML pipeline).",
         ask: "We're launching a new product and I want KYC tightened during onboarding so we don't get burned. I attached the kyc-service and a sample onboarding. We verify the applicant's identity already, so I think we're mostly there — just make it look thorough for the launch.",
         handover: [
-          "<code>kyc-service</code>: performs CIP only — verifies name/DOB/address/SSN, then stops.",
+          "<code>services/kyc-service/app/kyc.py</code>: performs CIP only — verifies name/DOB/address/SSN, then stops.",
           "No OFAC/sanctions screening, no beneficial-owner (UBO) capture, no ongoing monitoring, and no SAR path anywhere in the code.",
           "Onboarding sample: an *entity* (LLC) applicant cleared with no beneficial owner identified and no sanctions check.",
           "BSA/AML reference: CIP → CDD (incl. beneficial owner, FinCEN 2016 rule) → EDD → ongoing monitoring → SAR; OFAC screening required.",
