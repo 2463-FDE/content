@@ -23,6 +23,13 @@
       return Object.keys(all).some(function (k) { var r = all[k]; return r && r.type === "quiz" && r.page === path; });
     } catch (e) { return false; }
   }
+  function summaryDone(partId) {
+    try {
+      var id = JSON.parse(localStorage.getItem("fde_identity") || "null");
+      var code = (id && id.code) || "anon";
+      return !!localStorage.getItem("fde_summary_" + code + "_" + partId);
+    } catch (e) { return false; }
+  }
 
   function init() {
     var day = meta("fde-day");
@@ -44,6 +51,30 @@
     wrap.appendChild(el("p", "ds-sub", nextSameDay
       ? "Out loud, ~30s: the one idea from this part and where you'd use it. Saves your part note."
       : "Out loud, 90-120 seconds: summarize today's content in your own words — the key ideas, how they connect, and where you'd use them at a client. This + the comprehension check completes the day and flags anything to revisit."));
+
+    // Gate checklist — at-a-glance status so a learner can see a step is already
+    // satisfied and doesn't need re-running. Only the day-complete gate has two
+    // requirements; a part-wrap page just saves its part note.
+    var checkRows = {};
+    if (!nextSameDay) {
+      var checklist = el("div", "ds-checklist");
+      var addRow = function (key, label) {
+        var row = el("div", "ds-check-row");
+        var mark = el("span", "ds-check-mark");
+        row.appendChild(mark); row.appendChild(el("span", "ds-check-label", label));
+        checklist.appendChild(row);
+        checkRows[key] = function (done) { row.classList.toggle("done", !!done); mark.textContent = done ? "✓" : "○"; };
+        checkRows[key](false);
+      };
+      addRow("quiz", "Comprehension check");
+      addRow("rec", "Spoken summary recorded");
+      wrap.appendChild(checklist);
+      checkRows.quiz(quizDone());
+      checkRows.rec(summaryDone(partId));
+      window.addEventListener("fde-quiz-done", function (e) {
+        if (!e || !e.detail || e.detail.page === location.pathname) checkRows.quiz(true);
+      });
+    }
 
     var box = el("textarea", "ds-box");
     box.placeholder = SR ? "Press Record and speak — your words land here to edit before saving." : "Speech capture isn't supported here. Type your summary.";
@@ -106,6 +137,7 @@
         localStorage.setItem("fde_summary_" + code + "_" + partId,
           JSON.stringify({ day: day, part: partId, text: text, at: new Date().toISOString() }));
       } catch (e) {}
+      if (checkRows.rec) checkRows.rec(true);
 
       // Non-final part: just save a part note, don't gate or complete.
       if (nextSameDay) {

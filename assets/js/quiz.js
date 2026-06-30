@@ -17,6 +17,7 @@
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const shuffle = (a) => { const r = a.slice(); for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; };
   function getResults() { try { return JSON.parse(localStorage.getItem(LSRES) || "{}"); } catch (e) { return {}; } }
+  function doneBadge() { const s = document.createElement("span"); s.className = "done-check"; s.textContent = "✓ Completed"; return s; }
   function record(rec) {
     try { const all = getResults(); all[rec.id] = rec; localStorage.setItem(LSRES, JSON.stringify(all)); } catch (e) {}
     const url = window.FDE_TRACK_URL;
@@ -53,11 +54,15 @@
     const already = !!getResults()[Q.id];
     host.innerHTML = "";
 
-    const h = document.createElement("h2"); h.textContent = Q.title || "Check your understanding"; host.appendChild(h);
+    const h = document.createElement("h2"); h.textContent = Q.title || "Check your understanding";
+    if (already) h.appendChild(doneBadge());
+    host.appendChild(h);
     const sub = document.createElement("p"); sub.className = "quiz-sub";
     sub.innerHTML = bypass
       ? "Practice check. (You're in tester/trainer view — navigation is unlocked.)"
-      : "Work through all of these to unlock the next reading. Instant feedback, retry freely — it's practice, not a grade.";
+      : already
+        ? "You've already completed this check — it counts toward your day. Retry is optional."
+        : "Work through all of these to unlock the next reading. Instant feedback, retry freely — it's practice, not a grade.";
     host.appendChild(sub);
 
     const state = Q.questions.map(() => ({ done: false, correct: null }));
@@ -72,6 +77,8 @@
         summary.querySelector(".retry").addEventListener("click", () => render(host, Q));
         record({ id: Q.id, trainee, type: "quiz", got, total: Q.questions.length, items: state.map(s => s.correct), ts: new Date().toISOString(), page: location.pathname });
         setNextGate(true);
+        if (!h.querySelector(".done-check")) h.appendChild(doneBadge());
+        try { window.dispatchEvent(new CustomEvent("fde-quiz-done", { detail: { page: location.pathname } })); } catch (e) {}
       }
     }
 
