@@ -11,25 +11,26 @@
   .ex-hero { padding: 40px 0 10px; }
   .ex-hero h1 { font-size: 40px; margin: 0 0 6px; } .ex-hero h1 b { color: var(--accent); }
   .ex-hero p { color: var(--ink-soft); font-size: 18px; max-width: 720px; }
-  .ex-banner { background: var(--accent-soft); border: 1px solid #ffd8bf; border-radius: 12px; padding: 14px 18px; margin: 18px 0 28px; font-size: 15px; }
+  .ex-banner { background: var(--accent-soft); border: 1px solid var(--accent-line); border-radius: 12px; padding: 14px 18px; margin: 18px 0 28px; font-size: 15px; }
   .ex-banner b { color: var(--accent); }
-  .ex-card { background:#fff; border:1px solid var(--line); border-radius:14px; padding: 24px 26px; margin: 18px 0; }
+  .ex-card { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding: 24px 26px; margin: 18px 0; }
   .ex-k { font-size:12px; text-transform:uppercase; letter-spacing:.12em; font-weight:700; color:var(--accent); margin-bottom:8px; }
   .ex-card h2 { margin:.1em 0 .4em; font-size:24px; }
   .ex-card p, .ex-card li { font-size:17px; line-height:1.65; }
-  .scenario { background:#f6f8f6; border-left:4px solid #0ca678; border-radius:8px; padding:14px 16px; font-style:italic; color:#2b3a2f; }
+  .scenario { background:var(--surface-2); border-left:4px solid var(--good-ink); border-radius:8px; padding:14px 16px; font-style:italic; color:var(--ink); }
   table.cmp { width:100%; border-collapse:collapse; margin:10px 0; font-size:15px; }
   table.cmp th, table.cmp td { border:1px solid var(--line); padding:9px 11px; text-align:left; vertical-align:top; }
-  table.cmp th { background:#faf8f4; font-size:13px; }
-  table.cmp td.win { background:#ebfbee; font-weight:600; }
-  .verdict { background:#f3effe; border:1px solid #e5dbff; border-radius:10px; padding:14px 16px; }
+  table.cmp th { background:var(--surface-2); font-size:13px; }
+  table.cmp td.win { background:var(--good-soft); font-weight:600; }
+  .verdict { background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
   .verdict .pick { font-weight:700; color:#7048e8; }
   .anti li { margin:6px 0; }
   .srcs { font-size:13.5px; color:var(--ink-soft); }
   .srcs a { color:var(--accent); }
   .rubric li { margin:7px 0; }
   .pill { display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; margin-right:6px; }
-  .pill.mature { background:#ebfbee; color:#0ca678; } .pill.solid { background:#eef7ff; color:#1c7ed6; } .pill.niche { background:#fff4e6; color:#e8590c; }
+  .pill.mature { background:var(--good-soft); color:var(--good-ink); } .pill.solid { background:var(--info-soft); color:var(--info); } .pill.niche { background:var(--warn-soft); color:#e8590c; }
+  html[data-theme="dark"] .verdict .pick { color:#b9a3ff; }
 </style>
 </head>
 <body>

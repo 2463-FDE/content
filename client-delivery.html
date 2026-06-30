@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Client Delivery | 2463-FDE</title>
 <link rel="stylesheet" href="assets/css/style.css">
+<script src="assets/js/theme.js"></script>
 <style>
   /* ---- client-delivery page-specific layout (reuses site design language) ---- */
   .cd-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 70px; }
@@ -13,14 +14,14 @@
   .cd-hero h1 b { color: var(--accent); }
   .cd-hero p { color: var(--ink-soft); font-size: 18px; max-width: 720px; margin: 0; }
 
-  .cd-banner { border:1px solid var(--line); background:#fff; border-radius:12px; padding:12px 16px; margin:18px 0 26px; font-size:14.5px; color:var(--ink-soft); display:flex; gap:10px; align-items:flex-start; }
+  .cd-banner { border:1px solid var(--line); background:var(--surface); border-radius:12px; padding:12px 16px; margin:18px 0 26px; font-size:14.5px; color:var(--ink-soft); display:flex; gap:10px; align-items:flex-start; }
   .cd-banner .b-everyone b { color:var(--ink); }
-  .cd-banner .trainer-only { background:var(--accent-soft); border:1px solid #ffd8bf; border-radius:9px; padding:8px 12px; margin-top:10px; color:#c2410c; font-weight:600; }
+  .cd-banner .trainer-only { background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:9px; padding:8px 12px; margin-top:10px; color:var(--accent-ink); font-weight:600; }
 
   /* project switcher */
   .cd-projtabs { display:flex; gap:10px; margin:0 0 18px; flex-wrap:wrap; }
-  .cd-proj { cursor:pointer; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:14px 18px; font:inherit; color:var(--ink); text-align:left; min-width:240px; flex:1; transition:border-color .12s, box-shadow .12s, transform .12s; }
-  .cd-proj:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 20px rgba(40,30,10,.07); }
+  .cd-proj { cursor:pointer; border:1.5px solid var(--line); background:var(--surface); border-radius:12px; padding:14px 18px; font:inherit; color:var(--ink); text-align:left; min-width:240px; flex:1; transition:border-color .12s, box-shadow .12s, transform .12s; }
+  .cd-proj:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 20px var(--shadow); }
   .cd-proj.on { border-color:var(--accent); background:var(--accent-soft); }
   .cd-proj .pj-k { font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--accent); }
   .cd-proj .pj-t { font-size:18px; font-weight:650; margin:3px 0 2px; }
@@ -29,14 +30,14 @@
 
   /* week selector */
   .cd-weeks { display:grid; grid-template-columns:repeat(10, 1fr); gap:8px; margin:6px 0 28px; }
-  .cd-week { cursor:pointer; border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:12px 4px; font:inherit; font-weight:700; color:var(--ink-soft); text-align:center; transition:border-color .12s, background .12s, color .12s; }
+  .cd-week { cursor:pointer; border:1.5px solid var(--line); background:var(--surface); border-radius:10px; padding:12px 4px; font:inherit; font-weight:700; color:var(--ink-soft); text-align:center; transition:border-color .12s, background .12s, color .12s; }
   .cd-week:hover { border-color:var(--accent); color:var(--accent); }
-  .cd-week.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .cd-week.on { background:var(--accent); color:var(--surface); border-color:var(--accent); }
   .cd-week .wn { font-size:11px; display:block; letter-spacing:.06em; }
   @media (max-width:760px){ .cd-weeks { grid-template-columns:repeat(5,1fr); } }
 
   /* content panel */
-  .cd-panel { background:#fff; border:1px solid var(--line); border-radius:16px; padding:26px 28px; box-shadow:0 6px 24px rgba(40,30,10,.06); }
+  .cd-panel { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:26px 28px; box-shadow:0 6px 24px var(--shadow); }
   .cd-panel .cd-eyebrow { font-size:12px; text-transform:uppercase; letter-spacing:.12em; font-weight:700; color:var(--accent); }
   .cd-panel h2 { font-size:27px; margin:4px 0 4px; line-height:1.18; }
   .cd-panel .cd-tie { color:var(--ink-soft); font-size:15px; margin:0 0 18px; }
@@ -44,16 +45,16 @@
   .cd-sec { margin:22px 0 0; padding-top:20px; border-top:1px solid var(--line); }
   .cd-sec:first-of-type { border-top:none; padding-top:0; }
   .cd-sec .cd-h { font-size:12px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--ink-soft); margin-bottom:8px; }
-  .cd-ask { background:var(--accent-soft); border:1px solid #ffd8bf; border-radius:12px; padding:18px 20px; font-size:16.5px; line-height:1.6; color:var(--ink); }
+  .cd-ask { background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:12px; padding:18px 20px; font-size:16.5px; line-height:1.6; color:var(--ink); }
   .cd-ask .who { display:block; font-size:13px; color:var(--ink-soft); margin-top:10px; font-weight:600; }
   .cd-list { margin:6px 0 0; padding-left:22px; }
   .cd-list li { margin:9px 0; line-height:1.5; }
-  .cd-list code { font-family:var(--mono); font-size:.8em; background:#f1efe9; padding:1px 5px; border-radius:4px; word-break:break-word; }
-  .cd-dig { background:#fff; border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; padding:12px 16px 12px 18px; }
+  .cd-list code { font-family:var(--mono); font-size:.8em; background:var(--code-bg); padding:1px 5px; border-radius:4px; word-break:break-word; }
+  .cd-dig { background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; padding:12px 16px 12px 18px; }
   .cd-dig ol { margin:0; padding-left:20px; }
   .cd-dig li { margin:9px 0; line-height:1.5; font-weight:550; }
-  .cd-dig code { font-family:var(--mono); font-size:.8em; background:#f1efe9; padding:1px 5px; border-radius:4px; }
-  .cd-deliv { background:#f6f8f6; border:1px solid #d8e6d8; border-radius:12px; padding:14px 16px; font-size:15.5px; line-height:1.55; }
+  .cd-dig code { font-family:var(--mono); font-size:.8em; background:var(--code-bg); padding:1px 5px; border-radius:4px; }
+  .cd-deliv { background:var(--surface-2); border:1px solid var(--good-line); border-radius:12px; padding:14px 16px; font-size:15.5px; line-height:1.55; }
   .cd-quota.callout { margin:14px 0 0; }
 </style>
 </head>

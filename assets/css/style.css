@@ -22,6 +22,12 @@
   --code-bg: #f1efe9;       /* inline code */
   --bar-bg: rgba(251,250,247,.92);  /* sticky topbar */
   --shadow: rgba(40,30,10,.06);
+  /* semantic tints (themeable) — used by page-specific panels/pills/badges */
+  --good-soft: #ebfbee; --good-line: #cfe6cf; --good-ink: #2f7d32;
+  --bad-soft: #fff5f5;  --bad-line: #ffc9c9;  --bad-ink: #c92a2a;
+  --info: #1c7ed6;      --info-soft: #eef7ff; --info-line: #d0ebff;
+  --warn-soft: #fff4e6; --warn-line: #ffe3b0; --warn-ink: #b45309;
+  --accent-line: #ffd8bf; --accent-ink: #c2410c;
   color-scheme: light;
 }
 
@@ -529,8 +535,8 @@ a.snav-btn:hover { border-color:var(--accent); color:var(--accent); }
 /* ---------- trainer-only (role-gated) ---------- */
 .trainer-only { display:none; }
 body.is-trainer .trainer-only { display:block; }
-.trainer-note { border:1.5px dashed #c2410c; background:#fff7ed; border-radius:12px; padding:14px 16px; margin:16px 0; }
-.trainer-note .k { font-size:11px; text-transform:uppercase; letter-spacing:.12em; font-weight:700; color:#c2410c; margin-bottom:4px; }
+.trainer-note { border:1.5px dashed var(--accent-ink); background:var(--warn-soft); border-radius:12px; padding:14px 16px; margin:16px 0; }
+.trainer-note .k { font-size:11px; text-transform:uppercase; letter-spacing:.12em; font-weight:700; color:var(--accent-ink); margin-bottom:4px; }
 .id-badge .role { font-size:11px; text-transform:uppercase; letter-spacing:.08em; background:var(--accent); color:var(--surface); padding:1px 7px; border-radius:10px; margin-left:2px; }
 
 /* ---------- calendar homepage ---------- */
@@ -587,8 +593,9 @@ body.is-trainer .trainer-only { display:block; }
 .ritual.iv:hover { filter:brightness(1.06); }
 
 /* repo link button (client-delivery) */
-.cd-repo { display:inline-flex; align-items:center; gap:6px; margin:6px 0 2px; font-size:14px; font-weight:600; color:var(--surface); background:#24292f; padding:8px 14px; border-radius:8px; text-decoration:none; }
-.cd-repo:hover { background:#000; }
+.cd-repo { display:inline-flex; align-items:center; gap:6px; margin:6px 0 2px; font-size:14px; font-weight:600; color:#fff; background:#24292f; border:1px solid var(--line); padding:8px 14px; border-radius:8px; text-decoration:none; }
+.cd-repo:hover { background:#000; border-color:var(--accent); }
+html[data-theme="dark"] .cd-repo { background:#2b313a; }
 @media (max-width:1000px){ .cal { grid-template-columns:1fr; } .cal-dayhead { display:none; } .cal-week { border-left-width:5px; margin-top:14px; } .cal-cell { min-height:0; } }
 
 /* Try-it: preset tabs are run-only (locked textarea); saved/cached results marked. */
@@ -629,6 +636,11 @@ html[data-theme="dark"] {
   --code-bg: #262b33;
   --bar-bg: rgba(21,23,27,.92);
   --shadow: rgba(0,0,0,.45);
+  --good-soft: rgba(81,207,102,.12); --good-line: rgba(81,207,102,.40); --good-ink: #69db7c;
+  --bad-soft: rgba(255,107,107,.12); --bad-line: rgba(255,107,107,.40); --bad-ink: #ff8787;
+  --info: #74c0fc; --info-soft: rgba(116,192,252,.10); --info-line: rgba(116,192,252,.35);
+  --warn-soft: rgba(245,159,0,.12); --warn-line: rgba(245,159,0,.38); --warn-ink: #e6c980;
+  --accent-line: rgba(255,122,51,.38); --accent-ink: #ff9a5c;
 }
 /* Tinted callouts / states -> translucent on dark so they read as accents, not slabs */
 html[data-theme="dark"] .callout.mindset,
