@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w05d5">
+<meta name="fde-concepts" content="spec-implement-handoff,cross-artifact-consistency,implementation-convergence,adversarial-review-loop,spec-code-traceability">
+<title>W5·D5 — Spec-to-Implementation Handoff End-to-End | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Spec-to-Implementation Handoff, End to End</h1>
+        <div class="meta">
+          <span><b>Week 5</b> · Day 5 · ★ milestone</span>
+          <span>Spec-Driven Development</span>
+          <span><b>~19 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">All week you've been building artifacts: a spec, a technical plan, a task list. Today they stop
+        being documents and become <strong>inputs to a machine</strong>. The handoff — spec → gates → implementing agent →
+        verification → convergence → review — is a defined pipeline, not a leap of faith. You'll walk every stage: the
+        quality gates that catch a broken spec <em>before</em> code exists, the execution patterns that keep the agent on
+        the plan, the convergence loop that closes the gap between what was specified and what got built, and the
+        adversarial + human review that decides whether it ships. The panel on the right assembles the pipeline stage by
+        stage. This is the week's milestone: by the end you run the whole thing on your own spec.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The last mile</div>
+        <h2>Handoff is a pipeline stage, not a vibe</h2>
+        <p>Here is the inversion that defines everything this week: in spec-driven development,
+        <strong>specifications don't serve code — code serves specifications</strong>. The spec is the source of truth;
+        the implementation is a <em>derived artifact</em>. Which means the moment you hand your spec to an implementing
+        agent is not "okay, now the real work starts." It's the opposite: if the upstream artifacts are right, the
+        handoff should be the most mechanical step in the whole process.</p>
+        <p>GitHub's Spec Kit — the current mainstream reference implementation of this idea, billed as "define what to
+        build before building it, with any AI coding agent" — makes the handoff an explicit, named stage. Its full
+        command sequence runs
+        <code>/speckit.constitution → specify → clarify → plan → checklist → tasks → analyze → implement → converge</code>.
+        Notice where <code>/speckit.implement</code> sits: eighth of nine. <strong>Every phase before it exists to make
+        that execution safe</strong>, and one phase after it exists to prove the execution actually matched the spec.
+        The foundational rhythm is Spec → Plan → Tasks → Implement, and because the artifacts are plain files, the same
+        handoff works against 30+ different agents — Copilot, Claude, Gemini, Codex, Kiro — with no lock-in. The spec is
+        portable; the executor is a commodity.</p>
+        <p>Days 1–4 gave you the upstream artifacts: what a spec is, how to synthesize requirements, which frameworks
+        exist, how to decompose a plan into tasks. Today consumes them. We deliberately treat the agent itself as a black
+        box — coding-agent tooling in depth is Week 6. What matters today is the <em>protocol</em> around the agent: what
+        you check before handing off, what you hand, how the agent proves its work, and how you review what comes back.
+        That protocol is what a client is actually buying when they buy "AI-assisted delivery" — anyone can prompt an
+        agent; an FDE runs a pipeline.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Gate 1 · requirement quality</div>
+        <h2>Checklist: unit tests for English</h2>
+        <p>You would never ship code without tests. Spec Kit's insight is that you shouldn't ship a <em>spec</em> without
+        tests either. <code>/speckit.checklist</code> generates what the docs call <strong>"unit tests for English"</strong>
+        — quality checklists that validate your requirements for <strong>completeness, clarity, and consistency</strong>
+        after the plan is created but before any code exists. Does every user story have acceptance criteria? Is any
+        requirement ambiguous enough that two reasonable engineers would build different things? Did you silently skip
+        UX, security, or accessibility? The checklist surfaces exactly those blind spots.</p>
+        <p>The templates themselves act as a second layer of quality control. Spec Kit's spec-driven methodology has
+        templates that <strong>prevent premature implementation detail</strong> (a spec that names a database engine is
+        already making the plan's decisions), force explicit uncertainty marking with
+        <code>[NEEDS CLARIFICATION]</code> tags — so a gap is a visible flag, not a silent guess — and enforce
+        constitutional phase gates. Two are worth memorizing: the <strong>Simplicity Gate</strong> (≤3 projects, no
+        speculative future-proofing) and the <strong>Test-First Imperative</strong>: "no implementation code shall be
+        written before unit tests are written." Test scenarios aren't written after the code; they're part of the
+        specification that generates both.</p>
+        <p>Why so much ceremony before a single line of code? Because of where the industry actually is. Controlled
+        studies report <strong>20–56% productivity gains</strong> from AI coding on well-scoped tasks — while rigorous
+        research on experienced developers documents a <strong>19% slowdown</strong>: more PRs, but longer review cycles
+        that eat the gains. The Productivity-Reliability Paradox paper's thesis is blunt:
+        <strong>specification discipline, not model capability, is the binding constraint.</strong> Skip the upstream
+        gates and you don't save the time — you move the cost downstream into review congestion, where it's more
+        expensive. The checklist gate is where a bad requirement costs you five minutes instead of a sprint.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Gate 2 · cross-artifact consistency</div>
+        <h2>Analyze: the last defense before code exists</h2>
+        <p>The checklist tested each artifact on its own. The second gate tests them <em>against each other</em>.
+        <code>/speckit.analyze</code> checks <strong>spec/plan/task consistency before implementation starts</strong> —
+        cross-artifact validation that the spec, the technical plan, and the task list are coherent with one another and
+        map back to the project constitution. It's hunting a specific and very common failure: three documents that are
+        each individually fine and collectively contradictory.</p>
+        <p>Think about how that happens. You wrote the spec Monday. Tuesday's plan quietly reinterpreted a requirement.
+        Wednesday's task decomposition dropped one requirement entirely and invented a task that no requirement asked
+        for. Each document passed its own review. An agent handed this bundle will do something — agents always do
+        something — but there is no correct output for contradictory inputs. The analyze gate catches the drift
+        <em>between</em> artifacts while a fix is still an edit to a markdown file. It can be re-run after coding, but
+        the pre-implement pass is where gaps are still cheap.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a seeded spec/plan/tasks bundle
+        with three planted inconsistencies (a dropped requirement, a plan that contradicts the spec, an orphan task).
+        You hunt them by hand, then run the checklist + analyze gates and compare your findings against the tool's.
+        Needs backend standup.</p></div>
+        <p>Here's the mental model to keep: this pair of gates is the spec-world equivalent of CI. Checklist = unit
+        tests (each requirement is well-formed). Analyze = integration tests (the artifacts agree). And exactly like CI,
+        the value isn't that the gates always find something — it's that <strong>passing them is what earns the right to
+        hand off</strong>. An FDE who hands an unanalyzed bundle to an agent is doing the AI-era version of deploying
+        straight from a laptop: it works until it very much doesn't, and when it doesn't, nobody can tell whether the
+        agent failed or the inputs did.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">The handoff itself</div>
+        <h2>Hand off clean: fresh context, self-contained spec</h2>
+        <p>Gates passed — now the actual handoff. There are two production-grade patterns to know, and they agree on the
+        essentials.</p>
+        <p><strong>Kiro's three-artifact model</strong> (AWS's spec-driven agentic IDE) hands off exactly what you built
+        this week: <code>requirements.md</code> (user stories + acceptance criteria), <code>design.md</code> (technical
+        architecture, sequence diagrams, implementation considerations), and <code>tasks.md</code> — "discrete,
+        trackable tasks" with clear outcomes. Execution runs through a real-time task interface with in-progress and
+        completed status, and "Run all Tasks" builds a <strong>dependency graph and executes in waves</strong> —
+        independent tasks concurrently, dependent tasks sequentially after their prerequisites. Your task decomposition
+        from Day 4 isn't just a to-do list; it's the execution schedule.</p>
+        <p><strong>Claude Code's recommended workflow</strong> is the four-phase
+        <strong>Explore → Plan → Implement → Commit</strong>: explore in plan mode (read-only), produce a detailed
+        implementation plan you can edit before proceeding, then switch modes and implement <em>verifying against the
+        plan</em>, then commit and open the PR. The reason for the separation is stated plainly in the docs: splitting
+        research and planning from implementation "avoids solving the wrong problem." The strongest variant for
+        milestone-sized work: have the agent interview you to produce a complete <code>SPEC.md</code>, then
+        <strong>start a fresh session to execute it</strong> — a clean context focused entirely on implementation,
+        carrying none of the exploratory noise.</p>
+        <p>And what makes a spec <em>survive</em> that fresh session? The docs' answer is the checklist for your
+        milestone: "the most useful specs are self-contained: they <strong>name the files and interfaces
+        involved</strong>, state <strong>what is out of scope</strong>, and end with an <strong>end-to-end verification
+        step</strong> that proves the feature works." Self-containment is the whole trick. A fresh session knows nothing
+        you didn't write down — which is precisely why fresh-session execution is a brutal, honest test of whether your
+        spec was ever actually finished.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Verification</div>
+        <h2>Give the implementer a check it can run</h2>
+        <p>That "end-to-end verification step" at the bottom of the spec is not decoration — it's the difference between
+        an agent that iterates and an agent that guesses. The Claude Code best-practices docs put it as a rule:
+        <strong>give the agent a way to verify its work</strong>. Without a check it can run, "looks done" is the
+        agent's only stop signal — and you, the human, silently become the verification loop, re-reading every diff to
+        decide whether the work is real.</p>
+        <p>A check closes the loop mechanically. It can be a test suite, a build exit code, a linter, a fixture diff, a
+        screenshot compare — anything with a pass/fail the agent can read. Now the cycle is: work, run the check, read
+        the result, fix, repeat until green. The agent stops when the <em>check</em> says done, not when the prose
+        sounds confident. This is why the Test-First Imperative from the constitution gates matters operationally, not
+        just philosophically: tests written before implementation <em>are</em> the check the implementer runs.</p>
+        <p>Pair it with the second rule: <strong>evidence over assertion</strong>. Have the agent show the test output,
+        the command it ran and what it returned — not a sentence claiming success. "All tests pass" is a claim;
+        a pasted pytest summary with 34 passed is evidence. When you review agent work, the first thing you look for is
+        whether the claimed verification actually happened, and the fastest way to make that reviewable is to demand the
+        receipts up front.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: two agent transcripts for the
+        same task — one asserting "done, everything works," one showing the failing check, the fix, and the passing
+        rerun. You mark which one you'd trust and why, then write the one-line verification step you'd add to the spec.
+        Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Convergence</div>
+        <h2>Converge is a loop, not a step</h2>
+        <p>The first implementation pass will not fully match the spec. That's not pessimism — it's the design
+        assumption of every serious spec-driven tool. Spec Kit ends its pipeline with <code>/speckit.converge</code>:
+        after implement, run converge to <strong>"verify all planned work is complete and generate tasks for any
+        remaining gaps."</strong> If new tasks appear, you implement again, converge again — and repeat "until the
+        feature has converged." Gap closure between spec and code is <strong>iterative by design</strong>. The exit
+        condition isn't "the agent says it's finished"; it's "converge finds zero remaining gaps."</p>
+        <p>The same philosophy handles the messier real-world case: requirements that change <em>mid-implementation</em>,
+        which on a client engagement they will. Kiro's answer is <strong>re-sync, don't abandon</strong>: when
+        requirements change, you navigate to <code>tasks.md</code> and choose <strong>Sync Files</strong> to generate
+        new tasks mapped to the new requirements. And while implementation is in flight, the <code>#spec</code> context
+        provider lets you check whether the code being written still matches the spec's requirements. Drift is handled
+        by pulling the artifacts and the code back together, not by letting the spec rot into fiction while the code
+        wanders off.</p>
+        <p>Read the two mechanisms as one principle and it's the heart of the day: <strong>the spec stays authoritative
+        for the entire lifecycle</strong>, not just at kickoff. Converge closes code-toward-spec gaps; Sync closes
+        spec-toward-reality gaps. Teams that skip this treat the spec as a launch document, and within two weeks it
+        describes a system that no longer exists — at which point every downstream promise of spec-driven development
+        (traceability, reviewability, safe re-generation) quietly dies. The loop is what keeps the inversion from step
+        one true: code keeps serving the spec only if you keep making it.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Adversarial review</div>
+        <h2>A fresh context reviews the diff — gaps, not style</h2>
+        <p>Converged code still hasn't earned a merge. The next stage is <strong>adversarial review in a fresh
+        context</strong>: before treating a task as done, have a subagent review the diff in a context that "sees only
+        the diff and the criteria you give it, not the reasoning that produced the change." That last clause is the
+        active ingredient. A model reviewing code inside the session that wrote it inherits every assumption and
+        rationalization that produced the bug. A fresh context inherits nothing — the docs are explicit that "a fresh
+        context improves code review since Claude won't be biased toward code it just wrote."</p>
+        <p>The review prompt has a shape: name the work, name the plan to check against, and define what counts as a
+        finding — <strong>"check that every requirement is implemented, the listed edge cases have tests, and nothing
+        outside the task's scope changed. Report gaps, not style preferences."</strong> That's requirement coverage,
+        edge-case coverage, and scope containment: the three ways an implementation betrays its spec. This generalizes
+        into the <strong>writer/reviewer session pattern</strong>: Session A implements, Session B reviews against
+        existing patterns and edge cases, findings loop back to A. The same separation works for test-writer versus
+        implementer.</p>
+        <p>Now the caveat that separates practitioners from prompt-followers — the <strong>over-engineering trap</strong>.
+        "A reviewer prompted to find gaps will usually report some, even when the work is sound." Chase every finding
+        and you accrete abstraction layers nobody needs, defensive code for impossible states, and tests for cases that
+        cannot occur. The fix is in the prompt: tell the reviewer to flag <em>only</em> gaps affecting correctness or
+        the stated requirements. Reviewer findings are signals to triage, not orders to obey — and knowing which
+        findings to decline is as much a review skill as finding them.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: paste a diff plus its plan; a
+        fresh-context reviewer agent returns findings, and you triage each one — real gap vs. over-engineering bait —
+        against the "correctness or stated requirements" bar. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Traceability &amp; the human bar</div>
+        <h2>Trace every requirement — then apply the human standard</h2>
+        <p>The final property that makes the whole pipeline auditable is <strong>traceability</strong>: the ability to
+        follow any individual requirement from the spec, through a task, into code and a test. This is why Kiro writes
+        acceptance criteria in <strong>EARS notation</strong> — "WHEN [condition or event] THE SYSTEM SHALL [expected
+        behavior]" — and the docs name the payoff explicitly: individual requirements <em>can be tracked through
+        implementation</em>. A requirement in EARS form is atomic and testable, so it can serve as a trace anchor: this
+        clause → that task → this function → that test. When a client asks "is requirement 14 actually built?", you
+        answer by following the thread, not by re-reading the codebase and hoping.</p>
+        <p>And the last gate is human, with a standard old enough to predate all of this and stable enough to outlive
+        it. Google's engineering practices: <strong>"reviewers should favor approving a CL once it is in a state where
+        it definitely improves the overall code health of the system being worked on, even if the CL isn't
+        perfect."</strong> Continuous improvement over perfection — while reviewers may still reject a change that adds
+        features nobody asked for, <em>regardless</em> of code quality. Both halves apply verbatim to agent output:
+        don't block a converged, reviewed implementation on taste, and don't merge out-of-spec scope just because the
+        code is clean. Where exactly the human adds the most value in this pipeline is live research — the CURRANTE
+        study (a SANER 2026 registered report) instruments a Specification → Tests → Function workflow to measure
+        precisely how human intervention at the spec and test stages shapes generated-code quality.</p>
+        <p><strong>The milestone.</strong> Now run it, end to end, on the spec+plan+tasks you built across d1–d4:
+        (1) run the pre-handoff gates — checklist for requirement quality, analyze for cross-artifact consistency, fix
+        what they find; (2) hand off to an implementing agent with a self-contained spec that ends in a runnable
+        verification step; (3) converge-loop until spec, tasks, and code agree; (4) fresh-context adversarial review
+        against the plan — gaps, not style — and triage the findings; (5) human quality review under the
+        code-health bar, with evidence attached. Deliverables are in the goals panel. This exercise <em>is</em> the
+        week: everything before today built the artifacts; today proves they can drive a machine.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>The paradox research says the quiet part out loud: teams don't fail at AI-assisted delivery because the
+          model is weak — they fail because <strong>the handoff is undisciplined</strong>, and the cost resurfaces as
+          review congestion where it's most expensive. The FDE's edge is owning the whole pipeline: gate the artifacts,
+          hand off clean, demand evidence, converge, review adversarially, apply the human bar. Next week we open the
+          black box and study the executor itself — the coding agents.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://github.github.com/spec-kit/quickstart.html" target="_blank" rel="noopener">Spec Kit — Quick Start Guide</a> — the full 9-command workflow; checklist, analyze, implement, and the converge-until-done loop.</li>
+          <li><a href="https://github.github.com/spec-kit/" target="_blank" rel="noopener">GitHub Spec Kit — Documentation</a> — Spec → Plan → Tasks → Implement framing; 30+ agent integrations, no lock-in.</li>
+          <li><a href="https://github.com/github/spec-kit/blob/main/spec-driven.md" target="_blank" rel="noopener">spec-driven.md — github/spec-kit</a> — code-serves-specifications inversion, <code>[NEEDS CLARIFICATION]</code> templates, constitutional phase gates, test-first ordering.</li>
+          <li><a href="https://github.com/github/spec-kit/releases" target="_blank" rel="noopener">Releases — github/spec-kit</a> — v0.12.3 (2026-07-01), including recent checklist/converge fixes.</li>
+          <li><a href="https://kiro.dev/docs/specs/" target="_blank" rel="noopener">Kiro Docs — Specs</a> — requirements/design/tasks artifact model; wave-based dependency-graph task execution.</li>
+          <li><a href="https://kiro.dev/docs/specs/feature-specs/" target="_blank" rel="noopener">Kiro Docs — Feature Specs</a> — EARS acceptance-criteria notation and requirement traceability through implementation.</li>
+          <li><a href="https://kiro.dev/docs/specs/best-practices/" target="_blank" rel="noopener">Kiro Docs — Best Practices</a> — Sync Files re-tasking on requirement change; <code>#spec</code> implementation-vs-requirements checks.</li>
+          <li><a href="https://code.claude.com/docs/en/best-practices" target="_blank" rel="noopener">Claude Code Docs — Best practices</a> — explore/plan/implement/commit; verification checks and evidence; fresh-session spec execution; adversarial subagent review; over-engineering caveat.</li>
+          <li><a href="https://google.github.io/eng-practices/review/reviewer/standard.html" target="_blank" rel="noopener">Google Engineering Practices — The Standard of Code Review</a> — "definitely improves the overall code health … even if the CL isn't perfect."</li>
+          <li><a href="https://arxiv.org/abs/2601.03878" target="_blank" rel="noopener">arXiv 2601.03878 — Understanding Specification-Driven Code Generation with LLMs</a> — CURRANTE Specification→Tests→Function workflow; where human intervention matters most.</li>
+          <li><a href="https://arxiv.org/abs/2605.01160" target="_blank" rel="noopener">arXiv 2605.01160 — The Productivity-Reliability Paradox</a> — 20–56% gains vs 19% slowdown; spec discipline as the binding constraint.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">The paradox numbers &amp; where the human belongs</div>
+          <div class="ac-meta">optional · +8 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on the handoff pipeline</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 5 Day 5</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the paradox numbers &amp; where the human belongs</h2>
+    <p class="quiz-sub">Optional. ~8 minutes. The research behind "spec discipline is the binding constraint."</p>
+    <p><strong>Two findings that look contradictory.</strong> Controlled studies of AI coding report
+    <strong>20–56% productivity gains</strong> on well-scoped tasks. Yet a rigorous study of experienced developers
+    working in their own mature codebases measured a <strong>19% slowdown</strong> — developers produced <em>more</em>
+    PRs, but review cycles stretched enough to eat the throughput. The Productivity-Reliability Paradox paper
+    (arXiv 2605.01160) resolves the tension: the gains show up when tasks are precisely scoped and verifiable; the
+    slowdown shows up when they aren't, because unreviewed ambiguity converts into <strong>review congestion</strong>
+    downstream. Its thesis: <em>specification discipline, not model capability, is the binding constraint</em> — and it
+    cites Spec Kit as an instantiation of the structured spec governance that prevents the congestion.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Reading the paradox as a budget</div>
+      <p style="margin:8px 0 0">The hours you "save" by skipping checklist + analyze don't vanish — they reappear,
+      multiplied, in review. A missed requirement caught by <code>/speckit.analyze</code> costs one markdown edit. The
+      same miss caught in PR review costs a review round-trip, a re-implementation, and a second review. Caught in
+      production, it costs an incident. The gates are the cheapest point on that curve — which is why the pipeline puts
+      two of them <em>before</em> a single line of code exists.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Where does the human add the most value?</strong> That's an open, actively
+    measured question. The CURRANTE study (arXiv 2601.03878, a SANER 2026 Stage-1 registered report) instruments a
+    three-stage <strong>Specification → Tests → Function</strong> workflow to measure how human intervention at the
+    specification and test-refinement stages influences the quality and dynamics of LLM-generated code. The working
+    hypothesis embedded in every tool you met today — Spec Kit's pre-implement gates, Kiro's requirements-first
+    artifacts, Claude Code's editable plan phase — is that the human belongs <em>upstream</em>, shaping specs and tests,
+    with the downstream loop increasingly mechanical. The registered report exists to test that hypothesis instead of
+    assuming it.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 5 — goals &amp; ★ milestone deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Run the full handoff pipeline: gates → handoff → verification → convergence → review</li>
+      <li>Use checklist ("unit tests for English") and analyze (cross-artifact consistency) as pre-handoff gates</li>
+      <li>Write a self-contained spec an agent can execute in a fresh session — with a runnable verification step</li>
+      <li>Set up a fresh-context adversarial review (gaps, not style) and triage findings past the over-engineering trap</li>
+      <li>Trace an EARS requirement through task → code → test, and apply the "improves overall code health" merge bar</li>
+    </ul>
+    <div class="ma-k">★ Milestone — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Your d1–d4 spec + plan + tasks, <b>gated</b>: checklist + analyze findings and the fixes you made</li>
+      <li>The handoff: agent transcript or log of implementation from the self-contained spec, <b>with verification evidence</b> (test output, not assertions)</li>
+      <li>Convergence record: gap tasks found on the first converge pass and how the loop closed them</li>
+      <li>Adversarial review findings with your triage — which you fixed, which you declined as over-engineering, and why</li>
+      <li>A short <code>REVIEW.md</code>: your merge decision against the Google code-health standard, plus one requirement traced spec → task → code → test</li>
+    </ul>
+    <p class="goals-foot">This is the Week 5 milestone: the artifacts you authored all week, proven end to end against a
+    real implementing agent. Next week we study the executors themselves — the coding-agent landscape.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Back to Program →", href: "../../index.html" };
+window.DIAGRAM = {
+  title: "Spec → implementation · the handoff pipeline",
+  width: 500, height: 690,
+  nodes: [
+    // the finished artifacts from d1–d4
+    { id:"art", step:0, kind:"example", x:14, y:14, w:472, h:70,
+      label:"ARTIFACTS (from d1–d4)\n  spec.md · plan.md · tasks.md\n  \"code serves specifications\" — the spec is the source of truth" },
+
+    // pre-handoff gates
+    { id:"chk", step:1, x:28, y:104, w:212, h:64, label:"GATE 1\n/speckit.checklist\n\"unit tests for English\"",
+      detail:"Quality checklists that validate requirements for completeness, clarity, and consistency — after the plan, before any code. Surfaces blind spots (UX, security, accessibility). Templates add more control: [NEEDS CLARIFICATION] tags, Simplicity Gate (≤3 projects), Test-First Imperative." },
+    { id:"anz", step:2, x:260, y:104, w:226, h:64, label:"GATE 2\n/speckit.analyze\ncross-artifact consistency",
+      detail:"The last defense before implement: checks spec / plan / tasks agree with each other and map to the constitution. Catches the drift between individually-fine documents — a dropped requirement, a plan that contradicts the spec, an orphan task — while a fix is still a markdown edit." },
+
+    // the handoff / execution
+    { id:"impl", step:3, x:28, y:198, w:458, h:74, label:"HANDOFF → implementing agent\nself-contained SPEC.md · fresh session · wave execution",
+      detail:"Kiro: requirements.md + design.md + tasks.md; 'Run all Tasks' builds a dependency graph and executes in waves. Claude Code: Explore → Plan → Implement → Commit, or agent-interviewed SPEC.md executed in a fresh session. Self-contained = names files/interfaces, states out-of-scope, ends with an E2E verification step." },
+
+    // verification check
+    { id:"ver", step:4, x:28, y:302, w:212, h:70, label:"runnable CHECK\ntests · build · fixture diff",
+      detail:"Give the agent a way to verify its work — otherwise 'looks done' is its only stop signal and the human becomes the verification loop. Work → run check → read result → iterate until pass. Demand evidence over assertion: the test output and the command it ran, not 'tests pass.'" },
+
+    // convergence loop
+    { id:"conv", step:5, x:260, y:302, w:226, h:70, label:"/speckit.converge\ngap tasks → re-implement ↺",
+      detail:"Verify all planned work is complete and generate tasks for remaining gaps; if tasks appear, implement again and repeat until converged. Mid-flight requirement changes: Kiro's Sync Files regenerates tasks against the new requirements; #spec checks code against the spec during implementation. Iterative by design." },
+
+    // adversarial review
+    { id:"rev", step:6, x:28, y:404, w:458, h:70, label:"ADVERSARIAL REVIEW · fresh context, diff + criteria only\nevery requirement implemented · edge cases tested · nothing out of scope",
+      detail:"The reviewer sees only the diff and the criteria — not the reasoning that produced the change, so it can't inherit the writer's bias. Report gaps, not style. Caveat: a reviewer prompted to find gaps will usually report some even when the work is sound — triage findings, flag only what affects correctness or stated requirements." },
+
+    // human bar + traceability
+    { id:"ship", step:7, x:28, y:506, w:458, h:70, label:"HUMAN REVIEW → merge\n\"definitely improves overall code health, even if not perfect\"",
+      detail:"Google's standard: approve once the change definitely improves overall code health, even if imperfect — but reject out-of-spec features regardless of code quality. Traceability makes it auditable: EARS criteria (WHEN … THE SYSTEM SHALL …) anchor each requirement through task → code → test." },
+
+    // the paradox frame
+    { id:"why", step:7, x:120, y:606, w:266, h:60, label:"why: the paradox\n20–56% gains vs 19% slowdown",
+      detail:"Productivity-Reliability Paradox (arXiv 2605.01160): AI coding shows 20–56% gains on well-scoped tasks yet a 19% slowdown for experienced devs — more PRs, longer review cycles. Spec discipline, not model capability, is the binding constraint; skipping the gates moves the cost into review congestion." }
+  ],
+  edges: [
+    { id:"e_a1", step:1, from:"art",  to:"chk",  label:"gate", ly:-2 },
+    { id:"e_12", step:2, from:"chk",  to:"anz",  label:"then", ly:-6 },
+    { id:"e_2i", step:3, from:"anz",  to:"impl", label:"cleared → hand off", lx:6 },
+    { id:"e_iv", step:4, from:"impl", to:"ver",  label:"prove it", lx:-6 },
+    { id:"e_vc", step:5, from:"ver",  to:"conv", label:"green?", ly:-6 },
+    { id:"e_ci", step:5, from:"conv", to:"impl", label:"gap tasks ↺", bend:30, lx:8 },
+    { id:"e_cr", step:6, from:"conv", to:"rev",  label:"converged → review", lx:8 },
+    { id:"e_rs", step:7, from:"rev",  to:"ship", label:"gaps triaged", lx:-6 },
+    { id:"e_tr", step:7, from:"art",  to:"ship", label:"requirements traced end-to-end", bend:-40, lx:-4 }
+  ],
+  captions: [
+    "The week's artifacts — <b>spec, plan, tasks</b> — enter a defined pipeline. Code serves specifications, so the handoff is a stage, not a leap. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Gate 1: <b>/speckit.checklist</b> runs 'unit tests for English' — completeness, clarity, consistency of the requirements, before any code exists. <span style='opacity:.7'>(tap)</span>",
+    "Gate 2: <b>/speckit.analyze</b> checks the artifacts <b>against each other</b> — spec / plan / tasks coherence. The last defense before implement. <span style='opacity:.7'>(tap)</span>",
+    "Gates cleared → <b>hand off</b>: a self-contained spec, a fresh session, and wave-based task execution against the dependency graph. <span style='opacity:.7'>(tap)</span>",
+    "The spec ends in a <b>runnable check</b> — so the agent iterates to green instead of stopping at 'looks done.' Evidence over assertion. <span style='opacity:.7'>(tap)</span>",
+    "<b>/speckit.converge</b> finds gaps and generates tasks; re-implement and repeat until spec, tasks, and code agree. A loop, not a step. <span style='opacity:.7'>(tap)</span>",
+    "A <b>fresh-context reviewer</b> checks the diff against the plan: requirements, edge cases, scope. Gaps, not style — and triage the findings. <span style='opacity:.7'>(tap)</span>",
+    "The human bar: merge what <b>definitely improves code health</b>; reject out-of-spec scope. Traceability makes the whole run auditable. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w05-d5",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "In Spec Kit's nine-command workflow, what is the purpose of running /speckit.analyze before /speckit.implement?",
+      options: [
+        "It generates the task list from the plan",
+        "It validates that spec, plan, and tasks are consistent with each other and the constitution — before any code exists",
+        "It executes the implementation in a sandboxed dry run",
+        "It formats the spec for the target coding agent" ],
+      answer: 1,
+      explain: "Analyze is cross-artifact validation — the last defense before implement. Each document can be individually fine and collectively contradictory; analyze catches that drift while a fix is still a markdown edit." },
+    { type: "scq",
+      stem: "Per Claude Code's best practices, why execute a finished SPEC.md in a FRESH session rather than the session that wrote it?",
+      options: [
+        "Fresh sessions run on faster hardware",
+        "It resets the token billing meter",
+        "A clean context focuses entirely on implementation — and it's an honest test that the spec is truly self-contained",
+        "The writing session is read-only and cannot edit files" ],
+      answer: 2,
+      explain: "A fresh session knows nothing you didn't write down. If the spec names the files and interfaces, states what's out of scope, and ends with a verification step, it survives the handoff; if it leaned on unwritten context, the fresh session exposes that immediately." },
+    { type: "tf",
+      stem: "Once /speckit.implement finishes without errors, the handoff is complete and the work is done.",
+      answer: false,
+      explain: "False. Convergence is a loop, not a step: /speckit.converge verifies all planned work is complete and generates tasks for remaining gaps — then you implement again and repeat until the feature has converged. The exit condition is zero remaining gaps, not 'the agent finished.'" },
+    { type: "mcq",
+      stem: "Which of these belong in a fresh-context adversarial review prompt, per today's reading? (select all that apply)",
+      options: [
+        "Check that every requirement is implemented",
+        "Check that the listed edge cases have tests",
+        "Check that nothing outside the task's scope changed",
+        "Report style preferences alongside gaps",
+        "Give the reviewer the full reasoning transcript that produced the change" ],
+      answer: [0, 1, 2],
+      explain: "The review criteria are requirement coverage, edge-case coverage, and scope containment — 'report gaps, not style preferences.' And the reviewer should see only the diff and the criteria, not the reasoning that produced the change, so it can't inherit the writer's bias." },
+    { type: "match",
+      stem: "Match each pipeline mechanism to what it protects against.",
+      pairs: [
+        { l: "/speckit.checklist ('unit tests for English')", r: "ambiguous or incomplete requirements reaching the agent" },
+        { l: "A runnable verification step in the spec", r: "'looks done' being the agent's only stop signal" },
+        { l: "Kiro's Sync Files on tasks.md", r: "spec/code drift when requirements change mid-flight" },
+        { l: "'Flag only correctness or stated-requirement gaps'", r: "the over-engineering trap of chasing every reviewer finding" } ],
+      explain: "Checklist gates requirement quality before code exists; a runnable check closes the agent's verify loop; Sync Files re-maps tasks to changed requirements instead of letting the spec rot; and scoping the reviewer's findings prevents defensive code and needless abstraction — a reviewer told to find gaps usually will, even in sound work." },
+    { type: "open",
+      stem: "A converged, adversarially-reviewed PR from your agent is solid code — but it also adds a small 'nice to have' feature no requirement asked for. Using the Google code-review standard, what do you do and why?",
+      hint: "Two halves of the standard: the approval bar, and the out-of-scope clause.",
+      model: "The standard says approve once a change definitely improves overall code health even if imperfect — but it explicitly allows rejecting a change that adds features nobody asked for, regardless of code quality. So the out-of-spec feature comes out: request its removal (or a separate spec'd change) before merge. Scope containment is one of the three review criteria, and traceability breaks the moment code exists that maps to no requirement." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

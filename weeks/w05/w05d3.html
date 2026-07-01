@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w05d3">
+<meta name="fde-concepts" content="speckit-constitution,sdd-tooling-landscape,adr-lifecycle,agent-knowledge-artifacts">
+<title>W5·D3 — Spec Frameworks &amp; Tooling | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>The Spec-Driven Tooling Landscape</h1>
+        <div class="meta">
+          <span><b>Week 5</b> · Day 3</span>
+          <span>Spec-Driven Development</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Monday gave you the <em>why</em> of spec-driven development; yesterday you practiced turning
+        vague asks into requirements. Today is the <strong>tool map</strong>: GitHub's spec-kit and its peers (Kiro
+        specs, OpenSpec), the Architecture Decision Record discipline that outlives any single tool, and the
+        machine-readable knowledge artifacts — constitutions, decision logs, <code>AGENTS.md</code> — that agents now
+        consume instead of tribal knowledge. Underneath the logos there is exactly one design axis:
+        <strong>where does each tool lock a decision, and where does it let you defer?</strong> Scroll the reading; the
+        panel on the right assembles the landscape one layer at a time, then places every tool on that axis.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The landscape</div>
+        <h2>Specs became executable — so tooling grew around them</h2>
+        <p>For most of software history, a specification was a document that <em>described</em> the system and then
+        drifted away from it. The generation of tools you meet today inverts that. GitHub's
+        <strong>spec-kit</strong> — the reference open-source toolkit for Spec-Driven Development — states the thesis
+        outright: specifications become <em>executable artifacts</em> that "directly generate working implementations,"
+        not guidance documents. Its methodology paper calls this the <strong>power inversion</strong>: "code serves
+        specifications." The spec is the generative source of truth, and implementation plans and code are
+        <em>continuously regenerated output</em>. When the spec and the code disagree, the spec wins and the code gets
+        regenerated — the opposite of every "the docs are out of date" culture you've ever worked in.</p>
+        <p>Once specs are load-bearing like that, they need real engineering support — templates, pipelines, validation
+        gates, version control — and that's what today's landscape is. Three tools anchor it. <strong>Spec-kit</strong>
+        (currently 0.12.3, with 30+ agent integrations spanning Copilot, Claude Code, Gemini CLI, and Codex CLI) is the
+        rigorous, phase-gated pipeline. <strong>Kiro</strong>, AWS's agentic IDE, bakes specs into the editor as three
+        structured files with approval gates between phases. <strong>OpenSpec</strong> is the lightweight rebel that
+        rejects phase gates entirely and scopes artifacts per-change. Around all three sit two older, tool-agnostic
+        disciplines: <strong>ADRs</strong> for capturing decisions, and agent-facing knowledge files like
+        <code>AGENTS.md</code>.</p>
+        <p>Here's the frame to hold for the whole day, because it's the one that survives the tools changing names:
+        every one of these systems is answering the same question differently — <strong>when a decision comes up, do
+        you lock it now, or defer it and keep moving?</strong> Lock too early and you calcify guesses into law. Defer
+        too long and the decision gets made silently, by whoever's code merges first, with no record of why. Each tool
+        is a different bet on that trade, and picking one for a client means matching the bet to the client — not
+        picking the one with the most GitHub stars.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Tool 1 · spec-kit</div>
+        <h2>Spec-kit: a fixed artifact pipeline of slash commands</h2>
+        <p>Spec-kit's workflow is a fixed sequence of slash commands, each of which emits a Markdown artifact that
+        feeds the next. Note the naming — everything is namespaced <code>/speckit.*</code> (older writeups show bare
+        <code>/specify</code> and <code>/plan</code>; that's stale). The core pipeline:
+        <code>/speckit.constitution</code> establishes governing principles;
+        <code>/speckit.specify</code> captures the <em>what and why</em> — deliberately no tech stack;
+        <code>/speckit.plan</code> adds tech stack and architecture;
+        <code>/speckit.tasks</code> breaks the plan into an ordered task list;
+        <code>/speckit.taskstoissues</code> turns those tasks into GitHub issues; and
+        <code>/speckit.implement</code> executes. A seventh core command, <code>/speckit.converge</code>, closes the
+        loop: it assesses the actual codebase against the spec, plan, and tasks and appends the remaining work as new
+        tasks — the mechanism that keeps a living spec honest against a drifting repo.</p>
+        <p>Three more commands are <strong>optional</strong> validators, not mandatory pipeline steps:
+        <code>/speckit.clarify</code> runs structured de-ambiguation on a spec, <code>/speckit.analyze</code> checks
+        cross-artifact consistency (does the plan actually cover the spec? do the tasks cover the plan?), and
+        <code>/speckit.checklist</code> generates quality gates. The separation matters: the core pipeline is the
+        spine you always walk; the optional commands are inspection tools you reach for when the stakes or the
+        ambiguity justify them.</p>
+        <p>Why should an FDE care about the shape and not just the commands? Because the pipeline <em>is</em> the
+        methodology. Each artifact is a checkpoint where a human can read, correct, and approve before the next stage
+        compounds on it — which is precisely the anti-drift structure you already live inside with this program's own
+        pipeline. Spec-kit is what it looks like when "review the plan before the code" gets industrialized into
+        tooling that thirty different coding agents can plug into.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live spec-kit sandbox — type a one-line feature ask, watch <code>/speckit.specify</code> → <code>/speckit.plan</code> → <code>/speckit.tasks</code> generate the three artifacts side by side, then edit the spec and see the downstream artifacts regenerate. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Tool 1 · the lock mechanism</div>
+        <h2>The constitution — and the refusal to guess</h2>
+        <p>Two features make spec-kit the hardest "lock" in the landscape, and they're the two you'll be asked about
+        in interviews. The first is the <strong>constitution</strong>: a file at
+        <code>memory/constitution.md</code> holding the project's non-negotiable principles — things like
+        library-first design, test-first development, CLI interfaces for every capability, and
+        integration-over-isolation testing. The methodology's language is deliberately strong: the constitution is
+        <em>"immutable architectural law, not guidelines."</em> Its articles are enforced as something like
+        compile-time checks — template gates that every downstream spec, plan, and task list must pass — and any
+        deviation requires <strong>documented justification</strong>, not a shrug. You write it once, before any
+        planning happens, and everything else is generated under its constraints.</p>
+        <p>The second is spec-kit's ambiguity discipline. Instead of letting the LLM paper over an unspecified detail
+        with a plausible assumption, the templates <em>mandate</em> that unclear points be flagged inline as
+        <code>[NEEDS CLARIFICATION: specific question]</code>. The spec arrives with its own uncertainty made visible —
+        every place where a real decision is pending is marked, and the optional <code>/speckit.clarify</code> command
+        exists to resolve those markers through structured questioning. Compare that with what you diagnosed in Week 1:
+        a model that wasn't given a fact fills the gap with fluent invention. Spec-kit's markers are the same
+        hallucination lesson applied to <em>requirements</em>: don't let the gap get filled silently — surface it,
+        route it to a human, lock the answer, and only then generate.</p>
+        <p>Together the constitution and the markers define spec-kit's position on the axis: <strong>lock early,
+        explicitly, and in writing.</strong> Cross-cutting principles are locked before planning begins; per-feature
+        ambiguities are locked before implementation begins. Nothing significant is allowed to leak, undecided, into
+        code. That rigor is a superb fit for greenfield builds with real stakes — and, as you'll see in two steps,
+        it's exactly the property OpenSpec positions itself against.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Tool 2 · Kiro</div>
+        <h2>Kiro specs: three files, approval gates, EARS</h2>
+        <p><strong>Kiro</strong>, AWS's agentic IDE, is what spec-driven development looks like when it's built into
+        the editor rather than bolted on as a CLI. Every Kiro spec is the same three files:
+        <code>requirements.md</code> (user stories with acceptance criteria), <code>design.md</code> (architecture,
+        sequence diagrams, implementation strategy), and <code>tasks.md</code> (discrete, trackable tasks). The
+        workflow walks three phases — requirements → design → tasks — and in the standard workflows there are
+        <strong>approval gates between phases</strong>: a human signs off on the requirements before design is
+        generated, and on the design before tasks are. For well-understood features there's a "Quick Plan" mode that
+        skips the gates — an explicit acknowledgment that the lock-vs-defer dial should be tunable per feature, not
+        fixed per tool. Kiro also distinguishes <em>feature</em> specs from <em>bugfix</em> specs, and executes tasks
+        in concurrent <strong>waves</strong> once they're approved.</p>
+        <p>Kiro's most exportable idea is how it writes requirements: <strong>EARS</strong>, the Easy Approach to
+        Requirements Syntax. Every requirement takes the shape
+        <em>"WHEN [condition or event] THE SYSTEM SHALL [expected behavior]."</em> That template looks almost too
+        simple until you try it on a mushy sentence. "The app should handle errors gracefully" becomes "WHEN an API
+        call fails with a 5xx error THE SYSTEM SHALL retry twice and then display a cached result." The first version
+        is a vibe; the second is <em>testable and traceable</em> — you can point at the acceptance test it implies and
+        the design element that satisfies it, which is precisely why Kiro chose it.</p>
+        <p>The FDE takeaway: even if a client never adopts Kiro, EARS is a notation you can carry into any
+        requirements conversation tomorrow, and "approval gates between requirements, design, and tasks" is a shape
+        you can impose on any tool — including a plain Claude Code session.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: an EARS rewriting drill — you get five mushy client requirements ("it should be fast", "handle bad input sensibly") and rewrite each as WHEN/SHALL; an LLM grader scores testability and traceability against a rubric. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Tool 3 · OpenSpec</div>
+        <h2>OpenSpec: per-change folders, no gates, brownfield-first</h2>
+        <p>The third anchor, <strong>OpenSpec</strong> (Fission-AI, v1.5.0), is the deliberate counter-position — and
+        it positions itself <em>explicitly against spec-kit's "rigid phase gates."</em> Where spec-kit and Kiro scope
+        specs at the project or feature-pipeline level, OpenSpec scopes them <strong>per change</strong>: every change
+        gets its own folder containing a <code>proposal.md</code> (why and what), a <code>specs/</code> directory of
+        requirements and scenarios, a <code>design.md</code>, and a <code>tasks.md</code>. The loop is
+        <strong>propose → apply → archive</strong> (driven by slash commands like <code>/opsx:propose</code>, working
+        across 20+ AI assistants): propose the change as artifacts, apply it to the codebase, then archive the folder
+        as a record of what happened. Recent releases add "Stores" — team-shared planning repos, in beta — so the
+        per-change folders can live in a shared space rather than one engineer's checkout.</p>
+        <p>The philosophical core is that artifacts are <strong>fluid</strong>: they can be updated at any time,
+        "without ceremony." There is no gate where a requirements document gets frozen and signed. That's a trade,
+        stated honestly — OpenSpec gives up upfront rigor to buy iteration speed. And it buys one more thing that
+        matters enormously in consulting work: <strong>brownfield fit</strong>. OpenSpec supports adopting spec-driven
+        habits on an <em>existing</em> system by capturing current system state as specs, rather than assuming you're
+        generating a codebase from scratch. Spec-kit's regenerate-from-spec thesis is most natural on greenfield;
+        most clients you'll meet are standing in fifteen years of brownfield.</p>
+        <p>So the landscape now has its two poles. Spec-kit: lock early, gate every phase, spec as generative source.
+        OpenSpec: defer freely, gate nothing, artifacts as living working notes scoped to the change in front of you.
+        Kiro sits between them, with gates you can switch off. None of these is "right" — the next question is what
+        your client's decisions actually cost when they're wrong, and that's where ADRs come in.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Decision capture · ADRs</div>
+        <h2>ADRs: lock the decision, keep the receipt</h2>
+        <p>Strip away the tooling and the oldest artifact in this landscape is still the most durable: the
+        <strong>Architecture Decision Record</strong>. The definitions, maintained at adr.github.io: an
+        <em>architectural decision</em> is a justified design choice addressing a functionally or non-functionally
+        significant requirement; an <em>architecturally significant requirement</em> (ASR) is one with measurable
+        effect on architecture and quality; an <strong>ADR documents one decision and its rationale</strong> — one
+        decision per record, deliberately small.</p>
+        <p>Michael Nygard's original 2011 format is five sections: <strong>Title, Status, Context, Decision,
+        Consequences</strong>. Context states the competing forces <em>neutrally</em> — what pressures existed, not a
+        sales pitch for the choice. Consequences lists outcomes both positive and negative. His motivation is the
+        line worth quoting to clients verbatim: <em>"large documents are never kept up to date; small, modular
+        documents have at least a chance."</em> ADRs live in version control (classically
+        <code>doc/arch/adr-NNN.md</code>) with sequential, never-reused numbers, and an outdated ADR is
+        <strong>superseded, never deleted</strong>. The modern structured alternative is <strong>MADR 4.0.0</strong>:
+        Context and Problem Statement, optional Decision Drivers, Considered Options, Decision Outcome with
+        justification, Consequences — plus optional pros/cons per option and a <em>Confirmation</em> section stating
+        how compliance will be verified. It ships full and minimal variants, each annotated or bare.</p>
+        <p>What makes ADRs an <em>operational</em> practice rather than documentation theater is the lifecycle, which
+        AWS's prescriptive guidance formalizes: an ADR is <strong>Proposed</strong>, reviewed in a meeting that starts
+        with dedicated 10–15 minutes of silent reading, then <strong>Accepted or Rejected</strong>. Once accepted, the
+        ADR is <strong>immutable</strong> — new insight doesn't edit the record, it produces a <em>new</em> ADR that
+        supersedes the old one, preserving the full decision history. And the resulting decision log has teeth: it is
+        consulted during code review, where <strong>reviewers can block a change that violates an accepted
+        ADR</strong>. Scope it by significance — structure, non-functional requirements, dependencies, interfaces,
+        construction techniques (Richards &amp; Ford's list). Write an ADR for every decision in that class; skip the
+        trivia.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: an ADR writing exercise — given a scenario (team must choose between Postgres and DynamoDB under stated constraints), draft a Nygard-format ADR in the browser and get LLM review against the format: is Context neutral? are negative Consequences present? is exactly one decision captured? Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Knowledge modeling</div>
+        <h2>Machine-readable project knowledge: the layer agents read</h2>
+        <p>Now zoom out and notice what the constitution and the ADR log have in common: they are <strong>project
+        knowledge encoded as versioned artifacts</strong> — written once, checked into git, and consumed by both
+        humans and machines. That's the pattern the industry has been converging on, and its most visible standard-
+        bearer is <strong><code>AGENTS.md</code></strong>: "a simple, open format for guiding coding agents." It's a
+        dedicated, predictable file — deliberately separate from the human-facing README — carrying the things an
+        agent needs to work in your repo: build and test commands, code style, conventions, security notes. Over
+        <strong>60,000 open-source projects</strong> carry one, with tooling support across OpenAI, Google, GitHub,
+        JetBrains, Cursor, and Devin, and <strong>nested files</strong> so each subproject in a monorepo can carry its
+        own agent-facing instructions.</p>
+        <p>Put the three artifact types side by side and you get what today's brief calls the <strong>knowledge
+        modeling layer</strong>. <code>AGENTS.md</code> answers <em>"how do we work here?"</em> — commands,
+        conventions, style. The spec-kit constitution answers <em>"what principles are non-negotiable?"</em> The ADR
+        log answers <em>"what did we decide, and why?"</em> Each replaces a different flavor of tribal knowledge — the
+        stuff that used to live in a senior engineer's head and leak out over coffee. When knowledge is modeled as
+        files, an agent spinning up on the repo and a human joining the team in month six inherit <em>the same
+        context</em>, automatically, from version control.</p>
+        <p>You already live this: the repo you work in every day has a <code>CLAUDE.md</code> that shapes how your
+        own coding agent behaves — same layer, same idea. And connect it back to Week 1: an agent's behavior is
+        determined by what's in its window. Knowledge artifacts are the <em>supply side</em> of context engineering —
+        curated, versioned, predictable files that make the right context cheap to load. A client whose conventions
+        live in five veterans' heads has an unwritten knowledge layer, and every agent (and every new hire) they
+        onboard pays that tax. Writing it down is often the highest-leverage first deliverable an FDE can ship.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">The axis</div>
+        <h2>Lock vs defer: one axis under all the logos</h2>
+        <p>Time to collapse the landscape onto its single organizing axis. At the <strong>lock-early</strong> end:
+        spec-kit, which forces ambiguity to the surface with <code>[NEEDS CLARIFICATION]</code> markers and freezes
+        cross-cutting principles in an immutable constitution <em>before planning even starts</em>. Right beside it,
+        Kiro's standard workflows, which insert human approval gates between requirements, design, and tasks — with
+        Quick Plan as the pressure valve for well-understood work. At the <strong>defer-and-iterate</strong> end:
+        OpenSpec, which rejects gates entirely, keeps every artifact fluid and updatable "without ceremony," and
+        scopes specs per-change — trading upfront rigor for iteration speed and brownfield fit.</p>
+        <p>And in the middle, the position that's easiest to defend in front of a client: <strong>lock with an escape
+        hatch</strong>. That's the ADR discipline. Decisions are genuinely locked — accepted ADRs are immutable and
+        enforced at code review — but they're reversible through an explicit supersede process that preserves the full
+        history. The team gets the stability of locked decisions without the brittleness, and the future team gets the
+        <em>why</em>, not just the <em>what</em>. Notice that this isn't a tool at all; it's a discipline you can
+        layer under any of the three tools above.</p>
+        <p>So the FDE playbook writes itself as diagnostic questions. How expensive is a wrong decision here —
+        regulated fintech core, or an internal dashboard? Expensive-to-reverse pushes you toward the lock end;
+        cheap-to-reverse rewards deferring. Greenfield or brownfield? Greenfield tolerates spec-kit's
+        regenerate-from-spec rigor; fifteen years of brownfield usually wants OpenSpec's capture-what-exists posture.
+        How much process will this team actually follow? A gate the team resents becomes a gate the team routes
+        around. Whatever you choose, two moves are near-universal: start an ADR log (the middle path costs almost
+        nothing and pays compound interest), and write the knowledge layer down — <code>AGENTS.md</code>, a
+        constitution, conventions — so agents and humans inherit the same context. Tomorrow we take a locked spec and
+        decompose it into phased, executable plans.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>Clients will ask "which spec tool should we use?" The FDE answer is a question back:
+          <strong>"which of your decisions are expensive to reverse — and where are they currently being made
+          silently?"</strong> Tools are bets on the lock-vs-defer axis. Map the client's reversal costs first, then
+          pick the bet — and whatever you pick, leave behind a decision log and a written knowledge layer, because
+          those outlive the tool.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://github.com/github/spec-kit" target="_blank" rel="noopener">github/spec-kit — GitHub</a> — the reference SDD toolkit: core <code>/speckit.*</code> pipeline (incl. <code>.converge</code>), optional commands, 30+ agent integrations.</li>
+          <li><a href="https://github.com/github/spec-kit/blob/main/spec-driven.md" target="_blank" rel="noopener">spec-driven.md — github/spec-kit</a> — the methodology: power inversion, the constitution as immutable law, <code>[NEEDS CLARIFICATION]</code> markers.</li>
+          <li><a href="https://kiro.dev/docs/specs/" target="_blank" rel="noopener">Specs — Kiro Docs</a> — three-file specs (requirements/design/tasks), feature vs bugfix types, wave-based execution.</li>
+          <li><a href="https://kiro.dev/docs/specs/feature-specs/" target="_blank" rel="noopener">Feature Specs — Kiro Docs</a> — EARS notation, approval gates between phases, Quick Plan mode.</li>
+          <li><a href="https://github.com/Fission-AI/OpenSpec/" target="_blank" rel="noopener">Fission-AI/OpenSpec — GitHub</a> — per-change folders, propose → apply → archive, anti-phase-gate positioning, brownfield adoption.</li>
+          <li><a href="https://adr.github.io/" target="_blank" rel="noopener">Architectural Decision Records — adr.github.io</a> — AD / ASR / ADR definitions, template catalog, tooling list.</li>
+          <li><a href="https://adr.github.io/madr/" target="_blank" rel="noopener">About MADR — adr.github.io/madr</a> — MADR 4.0.0 template sections, full/minimal × annotated/bare variants.</li>
+          <li><a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions" target="_blank" rel="noopener">Documenting Architecture Decisions — Cognitect (Nygard, 2011)</a> — the original five-section format and the small-modular-documents rationale.</li>
+          <li><a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/architectural-decision-records/adr-process.html" target="_blank" rel="noopener">ADR process — AWS Prescriptive Guidance</a> — Proposed → Accepted/Rejected → Superseded lifecycle, immutability, decision log enforced at code review.</li>
+          <li><a href="https://agents.md/" target="_blank" rel="noopener">AGENTS.md</a> — the open format for agent-facing project knowledge; 60k+ projects, nested monorepo files.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Nygard vs MADR — a worked ADR, both ways</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on the tooling landscape</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 5 Day 3</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: one decision, written both ways</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The same decision as a Nygard ADR and as MADR 4.0 — so you can feel the trade.</p>
+    <p><strong>Scenario.</strong> A client's order service must add full-text search. The team debated Elasticsearch
+    (a new cluster to run) vs Postgres <code>tsvector</code> (already in the stack, weaker relevance features). They
+    chose Postgres. Capture it.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Nygard format (2011) — five sections, prose-first</div>
+      <ul class="deliv-list">
+        <li><b>Title:</b> ADR-014: Use Postgres full-text search for order search</li>
+        <li><b>Status:</b> Accepted</li>
+        <li><b>Context:</b> Search must ship this quarter. Ops team is two people; every new stateful service adds pager load. Relevance needs are modest (order IDs, customer names, SKU text). Forces stated neutrally — Elasticsearch offers better ranking; Postgres is already operated and backed up.</li>
+        <li><b>Decision:</b> Implement search on Postgres <code>tsvector</code>/<code>tsquery</code> with a GIN index.</li>
+        <li><b>Consequences:</b> + no new infrastructure, ships inside the quarter, one backup story. − relevance tuning is limited; if search scope grows to documents/attachments we will need a dedicated engine — that would be a new ADR superseding this one.</li>
+      </ul>
+    </div>
+    <div class="model-answer show" style="margin-top:12px">
+      <div class="ma-k">MADR 4.0.0 — same decision, structured for comparison</div>
+      <ul class="deliv-list">
+        <li><b>Context and Problem Statement:</b> Order search needed by Q3; which engine?</li>
+        <li><b>Decision Drivers:</b> ops headcount, time-to-ship, existing backup/HA story, modest relevance needs.</li>
+        <li><b>Considered Options:</b> Elasticsearch cluster; Postgres FTS; hosted search SaaS.</li>
+        <li><b>Decision Outcome:</b> Postgres FTS — because it satisfies the drivers with zero new operational surface. (Pros/cons of each option recorded per template.)</li>
+        <li><b>Confirmation:</b> code review checks that no new search infra appears; load test proves p95 &lt; 200ms at 1M orders.</li>
+      </ul>
+    </div>
+    <p style="margin-top:14px"><strong>What to notice.</strong> Nygard optimizes for narrative speed — five sections you
+    can write in ten minutes, forces stated neutrally, consequences honest in both directions. MADR optimizes for
+    <em>comparability and verification</em> — options are enumerated, the winner is justified against explicit drivers,
+    and Confirmation makes compliance checkable at review time. Both share the lifecycle: this record is immutable once
+    Accepted; when the search scope outgrows Postgres, ADR-0NN <em>supersedes</em> ADR-014 — it never edits it — and
+    the history of <em>why</em> survives. MADR ships full and minimal variants (each annotated or bare); start minimal,
+    upgrade when a decision is contested.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 3 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Walk spec-kit's core <code>/speckit.*</code> pipeline and explain what the constitution and <code>[NEEDS CLARIFICATION]</code> markers each lock</li>
+      <li>Place spec-kit, Kiro, and OpenSpec on the lock-vs-defer axis and match each to a client situation (greenfield vs brownfield, reversal cost, team appetite for gates)</li>
+      <li>Describe the ADR lifecycle (Proposed → Accepted → Superseded), why accepted ADRs are immutable, and how the decision log gets teeth at code review</li>
+      <li>Explain the knowledge-modeling layer — <code>AGENTS.md</code>, constitutions, decision logs — as versioned context that agents and new humans inherit alike</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Create <code>doc/arch/adr-001.md</code> in Nygard's five-section format capturing one real decision your project has already made (stack, storage, framework — anything architecturally significant)</li>
+      <li>Add (or tighten) an <code>AGENTS.md</code> at your repo root: build/test commands, conventions, one security note</li>
+      <li>In <code>NOTES.md</code>: one sentence placing your own project on the lock-vs-defer axis, and why</li>
+    </ul>
+    <p class="goals-foot">Bring the ADR to Day 4 — decomposition into phased plans — where locked decisions become the
+    fixed points your plan is built around.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 4 — Decomposition into phased plans →", href: "w05d4.html" };
+window.DIAGRAM = {
+  title: "SDD tooling · the lock-vs-defer map",
+  width: 500, height: 690,
+  nodes: [
+    // the engagement scenario (dark example card)
+    { id:"task", step:0, kind:"example", x:14, y:14, w:472, h:78,
+      label:"CLIENT ENGAGEMENT  ·  \"which spec tool should we adopt?\"\n  3 candidate tools · decisions made silently in PRs today\n  real question: where do decisions get LOCKED, and where DEFERRED?" },
+
+    // the three tools (three columns)
+    { id:"sk", step:1, x:28, y:106, w:142, h:96, label:"SPEC-KIT\n(GitHub, 0.12.3)\nphase-gated pipeline",
+      detail:"Core /speckit.* pipeline: constitution → specify (what/why, no stack) → plan (stack + architecture) → tasks → taskstoissues (GitHub issues) → implement, plus /speckit.converge to reconcile the codebase back against spec/plan/tasks. Optional validators: /speckit.clarify, /speckit.analyze, /speckit.checklist. Each phase emits a Markdown artifact that feeds the next — the spec, not the code, is the generative source. 30+ agent integrations." },
+    { id:"kiro", step:3, x:186, y:106, w:140, h:96, label:"KIRO SPECS\n(AWS IDE)\n3 files · 3 phases",
+      detail:"Every spec is requirements.md (user stories + acceptance criteria), design.md (architecture, sequence diagrams), tasks.md (trackable tasks) across a requirements → design → tasks workflow. Standard workflows put human approval gates between phases; 'Quick Plan' skips gates for well-understood features. Feature and bugfix spec types; approved tasks execute in concurrent waves." },
+    { id:"ospec", step:4, x:342, y:106, w:144, h:96, label:"OPENSPEC\n(Fission-AI 1.5)\nno phase gates",
+      detail:"Each change gets its own folder: proposal.md (why/what), specs/ (requirements + scenarios), design.md, tasks.md — driven by propose → apply → archive (/opsx:propose), across 20+ assistants. Positions itself explicitly against spec-kit's 'rigid phase gates': artifacts update anytime 'without ceremony.' Brownfield-friendly — captures existing system state. Stores Beta adds team-shared planning repos." },
+
+    // spec-kit's lock mechanisms
+    { id:"const", step:2, x:28, y:214, w:142, h:56, label:"constitution.md\n\"immutable law\"",
+      detail:"memory/constitution.md — non-negotiable articles (library-first, test-first, CLI interfaces, integration-over-isolation testing) enforced like compile-time checks via template gates. 'Immutable architectural law, not guidelines' — any deviation requires documented justification. Written before planning; everything downstream is generated under its constraints." },
+    { id:"clar", step:2, x:28, y:280, w:142, h:52, label:"[NEEDS\nCLARIFICATION]",
+      detail:"Templates mandate that the LLM flag unclear points as [NEEDS CLARIFICATION: specific question] instead of making 'plausible assumptions' — ambiguity is surfaced immediately, resolvable via the optional /speckit.clarify command, rather than leaking silently into implementation. The tool-enforced 'lock' side of lock-vs-defer." },
+
+    // Kiro's notation
+    { id:"ears", step:3, x:186, y:214, w:140, h:56, label:"EARS\nWHEN… SHALL…",
+      detail:"Easy Approach to Requirements Syntax: 'WHEN [condition/event] THE SYSTEM SHALL [expected behavior].' Chosen for clarity, testability, and traceability — every requirement implies its acceptance test and maps to a design element. Portable: use it in any requirements conversation, with or without Kiro." },
+
+    // OpenSpec's loop
+    { id:"loop", step:4, x:342, y:214, w:144, h:56, label:"per-change folder\npropose→apply→archive",
+      detail:"Specs scoped per change, not per project: propose the artifacts, apply them to the codebase, archive the folder as the record. Fluid artifacts trade upfront rigor for iteration speed — and fit brownfield systems where you capture what exists instead of regenerating from scratch." },
+
+    // ADR layer
+    { id:"adr", step:5, x:28, y:352, w:222, h:72, label:"ADR decision log\ndoc/arch/adr-NNN.md",
+      detail:"One decision per record. Nygard (2011): Title / Status / Context (forces, stated neutrally) / Decision / Consequences (positive AND negative). MADR 4.0.0 adds Decision Drivers, Considered Options, Decision Outcome, Confirmation. Rationale: 'large documents are never kept up to date; small, modular documents have at least a chance.' Sequential never-reused numbers, version-controlled." },
+    { id:"cycle", step:5, x:264, y:352, w:222, h:72, label:"Proposed → Accepted\n→ Superseded (never edited)",
+      detail:"AWS's formalized lifecycle: Proposed → review meeting (dedicated 10–15 min reading time) → Accepted or Rejected. Accepted ADRs are immutable — new insight creates a NEW ADR that supersedes the old, preserving history. The decision log is consulted at code review, where reviewers can block changes that violate an accepted ADR. Scope: every architecturally significant decision (structure, NFRs, dependencies, interfaces, construction techniques)." },
+
+    // knowledge layer
+    { id:"agents", step:6, x:28, y:440, w:222, h:64, label:"AGENTS.md\nagent-facing knowledge",
+      detail:"'A simple, open format for guiding coding agents' — a predictable file separate from the human README: build/test commands, code style, conventions, security notes. 60,000+ open-source projects; supported across OpenAI, Google, GitHub, JetBrains, Cursor, Devin tooling. Nested files let each monorepo subproject carry its own instructions." },
+    { id:"layer", step:6, x:264, y:440, w:222, h:64, label:"KNOWLEDGE LAYER\nconstitution + ADRs + AGENTS.md",
+      detail:"Project knowledge modeled as versioned, machine-readable artifacts instead of tribal knowledge: AGENTS.md answers 'how do we work here?', the constitution 'what is non-negotiable?', the ADR log 'what did we decide and why?'. Agents and new humans inherit the same context from version control — the supply side of context engineering." },
+
+    // the axis
+    { id:"axis", step:7, x:28, y:534, w:458, h:96, label:"LOCK ◂──────────── the one real axis ────────────▸ DEFER\nspec-kit · Kiro gates        ADRs (lock + escape hatch)        OpenSpec",
+      detail:"Lock early: spec-kit ([NEEDS CLARIFICATION] markers + immutable constitution before planning) and Kiro's approval gates. Defer & iterate: OpenSpec — fluid artifacts, no gates, per-change scope, brownfield fit. Middle path: ADRs — decisions locked (immutable, enforced at review) but reversible via explicit supersede that preserves the why. Pick by reversal cost, greenfield vs brownfield, and how much process the team will actually follow." }
+  ],
+  edges: [
+    { id:"e_const", step:2, from:"const", to:"sk",   label:"gates every phase", ly:-2 },
+    { id:"e_clar",  step:2, from:"clar",  to:"const", label:"surface, then lock", lx:-4 },
+    { id:"e_ears",  step:3, from:"ears",  to:"kiro", label:"testable reqs", ly:-2 },
+    { id:"e_loop",  step:4, from:"loop",  to:"ospec", label:"no gates, fluid", ly:-2 },
+    { id:"e_adr",   step:5, from:"adr",   to:"cycle", label:"lifecycle", ly:-6 },
+    { id:"e_know",  step:6, from:"agents", to:"layer", label:"same versioned layer", ly:-6 },
+    { id:"e_lock",  step:7, from:"sk",    to:"axis",  label:"locks early", lx:-8 },
+    { id:"e_defer", step:7, from:"ospec", to:"axis",  label:"defers", lx:8 }
+  ],
+  captions: [
+    "One client question — \"which spec tool?\" — hides the real one: <b>where do decisions get locked vs deferred?</b> Today we build this map. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "<b>Spec-kit</b>: a fixed artifact pipeline of <code>/speckit.*</code> commands — constitution → specify → plan → tasks → issues → implement, with <b>converge</b> reconciling code back to spec. <span style='opacity:.7'>(tap)</span>",
+    "Spec-kit's lock mechanisms: an <b>immutable constitution</b> gating every phase, and <b>[NEEDS CLARIFICATION]</b> markers that surface ambiguity instead of guessing. <span style='opacity:.7'>(tap)</span>",
+    "<b>Kiro</b>: three files (requirements / design / tasks), approval gates between phases, and <b>EARS</b> — WHEN… THE SYSTEM SHALL… — for testable requirements. <span style='opacity:.7'>(tap)</span>",
+    "<b>OpenSpec</b>: the counter-position — per-change folders, propose → apply → archive, <b>no phase gates</b>, artifacts fluid 'without ceremony', brownfield-first. <span style='opacity:.7'>(tap)</span>",
+    "<b>ADRs</b>: one decision per small record (Nygard / MADR), moving <b>Proposed → Accepted → Superseded</b> — immutable once accepted, enforced at code review. <span style='opacity:.7'>(tap)</span>",
+    "The <b>knowledge layer</b>: AGENTS.md + constitution + ADR log — tribal knowledge turned into versioned files that agents and new humans inherit alike. <span style='opacity:.7'>(tap)</span>",
+    "Everything collapses onto one axis: spec-kit &amp; Kiro <b>lock early</b>, OpenSpec <b>defers</b>, ADRs lock <b>with an escape hatch</b>. Match the bet to the client's reversal costs. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w05-d3",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "In spec-kit, the LLM hits a detail the spec never pinned down (say, which auth provider). What does the methodology require it to do?",
+      options: [
+        "Pick the most common industry default and proceed",
+        "Flag it inline as [NEEDS CLARIFICATION: specific question] instead of assuming",
+        "Halt the entire pipeline until a human rewrites the spec from scratch",
+        "Add the detail to memory/constitution.md" ],
+      answer: 1,
+      explain: "Templates mandate [NEEDS CLARIFICATION: …] markers instead of 'plausible assumptions' — ambiguity is surfaced immediately and can be resolved with the optional /speckit.clarify command. It's the requirements-level version of the Week-1 hallucination lesson: don't let a gap get filled silently." },
+    { type: "scq",
+      stem: "A client is 15 years brownfield, ships small changes weekly, and their team routes around any process with sign-off gates. Which tool's bet fits best?",
+      options: [
+        "Spec-kit — the immutable constitution will fix the culture",
+        "Kiro standard workflow — more approval gates will slow them down safely",
+        "OpenSpec — per-change folders, no phase gates, captures existing system state",
+        "None; spec-driven development only works greenfield" ],
+      answer: 2,
+      explain: "OpenSpec scopes artifacts per-change, rejects phase gates ('without ceremony'), and explicitly supports brownfield adoption by capturing existing state. Matching the tool's lock-vs-defer bet to the client — reversal costs, brownfield, appetite for gates — is the whole skill." },
+    { type: "tf",
+      stem: "When an accepted ADR turns out to be wrong, the right move is to edit the record so it reflects the new decision.",
+      answer: false,
+      explain: "False. Accepted ADRs are immutable — new insight produces a NEW ADR that supersedes the old one, and the old record is never deleted. That preserves the full decision history, so future teams see why the original call was made, not just what replaced it." },
+    { type: "mcq",
+      stem: "Which of these belong to the machine-readable 'knowledge modeling' layer — versioned artifacts agents consume instead of tribal knowledge? (select all that apply)",
+      options: [
+        "AGENTS.md with build/test commands and conventions",
+        "Spec-kit's memory/constitution.md",
+        "The ADR decision log in doc/arch/",
+        "A senior engineer's verbal walkthrough on your first day",
+        "A Slack thread where the team once debated the database choice" ],
+      answer: [0, 1, 2],
+      explain: "The layer is defined by being versioned, predictable files: AGENTS.md ('how do we work here'), the constitution ('what's non-negotiable'), the ADR log ('what did we decide and why'). Verbal walkthroughs and buried Slack threads are exactly the tribal knowledge these artifacts replace." },
+    { type: "match",
+      stem: "Place each tool or practice at its position on the lock-vs-defer axis.",
+      pairs: [
+        { l: "Spec-kit constitution + [NEEDS CLARIFICATION]", r: "lock early, explicitly, before planning" },
+        { l: "Kiro standard workflow", r: "approval gates between requirements, design, tasks" },
+        { l: "OpenSpec propose → apply → archive", r: "defer and iterate — fluid artifacts, no gates" },
+        { l: "ADR discipline", r: "lock with an escape hatch — immutable but supersedable" } ],
+      explain: "Spec-kit forces decisions to the surface and freezes principles up front; Kiro locks at phase boundaries (with Quick Plan as the valve); OpenSpec keeps everything fluid per-change; ADRs lock decisions hard but make reversal explicit and history-preserving. One axis, four bets." },
+    { type: "open",
+      stem: "In one or two sentences: what does /speckit.converge do, and why does a 'spec as source of truth' methodology need a command like it at all?",
+      hint: "Think about what happens to real codebases over time, even disciplined ones.",
+      model: "/speckit.converge assesses the actual codebase against the spec, plan, and tasks, and appends the remaining gaps as new tasks. It exists because code drifts from spec even in disciplined teams — a methodology claiming the spec is the generative source of truth needs a reconciliation mechanism, or the spec quietly becomes just another out-of-date document." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

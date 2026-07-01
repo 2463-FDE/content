@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w05d2">
+<meta name="fde-concepts" content="stakeholder-discovery-interviews,ambiguity-clarification,ears-notation,requirement-quality-characteristics,acceptance-criteria-gherkin">
+<title>W5·D2 — Requirements Synthesis: Discovery to Spec | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Requirements Synthesis: Discovery to Spec</h1>
+        <div class="meta">
+          <span><b>Week 5</b> · Day 2</span>
+          <span>Client Discovery &amp; Spec Craft</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">A stakeholder says "the system should be fast and easy to use," and everyone in the room
+        nods. Six weeks later the demo lands wrong, and the postmortem discovers that "fast" meant three different
+        things to three different people. Today you learn the craft that prevents that: running discovery conversations
+        that surface what stakeholders actually mean, hunting the ambiguity in what they said, and compressing it into
+        a spec precise enough that a teammate — or an AI agent — can build from it without guessing. Scroll the
+        reading; the panel on the right turns one vague stakeholder sentence into a precise, testable spec, one
+        refinement at a time.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>Ambiguity in, garbage out — now with proof</h2>
+        <p>Requirements have been written in natural language since software began, and natural language is
+        <strong>inherently imprecise</strong>. The official EARS guide states the failure chain plainly: requirements
+        problems <em>propagate to lower levels</em>, creating "unnecessary volatility and risk, impacting programme
+        schedule and cost." A fuzzy sentence at the top becomes a wrong design in the middle and a rebuilt feature at
+        the bottom. That has always been true — but it used to be arguable, the kind of thing process people said and
+        engineers shrugged at.</p>
+        <p>It is no longer arguable, because we can now <em>measure</em> it. A 2025 study called <strong>SpecFix</strong>
+        looked at what happens when you hand ambiguous problem descriptions to LLM-based code generation: "unclear
+        problem descriptions may lead to incorrect program generation." The team built a tool that repairs the
+        ambiguity in the description <em>before</em> any code is generated — and on the benchmark problems it modified
+        (43.58% of them needed repair), <strong>Pass@1 jumped by 30.9%</strong>. Same model, same task, same effort;
+        the only variable was how precisely the requirement was stated. Even better, the repairs transferred: a
+        description clarified for one model made <em>other</em> models more accurate too (+10.48%).</p>
+        <p>Sit with what that means for your job. In the AI era, <strong>spec precision is a code-quality lever</strong>,
+        not a documentation nicety. Every ambiguity you fail to surface in a discovery conversation gets resolved
+        anyway — later, silently, by whoever or whatever implements the spec, <em>by guessing</em>. Today's craft is
+        the pipeline that stops the guess: discovery conversation → ambiguity hunt → precise requirement → testable
+        acceptance criteria. Each stage exists to squeeze interpretation out of the words before the words become
+        code.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Stage 1 · discovery</div>
+        <h2>Interview stakeholders about success, not features</h2>
+        <p>Discovery starts with a <strong>stakeholder interview</strong> — in Nielsen Norman Group's definition, "a
+        conversation with a person who has a vested interest in a project with a goal of gathering insights to drive
+        the project's success." Note what that definition does <em>not</em> say: it doesn't say "a meeting where the
+        client lists features." The beginner walks in with a notepad titled <em>what should it do?</em> The
+        practitioner walks in with a different first question: <strong>what does success look like?</strong></p>
+        <p>NN/g's recommended coverage gives you a four-area checklist to walk in every discovery conversation:
+        <strong>success metrics</strong> (how will this person know the project worked?), <strong>priorities</strong>
+        (what matters most, what's negotiable?), <strong>history and expertise</strong> (what's been tried, what does
+        this person know that you don't?), and <strong>process and workflow</strong> (how does the work actually flow
+        today?). Features fall out of those four areas naturally — and features gathered <em>without</em> them are
+        exactly the ones that get rebuilt, because nobody asked what problem they were supposed to solve.</p>
+        <p>Coverage matters more than cleverness. A merely competent interviewer who systematically touches all four
+        areas will out-discover a brilliant one who improvises, because the expensive failures are the areas nobody
+        visited at all. The findings, NN/g notes, "should help inform all aspects of your project: UX research,
+        ideation, priorities, timeline, resources, and stakeholder-engagement plans" — which is a polite way of saying
+        the interview <em>is</em> the foundation everything else stands on. For an FDE, whose whole role is landing at
+        a client and figuring out what to build, this is not a soft skill on the side of the engineering. It is the
+        first engineering artifact of the engagement.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Stage 1 · probing</div>
+        <h2>Follow-up questions are where discovery actually happens</h2>
+        <p>The first answer a stakeholder gives you is almost never the real one — it's the rehearsed one. The real
+        material comes out under <strong>open-ended probing</strong>: "Tell me more about that." "Can you give me an
+        example?" "Why is that important to you?" Each of those forces the stakeholder off the script and into the
+        specifics where requirements actually live. "We need better reporting" is a script line; "last quarter our VP
+        spent two days hand-building a spreadsheet because the export drops the region column" is a requirement.</p>
+        <p>The failure modes are just as well-catalogued as the techniques: interviewing <strong>too late</strong>
+        (after the decisions the interview should have informed), asking <strong>closed-ended questions</strong> that
+        yield a yes/no where a story was available, and <strong>interrupting</strong> — filling the silence the
+        stakeholder was about to fill with the thing you needed to hear. Notice that all three are coverage failures,
+        not intelligence failures. You don't miss requirements because you aren't clever; you miss them because of
+        "lack of familiarity with the domain, excessive cognitive load, and information overload" — the three
+        pressures a CMU study identifies as the reason human interviewers drop threads mid-conversation.</p>
+        <p>That same study (Shen, Singhal &amp; Breaux, 2025) has a finding you should carry into every engagement:
+        GPT-4o-generated follow-up questions were rated <em>no worse</em> than human-authored ones for clarity,
+        relevancy, and informativeness — and when the generation was <strong>guided by a taxonomy of common
+        interviewer mistakes</strong>, the LLM's questions beat the humans'. Read that carefully, because the lesson
+        isn't "let AI run your interviews." It's that <strong>a mistake-and-coverage framework beats freeform "ask
+        good questions"</strong> — for the model <em>and for you</em>. Walk in with the checklist, track what you
+        haven't covered, and use an AI copilot to catch the threads you dropped while you were busy listening.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live interview-practice
+        widget — you play the FDE against an AI stakeholder with a hidden brief; it scores your coverage of the four
+        NN/g areas and flags closed-ended questions and missed follow-up threads in real time. Needs backend
+        standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Stage 2 · the gate</div>
+        <h2>Hunt the ambiguity before it hunts you</h2>
+        <p>Between the conversation and the spec sits the day's most important discipline: the <strong>ambiguity
+        hunt</strong>. Take every sentence you captured and interrogate it — could two reasonable people read this
+        differently? "The dashboard should load quickly." Quickly on what hardware, what network, what data volume?
+        Under 200ms or under 5 seconds? Every one of those unanswered questions is a decision someone downstream will
+        make for the stakeholder, without asking.</p>
+        <p>The formal bar for when you've squeezed enough ambiguity out comes from
+        <strong>ISO/IEC/IEEE 29148:2018</strong>, the active international standard for requirements engineering. Its
+        widely-taught characteristics of a well-formed requirement include: <strong>necessary</strong> (delete it and
+        something breaks), <strong>unambiguous</strong> (interpretable in <em>only one way</em>),
+        <strong>complete</strong> (needs no further amplification), <strong>singular</strong> (one requirement per
+        statement — no smuggled "and"), <strong>feasible</strong>, <strong>verifiable</strong> (you can devise a test
+        that proves it's met — enhanced when the requirement is measurable), and <strong>traceable</strong> (you can
+        point back to who needs it and why). "Fast and easy to use" fails four of those at once: it's ambiguous,
+        double-barreled, unverifiable, and traceable to nobody in particular.</p>
+        <p>The modern move — borrowed straight from spec-driven tooling — is to make the ambiguity <em>visible</em>
+        instead of resolving it silently: mark the spec with an explicit <strong><code>[NEEDS CLARIFICATION]</code></strong>
+        tag wherever a question is still open, and take the list back to the stakeholder as a batch. That tag is a
+        small piece of genius. It converts ambiguity from an invisible landmine into a tracked work item, and it makes
+        the honest state of the spec legible: not "done," but "done except these six named questions." An FDE who
+        returns from discovery with six sharp <code>[NEEDS CLARIFICATION]</code> items looks far more competent than
+        one who returns with false confidence — and ships far fewer rebuilds.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Stage 3 · EARS</div>
+        <h2>EARS: five sentence shapes that remove interpretation</h2>
+        <p>Once you know what the stakeholder means, you need a way to write it down that <em>can't</em> drift back
+        into fuzz. That's <strong>EARS</strong> — the Easy Approach to Requirements Syntax (Mavin et al., 2009). Its
+        generic structure is one line: <em>"While &lt;optional pre-condition&gt;, when &lt;optional trigger&gt;, the
+        &lt;system name&gt; shall &lt;system response&gt;."</em> Clauses always appear in the same temporal order —
+        precondition, then trigger, then system, then response — and that fixed order is the anti-ambiguity mechanism.
+        There's exactly one place for each piece of information, so there's exactly one way to read the sentence.</p>
+        <p>From that skeleton come <strong>five patterns</strong>, and choosing between them is itself a diagnostic
+        act. <strong>Ubiquitous</strong> — "The system shall &lt;response&gt;" — for properties that always hold.
+        <strong>Event-driven</strong> — "<em>When</em> &lt;trigger&gt;, the system shall…" — for responses to things
+        that happen. <strong>State-driven</strong> — "<em>While</em> &lt;precondition&gt;, the system shall…" — for
+        behavior that holds during a state. <strong>Unwanted behaviour</strong> — "<em>If</em> &lt;trigger&gt;,
+        <em>then</em> the system shall…" — for handling errors and failures. <strong>Optional feature</strong> —
+        "<em>Where</em> &lt;feature is included&gt;, the system shall…" — for configurable capability. Complex
+        requirements combine clauses, in the same fixed order. Forcing yourself to pick a pattern forces the question
+        the stakeholder never answered: is this <em>always</em> true, true <em>when</em> something happens, or true
+        <em>while</em> some state holds? Those are different systems.</p>
+        <p>If this sounds like aerospace ceremony, look at the adopters list — Airbus, Bosch, NASA, Rolls-Royce — and
+        then look at how the official guide sells it: "lightweight, there is little training overhead, no specialist
+        tool is necessary," and notably effective for authors whose first language isn't English. Then look at your
+        own AI tooling: AWS's <strong>Kiro</strong> writes its <code>requirements.md</code> in EARS —
+        "WHEN a user submits a form with invalid data THE SYSTEM SHALL display validation errors next to the relevant
+        fields." A 2009 notation from jet-engine control systems is now the native language of agentic coding specs,
+        for exactly the reason SpecFix measured: constrained syntax in, better code out.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: an EARS rewriting drill —
+        you're dealt vague stakeholder quotes ("it should handle errors gracefully"), pick the right EARS pattern, and
+        rewrite; an AI grader checks clause order, singularity, and verifiability against 29148. Needs backend
+        standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Stage 3 · force</div>
+        <h2>MUST, SHOULD, MAY — and the discipline of not saying MUST</h2>
+        <p>EARS gives a requirement its shape; <strong>RFC 2119</strong> gives it its <em>force</em>. Published in
+        1997 and still the normative-language baseline for specs everywhere, it defines the capitalized keywords you've
+        seen in every standard you've ever read. <strong>MUST</strong> (equivalently SHALL) means "an absolute
+        requirement of the specification" — no judgment call, no context where skipping it is okay.
+        <strong>SHOULD</strong> means "there may exist valid reasons in particular circumstances to ignore a
+        particular item, but the full implications must be understood and carefully weighed" — a strong default with a
+        documented escape hatch. <strong>MAY</strong> means "truly optional" — an implementation is conformant with or
+        without it.</p>
+        <p>Three words, three completely different contracts — and stakeholder language flattens all three into
+        "should." When a client says "it should log every transaction," your job is to ask the RFC 2119 question out
+        loud: if a transaction ever goes unlogged, is that a compliance incident (MUST), a quality issue we'd accept
+        under load (SHOULD), or a nice-to-have (MAY)? The answer changes the architecture. MUST-log means durable
+        write-ahead logging in the transaction path; SHOULD-log might be an async best-effort queue. Same stakeholder
+        sentence, two different systems, and only the keyword forces the decision to be made consciously.</p>
+        <p>The RFC carries one more instruction that most people skip, and it's the most FDE-relevant line in the
+        document: imperatives "MUST only be used where it is actually required for interoperation or to limit behavior
+        which has potential for causing harm" — <em>not</em> to impose your implementation preferences. A spec where
+        everything is MUST is a spec where nothing is: it strips the implementer of every degree of freedom, including
+        the ones you didn't actually care about, and it hides the three requirements that genuinely are load-bearing
+        inside forty that aren't. Spending MUSTs sparingly is the same budget discipline you learned about tokens in
+        Week 1 — applied to authority instead of context.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Stage 4 · Gherkin</div>
+        <h2>Acceptance criteria: the rule, instantiated as examples</h2>
+        <p>An EARS requirement states the <em>rule</em>. But rules are still abstractions, and abstractions still
+        leave room to argue about edge cases. The final compression stage makes the requirement concrete:
+        <strong>acceptance criteria written as executable examples</strong>, in the Gherkin syntax that Cucumber made
+        standard. <strong>Given</strong> describes the initial context — "the <em>scene</em> of the scenario…
+        typically something that happened in the <em>past</em>." <strong>When</strong> is the event or action — and
+        the docs warn you to keep implementation details out of it (the user submits the form, not "the user POSTs to
+        /api/v2/forms"). <strong>Then</strong> is "an <em>expected</em> outcome, or result," verified by an observable
+        assertion — something you can actually see or measure, not an internal state you hope is right.</p>
+        <p>The syntax scales with structure, not verbosity. <strong>And</strong> / <strong>But</strong> chain steps
+        within a section. A <strong>Background</strong> extracts the Givens shared by every scenario in the file, so
+        you write the setup once. A <strong>Scenario Outline</strong> with an <strong>Examples</strong> table
+        parameterizes one scenario over many input rows — one shape, a dozen concrete cases. And every file "must
+        always" open with a <code>Feature:</code> line and a short description, so the examples stay anchored to the
+        requirement they serve. The craft bar: a good scenario is a <em>concrete case of a business rule in three to
+        five steps</em>. Longer than that, and you're describing a workflow, not testing a rule.</p>
+        <p>Here's the bridge that ties the whole day together: <strong>EARS and Gherkin are the same requirement at
+        two altitudes.</strong> EARS states the rule — "When a user submits a form with invalid data, the system shall
+        display validation errors next to the relevant fields." Gherkin instantiates it — <em>Given</em> a
+        registration form, <em>When</em> the user submits it with an empty email field, <em>Then</em> an "email is
+        required" error appears next to the email input. If you can't write the Gherkin, your EARS statement wasn't
+        verifiable. If you can't state the EARS rule, your scenarios are just anecdotes. Writing both, and checking
+        each against the other, is the cheapest requirements review you will ever run.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Stage 5 · productized</div>
+        <h2>Spec-driven development: the pipeline, encoded in tooling</h2>
+        <p>Everything you just learned as human craft has now been productized as <strong>spec-driven
+        development</strong>, and you should recognize the shape instantly. GitHub's <strong>Spec Kit</strong>
+        (v0.12.3) walks a fixed artifact chain: <code>/speckit.constitution</code> establishes the project's governing
+        principles, <code>/speckit.specify</code> defines <em>what</em> you're building — requirements and user
+        stories — then <code>/speckit.clarify</code>, then <code>/speckit.plan</code>, <code>/speckit.tasks</code>,
+        and <code>/speckit.implement</code>, with <code>/speckit.analyze</code> checking cross-artifact consistency.
+        Each phase emits a Markdown artifact that feeds the next — the same discovery→spec→plan funnel you'd run at a
+        client, encoded as slash commands. AWS's Kiro does the same with a three-file chain:
+        <code>requirements.md</code> (EARS, as you saw) → <code>design.md</code> → <code>tasks.md</code>.</p>
+        <p>The detail worth studying is <em>where the tools put the gate</em>. Spec Kit's docs mandate running "the
+        structured clarification workflow <strong>before</strong> creating a technical plan to reduce rework
+        downstream" — <code>/speckit.clarify</code> performs sequential, <em>coverage-based</em> questioning and
+        records the answers, and specs carry explicit <code>[NEEDS CLARIFICATION]</code> markers rather than silent
+        assumptions. Clarify-before-plan, coverage-based questioning, ambiguity made visible instead of guessed away:
+        the toolmakers independently converged on exactly the discipline this reading has been teaching, because the
+        cost curve forced them to. Agents amplify whatever you feed them — precise spec in, working code out;
+        ambiguity in, confidently wrong code out, at machine speed.</p>
+        <p>Which hands you the day's closing argument. The same gate applies to human stakeholders. An ambiguity you
+        don't surface in the discovery conversation becomes a <code>[NEEDS CLARIFICATION]</code> that an agent — or a
+        teammate — resolves <em>by guessing</em>. The FDE's edge isn't typing speed or model access; everyone at the
+        client has those now. The edge is standing at the top of the funnel, running the interview that finds what
+        success means, hunting the ambiguity while it's still cheap, and writing the EARS-and-Gherkin spec that makes
+        everything downstream — human and AI alike — measurably better. That is requirements synthesis: discovery in,
+        spec out, guessing eliminated.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a discovery→spec pipeline
+        sandbox — feed in a raw stakeholder-interview transcript and watch an agent draft EARS requirements with
+        <code>[NEEDS CLARIFICATION]</code> markers, then answer its clarification questions and see the Gherkin
+        acceptance criteria regenerate. Needs backend standup.</p></div>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>The most expensive line in any project is the one two people read differently and neither noticed. You
+          are the person paid to notice. <strong>Interview for success, hunt the ambiguity, write it so it can only be
+          read one way, and prove it with an example.</strong> Everything downstream — the plan, the tasks, the code,
+          the agent runs — inherits the precision you established here.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://alistairmavin.com/ears/" target="_blank" rel="noopener">EARS: Easy Approach to Requirements Syntax — Alistair Mavin (official guide)</a> — the five patterns, generic structure, and the Airbus/Bosch/NASA/Rolls-Royce adoption story.</li>
+          <li><a href="https://www.nngroup.com/articles/stakeholder-interviews/" target="_blank" rel="noopener">Stakeholder Interviews 101 — Nielsen Norman Group</a> — the four coverage areas, open-ended probing prompts, and the classic interviewer mistakes.</li>
+          <li><a href="https://standards.ieee.org/ieee/29148/6937/" target="_blank" rel="noopener">ISO/IEC/IEEE 29148:2018 — IEEE Standards</a> — the active requirements-engineering standard; the well-formedness bar for individual requirements.</li>
+          <li><a href="https://www.rfc-editor.org/rfc/rfc2119" target="_blank" rel="noopener">RFC 2119 — Key words for use in RFCs</a> — MUST/SHOULD/MAY definitions and the "use imperatives sparingly" discipline clause.</li>
+          <li><a href="https://cucumber.io/docs/gherkin/reference" target="_blank" rel="noopener">Gherkin Reference — Cucumber Docs</a> — Given/When/Then semantics, Background, Scenario Outline + Examples.</li>
+          <li><a href="https://github.com/github/spec-kit" target="_blank" rel="noopener">github/spec-kit — GitHub</a> — the /speckit.* command chain and the clarify-before-plan mandate (v0.12.3).</li>
+          <li><a href="https://github.github.com/spec-kit/" target="_blank" rel="noopener">Spec Kit Documentation</a> — Spec → Plan → Tasks → Implement; [NEEDS CLARIFICATION] markers.</li>
+          <li><a href="https://kiro.dev/docs/specs/" target="_blank" rel="noopener">Specs — Kiro Docs</a> — the requirements.md / design.md / tasks.md three-file structure.</li>
+          <li><a href="https://kiro.dev/docs/specs/feature-specs/" target="_blank" rel="noopener">Feature Specs — Kiro Docs</a> — EARS notation in requirements.md, with worked examples.</li>
+          <li><a href="https://arxiv.org/abs/2507.02858" target="_blank" rel="noopener">Requirements Elicitation Follow-Up Question Generation — arXiv 2507.02858 (Shen, Singhal &amp; Breaux)</a> — mistake-taxonomy-guided LLM follow-ups match or beat human interviewers.</li>
+          <li><a href="https://arxiv.org/abs/2505.07270" target="_blank" rel="noopener">SpecFix: Automated Repair of Ambiguous Problem Descriptions — arXiv 2505.07270 (Jia et al.)</a> — repairing ambiguity before generation: +30.9% Pass@1 on repaired problems, cross-model transfer.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">One vague sentence → full spec, worked end-to-end</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on discovery → spec</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 5 Day 2</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: one vague sentence, worked end-to-end</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The full pipeline applied to a single stakeholder quote.</p>
+    <p><strong>The raw quote.</strong> A payments-ops lead says in discovery: <em>"When something goes wrong with a
+    payment, the team should know about it fast."</em> Nod-worthy, and useless as written. Run the pipeline.</p>
+    <p><strong>1 · Probe.</strong> "Can you give me an example?" surfaces the real event: last month a card processor
+    outage produced 4,000 failed charges and the team found out from angry customers, not from the system. "Why is
+    that important?" surfaces the success metric: ops wants to open an incident before customers notice. So "something
+    goes wrong" means <em>payment failure rate exceeds a threshold</em>, "the team" means <em>the on-call ops
+    engineer</em>, and "fast" means <em>before the support queue does</em>.</p>
+    <p><strong>2 · Ambiguity hunt (29148 bar).</strong> The original sentence is ambiguous (what is "wrong"? "fast"?),
+    non-singular ("know about it" bundles detection + notification), and unverifiable (no test can prove "fast").
+    Threshold and window are still open → mark them: <code>[NEEDS CLARIFICATION: failure-rate threshold and
+    measurement window — proposed 5% over 5 minutes, confirm with ops lead]</code>.</p>
+    <div class="model-answer show">
+      <div class="ma-k">3 · EARS (unwanted-behaviour pattern) + RFC 2119 force</div>
+      <p style="margin:6px 0 0">"<b>If</b> the payment failure rate exceeds 5% over any 5-minute window, <b>then</b>
+      the monitoring system <b>shall</b> page the on-call ops engineer within 60 seconds." — one trigger, one system,
+      one measurable response. Force check: unlogged pages are an incident-response failure, so this is a
+      <b>MUST/SHALL</b>. A companion "the system SHOULD include the three most recent failure reasons in the page" is
+      genuinely a SHOULD — valid reasons to drop it under load exist and are understood.</p>
+      <div class="ma-k" style="margin-top:12px">4 · Gherkin (the rule, instantiated)</div>
+      <p style="margin:6px 0 0"><code>Given</code> 100 payment attempts in the last 5 minutes<br>
+      <code>And</code> 6 of them failed<br>
+      <code>When</code> the monitoring window closes<br>
+      <code>Then</code> the on-call ops engineer receives a page within 60 seconds.</p>
+      <p style="margin:6px 0 0">Add a <code>Scenario Outline</code> with an <code>Examples</code> table for
+      4%-no-page / 5%-boundary / 6%-page rows, and the threshold ambiguity can never silently regress.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Why bother, in numbers.</strong> SpecFix's result is the cost-benefit in one
+    line: repairing ambiguity in 43.58% of problem descriptions raised generated-code Pass@1 by 30.9% — and the
+    repaired description helped <em>other</em> models too (+10.48%). Ten minutes of synthesis buys correctness for
+    every implementer downstream, human or agent. That ratio is why this is Week 5's core craft.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 2 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Run a discovery conversation against the four NN/g coverage areas, probing with open-ended follow-ups instead of closed questions</li>
+      <li>Audit any requirement against the 29148 bar (unambiguous, singular, verifiable…) and flag open questions as explicit <code>[NEEDS CLARIFICATION]</code> items</li>
+      <li>Rewrite vague stakeholder language into the correct EARS pattern, with RFC 2119 keywords spent deliberately</li>
+      <li>Instantiate a requirement as Gherkin acceptance criteria — and use the EARS↔Gherkin round-trip as a self-review</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add a <code>requirements.md</code> to your project</li>
+      <li><b>①</b> three vague requirements from your own project, each rewritten in the correct EARS pattern with a MUST/SHOULD/MAY keyword you can defend</li>
+      <li><b>②</b> one Gherkin scenario (3–5 steps) instantiating your most important EARS requirement</li>
+      <li><b>③</b> at least one honest <code>[NEEDS CLARIFICATION]</code> marker with the question you'd take back to the stakeholder</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 3 — the spec you wrote today becomes the input to planning and task
+    decomposition, exactly as it does in Spec Kit and Kiro.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 3 — next in Week 5 →", href: "w05d3.html" };
+window.DIAGRAM = {
+  title: "Discovery → spec · the funnel",
+  width: 500, height: 690,
+  nodes: [
+    // the raw stakeholder quote (dark payload card)
+    { id:"quote", step:0, kind:"example", x:14, y:14, w:472, h:78,
+      label:"DISCOVERY CALL · payments-ops lead, minute 22\n  “When something goes wrong with a payment,\n   the team should know about it fast.”  ← everyone nods" },
+
+    // the funnel container
+    { id:"funnel", step:0, x:28, y:104, w:330, h:402, label:"THE SYNTHESIS FUNNEL  (interpretation squeezed out stage by stage)" },
+
+    // stages, in flow order top to bottom
+    { id:"interview", step:1, x:46, y:140, w:294, h:48, label:"Stakeholder interview — 4 coverage areas",
+      detail:"NN/g: cover success metrics, priorities, history/expertise, and process/workflow — 'what does success look like?' before 'what should it do?'. Features gathered without those four areas are the ones that get rebuilt. Coverage beats cleverness." },
+    { id:"probe", step:2, x:46, y:196, w:294, h:44, label:"Probe: “can you give me an example?”",
+      detail:"First answers are rehearsed; follow-ups get the real material. Failure modes: too late, closed-ended, interrupting. CMU 2025: LLM follow-up questions guided by a taxonomy of interviewer mistakes beat human-authored ones — the framework is the skill, for you and the model." },
+    { id:"amb", step:3, x:46, y:248, w:294, h:48, label:"Ambiguity hunt → [NEEDS CLARIFICATION]",
+      detail:"29148:2018 bar: necessary, unambiguous (one reading only), complete, singular, feasible, verifiable, traceable. Mark open questions explicitly instead of resolving them silently — an unsurfaced ambiguity gets resolved downstream by guessing." },
+    { id:"ears", step:4, x:46, y:304, w:294, h:48, label:"EARS: If <trigger>, then the <system> shall…",
+      detail:"Five patterns — ubiquitous / When (event) / While (state) / If-then (unwanted) / Where (optional) — plus complex combinations. Fixed clause order = one place for each fact = one way to read it. Used by Airbus, Bosch, NASA, Rolls-Royce — and by Kiro's requirements.md." },
+    { id:"norm", step:5, x:46, y:360, w:294, h:44, label:"Force: MUST / SHOULD / MAY (RFC 2119)",
+      detail:"MUST = absolute; SHOULD = strong default with weighed exceptions; MAY = truly optional. Use imperatives only where actually required for interoperation or to limit harm — a spec where everything is MUST hides the three requirements that really are." },
+    { id:"gherkin", step:6, x:46, y:412, w:294, h:80, label:"Gherkin acceptance criteria\nGiven <context> · When <event> · Then <observable outcome>",
+      detail:"Given = the scene (past); When = the event, no implementation details; Then = expected outcome verified by observable assertions. Background shares Givens; Scenario Outline + Examples parameterize. A good scenario: one business rule, 3–5 steps. Can't write the Gherkin? The EARS rule wasn't verifiable." },
+
+    // the guessing hazard — outside the funnel
+    { id:"guess", step:3, x:366, y:236, w:120, h:72, label:"⚠ UNSURFACED\n= resolved by\nGUESSING",
+      detail:"SpecFix (2025): ambiguous descriptions measurably degrade LLM code generation. Repairing ambiguity before generation on 43.58% of benchmark problems raised Pass@1 by 30.9%, and repairs transfer across models (+10.48%). Spec precision is a code-quality lever." },
+
+    // outputs
+    { id:"pipeline", step:7, x:34, y:556, w:216, h:70, label:"spec-driven tooling\nconstitution → specify → clarify\n→ plan → tasks → implement",
+      detail:"Spec Kit v0.12.3 encodes the funnel as slash commands, each emitting a Markdown artifact that feeds the next; /speckit.clarify runs coverage-based questioning BEFORE /speckit.plan. Kiro: requirements.md (EARS) → design.md → tasks.md. The gate the tools enforce is the gate you run on humans." },
+    { id:"build", step:7, x:300, y:566, w:186, h:52, label:"implementer (human or agent)\nbuilds without guessing",
+      detail:"Agents amplify whatever you feed them: precise spec in, working code out; ambiguity in, confidently wrong code at machine speed. The FDE's edge is the top of the funnel — the interview, the hunt, the spec." }
+  ],
+  edges: [
+    { id:"e_guess", step:3, from:"amb", to:"guess", label:"skipped? ⚠", ly:-4 },
+    { id:"e_alt", step:6, from:"ears", to:"gherkin", label:"rule → example", lx:-8 },
+    { id:"e_pipe", step:7, from:"gherkin", to:"pipeline", label:"artifact chain", lx:-6 },
+    { id:"e_build", step:7, from:"pipeline", to:"build", label:"feeds", ly:-2 }
+  ],
+  captions: [
+    "One real stakeholder sentence — nod-worthy, and readable three different ways. The funnel below squeezes the interpretation out, stage by stage. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Discovery starts with a <b>stakeholder interview</b> covering four areas — success metrics first, features last. <span style='opacity:.7'>(tap)</span>",
+    "The real requirements come out under <b>open-ended probing</b> — 'can you give me an example?' beats a clever question. <span style='opacity:.7'>(tap)</span>",
+    "The <b>ambiguity hunt</b>: audit every sentence against the 29148 bar, and mark what's still open as <b>[NEEDS CLARIFICATION]</b> — because unsurfaced ambiguity gets resolved downstream <b>by guessing</b>. <span style='opacity:.7'>(tap both)</span>",
+    "<b>EARS</b> rewrites the answer in one of five fixed sentence shapes — one place for each fact, one way to read it. <span style='opacity:.7'>(tap)</span>",
+    "<b>RFC 2119</b> sets the force: MUST, SHOULD, or MAY — spent sparingly, so the load-bearing requirements stand out. <span style='opacity:.7'>(tap)</span>",
+    "<b>Gherkin</b> instantiates the rule as a concrete, testable example — same requirement, second altitude. Can't write it? The rule wasn't verifiable. <span style='opacity:.7'>(tap)</span>",
+    "Spec-driven tooling (Spec Kit, Kiro) encodes this exact funnel — clarify <b>before</b> plan — and hands the artifact to an implementer who <b>builds without guessing</b>. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w05-d2",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A stakeholder opens discovery with a list of twelve features. Per NN/g's coverage areas, your best first move is:",
+      options: [
+        "Write the twelve features into the spec so nothing is lost",
+        "Ask which programming language they'd prefer",
+        "Ask what success looks like — metrics, priorities, history, and current workflow — before treating the feature list as requirements",
+        "Schedule a second meeting to add more features" ],
+      answer: 2,
+      explain: "The four NN/g coverage areas are success metrics, priorities, history/expertise, and process/workflow. Features gathered without them are the ones that get rebuilt — the feature list is input, not requirements. 'What does success look like?' comes before 'what should it do?'." },
+    { type: "scq",
+      stem: "Per the SpecFix study, what happened when ambiguity was repaired in problem descriptions BEFORE LLM code generation?",
+      options: [
+        "No measurable effect — models resolve ambiguity fine on their own",
+        "Pass@1 rose 30.9% on the repaired problems, and the repairs even transferred across models",
+        "Generation got slower with no quality change",
+        "It only helped the single model the repair was tuned for" ],
+      answer: 1,
+      explain: "Repairing 43.58% of benchmark descriptions raised Pass@1 by 30.9% on the modified problems, and descriptions repaired for one model improved others too (+10.48%). Spec precision is now a measurable code-quality lever, not a documentation nicety." },
+    { type: "tf",
+      stem: "In RFC 2119, SHOULD and MUST are basically interchangeable ways to say a requirement matters.",
+      answer: false,
+      explain: "No. MUST is 'an absolute requirement of the specification'; SHOULD explicitly allows valid reasons to ignore the item after weighing the implications; MAY is truly optional. They are three different contracts — and the RFC adds that imperatives MUST only be used where actually required, not to impose implementation preferences." },
+    { type: "mcq",
+      stem: "Which of these violate the ISO/IEC/IEEE 29148 well-formedness characteristics? (select all that apply)",
+      options: [
+        "“The dashboard shall be fast and easy to use”",
+        "“When a user submits a form with invalid data, the system shall display validation errors next to the relevant fields”",
+        "“The system shall handle errors gracefully”",
+        "“The export function shall be intuitive”",
+        "“If the payment failure rate exceeds 5% over any 5-minute window, then the monitoring system shall page the on-call engineer within 60 seconds”" ],
+      answer: [0, 2, 3],
+      explain: "'Fast and easy to use' is ambiguous, non-singular (two requirements in one), and unverifiable. 'Gracefully' and 'intuitive' are unverifiable and interpretable many ways. The other two are well-formed EARS statements: singular, unambiguous, and verifiable with a concrete test." },
+    { type: "match",
+      stem: "Match each requirement to the EARS pattern it uses.",
+      pairs: [
+        { l: "When the user clicks Export, the system shall generate a CSV", r: "event-driven (When)" },
+        { l: "While a batch job is running, the system shall display a progress indicator", r: "state-driven (While)" },
+        { l: "If the API returns a 5xx error, then the system shall retry up to three times", r: "unwanted behaviour (If/then)" },
+        { l: "The system shall encrypt all data at rest", r: "ubiquitous (always holds)" } ],
+      explain: "Choosing the pattern is itself a diagnostic act: When = response to an event, While = behavior during a state, If/then = handling unwanted situations, and no clause at all = a property that always holds. The fixed clause order is the anti-ambiguity mechanism." },
+    { type: "open",
+      stem: "A teammate hands you the EARS requirement 'When a search returns no results, the system shall inform the user helpfully.' In a sentence or two: what's wrong, and what would you do next — using both the Gherkin round-trip and the [NEEDS CLARIFICATION] discipline?",
+      hint: "Try to write the Then step. What can't you assert?",
+      model: "The response clause is unverifiable — 'inform the user helpfully' has no observable assertion, so you can't write the Gherkin Then step, which is the round-trip telling you the rule fails the 29148 bar. Mark it [NEEDS CLARIFICATION: what exactly appears — message text? suggested alternatives?], take the question back to the stakeholder, then rewrite with a concrete response like 'shall display a “no results” message and up to three suggested alternative queries.'" }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

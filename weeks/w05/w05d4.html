@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w05d4">
+<meta name="fde-concepts" content="phased-plan-gates,verifiable-task-decomposition,nfr-quality-model,slo-shaped-nfr-targets">
+<title>W5·D4 — Decomposition: Spec to Phased Plans | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Decomposition: From Spec to Phased Plans</h1>
+        <div class="meta">
+          <span><b>Week 5</b> · Day 4</span>
+          <span>Spec-Driven Development</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">You have a spec the client signed off on. Between that document and working software sits the
+        most dangerous stretch of any engagement — the part where "we all agreed" quietly turns into forty ungated tasks
+        and one enormous, unreviewable pull request. Today you learn the discipline that closes that gap: decomposing a
+        spec into a <strong>phased plan with explicit gates</strong>, where every task ends in a check that
+        <strong>passes or fails</strong>, and where the non-functional requirements — performance, scale, security —
+        are stated as <strong>measurable targets</strong> instead of adjectives. Scroll the reading; the panel on the
+        right assembles one spec into a gated, verifiable plan, phase by phase.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The gap</div>
+        <h2>A spec is not a plan — decomposition is a pipeline of artifacts</h2>
+        <p>Earlier this week you learned to write a spec: requirements, user stories, acceptance criteria. The rookie
+        move is to hand that spec — to a teammate or to a coding agent — and say "build it." What comes back solves the
+        wrong problem, or solves the right problem as one monolithic change nobody can review. The fix is not a better
+        spec. It's recognizing that between spec and code there is a <strong>pipeline of intermediate artifacts</strong>,
+        and each artifact is a checkpoint where a human reviews and redirects before more work piles on top.</p>
+        <p>GitHub's <strong>Spec Kit</strong> makes the pipeline explicit: <strong>Spec → Plan → Tasks →
+        Implement</strong>, driven by <code>/speckit.specify</code>, <code>/speckit.plan</code>,
+        <code>/speckit.tasks</code>, and <code>/speckit.implement</code>. The plan step reads the feature requirements,
+        user stories, and acceptance criteria and converts business needs into concrete technical decisions — with the
+        <em>rationale documented</em>, not just the decision. In Spec Kit's own framing, decomposing this way "creates
+        checkpoints where humans review and redirect."</p>
+        <p>AWS's <strong>Kiro</strong> arrives at exactly the same shape from a different direction. A Kiro spec is
+        three files: <code>requirements.md</code> captures user stories and acceptance criteria in structured notation;
+        <code>design.md</code> documents the technical architecture, sequence diagrams, and implementation
+        considerations; <code>tasks.md</code> is a detailed implementation plan of discrete, trackable tasks. Two
+        independent tools, one convergent lesson: <strong>requirements, design, and tasks are separate artifacts with
+        separate review moments</strong>. When you see the same structure emerge independently in competing tools, treat
+        it as a signal about the shape of the underlying problem — not a vendor quirk. Your job today is to internalize
+        that shape so you can produce it with any tool, or with none.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Structure</div>
+        <h2>A plan has phases — and gates at the boundaries</h2>
+        <p>So what does the "Plan" artifact actually contain? Not a flat to-do list. Spec Kit's plan template structures
+        it as ordered phases: <strong>Phase 0 — Research</strong> (unknowns get resolved into <code>research.md</code>
+        before anything is designed), <strong>Phase 1 — Design &amp; contracts</strong> (the data model, API contracts,
+        and a quickstart land as <code>data-model.md</code>, <code>contracts/</code>, <code>quickstart.md</code>), and
+        <strong>Phase 2 — Task generation</strong> (the design is decomposed into <code>tasks.md</code>). Research
+        before design, design before tasks — each phase produces artifacts the next phase consumes.</p>
+        <p>The part beginners skip is the <strong>gate</strong>. The template's Constitution Check — the project's
+        standing engineering rules — is phrased as a hard gate: <em>"GATE: Must pass before Phase 0 research. Re-check
+        after Phase 1 design."</em> A gate is a named moment where the plan must demonstrate something before the next
+        phase is allowed to start. Without gates, a "phased plan" is just a task list with headings; nothing stops phase
+        3 work from starting while phase 1's design questions are still open.</p>
+        <p>Two more things the template forces up front. A <strong>Technical Context</strong> section demands
+        performance goals, constraints, and scale <em>before</em> design begins — you'll see why that matters when we
+        reach NFRs. And the phasing itself is a guidance pattern, not bureaucracy: Spec Kit's quickstart tells you that
+        for anything large, you should implement in phases — its Taskify example is literally "Phase 1: basic
+        project/task structure, Phase 2: Kanban functionality, Phase 3: comments and assignments" — because sequencing
+        "prevents context saturation and allows for validation at each stage." That phrase should ring a Week-1 bell:
+        phases are a <strong>context-window discipline</strong> as much as a project-management one. A phase is a unit
+        of work small enough to hold in one head — human or model — and validate before moving on.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Gates against over-engineering</div>
+        <h2>Phase −1: make complexity justify itself</h2>
+        <p>Gates don't just sequence work — they fight the most common failure of AI-generated plans:
+        <strong>over-engineering</strong>. Spec Kit's methodology defines a set of <strong>Phase −1 pre-implementation
+        gates</strong> that run before any phase at all: a <strong>Simplicity Gate</strong> (is this the simplest thing
+        that satisfies the spec?), an <strong>Anti-Abstraction Gate</strong> (are we wrapping frameworks in layers
+        nobody asked for?), and an <strong>Integration-First Gate</strong> (do we prove the pieces talk to each other
+        before polishing them individually?). In the methodology's words, these gates "prevent over-engineering by
+        making the LLM explicitly justify any complexity."</p>
+        <p>Note the enforcement design, because it's subtle and worth stealing: <strong>failing a gate doesn't block the
+        plan</strong>. It requires a documented justification in a Complexity Tracking table. The gate's job is
+        accountability, not prohibition — sometimes the complex answer is right, but it should never be the
+        <em>silent</em> answer. That table becomes the record a reviewer (or a future you) reads to understand why the
+        architecture is the shape it is.</p>
+        <p>The same instinct shows up in how you already work. Claude Code's recommended workflow is <strong>Explore →
+        Plan → Implement → Commit</strong>, precisely because "letting Claude jump straight to coding can produce code
+        that solves the wrong problem." And the docs are equally clear about when planning pays: when you're uncertain
+        about the approach, when the change touches multiple files, when the code is unfamiliar. The inverse rule is the
+        one to memorize: <strong>"If you could describe the diff in one sentence, skip the plan."</strong> Decomposition
+        is a tool with a cost. An FDE who runs a full phased-plan ceremony on a one-line config change is making the
+        same mistake — in mirror image — as one who vibe-codes a multi-service feature.</p>
+        <div class="ix-predict"
+          data-q="A junior teammate's plan for a small internal CRUD feature proposes: a plugin architecture 'for future extensibility', a custom ORM wrapper, and an event bus. The spec asks for none of it. Which Phase −1 gates does this trip — and what's the correct response under Spec Kit's rules?"
+          data-a="It trips the <b>Simplicity Gate</b> (not the simplest thing that satisfies the spec) and the <b>Anti-Abstraction Gate</b> (wrapping the ORM and inventing indirection nobody asked for). The correct response is <b>not</b> an automatic veto — a tripped gate demands a <b>documented justification in the Complexity Tracking table</b>. If the teammate can defend the complexity in writing against the spec, it stays with a paper trail; if they can't, the gate has done its job and the plan gets simpler.">
+        </div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Verifiability</div>
+        <h2>Every task ends in a check that passes or fails</h2>
+        <p>Now the property that separates a plan you can hand off from a plan that generates status meetings:
+        <strong>verifiability</strong>. The Claude Code docs put it bluntly: "Give Claude a check it can run: tests, a
+        build, a screenshot to compare... Give Claude something that produces a pass or fail, and the loop closes on its
+        own." The same is true of humans. A task whose completion is a matter of opinion ("improve the search
+        experience") cannot be delegated, sequenced, or audited. A task that ends in a binary check ("<code>pytest
+        tests/search/ -m integration</code> green; p95 under 400&nbsp;ms on the seeded dataset") can be.</p>
+        <p>This starts at the requirements layer. Kiro writes acceptance criteria in <strong>EARS notation</strong> —
+        "WHEN [condition or event] THE SYSTEM SHALL [expected behavior]" — and the payoff is exactly the one we want:
+        clarity, <strong>testability</strong> ("each requirement can be directly translated into test cases"),
+        traceability, and completeness. An EARS-shaped requirement is halfway to being a verifiable task already. The
+        docs' guidance on specs completes the picture: the most useful specs are self-contained — they name the files
+        and interfaces involved, state what is out of scope, and <strong>end with an end-to-end verification step that
+        proves the feature works</strong>. Put the check <em>in</em> the plan, next to the task it verifies.</p>
+        <p>Verifiability also unlocks parallelism. Because Kiro's tasks carry explicit outcomes, it "analyzes your task
+        list, figures out which tasks depend on each other, and runs independent tasks concurrently" — waves of
+        independent tasks execute in parallel, waves themselves run in sequence. And you should verify the
+        <em>artifacts</em>, not just the code: Spec Kit ships <code>/speckit.checklist</code> to validate the plan and
+        <code>/speckit.analyze</code> to cross-check spec, plan, and tasks against each other before a line of code
+        exists. There's measurement behind this, too: a 2026 study added phase-level context-grounding hooks that
+        validate each Specify/Plan/Tasks artifact against actual repository evidence — catching hallucinated APIs before
+        implementation — and lifted SWE-bench Lite to 58.2% Pass@1 with 99.7–100% test compatibility. Checking the plan
+        is cheaper than debugging the code it produces.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a decomposition workbench —
+        paste a short spec, draft the phase breakdown and per-task checks yourself, then have the harness run each task
+        statement through a "pass/fail-able?" linter and the Phase −1 gates, flagging any task whose completion is a
+        matter of opinion. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">NFRs · the checklist</div>
+        <h2>Non-functional requirements: use a quality model, not vibes</h2>
+        <p>Everything so far decomposes the <em>functional</em> side of the spec — what the system does. The failures
+        that actually kill client engagements usually live on the other side: the feature works in the demo and falls
+        over at production load, or works beautifully and fails the security review. These are
+        <strong>non-functional requirements</strong> (NFRs) — how well the system does what it does — and the amateur
+        tell is handling them by vibes: someone remembers to ask about performance, nobody asks about data portability,
+        and the gap surfaces in month three.</p>
+        <p>The professional move is to walk a <strong>quality model</strong> — a standard checklist of the dimensions
+        quality can vary on. The current one is <strong>ISO/IEC 25010:2023</strong> (edition 2.0, November 2023), which
+        defines <strong>nine</strong> product-quality characteristics: functional suitability, performance efficiency,
+        compatibility, usability (including accessibility), reliability, security, maintainability,
+        portability/flexibility, and — new in the 2023 edition — <strong>safety</strong>. The standard is explicit that
+        this model exists for exactly our job: "eliciting and defining product and information system requirements,"
+        "validating the comprehensiveness of a requirements definition," setting design and testing objectives, and
+        establishing measures of quality characteristics.</p>
+        <p>One detail matters for how you write plans: in 25010, "scale" is not a separate category you might forget —
+        <strong>capacity</strong> is a named subcharacteristic of performance efficiency, alongside time behavior and
+        resource utilization. Handling load is a first-class quality dimension with a slot on the checklist. So the
+        NFR section of a phased plan is a disciplined pass over the model: for each of the nine characteristics, decide
+        whether it is <strong>load-bearing for this system</strong> — most features care intensely about three or four
+        and only trivially about the rest — and for each load-bearing one, state a target <em>per phase</em>. Phase 1
+        of a search feature might target correctness at toy scale; phase 3 owns the 50-tenant capacity target. Writing
+        "N/A — internal tool, single tenant" next to compatibility is not wasted ink; it's the proof you asked.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">NFRs · perf &amp; scale</div>
+        <h2>Performance targets must be SLO-shaped</h2>
+        <p>"The API should be fast" is not a requirement; it's a wish. To make performance and scale NFRs verifiable —
+        the same property we demanded of tasks — borrow the vocabulary Google's Site Reliability Engineering built for
+        exactly this. An <strong>SLI</strong> (service level indicator) is "a quantitative measure of some aspect of the
+        level of service": request latency, error rate, throughput, availability. An <strong>SLO</strong> (service level
+        objective) is "a target value or range of values for a service level, measured by an SLI" — <em>p99 latency ≤
+        300&nbsp;ms</em>, <em>availability ≥ 99.9%</em>. An <strong>SLA</strong> is an SLO with consequences attached
+        for missing it — which, on a client engagement, is the line item your statement of work may be judged against.</p>
+        <p>An SLO-shaped NFR slots straight into the plan machinery from earlier: it's a gate condition ("Phase 2 does
+        not close until the p99 target holds on the seeded dataset") and a per-task check. But the SRE book's
+        target-setting guidance is as important as the definitions, and it transfers directly into plan authoring.
+        <strong>Don't just adopt current performance as the target</strong> — you'll enshrine whatever the prototype
+        happens to do. <strong>Keep SLIs simple</strong>: "complicated aggregations in SLIs can obscure changes to
+        system performance, and are also harder to reason about." <strong>Choose just enough SLOs</strong> to cover the
+        system's attributes — if you can't win an argument about priorities by citing a particular SLO, it isn't worth
+        having. And <strong>perfection can wait</strong>: "you can always refine SLO definitions and targets over time."
+        A rough, stated target in the plan beats a perfect target that arrives after launch.</p>
+        <p>One counter-intuitive rule earns its own sentence: <strong>avoid overachieving</strong>. Users calibrate on
+        what your service actually does, not what you promised — Google's Chubby lock service famously became so
+        reliable that teams built unwarranted dependencies on it, so Google introduced <em>planned outages</em> to keep
+        real behavior near the stated SLO. For you the client-facing translation is: the targets in your plan are
+        commitments that shape how the client builds around your system. State them deliberately.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: an SLO target workbench — pick
+        SLIs for a sample multi-tenant API, set target values per phase, then replay a simulated week of traffic and
+        watch which phases' gates would have passed or blown their error budget. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">NFRs · security</div>
+        <h2>Security NFRs: pick an ASVS level, cite requirement IDs</h2>
+        <p>"Must be secure" is the security equivalent of "should be fast" — unfalsifiable, so unverifiable, so not a
+        requirement. The standard that fixes it is the <strong>OWASP Application Security Verification Standard</strong>
+        — ASVS 5.0.0, released May 30, 2025 — an open catalog of roughly <strong>350 security requirements across 17
+        chapters</strong> for designing, developing, and testing modern web applications and services. Crucially for
+        plan-writing, it defines <strong>three verification levels</strong>, L1 through L3, chosen by how critical the
+        application is: a marketing microsite doesn't carry the same burden as a payments system, and the level makes
+        that judgment explicit instead of implicit.</p>
+        <p>ASVS's own stated uses map one-to-one onto the plan you're building: use it <strong>as a metric</strong> (how
+        secure is this application, measurably), <strong>as guidance</strong> (which controls to actually implement),
+        and <strong>during procurement</strong> (contractual security requirements — which is exactly what a
+        client-engagement plan's security section is). And because every requirement carries a stable
+        <code>&lt;chapter&gt;.&lt;section&gt;.&lt;requirement&gt;</code> identifier, your plan can cite specific ASVS
+        IDs the same way it cites the spec's REQ-* IDs. "Phase 1 targets ASVS L2; session management tasks verify
+        against chapter 3's session requirements" is checkable by a reviewer, an auditor, or an agent. "We take security
+        seriously" is checkable by no one.</p>
+        <p>Notice what just happened across these two steps: the same trick, twice. Performance NFRs became verifiable
+        by borrowing SRE's SLI/SLO vocabulary; security NFRs became verifiable by borrowing OWASP's leveled requirement
+        catalog. The general FDE pattern is: <strong>for every load-bearing quality characteristic, find the domain's
+        existing measurement standard and cite into it</strong> — never invent your own scale when a citable one exists.
+        It makes your plan auditable, and it makes you look like you've done this before. Which, after today, you
+        have.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: an ASVS level picker — describe
+        a fictional client system (data sensitivity, exposure, compliance context), choose L1/L2/L3 and defend it, then
+        get a generated security-NFR section with real chapter-level ASVS citations to compare against your reasoning.
+        Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Assembly</div>
+        <h2>The finished artifact: phased, gated, verifiable, targeted</h2>
+        <p>Put the day back together as a single checklist you can run on any plan — yours or anyone's. A
+        decomposition worth handing off has four properties. <strong>Phased:</strong> work is ordered into research →
+        design/contracts → tasks (or the domain's equivalent), each phase small enough to validate before the next
+        begins — Spec Kit's Phase 0/1/2, Kiro's requirements/design/tasks, same shape. <strong>Gated:</strong> the
+        boundaries have named conditions — a constitution check that must pass before research and be re-checked after
+        design, Phase −1 simplicity/anti-abstraction/integration gates with a complexity-tracking table for documented
+        exceptions. <strong>Verifiable:</strong> every task ends in a pass/fail check, requirements are written in
+        testable EARS shape, dependencies are explicit enough to sequence into waves, and the artifacts themselves get
+        cross-checked (<code>/speckit.analyze</code>) before implementation starts. <strong>Targeted:</strong> the NFR
+        section walks ISO 25010's nine characteristics, keeps the load-bearing ones, and states each as a citable,
+        measurable target — SLO-shaped for performance and capacity, ASVS-leveled with requirement IDs for security.</p>
+        <p>Run that checklist against the pipeline you already work inside and you'll recognize everything: this
+        program's own ticket workflow phases work through plan and verify stages, gates plans on grounding citations,
+        and refuses to let reviews silently skip. That isn't coincidence — it's this day's material, operationalized.
+        The plan is also where <em>tomorrow</em> starts: Day 5 takes a finished spec + plan + task list and hands it to
+        an implementing agent end-to-end, then reviews the output against the spec. Everything you wrote into the plan
+        today — the gates, the checks, the targets — is what makes that handoff safe rather than hopeful.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>A spec tells the client <em>what</em> they're getting. The phased plan is where <strong>you</strong> earn
+          trust: it shows the client their risk is front-loaded into gated phases, their reviews land at checkpoints
+          instead of at the end, and their "it must be fast and secure" has become numbers someone can be held to.
+          When an engagement goes sideways, it is almost never because the spec was wrong — it's because nobody could
+          say, at week three, which phase they were in and what had been <em>proven</em> so far. The plan is the
+          instrument that makes progress a fact instead of a feeling.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://github.com/github/spec-kit/blob/main/spec-driven.md" target="_blank" rel="noopener">GitHub Spec Kit — Spec-Driven Development methodology</a> — the Spec → Plan → Tasks → Implement pipeline, Phase −1 gates, complexity tracking.</li>
+          <li><a href="https://github.com/github/spec-kit/blob/main/templates/plan-template.md" target="_blank" rel="noopener">Spec Kit — plan template</a> — Technical Context (perf goals, constraints, scale), Constitution Check gate, Phase 0/1/2 outputs.</li>
+          <li><a href="https://github.github.com/spec-kit/quickstart.html" target="_blank" rel="noopener">Spec Kit — Quick Start Guide</a> — phased implementation guidance, <code>/speckit.checklist</code> and <code>/speckit.analyze</code> validation steps.</li>
+          <li><a href="https://kiro.dev/docs/specs/" target="_blank" rel="noopener">Kiro Docs — Specs</a> — requirements/design/tasks three-file structure and wave-based, dependency-aware task execution.</li>
+          <li><a href="https://kiro.dev/docs/specs/feature-specs/" target="_blank" rel="noopener">Kiro Docs — Feature Specs</a> — EARS notation and why it yields testable, traceable requirements.</li>
+          <li><a href="https://webstore.iec.ch/en/publication/90024" target="_blank" rel="noopener">ISO/IEC 25010:2023</a> — the nine-characteristic product quality model (edition 2.0), including capacity under performance efficiency and the new safety characteristic.</li>
+          <li><a href="https://sre.google/sre-book/service-level-objectives/" target="_blank" rel="noopener">Google SRE Book — Service Level Objectives</a> — SLI/SLO/SLA definitions and target-setting guidance (simple SLIs, just-enough SLOs, don't overachieve).</li>
+          <li><a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener">OWASP ASVS</a> — Application Security Verification Standard 5.0.0: ~350 requirements, 17 chapters, verification levels L1–L3.</li>
+          <li><a href="https://code.claude.com/docs/en/best-practices" target="_blank" rel="noopener">Claude Code — Best practices</a> — Explore → Plan → Implement → Commit, pass/fail checks, self-contained specs, and when to skip planning.</li>
+          <li><a href="https://arxiv.org/abs/2604.05278" target="_blank" rel="noopener">Spec Kit Agents: Context-Grounded Agentic Workflows (arXiv)</a> — validating spec/plan/tasks artifacts against repository evidence; 58.2% Pass@1 on SWE-bench Lite.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">A worked NFR section for one real feature</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on phases, gates &amp; NFRs</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 5 Day 4</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: a worked NFR section</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. What the last three steps look like written down for one feature.</p>
+    <p><strong>The feature.</strong> "Tenant-scoped document search" for a 50-tenant SaaS client. The spec's functional
+    side is done; below is the NFR pass a phased plan would carry. Method: walk ISO/IEC 25010's nine characteristics,
+    keep the load-bearing ones, give each a measurable target and a phase that owns it.</p>
+    <div class="model-answer show">
+      <div class="ma-k">NFR pass — ISO 25010 walk (kept vs. waived)</div>
+      <ul class="deliv-list">
+        <li><b>Performance efficiency</b> — kept. SLI: request latency &amp; error rate on <code>/search</code>. SLO: p99 ≤ 300 ms, error rate &lt; 0.1% at 50 RPS sustained. Owned by Phase 2 gate (seeded-dataset load test must pass).</li>
+        <li><b>· Capacity (sub-characteristic)</b> — kept. Target: 50 tenants × 100K docs each with the p99 SLO holding. Owned by Phase 3 gate.</li>
+        <li><b>Security</b> — kept. ASVS 5.0 <b>Level 2</b> (multi-tenant, business data, no payments). Plan cites chapter-level IDs for session management and access control; every search task's check includes a cross-tenant-leak test.</li>
+        <li><b>Reliability</b> — kept. SLO: search availability ≥ 99.9% monthly; graceful degradation to keyword-only if the vector store is down (Phase 3).</li>
+        <li><b>Usability, compatibility, maintainability, portability, safety, functional suitability</b> — walked and waived or deferred, each with one written line of rationale ("safety: no physical-world actuation — N/A"). The written waiver is the proof the characteristic was considered.</li>
+      </ul>
+      <p style="margin:8px 0 0">Note the shape: every kept characteristic has an <b>indicator</b>, a <b>target value</b>,
+      and an <b>owning phase gate</b> — SLO discipline applied beyond latency. And per the SRE guidance: four SLOs, not
+      fourteen; simple SLIs; targets set from the client's need (support-agent workflow tolerates ~300 ms), not from
+      whatever the prototype currently does.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Why per-phase ownership matters.</strong> If no phase owns the capacity target,
+    it's owned by "the end" — which means it's tested for the first time in production week. Assigning each NFR to a
+    phase gate is what turns "we care about scale" into a date on which scale is <em>proven</em>. That is also exactly
+    where the plan connects back to verifiable tasks: a gate is just a pass/fail check promoted to a phase boundary.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 4 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Decompose an approved spec into a phased plan (research → design/contracts → tasks) with named gates at each boundary</li>
+      <li>Apply over-engineering gates — simplicity, anti-abstraction, integration-first — and document exceptions instead of banning them</li>
+      <li>Write tasks and requirements so every one ends in a check that passes or fails, and know when a plan is overkill</li>
+      <li>State perf/scale/security NFRs as measurable targets: an ISO 25010 pass, SLO-shaped indicators, and a cited ASVS level</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add <code>PLAN.md</code> for one feature of your project (use this week's spec)</li>
+      <li><b>①</b> three phases with a one-line gate condition at each boundary</li>
+      <li><b>②</b> five tasks, each ending in an explicit pass/fail check you could actually run</li>
+      <li><b>③</b> an NFR table: the 25010 characteristics you kept, one SLO-shaped target each, one ASVS level with a one-line justification</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 5, where a finished spec + plan + task list gets handed to an implementing
+    agent end-to-end — and the gates and checks you wrote today are what make that handoff reviewable.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 5 · Spec-to-implementation handoff →", href: "w05d5.html" };
+window.DIAGRAM = {
+  title: "Spec → phased plan · gated & verifiable",
+  width: 500, height: 690,
+  nodes: [
+    // the approved spec (dark payload card)
+    { id:"spec", step:0, kind:"example", x:14, y:14, w:472, h:70,
+      label:"SPEC  \"tenant-scoped document search\" · approved\n  user stories + acceptance criteria + REQ-* IDs\n  question: how does this become buildable work?" },
+
+    // the artifact pipeline
+    { id:"pipe", step:0, x:28, y:96, w:458, h:44,
+      label:"SPEC → PLAN → TASKS → IMPLEMENT  (each arrow = human checkpoint)",
+      detail:"Spec Kit's SDD pipeline (/speckit.specify → plan → tasks → implement) and Kiro's requirements.md / design.md / tasks.md are the same shape: requirements, design, and tasks are separate artifacts with separate review moments. Decomposing this way 'creates checkpoints where humans review and redirect.'" },
+
+    // the plan container with phases
+    { id:"plan", step:1, x:28, y:156, w:310, h:216, label:"THE PLAN  (one document, phased)" },
+    { id:"p0", step:1, x:46, y:192, w:274, h:42, label:"Phase 0 — Research  → research.md",
+      detail:"Unknowns from the Technical Context get resolved before design. The template forces performance goals, constraints, and scale to be stated up front — the NFR seeds are planted here." },
+    { id:"p1", step:1, x:46, y:242, w:274, h:42, label:"Phase 1 — Design & contracts  → data-model, contracts/",
+      detail:"Data model, API contracts, quickstart. Business needs become technical decisions with documented rationale — and the Constitution Check runs again after this phase." },
+    { id:"p2", step:1, x:46, y:292, w:274, h:42, label:"Phase 2 — Task generation  → tasks.md",
+      detail:"The design decomposes into discrete, trackable tasks. Phasing 'prevents context saturation and allows for validation at each stage' — a phase is a unit of work small enough to hold in one head, human or model." },
+
+    // gates
+    { id:"gatecc", step:1, x:352, y:176, w:134, h:76, label:"⛩ GATE\nConstitution Check",
+      detail:"'GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.' A gate is a named condition a plan must demonstrate before the next phase may start — without gates, a phased plan is a task list with headings." },
+    { id:"gateneg", step:2, x:352, y:268, w:134, h:92, label:"⛩ PHASE −1 gates\nsimplicity ·\nanti-abstraction ·\nintegration-first",
+      detail:"Pre-implementation gates that 'prevent over-engineering by making the LLM explicitly justify any complexity.' Failing one doesn't block — it requires documented justification in a Complexity Tracking table. Accountability, not prohibition. Inverse rule: if you could describe the diff in one sentence, skip the plan." },
+
+    // verifiability
+    { id:"verify", step:3, x:28, y:392, w:310, h:64, label:"every task ends in a PASS / FAIL check\ntests · build · contract · end-to-end step",
+      detail:"'Give Claude something that produces a pass or fail, and the loop closes on its own.' EARS requirements ('WHEN [condition] THE SYSTEM SHALL [behavior]') translate directly to test cases; explicit outcomes let Kiro sequence independent tasks into concurrent waves; /speckit.analyze cross-checks spec↔plan↔tasks before any code. Grounded artifact validation hit 58.2% Pass@1 on SWE-bench Lite." },
+
+    // NFR panel
+    { id:"nfr", step:4, x:28, y:476, w:222, h:120, label:"NFR pass\nISO/IEC 25010:2023\n9 characteristics\n(capacity = scale,\nsafety new in 2023)",
+      detail:"Walk all nine: functional suitability, performance efficiency (time behavior, resource utilization, capacity), compatibility, usability, reliability, security, maintainability, portability/flexibility, safety. Keep the load-bearing ones, state a target per phase, and write one line of rationale for each waiver — the waiver is the proof you asked." },
+    { id:"slo", step:5, x:266, y:476, w:220, h:54, label:"perf/scale → SLO\n\"p99 ≤ 300 ms @ 50 RPS\"",
+      detail:"SLI = quantitative measure (latency, error rate, throughput, availability). SLO = target value on that SLI. SLA = SLO + consequences. Guidance: don't adopt current performance as the target, keep SLIs simple, choose just enough SLOs, don't overachieve (Chubby's planned outages)." },
+    { id:"asvs", step:6, x:266, y:542, w:220, h:54, label:"security → ASVS 5.0 level\ncite <ch>.<sec>.<req> IDs",
+      detail:"ASVS 5.0.0: ~350 requirements, 17 chapters, levels L1–L3 chosen by criticality. Use as a metric, as guidance, and in procurement. Stable requirement IDs mean the plan cites security controls the way it cites REQ-* IDs — checkable by reviewer, auditor, or agent." },
+
+    // the handoff
+    { id:"handoff", step:7, x:28, y:620, w:458, h:52,
+      label:"→ HANDOFF  phased · gated · verifiable · NFR-targeted",
+      detail:"The four-property checklist for any plan: phases small enough to validate; named gate conditions at boundaries (with a complexity-tracking record for exceptions); pass/fail checks on every task and cross-checked artifacts; NFRs as citable measurable targets. Day 5 hands this artifact to an implementing agent end-to-end." }
+  ],
+  edges: [
+    { id:"e_pipe",  step:1, from:"pipe",    to:"plan",   label:"decompose", lx:-8 },
+    { id:"e_cc",    step:1, from:"gatecc",  to:"p0",     label:"pass first", ly:-4 },
+    { id:"e_neg",   step:2, from:"gateneg", to:"p2",     label:"justify complexity", ly:-6 },
+    { id:"e_ver",   step:3, from:"p2",      to:"verify", label:"each task carries its check", lx:-6 },
+    { id:"e_nfr",   step:4, from:"verify",  to:"nfr",    label:"quality pass", lx:-4 },
+    { id:"e_slo",   step:5, from:"slo",     to:"nfr",    label:"targets", ly:-2 },
+    { id:"e_asvs",  step:6, from:"asvs",    to:"nfr",    label:"level + IDs", ly:-2 },
+    { id:"e_hand",  step:7, from:"nfr",     to:"handoff", label:"ship the plan", lx:-6 }
+  ],
+  captions: [
+    "An approved spec is not a plan. Between spec and code runs a <b>pipeline of artifacts</b> — Spec → Plan → Tasks → Implement — and every arrow is a human checkpoint. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "The plan itself is <b>phased</b>: research → design &amp; contracts → task generation — with a <b>Constitution Check gate</b> that must pass before Phase 0 and be re-checked after design. <span style='opacity:.7'>(tap)</span>",
+    "<b>Phase −1 gates</b> — simplicity, anti-abstraction, integration-first — make complexity justify itself in writing. Fail a gate, document why. <span style='opacity:.7'>(tap)</span>",
+    "Every task ends in a <b>pass/fail check</b>. Verifiable tasks close the loop, sequence into waves, and get cross-checked (<b>/speckit.analyze</b>) before code exists. <span style='opacity:.7'>(tap)</span>",
+    "Now the other half of quality: walk <b>ISO 25010's nine characteristics</b> as the NFR checklist — capacity (scale) is a first-class slot, not an afterthought. <span style='opacity:.7'>(tap)</span>",
+    "Perf and scale targets get <b>SLO-shaped</b>: a simple indicator, an explicit target value, an owning phase gate. <span style='opacity:.7'>(tap)</span>",
+    "Security gets an <b>ASVS level</b> and citable requirement IDs — 'must be secure' becomes something an auditor can check. <span style='opacity:.7'>(tap)</span>",
+    "The handoff artifact: <b>phased, gated, verifiable, NFR-targeted</b>. Tomorrow this plan gets handed to an implementing agent end-to-end. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w05-d4",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "In spec-driven development (Spec Kit, Kiro), what is the primary purpose of decomposing work into separate spec → plan → tasks artifacts instead of going straight from spec to code?",
+      options: [
+        "It produces more documentation for the client to sign",
+        "Each artifact is a checkpoint where humans review and redirect before more work builds on top",
+        "It lets the coding agent run faster by skipping the spec",
+        "It guarantees the code will have no bugs" ],
+      answer: 1,
+      explain: "The pipeline exists to create human checkpoints. The plan converts business needs into technical decisions with documented rationale, and each artifact boundary is a review-and-redirect moment — catching a wrong turn at the plan stage is far cheaper than catching it in a giant PR." },
+    { type: "scq",
+      stem: "Under Spec Kit's Phase −1 rules, a plan trips the Simplicity Gate. What happens?",
+      options: [
+        "The plan is automatically rejected and must be simplified",
+        "The gate is advisory and can be ignored silently",
+        "The complexity is allowed, but only with a documented justification in the Complexity Tracking table",
+        "Implementation proceeds but the gate re-runs after Phase 1" ],
+      answer: 2,
+      explain: "Failing a Phase −1 gate doesn't block — it requires documented justification. The gate's job is accountability, not prohibition: sometimes complexity is right, but it must never be the silent answer." },
+    { type: "tf",
+      stem: "Because phased planning catches errors early, an FDE should run the full spec → plan → tasks decomposition on every change, including one-line fixes.",
+      answer: false,
+      explain: "No — decomposition has a cost, and the guidance is explicit: 'If you could describe the diff in one sentence, skip the plan.' Planning pays when the approach is uncertain, the change spans multiple files, or the code is unfamiliar. Ceremony on a one-liner is the mirror image of vibe-coding a multi-service feature." },
+    { type: "mcq",
+      stem: "Which of these belong in the plan for a task or phase to count as VERIFIABLE? (select all that apply)",
+      options: [
+        "A check that produces a pass or fail — tests, a build, an end-to-end verification step",
+        "Acceptance criteria written in testable EARS shape (WHEN [condition] THE SYSTEM SHALL [behavior])",
+        "Cross-artifact validation of spec ↔ plan ↔ tasks before implementation starts",
+        "A statement that the team will 'know it when they see it'",
+        "A promise to test everything at the end of the project" ],
+      answer: [0, 1, 2],
+      explain: "Verifiability means the completion condition is binary and stated up front: a runnable check per task, requirements phrased so they translate directly into test cases, and validation of the artifacts themselves (like /speckit.analyze) before code exists. 'Know it when we see it' and 'test at the end' are exactly what verifiable decomposition replaces." },
+    { type: "match",
+      stem: "Match each NFR statement to the discipline it violates or applies.",
+      pairs: [
+        { l: "\"The API must be fast\"", r: "not SLO-shaped — no indicator, no target value" },
+        { l: "\"p99 latency ≤ 300 ms at 50 RPS, gated in Phase 2\"", r: "SLI + SLO with an owning phase gate" },
+        { l: "\"Must be secure\"", r: "unfalsifiable — pick an ASVS level and cite requirement IDs" },
+        { l: "\"We forgot to discuss scale at all\"", r: "skipped the ISO 25010 walk — capacity is a named subcharacteristic" } ],
+      explain: "The quality model (25010) makes sure every dimension gets asked about; SLI/SLO discipline turns performance wishes into measurable targets; ASVS levels and IDs do the same for security. Adjectives are wishes — indicators with target values are requirements." },
+    { type: "open",
+      stem: "A client PM says: 'Our current prototype answers in about 120 ms, so let's just write p99 ≤ 120 ms into the plan as the performance NFR.' Using the SRE target-setting guidance, give two reasons that's a mistake and what you'd do instead.",
+      hint: "Think about where targets should come from — and what users calibrate on.",
+      model: "First, don't adopt current performance as the target: 120 ms is what the prototype happens to do, not what the users' workflow needs — derive the target from the user requirement (maybe 300 ms is fine), or you enshrine an accident as a commitment. Second, overachieving is its own trap: users and dependent systems calibrate on actual behavior, not the stated promise (Google's Chubby needed planned outages for exactly this reason), so promising 120 ms because you currently hit it removes all engineering headroom. Instead: pick a simple SLI (request latency), set the SLO from the client's actual tolerance, assign it to an owning phase gate, and refine it over time — perfection can wait." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>
