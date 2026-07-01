@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w03d2">
+<meta name="fde-concepts" content="mcp-host-client-server,mcp-server-primitives,mcp-tool-invocation,mcp-transports,mcp-capability-negotiation,mcp-tool-safety-hitl">
+<title>W3·D2 — Tools &amp; MCP | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Tools &amp; MCP: One Port for Every Integration</h1>
+        <div class="meta">
+          <span><b>Week 3</b> · Day 2</span>
+          <span>Agents &amp; Tool Use</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Yesterday a model could only <em>talk</em>. Today it can <em>act</em> — read a file, query a
+        database, open a pull request — because something standard sits between the model and the outside world. That
+        something is the <strong>Model Context Protocol (MCP)</strong>: an open standard, open-sourced by Anthropic on
+        2024-11-25, that Anthropic itself calls "a USB-C port for AI applications." Today you learn its architecture,
+        its primitives, how a tool is discovered and called, how the bytes travel, and — the part clients actually pay
+        an FDE to get right — why every tool is arbitrary code execution and must have a human in the loop. We teach
+        against the current stable spec revision, <strong>2025-11-25</strong>. The panel on the right builds up one MCP
+        deployment piece by piece as you scroll.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>The N×M problem, and the port that kills it</h2>
+        <p>Before MCP, every time you wanted an AI app to touch a new system — a filesystem, GitHub, a Postgres
+        database, a Slack workspace — someone wrote a bespoke connector. Anthropic describes the pre-MCP world bluntly:
+        AI assistants were "constrained by their isolation from data — trapped behind information silos and legacy
+        systems." Worse, the cost multiplied. If you have <em>M</em> AI applications and <em>N</em> data sources, the
+        naive world needs up to <strong>M×N</strong> custom integrations, each one written, tested, and maintained
+        separately. Every new tool meant new glue code in every app that wanted it.</p>
+        <p>MCP replaces that mesh with a single contract. It is, in the official words, "an open-source standard for
+        connecting AI applications to external systems" — data sources, tools, and workflows — so you "build once
+        against the protocol instead of one bespoke connector per data source." The analogy the docs lead with is worth
+        memorizing because you will repeat it to clients: <strong>"Think of MCP like a USB-C port for AI
+        applications."</strong> Just as USB-C standardized how devices connect to peripherals, MCP standardizes how an
+        AI app connects to external systems. Write a tool as an MCP <em>server</em> once, and <em>any</em> MCP-aware app
+        can use it — no per-app glue.</p>
+        <p>That is the reframe for the day. Tools are not a feature you bolt onto one model; they are an ecosystem you
+        plug into through a shared port. When a client asks "how do we let our assistant use our internal systems
+        without rewriting integrations for every vendor's AI?", the honest first answer is: expose them once, behind
+        MCP. The rest of today is what that port actually looks like when you open it up.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Architecture</div>
+        <h2>Host, client, server — and a 1:1 wire</h2>
+        <p>MCP "follows a client-host-server architecture where each host can run multiple client instances." Three
+        roles, and keeping them straight is the difference between reasoning clearly about a deployment and hand-waving.
+        The <strong>host</strong> is the AI application itself — Claude Desktop, an IDE assistant, your agent. It is the
+        coordinator: it runs the model, it enforces security and user consent, and it decides which servers to connect
+        to. The <strong>server</strong> is a program that "exposes resources, tools and prompts via MCP primitives" —
+        the Filesystem server, the GitHub server, your own internal-API server. Between them sits the
+        <strong>client</strong>, which lives inside the host and "maintains an isolated server connection."</p>
+        <p>Here is the detail people miss: a client has a <strong>1:1 relationship with a particular server</strong>.
+        One client, one server, one dedicated connection. If your host talks to three servers, it spins up three
+        clients. That isolation is deliberate — it keeps a misbehaving or malicious server boxed into its own channel,
+        and it makes consent and auditing tractable one connection at a time.</p>
+        <p>Underneath, every message is <strong>JSON-RPC 2.0</strong> — a small, boring, well-understood
+        request/response format. Nothing exotic on the wire; that is a feature. And the design lineage is intentional:
+        MCP is inspired by the <strong>Language Server Protocol (LSP)</strong>, which did for editors and languages
+        exactly what MCP does for AI apps and tools — standardize one integration surface so an <em>N×M</em> explosion
+        collapses into <em>N+M</em>. Learn the port once; the whole ecosystem opens.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Primitives · who's in control</div>
+        <h2>Three server primitives, split by who controls them</h2>
+        <p>A server can offer three kinds of thing, and the load-bearing mental model for the entire day is not
+        <em>what</em> they are but <strong>who controls them</strong>. Get this and everything downstream — safety,
+        invocation, UX — falls out of it.</p>
+        <p><strong>Tools</strong> are "functions for the AI model to execute," and they are explicitly
+        <strong>model-controlled</strong>: "the language model can discover and invoke tools automatically." The model
+        decides, mid-reasoning, to call <code>search_flights</code> or <code>run_query</code>. <strong>Resources</strong>
+        are "context and data, for the user or the AI model to use" — files, records, documents — and they are
+        <strong>application-controlled</strong>: the host app decides what context to pull in and attach.
+        <strong>Prompts</strong> are "templated messages and workflows for users" and are <strong>user-controlled</strong>
+        — think the slash-commands a user picks from a menu. Model / app / user: three controllers, three primitives.</p>
+        <p>The symmetry runs the other way too. A capable client can offer three <em>server-initiated</em> primitives
+        back to the server: <strong>Sampling</strong> ("server-initiated agentic behaviors and recursive LLM
+        interactions" — the server asks the host's model to think), <strong>Roots</strong> ("server-initiated inquiries
+        into URI or filesystem boundaries to operate in" — the server asks which directories it's allowed to touch), and
+        <strong>Elicitation</strong> ("server-initiated requests for additional information from users" — the server
+        asks the human a question mid-task). These aren't automatic; sampling, for instance, "requires the client to
+        declare support in its capabilities." Which is our first hint at how MCP stays safe and extensible — a preview
+        of the negotiation step coming up.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Tool invocation</div>
+        <h2>Discover with tools/list, act with tools/call</h2>
+        <p>Because tools are model-controlled, the model first has to <em>know what exists</em>. Discovery is a single
+        JSON-RPC method: the client sends a <code>tools/list</code> request (paginated with a cursor, so a server
+        exposing hundreds of tools returns them in pages) and gets back an array of <strong>Tool objects</strong>. Each
+        Tool carries a <code>name</code> (its unique id), a <code>description</code> (which the model reads to decide
+        when to use it — write it like a prompt, because it is one), and an <code>inputSchema</code> that "MUST be a
+        valid JSON Schema object" (defaulting to JSON Schema 2020-12). Optionally it carries a human-friendly
+        <code>title</code>, an <code>outputSchema</code>, and <code>annotations</code> (hints like "read-only" or
+        "destructive"). If the available tools change at runtime, a server that declared <code>listChanged</code>
+        <em>should</em> send a <code>notifications/tools/list_changed</code> so the client re-fetches.</p>
+        <p>To actually run one, the client sends <code>tools/call</code> with the tool's <code>name</code> and an
+        <code>arguments</code> object that satisfies the input schema. That's the whole loop: list to discover, call to
+        act. The Tool's schema is what makes this safe-ish to automate — the model can only fill in arguments the schema
+        allows, and a client can validate the arguments before anything executes. The description and schema together
+        are your primary lever on tool <em>quality</em>: a vague description gets a tool called at the wrong moment; a
+        loose schema gets it called with garbage. Both are FDE tuning surface.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live tool inspector — connect
+        to a demo MCP server, fire a real <code>tools/list</code>, browse each Tool object's schema and annotations, then
+        build a <code>tools/call</code> from a form and watch the round-trip. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Results &amp; errors</div>
+        <h2>Two kinds of error, and why the difference matters</h2>
+        <p>A tool result carries a <code>content</code> array — one or more typed items: text, image, audio, a
+        <code>resource_link</code>, or an embedded resource. For machine-readable results, a tool can also return
+        <code>structuredContent</code> as a JSON object; if it declared an <code>outputSchema</code>, then servers
+        "MUST provide structured results that conform to this schema" and clients "SHOULD validate structured results
+        against this schema." (For backwards compatibility, a tool returning structured content should <em>also</em>
+        serialize it into a text block, so older clients still see something.)</p>
+        <p>Now the part that trips up everyone the first time, and the reason it's worth a whole step: MCP has
+        <strong>two distinct error channels</strong>, and choosing the wrong one quietly breaks agent behavior.
+        <strong>Protocol errors</strong> — unknown tool, malformed request, server crash — are standard JSON-RPC
+        <code>error</code> objects. But a <strong>tool-execution error</strong> — the flight search found nothing, the
+        API returned 403, the input failed a business rule — is returned inside a <em>successful</em> result with
+        <code>isError: true</code> set in the result body. Not a JSON-RPC error. A <em>successful</em> response that
+        says "the tool ran and here's why it didn't work."</p>
+        <p>The spec's rationale is the whole point: "Tool Execution Errors contain actionable feedback that language
+        models can use to self-correct and retry with adjusted parameters," and "clients SHOULD provide tool execution
+        errors to language models to enable self-correction." If you bury a validation failure in a JSON-RPC protocol
+        error, the model never sees it and can't fix its own arguments; surface it as <code>isError</code> content and
+        the model reads "date must be in the future," adjusts, and retries. Business-logic failures belong in
+        <code>isError</code>; only genuine protocol faults belong in JSON-RPC errors. That distinction is a real bug you
+        will find in client codebases.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Transports</div>
+        <h2>Two ways the bytes travel: stdio and Streamable HTTP</h2>
+        <p>The architecture is transport-agnostic, but the spec "currently defines two standard transport mechanisms,"
+        and knowing which is which saves you an afternoon of debugging. The first is <strong>stdio</strong>: "the client
+        launches the MCP server as a subprocess," and the two exchange newline-delimited JSON-RPC over the process's
+        stdin and stdout. It's local, it's simple, there's no network, and "clients SHOULD support stdio whenever
+        possible." This is how a desktop app talks to a Filesystem or Git server running on the same machine — no ports,
+        no auth, just a child process.</p>
+        <p>The second is <strong>Streamable HTTP</strong>: the server exposes "a single HTTP endpoint path" that
+        supports POST (client → server) and GET, optionally upgrading a response to <strong>Server-Sent Events
+        (SSE)</strong> so the server can stream multiple messages back over one connection. This is for remote and
+        multi-client servers — a hosted GitHub server your whole team hits. Two headers matter: HTTP clients "MUST send
+        <code>MCP-Protocol-Version: &lt;revision&gt;</code>" on every request so the server knows which spec revision to
+        speak, and a session can be tracked with an <code>MCP-Session-Id</code> header.</p>
+        <p>One historical footnote that saves you from stale tutorials: Streamable HTTP <strong>replaced the deprecated
+        HTTP+SSE transport</strong> from protocol version 2024-11-05. If you find a guide wiring up two separate
+        endpoints (one POST, one long-lived SSE), it's teaching the old two-endpoint design. The current model is a
+        single endpoint that <em>optionally</em> streams. Pin your reading to a dated revision — MCP moves fast enough
+        that undated blog posts are a real trap.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a wire viewer — pick stdio or
+        Streamable HTTP and watch the same <code>initialize</code> → <code>tools/call</code> exchange as raw JSON-RPC
+        frames, with the SSE upgrade and the <code>MCP-Protocol-Version</code> / <code>MCP-Session-Id</code> headers
+        highlighted. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Capability negotiation</div>
+        <h2>You can only use what was declared at init</h2>
+        <p>Every MCP connection opens with a handshake, and that handshake is where MCP gets its extensibility. MCP
+        "uses a capability-based negotiation system where clients and servers explicitly declare their supported
+        features during initialization. Capabilities determine which protocol features and primitives are available."
+        The rule is strict and simple: <strong>a feature is only usable if it was declared.</strong></p>
+        <p>Concretely: a server that wants to offer tools declares the <code>tools</code> capability at
+        <code>initialize</code> time — for example <code>{"capabilities":{"tools":{"listChanged":true}}}</code>, which
+        also promises it will send list-changed notifications. A server that wants clients to subscribe to resource
+        updates must declare subscription support. A client that will honor <em>sampling</em> requests must declare that
+        it can. If it wasn't declared in the handshake, the other side must not use it — no probing, no surprises.</p>
+        <p>Why is this the quietly brilliant part? Because it means "features can be added to servers and clients
+        progressively" without breaking anyone. A brand-new server capability that an old client never declared support
+        for simply doesn't get exercised against that client; both sides degrade gracefully to the intersection of what
+        they both understand. That is how a fast-moving protocol stays backward-compatible: nobody assumes, everybody
+        declares, and the negotiated set is the contract for that session. When you debug "why won't this server's fancy
+        feature work in this host?", your first move is to read the negotiated capabilities — the answer is almost
+        always that one side never declared it.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Safety · the FDE's real job</div>
+        <h2>A tool is arbitrary code — keep a human in the loop</h2>
+        <p>Here is the sentence to tattoo next to yesterday's: <strong>"Tools represent arbitrary code execution and
+        must be treated with appropriate caution."</strong> A tool call is not a query — it can delete files, move
+        money, send email, run shell commands. The moment you give a model tools, you have handed a probabilistic system
+        the ability to <em>act</em> on the world. The spec responds not with a vibe but with hard requirements, and
+        these are exactly what a client is paying you to get right.</p>
+        <p>First, human-in-the-loop is mandatory: "there SHOULD always be a human in the loop with the ability to deny
+        tool invocations," and hosts "MUST obtain explicit user consent before invoking any tool." The model proposes;
+        a human disposes. Second — and this is the footgun that catches experienced engineers — "clients MUST consider
+        tool annotations to be untrusted unless they come from trusted servers." A tool can <em>annotate itself</em> as
+        "read-only" or "safe." That annotation is a claim by the server, not a guarantee; a malicious or compromised
+        server will happily label a destructive tool as harmless. Never let a self-reported annotation stand in for a
+        real consent gate.</p>
+        <p>Third, for network transports the spec is specific about a classic attack: Streamable HTTP servers "MUST
+        validate the <code>Origin</code> header ... to prevent DNS rebinding attacks," and local servers "SHOULD bind
+        only to localhost" rather than <code>0.0.0.0</code>. Skip that and a random web page the user visits can reach
+        the tool server running on their laptop. This is the FDE's actual job on an agent engagement: not "make the
+        model call tools" — that's easy — but "make sure it can't call the wrong tool, without consent, against a
+        server that lied about being safe, reachable from the open internet." Diagnose the consent path before you
+        celebrate the capability.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a consent-gate simulator — the
+        model proposes a <code>tools/call</code>, you see the approve/deny prompt, toggle a server between "trusted" and
+        "untrusted" to watch how annotations are (dis)trusted, and try an <code>Origin</code>-header attack against a
+        server bound to localhost vs <code>0.0.0.0</code>. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="8">
+        <div class="tag">Roadmap · not yet stable</div>
+        <h2>Where MCP is heading — and the mindset that outlasts it</h2>
+        <p>Teach today against <strong>2025-11-25</strong>, but know what's coming so you don't design into a corner. The
+        next revision — an RC locked 2026-05-21, publishing <strong>2026-07-28</strong> — reorients MCP around a
+        <strong>stateless HTTP core</strong>. The roadmap's top priority is transport scalability: today's "stateful
+        sessions fight with load balancers, horizontal scaling requires workarounds," so the RC moves toward statelessness
+        plus <code>.well-known</code> capability discovery. It also adds an <strong>Extensions</strong> framework,
+        <strong>Tasks</strong> for long-running work (with retry/expiry semantics under an "Agent Communication" banner),
+        and <strong>MCP Apps</strong> (server-rendered UI). A tell that this is already in motion: even the 2025-11-25 Tool
+        object carries an optional <code>execution.taskSupport</code> field (<code>forbidden</code> default /
+        <code>optional</code> / <code>required</code>), foreshadowing Tasks. Treat all of it as roadmap, not shippable
+        API — pin your code to a dated revision and flag the RC as "coming, not yet stable."</p>
+        <p>The through-line from yesterday holds. Day 1 said: diagnose the <em>window</em> before you blame the model.
+        Today says: diagnose the <em>protocol boundary</em> before you blame the tool. Who controls this primitive — model,
+        app, or user? Was this capability actually declared at init? Is this an <code>isError</code> the model can
+        self-correct from, or a protocol fault it never sees? Is there a human on the consent gate, and did anyone verify
+        the server before trusting its annotations? Those questions don't expire when the spec revision does.</p>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When an FDE wires an agent into a client's systems, the win is never "look, it can call tools." It's
+          <strong>"every tool call is discoverable, validated, negotiated, and gated by a human who can say no."</strong>
+          MCP is the USB-C port; your job is to make sure what gets plugged in is safe, scoped, and auditable. Tomorrow we
+          take these tool-calling foundations and build the agent <em>loop</em> that decides which tools to call, in what
+          order, until the task is done.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://modelcontextprotocol.io/docs/getting-started/intro" target="_blank" rel="noopener">What is the Model Context Protocol (MCP)? — modelcontextprotocol.io</a> — the official intro and the "USB-C port for AI" framing.</li>
+          <li><a href="https://www.anthropic.com/news/model-context-protocol" target="_blank" rel="noopener">Introducing the Model Context Protocol — Anthropic (2024-11-25)</a> — origin, date, and the fragmented-integration problem MCP was built to kill.</li>
+          <li><a href="https://modelcontextprotocol.io/specification/2025-11-25/architecture" target="_blank" rel="noopener">MCP Architecture — spec 2025-11-25</a> — host/client/server roles, JSON-RPC base, 1:1 client↔server, and capability negotiation.</li>
+          <li><a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools" target="_blank" rel="noopener">MCP Server / Tools — spec 2025-11-25</a> — <code>tools/list</code>, <code>tools/call</code>, the Tool object, structured content, <code>isError</code>, and tool security.</li>
+          <li><a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/transports" target="_blank" rel="noopener">MCP Basic / Transports — spec 2025-11-25</a> — stdio vs Streamable HTTP, the HTTP+SSE deprecation, and the Origin-validation security warning.</li>
+          <li><a href="https://blog.modelcontextprotocol.io/posts/2026-mcp-roadmap/" target="_blank" rel="noopener">The 2026 MCP Roadmap — Model Context Protocol Blog</a> — statelessness, Tasks/Agent Communication, governance, and enterprise readiness (roadmap, not stable).</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">JSON-RPC on the wire — an init handshake &amp; a tools/call</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on MCP architecture, tools &amp; safety</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 3 Day 2</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: JSON-RPC on the wire</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. What the port actually says when you open it — every message is plain
+    JSON-RPC 2.0, teaching revision <code>2025-11-25</code>.</p>
+    <p><strong>1 · The handshake.</strong> Nothing works until both sides declare capabilities. The client opens with
+    <code>initialize</code>; the server answers with the features it supports. A feature not named here cannot be used
+    this session.</p>
+    <div class="model-answer show">
+      <div class="ma-k">client → server</div>
+      <ul class="deliv-list">
+        <li><code>{"jsonrpc":"2.0","id":1,"method":"initialize",</code></li>
+        <li><code>&nbsp;"params":{"protocolVersion":"2025-11-25",</code></li>
+        <li><code>&nbsp;"capabilities":{"sampling":{}}}}</code></li>
+      </ul>
+      <div class="ma-k">server → client</div>
+      <ul class="deliv-list">
+        <li><code>{"jsonrpc":"2.0","id":1,"result":{</code></li>
+        <li><code>&nbsp;"capabilities":{"tools":{"listChanged":true}}}}</code></li>
+      </ul>
+    </div>
+    <p style="margin-top:14px"><strong>2 · Discover, then call.</strong> <code>tools/list</code> returns Tool objects
+    (name + <code>inputSchema</code>); <code>tools/call</code> runs one with <code>arguments</code>.</p>
+    <div class="model-answer show">
+      <div class="ma-k">tools/call — the request</div>
+      <ul class="deliv-list">
+        <li><code>{"jsonrpc":"2.0","id":7,"method":"tools/call",</code></li>
+        <li><code>&nbsp;"params":{"name":"get_weather",</code></li>
+        <li><code>&nbsp;"arguments":{"city":"Austin"}}}</code></li>
+      </ul>
+      <div class="ma-k">a tool-execution error — note it's a <em>success</em> result</div>
+      <ul class="deliv-list">
+        <li><code>{"jsonrpc":"2.0","id":7,"result":{</code></li>
+        <li><code>&nbsp;"content":[{"type":"text","text":"No data for 'Austn'"}],</code></li>
+        <li><code>&nbsp;"isError":true}}</code></li>
+      </ul>
+    </div>
+    <p style="margin-top:14px"><strong>Why <code>isError</code> and not a JSON-RPC error?</strong> Because the model
+    <em>reads</em> the result. "No data for 'Austn'" tells it the city was misspelled, so it retries with "Austin" — the
+    self-correction loop the spec is explicitly designed for. A JSON-RPC <code>error</code> object would have been hidden
+    from the model, and the agent would have simply given up.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 2 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Explain MCP as the "USB-C port for AI" and why it kills the N×M integration problem</li>
+      <li>Name the host/client/server roles, the 1:1 client↔server wire, and the JSON-RPC 2.0 base</li>
+      <li>Distinguish the three server primitives by <em>who controls them</em> — Tools (model), Resources (app), Prompts (user)</li>
+      <li>Trace a tool call through <code>tools/list</code> → <code>tools/call</code>, and tell an <code>isError</code> result from a JSON-RPC protocol error</li>
+      <li>Pick stdio vs Streamable HTTP, read a capability negotiation, and enforce human-in-the-loop consent</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add to your <code>NOTES.md</code></li>
+      <li><b>①</b> one integration you'd expose as an MCP server instead of bespoke glue, and why</li>
+      <li><b>②</b> one tool you'd gate with mandatory human consent, and the worst case if you didn't</li>
+      <li><b>③</b> one place you'd use <code>isError</code> so the model can self-correct instead of failing</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 3, where these tool-calling foundations become the agent <em>loop</em> — the
+    control flow that decides which tools to call, in what order, until the task is done.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 3 · The agent loop →", href: "w03d3.html" };
+window.DIAGRAM = {
+  title: "MCP · one protocol, many servers",
+  width: 500, height: 660,
+  nodes: [
+    // the host (coordinator)
+    { id:"host", step:0, x:24, y:72, w:280, h:168, label:"HOST — the AI application",
+      detail:"The host is the AI app (Claude Desktop, an IDE assistant, your agent). It runs the model, decides which servers to connect to, and — critically — enforces user consent and security. Each host can run multiple client instances, one per server." },
+
+    // clients inside the host
+    { id:"cliA", step:1, x:44, y:126, w:100, h:42, label:"Client A" },
+    { id:"cliB", step:1, x:44, y:180, w:100, h:42, label:"Client B" },
+
+    // servers outside
+    { id:"srvA", step:1, x:344, y:126, w:132, h:42, label:"Server · Files" },
+    { id:"srvB", step:1, x:344, y:180, w:132, h:42, label:"Server · GitHub",
+      detail:"A server exposes resources, tools, and prompts via MCP primitives. It can run locally as a subprocess (stdio) or remotely behind a single HTTP endpoint (Streamable HTTP). Each client holds a 1:1, isolated connection to exactly one server." },
+
+    // primitives (revealed together at step 2)
+    { id:"primC", step:2, kind:"example", x:24, y:252, w:150, h:96,
+      label:"CLIENT offers →\nSampling\nRoots\nElicitation",
+      detail:"Server-initiated primitives the client may offer back: Sampling (server asks the host's model to think), Roots (server asks which filesystem/URI boundaries it may operate in), Elicitation (server asks the human for more info). Each must be declared in the client's capabilities." },
+    { id:"primS", step:2, kind:"example", x:326, y:252, w:150, h:96,
+      label:"SERVER offers →\nTools · model-controlled\nResources · app-controlled\nPrompts · user-controlled",
+      detail:"The load-bearing split is WHO controls each. Tools: the model discovers and invokes them automatically. Resources: the application decides what context to attach. Prompts: the user picks a templated workflow. Model / app / user." },
+
+    // invocation
+    { id:"disc", step:3, x:44, y:364, w:190, h:52, label:"tools/list  →  tools/call\nname + arguments (JSON Schema)",
+      detail:"tools/list discovers Tool objects (name, description, inputSchema, optional outputSchema / title / annotations), paginated by cursor. tools/call runs one with arguments that satisfy the input schema. If tools change, a server that declared listChanged sends notifications/tools/list_changed." },
+    { id:"res",  step:4, x:286, y:364, w:190, h:52, label:"result: content[] + structuredContent\nisError:true = tool error",
+      detail:"Results carry a content array (text/image/audio/resource) plus optional structuredContent validated against outputSchema. Tool-execution failures ride in a SUCCESSFUL result with isError:true so the model can read the feedback and self-correct. Protocol faults use JSON-RPC error objects instead." },
+
+    // transports
+    { id:"trans", step:5, x:44, y:432, w:190, h:64, label:"TRANSPORT\nstdio (local subprocess)\nStreamable HTTP (POST + opt. SSE)",
+      detail:"Two standard transports. stdio: client launches the server as a subprocess, newline-delimited JSON-RPC over stdin/stdout. Streamable HTTP: a single endpoint, POST + optional SSE upgrade, with MCP-Protocol-Version and MCP-Session-Id headers. Streamable HTTP replaced the deprecated 2024-11-05 HTTP+SSE transport." },
+
+    // capability negotiation
+    { id:"cap",  step:6, x:286, y:432, w:190, h:64, label:"initialize → capabilities\na feature is usable only if declared",
+      detail:"At init, client and server explicitly declare supported features; the negotiated intersection is the session contract. e.g. tools support needs {\"capabilities\":{\"tools\":{\"listChanged\":true}}}. This is how MCP adds features progressively while staying backward-compatible — nobody assumes, everybody declares." },
+
+    // human-in-the-loop gate
+    { id:"hitl", step:7, x:44, y:512, w:432, h:60, label:"⚠ HUMAN IN THE LOOP — tools = arbitrary code",
+      detail:"Hosts MUST get explicit user consent before invoking any tool, and there SHOULD always be a human able to deny. Tool annotations are UNTRUSTED unless the server is trusted. HTTP servers MUST validate the Origin header (DNS-rebinding) and SHOULD bind only to localhost when local." },
+
+    // roadmap ghost
+    { id:"road", step:8, kind:"example", x:44, y:588, w:432, h:56, label:"→ 2026-07-28 RC (not yet stable): stateless core · Extensions · Tasks · MCP Apps",
+      detail:"Roadmap, not shippable API. The next revision reorients around a stateless HTTP core (stateful sessions fight load balancers), adds an Extensions framework, Tasks for long-running work, and MCP Apps (server-rendered UI). Even 2025-11-25's Tool object already carries execution.taskSupport, foreshadowing Tasks. Teach 2025-11-25; flag this as coming." }
+  ],
+  edges: [
+    { id:"e_a",    step:1, from:"cliA", to:"srvA", label:"1:1 · JSON-RPC 2.0", ly:-2 },
+    { id:"e_b",    step:1, from:"cliB", to:"srvB", label:"1:1", ly:-2 },
+    { id:"e_disc", step:4, from:"disc", to:"res",  label:"returns", ly:-2 },
+    { id:"e_neg",  step:6, from:"cap",  to:"srvB", label:"gates features", bend:-24, ly:-2 },
+    { id:"e_hitl", step:7, from:"hitl", to:"disc", label:"consent before call", lx:-6 }
+  ],
+  captions: [
+    "The <b>host</b> is the AI application — it runs the model and, crucially, enforces user consent. Everything today plugs into it. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Inside the host, each <b>client</b> holds a <b>1:1</b> connection to one <b>server</b>, over <b>JSON-RPC 2.0</b>. N×M glue collapses into one shared port.",
+    "Primitives split by <b>who controls them</b>: servers offer <b>Tools (model) · Resources (app) · Prompts (user)</b>; clients offer <b>Sampling · Roots · Elicitation</b> back. <span style='opacity:.7'>(tap)</span>",
+    "Because tools are <b>model-controlled</b>, the model discovers them with <b>tools/list</b> and runs one with <b>tools/call</b> — arguments validated by the Tool's JSON Schema. <span style='opacity:.7'>(tap)</span>",
+    "The result carries <b>content</b> + optional <b>structuredContent</b>. A tool failure rides in a <em>successful</em> result with <b>isError:true</b> so the model can self-correct. <span style='opacity:.7'>(tap)</span>",
+    "Same messages, two wires: <b>stdio</b> for local subprocesses, <b>Streamable HTTP</b> for remote — replacing the deprecated HTTP+SSE transport. <span style='opacity:.7'>(tap)</span>",
+    "It all starts with a handshake: <b>capabilities are negotiated at init</b>, and a feature is usable only if declared. That's how MCP stays extensible. <span style='opacity:.7'>(tap)</span>",
+    "A tool is <b>arbitrary code</b>. The spec mandates a <b>human in the loop</b>, explicit consent, and treats self-reported annotations as untrusted. <span style='opacity:.7'>(tap)</span>",
+    "Coming, not yet stable: the <b>2026-07-28 RC</b> — stateless core, Extensions, Tasks, MCP Apps. Teach 2025-11-25; flag the rest as roadmap. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w03-d2",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "In MCP's architecture, which statement about the client↔server relationship is correct?",
+      options: [
+        "One client multiplexes connections to many servers at once",
+        "Each client maintains an isolated, 1:1 connection to exactly one server",
+        "Servers connect directly to the model, bypassing the host",
+        "The host talks to servers without any client in between" ],
+      answer: 1,
+      explain: "A host can run many clients, but each client holds a 1:1, isolated connection to one server over JSON-RPC 2.0. That isolation is what keeps consent and auditing tractable one connection at a time." },
+    { type: "scq",
+      stem: "A tool runs but its input fails a business rule (e.g. the requested date is in the past). How should the server report this so the agent behaves well?",
+      options: [
+        "As a JSON-RPC error object with an error code",
+        "By silently returning empty content",
+        "In a successful result with isError:true and an explanatory message",
+        "By closing the transport connection" ],
+      answer: 2,
+      explain: "Tool-execution errors ride in a SUCCESSFUL result with isError:true so the model can read the actionable feedback and self-correct. JSON-RPC errors are for protocol faults (unknown tool, malformed request) and would be hidden from the model." },
+    { type: "tf",
+      stem: "If a tool's annotations say it is 'read-only', a client can trust that and skip the consent gate.",
+      answer: false,
+      explain: "No. Clients MUST consider tool annotations untrusted unless they come from a trusted server — a self-reported 'read-only' label is a claim, not a guarantee. Tools are arbitrary code execution; hosts MUST obtain explicit user consent and keep a human able to deny." },
+    { type: "mcq",
+      stem: "Which of these are true of MCP as taught against spec revision 2025-11-25? (select all that apply)",
+      options: [
+        "Tools are model-controlled; Resources are application-controlled; Prompts are user-controlled",
+        "The two standard transports are stdio and Streamable HTTP",
+        "A feature is usable only if it was declared during capability negotiation at init",
+        "Streamable HTTP is deprecated in favor of the older HTTP+SSE transport",
+        "Stateless core, Tasks, and MCP Apps are stable, shippable APIs today" ],
+      answer: [0, 1, 2],
+      explain: "The control-model split, the two transports, and init-time capability negotiation are all core to 2025-11-25. It's the reverse on transports: Streamable HTTP REPLACED the deprecated HTTP+SSE. And stateless core / Tasks / MCP Apps are 2026-07-28 RC roadmap — coming, not yet stable." },
+    { type: "match",
+      stem: "Match each MCP concept to what it does.",
+      pairs: [
+        { l: "tools/list", r: "discover the Tool objects a server exposes" },
+        { l: "isError:true", r: "tool-execution failure the model can self-correct from" },
+        { l: "stdio transport", r: "client launches the server as a local subprocess" },
+        { l: "capability negotiation", r: "declare at init which features are usable this session" } ],
+      explain: "tools/list is discovery; isError carries actionable tool failures inside a successful result; stdio runs the server as a subprocess over stdin/stdout; and capability negotiation at init fixes the feature contract for the session." },
+    { type: "open",
+      stem: "In one or two sentences: why does the spec insist a tool call is 'arbitrary code execution', and name two concrete safeguards it requires as a result.",
+      hint: "Think about what a tool can actually DO to the world, and what the host must obtain before letting it.",
+      model: "A tool can run real side effects — delete files, move money, run shell commands — so from a security standpoint it's arbitrary code execution, not a harmless query. The spec therefore requires explicit user consent before any tool invocation with a human able to deny (human-in-the-loop), and it requires clients to treat tool annotations as untrusted unless the server is trusted; for HTTP transports it also mandates Origin-header validation and localhost binding to prevent DNS-rebinding attacks." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

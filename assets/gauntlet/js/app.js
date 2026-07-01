@@ -20,7 +20,12 @@
     { v: "w02d2", t: "Week 2 · Day 2" },
     { v: "w02d3", t: "Week 2 · Day 3" },
     { v: "w02d4", t: "Week 2 · Day 4" },
-    { v: "w02d5", t: "Week 2 · Day 5" }
+    { v: "w02d5", t: "Week 2 · Day 5" },
+    { v: "w03d1", t: "Week 3 · Day 1" },
+    { v: "w03d2", t: "Week 3 · Day 2" },
+    { v: "w03d3", t: "Week 3 · Day 3" },
+    { v: "w03d4", t: "Week 3 · Day 4" },
+    { v: "w03d5", t: "Week 3 · Day 5" }
   ];
   var DEFAULT_DAY = "w01d5";
 

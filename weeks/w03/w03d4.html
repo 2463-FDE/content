@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w03d4">
+<meta name="fde-concepts" content="short-term-memory,long-term-memory,memory-store,memory-type-taxonomy,virtual-context-management">
+<title>W3·D4 — Agent Memory: Working vs Long-Term Stores | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Agent Memory: What the Agent Keeps in Hand vs What It Files Away</h1>
+        <div class="meta">
+          <span><b>Week 3</b> · Day 4</span>
+          <span>Agents &amp; Orchestration</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">An LLM forgets everything the instant a call returns. So the moment you ask it to <em>act</em>
+        across many turns — an agent, not a one-shot answer — you have to build the memory yourself. There are exactly two
+        tiers, and confusing them is the source of most "why did the agent forget / why is it so slow / why did it repeat
+        itself" tickets you will ever field. Today you learn the split: <strong>short-term (working) memory</strong> that
+        lives inside the context window for one thread, and <strong>long-term memory</strong> that lives in an external
+        store, outside the window, recallable from any thread. The panel on the right builds both tiers, then shows how
+        data pages between them.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>A stateless model can't remember — so the agent has to</h2>
+        <p>Everything this week has circled one uncomfortable fact from Week 1: the model has <strong>no memory between
+        calls</strong>. Each request is a blank slate; whatever the model can reason over has to be sitting in the context
+        window <em>for that call</em>. That's tolerable for a single question. It is a crisis for an <strong>agent</strong>
+        — an LLM running in a loop, taking actions over many turns — because an agent that can't remember what it just did
+        will re-ask, re-plan, and re-tread the same ground forever.</p>
+        <p>So "memory" for an agent is not a feature the model has. It is <strong>infrastructure you build around the
+        model</strong>: text you decide to keep, store somewhere, and re-supply on the next call. And the single most
+        useful thing you can carry into any client engagement is that this infrastructure comes in exactly two tiers, with
+        a hard line between them. <strong>Short-term memory</strong> is the ongoing conversation — the working set the agent
+        holds in hand right now, inside the window, for this one thread. <strong>Long-term memory</strong> is everything
+        the agent has filed away for later — persistent, outside the window, recallable from any thread at any time.</p>
+        <p>Almost every real agent-memory bug is a category error between those two tiers: someone tried to make the window
+        do long-term memory's job (and it overflowed), or expected the store to behave like the live conversation (and it
+        felt stale). Get the taxonomy crisp first and the fixes become obvious. That's today. By the end you'll diagnose an
+        agent's memory the way you learned to diagnose a window in Week 1 — by asking <em>which tier is this, and is the
+        data where it needs to be?</em></p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Tier 1 · short-term</div>
+        <h2>Short-term memory is the thread you're in</h2>
+        <p><strong>Short-term memory</strong> — also called <em>working</em> or conversational memory — is thread-scoped.
+        It tracks the ongoing conversation by maintaining the <strong>message history within a single session or
+        thread</strong>: the user turns, the model's replies, the tool calls and their results, all in order. In
+        LangGraph's terms it is part of the agent's <strong>runtime state</strong>, and it is persisted across steps by a
+        <strong>checkpointer</strong> — the mechanism that snapshots the graph's state so the agent can pause, resume, and
+        continue the same thread without losing its place.</p>
+        <p>The key word is <em>thread</em>. Short-term memory belongs to one conversation. Start a new thread — a different
+        user, a different session, a fresh support ticket — and this working set is gone, by design. It is the equivalent
+        of what you're holding in your head during a single meeting: sharp, complete, and irrelevant the moment the meeting
+        ends. The OpenAI Agents SDK models the exact same idea under a different name: a <strong>Session</strong>. Before
+        each run, its runner "automatically retrieves the conversation history for the session and prepends it," and after
+        the run "all new items generated during the run are automatically stored" — so you never hand-thread the transcript
+        between turns yourself.</p>
+        <p>That automation is worth pausing on, because it hides where the tokens go. The framework is quietly re-sending
+        the growing transcript on every turn to keep the conversation feeling continuous. Convenient — and, as you'll see
+        in the next slice, a ceiling you will slam into. Short-term memory is powerful precisely because it is always
+        present in the window; it is also fragile for exactly the same reason.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">The ceiling</div>
+        <h2>Working memory is bounded by the context window</h2>
+        <p>Here is the wall. Short-term memory lives <strong>inside the context window</strong>, which means it inherits
+        the window's hard ceiling. The core short-term challenge, stated plainly in the LangChain docs, is that the
+        <strong>full history may not fit inside an LLM's context window</strong>. A long agent run — dozens of tool calls,
+        pages of intermediate output — will grow its message history past the limit, and then something has to give.</p>
+        <p>The standard moves are <strong>trimming</strong> and <strong>summarization</strong>: drop or compress stale
+        turns so the working set stays under budget. Trimming deletes old messages outright; summarization replaces a span
+        of old turns with a short synopsis that preserves the gist while spending far fewer tokens. Both are, in effect,
+        <em>deliberate forgetting</em> — you choose what stale information to let go of to manage token usage and keep the
+        agent fast. This is the same discipline you met in Week 1 as history eviction, but now you're the one doing it on
+        purpose, with a strategy, rather than letting the front of the window silently drop off.</p>
+        <div class="ix-future">
+          <div class="k">Interactive — future goal</div>
+          <p>Planned: a live "watch it compress" panel — run a long tool-heavy conversation, then hit a token ceiling and
+          see the middle turns collapse into a one-line summary while the running total drops. You'd toggle
+          <em>trim</em> vs <em>summarize</em> and compare what each strategy loses. Needs backend standup.</p>
+        </div>
+        <p>The FDE reflex to build here: when an agent "loses the plot" partway through a long task, don't reach for a
+        bigger model. Ask whether its working memory blew past the window and got crudely truncated. The fix is a
+        <strong>memory-management strategy</strong> — trim, summarize, or offload — not more parameters. And notice the
+        limitation this exposes: short-term memory can never be the place you keep something that must survive. Anything
+        the agent truly needs to remember tomorrow, or in a different thread, has to live somewhere the window can't
+        evict it. That somewhere is Tier 2.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Tier 2 · long-term</div>
+        <h2>Long-term memory lives outside the thread and outside the window</h2>
+        <p><strong>Long-term memory</strong> is the opposite of everything we just said. It stores user-specific or
+        application-level data <strong>across sessions</strong> and is <strong>shared across conversational threads</strong>.
+        It can be <em>recalled at any time and in any thread</em>, and — crucially — it is scoped to any custom namespace,
+        <strong>not just within a single thread ID</strong>. Where short-term memory is the meeting you're in, long-term
+        memory is the filing cabinet you walk back to between meetings.</p>
+        <p>Two properties define it, and both are the mirror image of Tier 1. First, it lives <strong>outside the context
+        window</strong>: it is not always sitting in the prompt burning tokens. It is stored externally and pulled in only
+        when relevant. Second, it is <strong>not thread-scoped</strong>: a fact the agent learned about a user in Monday's
+        conversation is available in Friday's, in a different session, in a different workflow entirely. That cross-thread
+        persistence is the whole point — it's what lets an assistant say "last quarter you told me your team standardized on
+        Postgres" three weeks and ten conversations later.</p>
+        <p>Because it isn't always present, long-term memory has to be <strong>retrieved on demand</strong> rather than
+        assumed. The agent (or the framework) decides a stored memory is relevant, fetches it, and drops it into the window
+        for this call — then it's gone from the window again when the call returns. This is why long-term memory pairs so
+        naturally with retrieval: fetching the right memory at the right moment is the same precision-of-retrieval skill you
+        practiced with RAG, applied to the agent's own accumulated knowledge instead of a document corpus.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">The store</div>
+        <h2>The memory store: namespaces and keys, not a thread</h2>
+        <p>Long-term memory needs a home, and that home is a <strong>memory store</strong> — a persistent, cross-thread
+        key/value store (LangGraph calls the interface a <strong>BaseStore</strong>) that holds memories independently of
+        any conversation. This is where the checkpointer / store distinction becomes load-bearing, and it's a favorite
+        interview trap: <strong>the checkpointer persists within-thread state (Tier 1); the store persists across threads
+        (Tier 2).</strong> They are different components doing different jobs. Conflating them is exactly the category error
+        we opened with.</p>
+        <p>The store organizes memories with two coordinates. A <strong>namespace</strong> works like a folder — typically
+        built from user or org IDs so information is filed hierarchically (all of one user's memories under their ID, for
+        instance). A <strong>key</strong> works like a filename, identifying an individual memory within that namespace. So
+        "user 4471's dietary preferences" is a namespace plus a key, addressable and updatable without touching anyone
+        else's memories or any particular conversation thread. That structure is what makes cross-thread recall tractable:
+        the agent knows <em>where</em> to look because the memory was filed under a stable, meaningful address rather than
+        buried in the flow of one chat.</p>
+        <p>Design consequence for you as an FDE: the namespace scheme <em>is</em> your multi-tenancy and privacy boundary.
+        Namespace memories by user or org and one tenant's agent can never recall another's. Get lazy and dump everything
+        into a flat namespace and you've built a data-leak. The store's folder/file structure isn't bookkeeping trivia —
+        it's the seam where memory design meets the tenant-isolation rules the client will hold you to.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Taxonomy</div>
+        <h2>Three flavors of memory, borrowed from human psychology</h2>
+        <p>Long-term memory isn't monolithic. A useful taxonomy — lifted straight from how psychologists describe human
+        memory — splits it into three types, and knowing the vocabulary helps you talk to a client about <em>what kind</em>
+        of thing the agent should remember. <strong>Semantic memory</strong> is the retention of specific <em>facts and
+        concepts</em>: the user's name, their tech stack, a policy threshold. <strong>Episodic memory</strong> is recalling
+        <em>past events and experiences</em>: what happened in a prior session, how a previous task played out.
+        <strong>Procedural memory</strong> is remembering the <em>rules used to perform tasks</em> — for an agent, "a
+        combination of model weights, agent code, and the agent's prompt."</p>
+        <p>The clean way the docs draw the line: <strong>facts can be written to semantic memory, whereas experiences can be
+        written to episodic memory.</strong> Semantic is the <em>what</em> — durable, atomic truths. Episodic is the
+        <em>what happened</em> — narrative, time-stamped. And procedural is the <em>how</em>, which for an agent mostly
+        lives not in a store at all but in its weights, its code, and above all its prompt. That last point is worth
+        holding onto: when you refine an agent's system prompt to change how it approaches a task, you are, in a real sense,
+        editing its procedural memory.</p>
+        <p>You don't have to build three separate databases to use this. The taxonomy is a <strong>design lens</strong>:
+        faced with "the agent should remember X," ask which kind X is. A stable fact about the user? Semantic — store it,
+        overwrite it when it changes. A record of a past interaction? Episodic — append it, timestamp it, retrieve similar
+        ones later. A change in <em>how</em> the agent should behave? Procedural — that's a prompt or code change, not a row
+        in the store. Matching the memory type to the storage strategy is what separates a coherent memory design from a
+        junk drawer of stashed strings.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">The pattern</div>
+        <h2>Virtual context management: the model as its own OS</h2>
+        <p>Where did the whole "two tiers, page between them" idea come from? The cleanest articulation is
+        <strong>MemGPT</strong>, which framed LLMs as operating systems. Its central move is <strong>virtual context
+        management</strong> — "a technique drawing inspiration from hierarchical memory systems in traditional operating
+        systems." An OS gives each program the illusion of vast memory by paging data between fast RAM and slow disk;
+        MemGPT gives the LLM the illusion of unbounded memory by paging between the context window and an external store.</p>
+        <p>The analogy is precise. <strong>Main context</strong> is the LLM's prompt tokens — "anything in main context is
+        considered in-context," analogous to RAM. <strong>External context</strong> is everything else — "out-of-context
+        data must always be explicitly moved into main context," analogous to disk. Main context is subdivided into three
+        sections: read-only <strong>system instructions</strong>, a fixed-size read/write <strong>working-context block</strong>
+        that the model can edit only through function calls, and a <strong>FIFO queue</strong> holding a rolling message
+        history. External context splits into <strong>recall storage</strong> (a conversation-history database) and
+        <strong>archival storage</strong> (a read/write database of arbitrary-length text). Map that back onto today: main
+        context is your short-term tier, external context is your long-term tier, and the sections are just the anatomy of
+        each.</p>
+        <div class="ix-future">
+          <div class="k">Interactive — future goal</div>
+          <p>Planned: a MemGPT-style paging visualizer — the agent hits a full window, issues a function call to evict old
+          turns to recall storage, then later issues another call to page a relevant memory back from archival storage into
+          main context. You'd step through the calls and watch data move between RAM and disk. Needs backend standup.</p>
+        </div>
+        <p>The genius stroke is <em>who drives the paging</em>. In MemGPT, "memory edits and retrieval are entirely
+        self-directed": the LLM autonomously issues the function calls to move data between main and external context. The
+        model manages its own memory the way a program requests pages — except the program is doing the requesting via tool
+        calls it decides to make. That self-directed paging is the conceptual foundation under every "LLM-managed long-term
+        memory" system you'll meet, and it's why memory operations show up as <em>tools</em> in modern agent frameworks.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">In practice</div>
+        <h2>Two tiers, two toolchains — and they're complementary</h2>
+        <p>The taxonomy is abstract; the products make it concrete, and they line up cleanly on the two tiers. For
+        <strong>short-term</strong> memory, the OpenAI Agents SDK's <strong>Sessions</strong> handle the working set with
+        pluggable backends — SQLite (the default, file or in-memory), Redis, SQLAlchemy, MongoDB, Dapr, and OpenAI-hosted
+        Conversations storage. The agent code doesn't change; you swap a local file for a production datastore as you scale.
+        That's the whole promise of the abstraction: short-term memory that grows from a laptop demo to a real system
+        without a rewrite.</p>
+        <p>For <strong>long-term</strong> memory, Anthropic's <strong>memory tool</strong> lets Claude "store and retrieve
+        information across conversations in a directory of memory files," building up knowledge over time "without keeping
+        everything in the context window" — an explicit long-term mechanism, distinct from the in-context conversation.
+        Architecturally it's worth knowing it's <strong>client-side</strong>: Claude only <em>requests</em> file operations
+        (view, create, str_replace, insert, delete, rename) under a <code>/memories</code> prefix, and <em>your</em>
+        application executes them against storage you control. It's generally available — tool type
+        <code>memory_20250818</code>, no beta header, on all Claude 4+ models. Your app owns the disk; the model just asks
+        for pages. Straight out of the MemGPT playbook.</p>
+        <p>The synthesis to carry out the door: these two tiers are <strong>complementary, not interchangeable</strong>.
+        Anthropic pairs the memory tool with context editing and server-side compaction, and describes the division exactly
+        — for long-running agents, "compaction keeps the active context small … and memory preserves the information that
+        must survive summarization." Read that twice. Compaction manages short-term memory (keep the window lean); the
+        memory files are long-term memory (keep what has to outlive the summary). When a client's agent forgets something
+        that mattered, your first question is now a taxonomy question: <em>was this supposed to be in working memory or
+        long-term memory — and was it actually written to the right tier?</em> That single question resolves the vast
+        majority of agent-memory tickets before you ever touch the model.</p>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://docs.langchain.com/oss/python/concepts/memory" target="_blank" rel="noopener">LangChain — Memory overview</a> — short-term vs long-term, the checkpointer/store split, namespaces &amp; keys, and the semantic/episodic/procedural taxonomy.</li>
+          <li><a href="https://arxiv.org/abs/2310.08560" target="_blank" rel="noopener">MemGPT: Towards LLMs as Operating Systems (arXiv:2310.08560)</a> — the virtual-context-management pattern; the OS analogy for paging between window and store. <a href="https://ar5iv.labs.arxiv.org/html/2310.08560" target="_blank" rel="noopener">(full text on ar5iv)</a></li>
+          <li><a href="https://openai.github.io/openai-agents-python/sessions/" target="_blank" rel="noopener">OpenAI Agents SDK — Sessions</a> — automatic short-term/conversational memory and its pluggable backends.</li>
+          <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool" target="_blank" rel="noopener">Anthropic — Memory tool</a> — client-side long-term memory in a <code>/memories</code> directory; how it pairs with context editing and compaction.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">MemGPT's memory hierarchy, section by section</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on the two memory tiers</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 3 Day 4</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: MemGPT's memory hierarchy</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The anatomy under "two tiers."</p>
+    <p><strong>The OS analogy, literally.</strong> MemGPT treats the LLM like a process and the context window like RAM.
+    Just as an OS pages data between fast RAM and slow disk to give programs the illusion of near-unlimited memory,
+    <strong>virtual context management</strong> pages data between the window (<em>main context</em>) and external stores
+    (<em>external context</em>) to give the LLM the illusion of unbounded memory. Anything in main context is in-context;
+    out-of-context data "must always be explicitly moved into main context" before the model can use it.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Main context — the window, in three sections</div>
+      <ul class="deliv-list">
+        <li><b>System instructions</b> — read-only; the standing rules (procedural memory).</li>
+        <li><b>Working-context block</b> — fixed size, read/write, editable <em>only</em> via function calls; the agent's scratchpad of durable facts.</li>
+        <li><b>FIFO queue</b> — a rolling message history; oldest turns roll off the front as it fills.</li>
+      </ul>
+      <div class="ma-k">External context — outside the window</div>
+      <ul class="deliv-list">
+        <li><b>Recall storage</b> — a conversation-history database (past messages beyond the FIFO queue).</li>
+        <li><b>Archival storage</b> — a read/write database of arbitrary-length text; the long-term filing cabinet.</li>
+      </ul>
+    </div>
+    <p style="margin-top:14px"><strong>Self-directed paging.</strong> The defining move: "memory edits and retrieval are
+    entirely self-directed." The LLM itself issues the function calls to move data between main and external context — no
+    external orchestrator decides what to page. Map it to today: main context ≈ short-term memory, external context ≈
+    long-term memory, and the function calls ≈ the memory <em>tools</em> (like Anthropic's <code>/memories</code>
+    operations) that modern agents use to manage their own recall.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 4 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Draw the hard line between short-term (thread-scoped, in-window) and long-term (cross-thread, external) memory</li>
+      <li>Explain why a checkpointer and a memory store are different components solving different problems</li>
+      <li>Name the semantic / episodic / procedural taxonomy and match a "thing to remember" to the right type</li>
+      <li>Describe MemGPT's virtual context management and why memory shows up as self-directed tool calls</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add to your <code>NOTES.md</code></li>
+      <li><b>①</b> one thing your agent should hold in <em>short-term</em> memory, and one it must file to <em>long-term</em></li>
+      <li><b>②</b> the namespace scheme you'd use to keep tenants isolated in the store</li>
+      <li><b>③</b> one agent-memory bug you'd now diagnose as a "wrong tier" category error</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 5. Today you learned <em>where</em> memory lives; next we push on how agents
+    coordinate and hand off work across those boundaries.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 5 — next in Week 3 →", href: "w03d5.html" };
+window.DIAGRAM = {
+  title: "Agent memory · two tiers",
+  width: 500, height: 660,
+  nodes: [
+    // the agent turn that needs memory
+    { id:"task", step:0, kind:"example", x:14, y:14, w:472, h:66,
+      label:"AGENT TURN · user: \"remind me what we decided about the auth migration\"\n  the model is stateless — memory is infrastructure you build around it\n  two tiers: short-term (in-window, this thread)  ·  long-term (external, any thread)" },
+
+    // Tier 1 — the context window / main context (short-term)
+    { id:"win",  step:0, x:24, y:96, w:288, h:300,
+      label:"CONTEXT WINDOW — short-term / \"main context\" (RAM)" },
+    { id:"sys",  step:1, x:40, y:136, w:256, h:34, label:"System instructions (read-only)" },
+    { id:"hist", step:1, x:40, y:178, w:256, h:48, label:"Message history — this thread ↑ grows",
+      detail:"Short-term / working memory: thread-scoped message history, part of the agent's runtime state, persisted across steps by a CHECKPOINTER (LangGraph) or a SESSION (OpenAI Agents SDK). Belongs to one conversation; gone on a new thread." },
+    { id:"trim", step:2, x:40, y:234, w:256, h:38, label:"⚠ won't fit → trim / summarize",
+      detail:"Short-term memory is bounded by the context window: the full history may not fit. Trim (drop old turns) or summarize (compress them) to manage token usage — deliberate forgetting, the strategy version of history eviction." },
+    { id:"work", step:6, x:40, y:288, w:256, h:38, label:"Working-context block · edit via fn calls",
+      detail:"MemGPT's main context has three sections: read-only system instructions, a fixed-size read/write working-context block editable only via function calls, and a FIFO queue holding the rolling message history." },
+
+    // Tier 2 — external store (long-term)
+    { id:"store", step:3, x:330, y:96, w:156, h:112, label:"EXTERNAL STORE\nlong-term (disk)\noutside window · any thread",
+      detail:"Long-term memory: stores user/app data across sessions, shared across threads, recallable at any time in any thread. Lives OUTSIDE the context window and is retrieved on demand — not always present. MemGPT's external context: recall storage + archival storage." },
+    { id:"nskey",step:4, x:330, y:222, w:156, h:60, label:"namespace + key\nfolder / filename",
+      detail:"The memory STORE (LangGraph BaseStore) is a cross-thread key/value store. Memories are filed under a custom NAMESPACE (a folder, e.g. user/org ID) and a KEY (a filename). Distinct from the checkpointer, which only persists within-thread state." },
+    { id:"taxo", step:5, x:330, y:296, w:156, h:82, label:"semantic · episodic\n· procedural",
+      detail:"Taxonomy from human psychology: SEMANTIC = facts & concepts; EPISODIC = past events/experiences; PROCEDURAL = rules for performing tasks (model weights + agent code + prompt). Facts → semantic; experiences → episodic." },
+
+    // in practice
+    { id:"prac", step:7, x:24, y:418, w:462, h:56, label:"In practice: OpenAI Sessions (short-term)  ·  Anthropic memory tool /memories (long-term)  —  complementary",
+      detail:"Sessions: pluggable backends (SQLite default, Redis, SQLAlchemy, MongoDB, Dapr, hosted) — scale short-term memory without changing code. Memory tool: client-side, Claude requests file ops under /memories, GA as memory_20250818 on Claude 4+. Compaction keeps active context small; memory preserves what must survive summarization." }
+  ],
+  edges: [
+    { id:"e_trim",   step:2, from:"hist",  to:"trim",  label:"overflow", ly:-2 },
+    { id:"e_write",  step:3, from:"hist",  to:"store", label:"write across threads", ly:-8 },
+    { id:"e_recall", step:4, from:"store", to:"win",   label:"recall on demand", bend:-26, ly:-2 },
+    { id:"e_page",   step:6, from:"work",  to:"store", label:"self-directed paging (fn calls)", ly:-2 }
+  ],
+  captions: [
+    "The model is <b>stateless</b> between calls. For an agent that acts over many turns, memory is <b>infrastructure you build</b> — in <b>two tiers</b>. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "<b>Short-term / working</b> memory is the <b>thread you're in</b>: message history in the window, persisted by a checkpointer or Session. <span style='opacity:.7'>(tap)</span>",
+    "It's <b>bounded by the context window</b> — when the history won't fit, you <b>trim or summarize</b>. Deliberate forgetting. <span style='opacity:.7'>(tap)</span>",
+    "<b>Long-term</b> memory lives in an <b>external store</b>, outside the window, <b>recallable from any thread</b> — pulled in on demand. <span style='opacity:.7'>(tap)</span>",
+    "The <b>store</b> files memories by <b>namespace + key</b> (folder / filename) — cross-thread, and distinct from the checkpointer. <span style='opacity:.7'>(tap)</span>",
+    "Long-term memory has three flavors: <b>semantic</b> (facts), <b>episodic</b> (events), <b>procedural</b> (how-to). <span style='opacity:.7'>(tap)</span>",
+    "<b>MemGPT / virtual context management</b>: the model <b>pages data itself</b> between window (RAM) and store (disk) via function calls. <span style='opacity:.7'>(tap)</span>",
+    "In practice: <b>Sessions</b> for short-term, the <b>memory tool</b> for long-term — <b>complementary</b>, not interchangeable. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w03-d4",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "Short-term (working) memory in an agent is ultimately bounded by what?",
+      options: [
+        "The size of the external memory store's disk",
+        "The LLM's context window",
+        "The number of namespaces you've created",
+        "How many function calls the model is allowed to make" ],
+      answer: 1,
+      explain: "Short-term memory is the thread's message history living inside the context window, so it inherits the window's hard ceiling. When the full history won't fit, you trim or summarize — that's why long-term memory has to live outside the window entirely." },
+    { type: "scq",
+      stem: "What most distinguishes long-term memory from short-term memory?",
+      options: [
+        "It's faster to read than short-term memory",
+        "It's always present in the prompt on every call",
+        "It lives outside the window and is recallable from any thread, not just the current one",
+        "It can only store facts, never past events" ],
+      answer: 2,
+      explain: "Long-term memory persists across sessions, is shared across threads, and is scoped to a custom namespace rather than a single thread ID. It's stored externally and retrieved on demand — not always sitting in the window like short-term memory." },
+    { type: "tf",
+      stem: "The checkpointer and the memory store are two names for the same component.",
+      answer: false,
+      explain: "No — this is the classic trap. The checkpointer persists within-thread state (short-term memory); the memory store (e.g. LangGraph's BaseStore) persists data across threads (long-term memory). Different components, different jobs." },
+    { type: "mcq",
+      stem: "Which statements about MemGPT / virtual context management are true? (select all that apply)",
+      options: [
+        "It draws its design from hierarchical memory in operating systems (paging between RAM and disk)",
+        "Main context is the LLM's prompt tokens (in-context); external context must be explicitly moved in to be used",
+        "Memory edits and retrieval are self-directed — the LLM issues the function calls itself",
+        "It removes the context window limit entirely so no summarization is ever needed",
+        "It requires a special beta header to enable on any model" ],
+      answer: [0, 1, 2],
+      explain: "MemGPT frames the LLM as an OS: main context ≈ RAM (in-context), external context ≈ disk (moved in explicitly), and the model pages data itself via self-directed function calls. It doesn't abolish the window — it works around a fixed window — and the beta-header detail belongs to Anthropic's memory tool (which, in fact, is GA with no beta header)." },
+    { type: "match",
+      stem: "Match each memory concept to its definition.",
+      pairs: [
+        { l: "Semantic memory", r: "facts and concepts" },
+        { l: "Episodic memory", r: "past events and experiences" },
+        { l: "Procedural memory", r: "the rules for performing tasks (weights + code + prompt)" },
+        { l: "Namespace", r: "a folder-like scope (often a user/org ID) in the store" } ],
+      explain: "Semantic = the what (facts), episodic = the what-happened (events), procedural = the how (rules, mostly in prompt/code/weights). The namespace is the store's folder coordinate; paired with a key (filename) it addresses one memory across threads." },
+    { type: "open",
+      stem: "A client's support agent 'remembers a customer's plan tier during one chat but forgets it the next day in a new conversation.' In the two-tier vocabulary, what happened and what's the fix?",
+      hint: "Which tier is thread-scoped, and which survives across threads?",
+      model: "The plan tier is being held only in short-term / working memory, which is thread-scoped — it lives in that one conversation's window and vanishes when a new thread starts the next day. The fix is to write that fact to long-term memory in the external store, filed under a namespace keyed to the customer, so it can be recalled on demand from any future thread. It's a wrong-tier category error, not a model-quality problem." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

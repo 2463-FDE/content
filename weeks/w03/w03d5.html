@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w03d5">
+<meta name="fde-concepts" content="create-agent-loop,agent-middleware-hooks,response-format-structured-output,builtin-production-middleware,mcp-multiserver-client">
+<title>W3·D5 — Building a Production Single Agent | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Building a Production Single Agent</h1>
+        <div class="meta">
+          <span><b>Week 3</b> · Day 5</span>
+          <span>Agents in Production</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">All week you've built up to this: a single agent a client would actually let near their
+        systems. Today we assemble one end to end with <strong>LangChain 1.0</strong> — <code>create_agent</code> for the
+        loop, <strong>middleware</strong> for every production concern, <code>response_format</code> for structured
+        output, and <strong>MCP</strong> to bridge in real tools. The panel on the right builds that agent piece by piece,
+        in the same order you'd build it at a client. By the end you can name every layer between a user's message and a
+        governed, auditable answer — and defend why each one is there.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>An agent is a model calling tools in a loop</h2>
+        <p>Strip away the hype and an agent is almost embarrassingly simple to define: it is
+        <strong>"a model calling tools in a loop until a given task is complete."</strong> The model looks at the current
+        state, decides whether to call a tool, the runtime executes that tool and feeds the result back, and the model
+        looks again. It keeps going until it decides no more tool calls are needed, then returns a final answer. That loop
+        — model, tool, result, model — is the entire mechanism. Everything else today is <em>governance</em> wrapped
+        around it.</p>
+        <p>In LangChain 1.0, the high-level factory that builds this loop for you is <code>create_agent</code>. It went
+        GA on <strong>October 22, 2025</strong>, and it shipped with a stability commitment the team stated plainly: no
+        breaking changes until 2.0. That matters more than it sounds when you're an FDE. You're recommending a framework
+        a client will build on for years, and "we promise not to break your imports for a major version" is exactly the
+        kind of assurance that turns a demo into a production decision. <code>create_agent</code> is built on the
+        <strong>LangGraph runtime</strong> underneath, so you inherit durable execution, state, and streaming without
+        hand-writing a graph.</p>
+        <p>Hold the loop picture for the rest of the day. When we add middleware, we're hooking into <em>moments in this
+        loop</em>. When we add structured output, we're shaping <em>what the loop returns</em>. When we add MCP, we're
+        changing <em>where the tools come from</em>. The loop is the spine; you're about to learn its vertebrae.</p>
+      </section>
+
+      <section class="step" data-diagram="1" data-step="1">
+        <div class="tag">The factory</div>
+        <h2>create_agent in four arguments</h2>
+        <p>Here's the minimal shape. You import the factory, hand it a model, some tools, and a system prompt, and you
+        get back a runnable agent you can <code>invoke</code> (or <code>ainvoke</code> for async):</p>
+        <p style="font-family:var(--mono,monospace);font-size:.86em;background:#0002;padding:12px 14px;border-radius:8px;white-space:pre-wrap;line-height:1.5;">from langchain.agents import create_agent
+
+agent = create_agent(
+    model="anthropic:claude-sonnet-4-5-20250929",
+    tools=[search, lookup_order],
+    system_prompt="You are a support agent. Always cite order IDs.",
+)
+result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 8812?"}]})</p>
+        <p>Read the signature like an FDE. <code>model</code> accepts either a <strong>provider-qualified string</strong>
+        (the reference page's own example is <code>"anthropic:claude-sonnet-4-5-20250929"</code>) or an already-initialized
+        model instance — so you can swap providers by editing one string, or pass a fully-configured client when you need
+        custom auth or a proxy. <code>tools</code> is your list of callables. <code>system_prompt</code> takes a string
+        or a <code>SystemMessage</code>. And then three arguments that separate a toy from a product:
+        <code>middleware</code>, <code>response_format</code>, and <code>checkpointer</code>/<code>store</code> for
+        persistence. Those first three lines make a demo. The rest of today is the other three arguments.</p>
+        <p>This is the FDE value in one factory call. A junior engineer wires a raw model-plus-tools loop by hand and
+        reinvents retries, limits, and logging badly. You reach for the factory that already has the extension points and
+        spend your time on the client's actual policy — what's allowed, what needs a human, what must be redacted.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live <code>create_agent</code>
+        playground — type a system prompt, toggle a couple of demo tools, send a message, and watch the raw loop trace
+        (model → tool call → result → model) stream back. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="2" data-step="2">
+        <div class="tag">The primitive</div>
+        <h2>Middleware is how you customize the loop</h2>
+        <p>Now the idea that reorganizes everything. In LangChain 1.0, the customization primitive is
+        <strong>middleware</strong>: "each piece handles one concern, hooks into the agent loop at the right moment, and
+        composes freely." That sentence is worth reading twice, because it's a design philosophy, not just an API. Instead
+        of a giant configurable agent with fifty flags, you get a small loop plus a stack of single-purpose pieces you
+        snap on.</p>
+        <p>The categories the docs call out map cleanly onto the production concerns you've been meeting all week:
+        <strong>execution environment</strong> (sandboxing, filesystem, shell), <strong>context management</strong>
+        (summarizing or editing history before it overflows — the Week 1 window problem, solved as a component),
+        <strong>fault tolerance</strong> (retries, fallbacks, call limits), <strong>guardrails</strong> (PII handling,
+        input/output validation), and <strong>human steering</strong> (pausing for approval). Each of those is a concern a
+        client will name in the first requirements meeting. Middleware gives you a place to put each answer.</p>
+        <p>The payoff for you is separation. When the client says "actually, also mask customer emails," you add one PII
+        middleware — you don't reopen the tool code or the prompt. When they say "cap it at five tool calls so a runaway
+        loop can't rack up a bill," that's another single piece. Concerns stay decoupled, they compose in a predictable
+        order, and you can point at each one in a review and say what it does and why it's there.</p>
+      </section>
+
+      <section class="step" data-diagram="3" data-step="3">
+        <div class="tag">The hooks</div>
+        <h2>Six moments where you can intervene</h2>
+        <p>An <code>AgentMiddleware</code> intervenes at named moments in the loop. The verified hooks are:
+        <strong><code>before_agent</code></strong> (once, before the run starts),
+        <strong><code>before_model</code></strong> (every time, just before the LLM is called),
+        <strong><code>wrap_model_call</code></strong> (around the model call — you see the request and the response and
+        can modify either), <strong><code>after_model</code></strong> (right after the model responds),
+        <strong><code>wrap_tool_call</code></strong> (around each tool execution), and
+        <strong><code>after_agent</code></strong> (once, when the run ends).</p>
+        <p>The naming tells you the shape. <code>before_*</code> and <code>after_*</code> are one-way observation-and-edit
+        points: read the state, tweak it, move on. The <code>wrap_*</code> hooks are two-sided — they surround a call, so
+        they can short-circuit it, retry it, or transform both what goes in and what comes out. That's why the powerful
+        production behaviors live in the wrappers: a retry needs to <em>catch</em> the call and re-run it; a fallback
+        needs to <em>replace</em> a failed model with another; an approval gate needs to <em>pause</em> before the tool
+        actually fires. <code>before_model</code> is where history summarization slots in — trim the context right before
+        it's handed to the model.</p>
+        <p>You rarely write these by hand at first, and that's the point of the next step: the framework ships the common
+        ones already built. But knowing the six hook names means that when a client has a truly bespoke rule — "log every
+        tool call to our SIEM with the tenant ID attached" — you know exactly which hook to reach for
+        (<code>wrap_tool_call</code>) and that it'll compose cleanly with everything else on the stack.</p>
+      </section>
+
+      <section class="step" data-diagram="4" data-step="4">
+        <div class="tag">Batteries included</div>
+        <h2>The production middleware you didn't have to write</h2>
+        <p>Here's where the framework earns its keep. LangChain ships a shelf of built-in middleware for exactly the
+        concerns that make agents scary in production. Three you'll reach for constantly:</p>
+        <p><strong><code>HumanInTheLoopMiddleware</code></strong> pauses the agent <em>before</em> a high-stakes tool call
+        and surfaces it to a person to <strong>approve, edit, or reject</strong>. This is the single most important
+        control for an agent that can spend money, email customers, or write to a database. "The agent can issue refunds,
+        but anything over $100 waits for a human click" is a one-line policy that turns an unshippable capability into a
+        shippable one. <strong><code>SummarizationMiddleware</code></strong> hooks <code>before_model</code> and
+        summarizes conversation history before it overflows the context window — the Week 1 eviction failure, prevented as
+        a component instead of a bug you find in production. <strong><code>PIIMiddleware</code></strong> detects sensitive
+        data and can <strong>mask, redact, or hash</strong> it across inputs, model outputs, <em>and</em> tool outputs —
+        so a customer's SSN never lands in a log or a downstream call.</p>
+        <p>Behind those sit the fault-tolerance and cost-control classes: <code>ModelCallLimitMiddleware</code> and
+        <code>ToolCallLimitMiddleware</code> cap how many times the loop can run (your runaway-bill insurance),
+        <code>ModelFallbackMiddleware</code> swaps to a backup model when the primary errors, and
+        <code>ToolRetryMiddleware</code> re-runs a flaky tool. There's more on the shelf — <code>TodoListMiddleware</code>,
+        <code>LLMToolSelectorMiddleware</code>, <code>ContextEditingMiddleware</code>, <code>ShellToolMiddleware</code>,
+        and others — but the reflex to build is this: <strong>before you write custom middleware, check whether the
+        concern already has a class.</strong> Most of the standard production worries do.</p>
+        <div class="ix-predict"
+          data-q="A client wants to let their support agent process refunds, but Legal is terrified it'll refund $10,000 by mistake and email customers unprompted. Name the two built-in middleware you'd reach for first, and what each does."
+          data-a="<b>HumanInTheLoopMiddleware</b> — pause before the high-stakes refund/email tool calls so a human can <b>approve, edit, or reject</b> them (small refunds can auto-pass; large ones wait for a click). And <b>ToolCallLimitMiddleware</b> (or ModelCallLimitMiddleware) — cap how many times the loop can fire so a runaway agent can't issue a hundred refunds or rack up a huge bill. Neither requires touching the tool code or the prompt: you snap them onto the middleware stack. That's the whole point of the primitive — governance as composable components.">
+        </div>
+      </section>
+
+      <section class="step" data-diagram="5" data-step="5">
+        <div class="tag">Shaping the output</div>
+        <h2>response_format folds structure into the loop</h2>
+        <p>A production agent almost never wants a free-text blob back — it wants a <em>typed object</em> your code can act
+        on: <code>{ order_id, status, refund_approved, reason }</code>. The naive way to get that is a second LLM call
+        after the agent finishes, asking it to reformat its answer as JSON. That's an extra round trip: more latency, more
+        cost, more to break.</p>
+        <p><code>create_agent</code>'s <strong><code>response_format</code></strong> argument folds structured output
+        <em>into the main model-and-tools loop</em> instead. You pass it a <strong>Pydantic model</strong> (the usual
+        choice), or a <code>ToolStrategy</code> / <code>ProviderStrategy</code> when you need to control how the structure
+        is enforced; raw schemas get auto-wrapped based on what the model supports. Because it's part of the same loop,
+        the LangChain team's framing is precise: integrating structured output this way reduces latency and cost by
+        <strong>"eliminating extra LLM calls."</strong> You define the shape once, as a type, and the agent returns
+        something that already matches it.</p>
+        <p>The FDE angle: structured output is the seam between the agent and the rest of the system. A support agent whose
+        answer is a validated object can drive a real workflow — flip a ticket status, trigger a refund, update a CRM —
+        with no brittle string-parsing in between. Free text impresses in a demo; a typed contract is what lets the agent
+        become a step in an actual business process. Getting the structure for free inside the loop, rather than paying
+        for a second call to bolt it on, is the kind of quiet efficiency a client notices on the invoice.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: define a Pydantic schema in the
+        browser, run the agent with and without <code>response_format</code>, and compare the two traces side by side —
+        one loop that returns a typed object vs. one that makes a second call to reformat. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="6" data-step="6">
+        <div class="tag">Real tools</div>
+        <h2>MCP bridges the agent into real systems</h2>
+        <p>So far the tools were Python functions you wrote. In production, the useful tools already live somewhere — in a
+        database service, an internal API, a filesystem server — and increasingly they're exposed through the
+        <strong>Model Context Protocol (MCP)</strong>, the open standard for connecting agents to tools and data. The
+        bridge from MCP into LangChain is <strong><code>MultiServerMCPClient</code></strong>, from the
+        <code>langchain-mcp-adapters</code> package (v0.3.0). You point it at one or more MCP servers, and it hands you
+        back LangChain tools:</p>
+        <p style="font-family:var(--mono,monospace);font-size:.86em;background:#0002;padding:12px 14px;border-radius:8px;white-space:pre-wrap;line-height:1.5;">client = MultiServerMCPClient({...})
+tools = await client.get_tools()          # → LangChain BaseTools
+agent = create_agent(model, tools)         # drop them straight in</p>
+        <p><code>get_tools()</code> returns ordinary <code>BaseTool</code>s, so they pass straight into
+        <code>create_agent</code> exactly like your hand-written ones — the agent can't tell the difference. One important
+        detail for reasoning about behavior and cost: the client is <strong>stateless by default</strong>. Each tool
+        invocation opens a <em>fresh</em> <code>ClientSession</code>, runs the call, and cleans up. That's simple and
+        robust, but if you need a persistent connection — a session that keeps state across several calls — you use
+        <code>client.session()</code> explicitly. Knowing that default is how you answer "why does each tool call
+        reconnect?" without guessing.</p>
+        <p>There's also error handling worth pinning down before an incident, not during one. By default, when an MCP tool
+        fails, the failure comes back to the model as a <code>ToolMessage</code> with <code>status="error"</code> — so the
+        agent can <em>read the error and retry or adapt</em>, which is usually what you want. If you'd rather a failure
+        raise an exception and stop the loop hard, set <code>handle_tool_errors=False</code>. That single flag is the
+        difference between "the agent gracefully recovers from a flaky tool" and "the run halts loudly so a human sees
+        it" — and which you want depends on the client's risk posture.</p>
+      </section>
+
+      <section class="step" data-diagram="7" data-step="7">
+        <div class="tag">The wire</div>
+        <h2>stdio vs. Streamable HTTP: pick the transport</h2>
+        <p>MCP defines two standard transports, and choosing between them is a real FDE decision. The current spec
+        (<strong>2025-06-18</strong>) settles on <strong>stdio</strong> and <strong>Streamable HTTP</strong> — the latter
+        replacing the older HTTP+SSE transport from the 2024 spec. In the client, the transport is just config.</p>
+        <p><strong>stdio</strong> launches the MCP server as a <em>local subprocess</em> and talks JSON-RPC over its
+        stdin/stdout (newline-delimited, no embedded newlines). You configure it like
+        <code>{"transport": "stdio", "command": "python", "args": [...]}</code>. The spec says clients
+        <em>SHOULD</em> support stdio whenever possible — it's the natural fit for a tool server that runs on the same box
+        as the agent: a local database adapter, a filesystem tool, a CLI wrapper. No network, no ports, no auth to
+        misconfigure.</p>
+        <p><strong>Streamable HTTP</strong> targets a <em>remote</em> endpoint —
+        <code>{"transport": "http", "url": "http://localhost:8000/mcp"}</code> — a single URL that handles POST and GET
+        with optional SSE streaming. Use it when the tool server is a shared service other teams also call. But it comes
+        with security homework the spec makes normative: servers <strong>MUST validate the <code>Origin</code>
+        header</strong> and <strong>SHOULD bind to localhost</strong> when running locally, both to defend against
+        DNS-rebinding attacks, and can use an optional <code>Mcp-Session-Id</code> for stateful sessions. When a client
+        asks "is exposing this tool server over HTTP safe?", <em>that</em> is your checklist — Origin validation and
+        binding scope, not vibes. Local subprocess tool → stdio; shared network service → Streamable HTTP with the
+        security requirements actually met.</p>
+      </section>
+
+      <section class="step extra" data-diagram="8" data-step="8">
+        <div class="tag">Putting it together</div>
+        <h2>What a production single agent actually is</h2>
+        <p>Now stack the whole thing and look at it. A production single agent is <code>create_agent</code> at the core —
+        the model-and-tools loop on the LangGraph runtime — wrapped in a <strong>middleware stack</strong> that encodes the
+        client's policy (human approval on high-stakes actions, PII redaction, summarization to survive long sessions,
+        call limits and fallbacks for cost and resilience), returning a <strong>typed object</strong> via
+        <code>response_format</code> so it can drive real workflows, with its tools supplied by <strong>MCP servers</strong>
+        over the right transport. That's it. Four arguments to a factory and a shelf of composable pieces.</p>
+        <p>Notice what this buys you as an engineer. Every worry a client raises has a <em>named home</em>. "Can it spend
+        money without oversight?" → HITL middleware. "Will it leak customer data into logs?" → PII middleware. "What
+        happens on a long conversation?" → summarization. "What if a tool flakes?" → retry and fallback. "How does it
+        connect to our internal API?" → MCP client and the transport choice. You're no longer hand-waving; you're pointing
+        at layers. That legibility — being able to walk a stakeholder through exactly what stands between a user message
+        and an action — is a large part of what makes an agent <em>shippable</em> rather than just impressive.</p>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>A client rarely rejects an agent because it isn't smart enough. They reject it because nobody can tell them
+          what it will and won't do, or what happens when a tool fails, or where the customer's data goes. A production
+          single agent isn't a smarter model — it's the <strong>same loop with every risk given a named, composable
+          home.</strong> Build the loop, then defend it layer by layer. That defense is the deliverable.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://docs.langchain.com/oss/python/langchain/agents" target="_blank" rel="noopener">Agents — Docs by LangChain</a> — the <code>create_agent</code> definition, the agent-loop framing, and middleware as the customization primitive.</li>
+          <li><a href="https://reference.langchain.com/python/langchain/agents/factory/create_agent" target="_blank" rel="noopener">create_agent — LangChain Reference</a> — the full signature and the <code>response_format</code> strategies (ToolStrategy / ProviderStrategy / Pydantic).</li>
+          <li><a href="https://reference.langchain.com/python/langchain/middleware/" target="_blank" rel="noopener">Middleware — LangChain Reference</a> — the six hook names and the full built-in middleware class list.</li>
+          <li><a href="https://docs.langchain.com/oss/python/langchain/middleware/overview" target="_blank" rel="noopener">Middleware Overview — Docs by LangChain</a> — HITL, summarization, and PII behavior in depth.</li>
+          <li><a href="https://www.langchain.com/blog/langchain-langgraph-1dot0" target="_blank" rel="noopener">LangChain &amp; LangGraph 1.0 — LangChain Blog</a> — the Oct 22 2025 GA, the stability commitment, and structured output folded into the loop.</li>
+          <li><a href="https://docs.langchain.com/oss/python/langchain/mcp" target="_blank" rel="noopener">MCP — Docs by LangChain</a> — <code>MultiServerMCPClient</code>, <code>get_tools()</code>, the stateless default, and transport config.</li>
+          <li><a href="https://github.com/langchain-ai/langchain-mcp-adapters" target="_blank" rel="noopener">langchain-mcp-adapters (GitHub)</a> — v0.3.0, the <code>create_agent</code> example, and tool-error handling.</li>
+          <li><a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/transports" target="_blank" rel="noopener">MCP Transports — Spec 2025-06-18</a> — stdio and Streamable HTTP normative behavior, plus the Origin-validation security requirements.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">The middleware stack, ordered — and why order matters</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 questions on the loop, middleware, structured output &amp; MCP</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 3 Day 5</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the middleware stack, ordered</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. Why the same pieces in a different order behave differently.</p>
+    <p>Middleware "composes freely" — but composition has an order, and order has consequences. Because the
+    <code>wrap_*</code> hooks surround a call, the pieces form nested shells around the model-and-tools loop: the first
+    middleware on the stack is the outermost shell, the last is closest to the model. A request passes inward through
+    each <code>before</code> / <code>wrap</code> entry, hits the model or tool, then passes back outward through each
+    <code>after</code> / <code>wrap</code> exit.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked example — one support turn, four middleware</div>
+      <ul class="deliv-list">
+        <li><b>PIIMiddleware</b> — masks the customer's email on the way in, so nothing downstream (model, tools, logs) ever sees the raw value.</li>
+        <li><b>SummarizationMiddleware</b> (<code>before_model</code>) — trims long history so the window doesn't overflow before the model is called.</li>
+        <li><b>HumanInTheLoopMiddleware</b> — pauses at the refund tool call for an approve/edit/reject click.</li>
+        <li><b>ToolCallLimitMiddleware</b> — caps the loop at, say, 6 tool calls so a stuck agent can't spin.</li>
+      </ul>
+      <p style="margin:8px 0 0">Put PII redaction <em>outermost</em> and it protects everything inside it. Put it
+      innermost — after the model has already seen the raw data — and you've defeated the point. Same four pieces,
+      different guarantee. When you review a client's agent, read the stack top-to-bottom and ask, for each guardrail,
+      "is this early enough to actually protect what it needs to?"</p>
+    </div>
+    <p style="margin-top:14px"><strong>Human-in-the-loop is durable, not a blocking sleep.</strong> When
+    <code>HumanInTheLoopMiddleware</code> pauses, it does so through the LangGraph runtime's persistence — the run's state
+    is checkpointed and can wait minutes, hours, or across a process restart for the human's decision, then resume exactly
+    where it stopped. That's why the <code>checkpointer</code>/<code>store</code> arguments matter: durable pause-and-resume
+    is what makes approval gates practical instead of a socket held open.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 5 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Define an agent as a model-calling-tools loop and build one with <code>create_agent</code> in four arguments</li>
+      <li>Explain middleware as the customization primitive, name the six lifecycle hooks, and pick the right one for a given concern</li>
+      <li>Reach for the correct built-in middleware — HITL, summarization, PII, call limits, fallback, retry — for a stated production risk</li>
+      <li>Return typed output via <code>response_format</code>, and bridge real tools in with <code>MultiServerMCPClient</code> over the right transport</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add a <code>PRODUCTION_AGENT.md</code></li>
+      <li><b>①</b> a <code>create_agent</code> sketch for your project's use case (model, tools, system prompt)</li>
+      <li><b>②</b> the middleware stack you'd attach, with one sentence per piece on the risk it covers</li>
+      <li><b>③</b> the Pydantic <code>response_format</code> your agent returns, and which MCP transport each tool server would use and why</li>
+    </ul>
+    <p class="goals-foot">This closes Week 3. You've gone from "what is an agent" to "here is a governed single agent I'd
+    put in front of a client." Next week the loop becomes the building block for multi-agent systems — but the governance
+    instincts you just built carry all the way up.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Back to Program →", href: "../../index.html" };
+window.DIAGRAM = {
+  title: "Production single agent · assembled",
+  width: 500, height: 660,
+  nodes: [
+    // the invoke call (dark example card)
+    { id:"invoke", step:1, kind:"example", x:14, y:12, w:472, h:66,
+      label:"agent = create_agent(model=\"anthropic:claude-sonnet-4-5\", tools=[...])\nagent.invoke({\"messages\":[{\"role\":\"user\",\"content\":\"Where is order 8812?\"}]})" },
+
+    // the loop container
+    { id:"loop", step:0, x:26, y:96, w:300, h:240, label:"THE AGENT LOOP  ·  LangGraph runtime" },
+
+    // model <-> tools loop
+    { id:"model", step:0, x:52, y:150, w:112, h:56, label:"model\n(the LLM)" },
+    { id:"tools", step:0, x:188, y:150, w:112, h:56, label:"tools" },
+    { id:"done",  step:0, x:96, y:262, w:160, h:44, label:"no more calls → answer" },
+
+    // middleware stack, wrapping the loop
+    { id:"mw", step:2, x:340, y:96, w:146, h:132, label:"MIDDLEWARE\none concern each,\ncomposes freely",
+      detail:"The customization primitive: each piece handles one concern, hooks the loop at the right moment, and composes freely. Categories: execution environment, context management, fault tolerance, guardrails, human steering. Add a concern by snapping on a piece — you don't reopen the tool code or the prompt." },
+    { id:"hooks", step:3, x:340, y:236, w:146, h:100, label:"hooks:\nbefore_agent\nbefore_model\nwrap_model_call\nafter_model\nwrap_tool_call · after_agent",
+      detail:"before_*/after_* observe and edit state; wrap_* surround a call and can short-circuit, retry, or transform it. Retries, fallbacks, and approval gates live in the wrappers; history summarization hooks before_model." },
+
+    // built-in middleware badges
+    { id:"builtin", step:4, x:26, y:352, w:300, h:70, label:"built-ins: HumanInTheLoop · PII · Summarization · ModelCallLimit / ToolCallLimit · ModelFallback · ToolRetry",
+      detail:"Ship-ready middleware for the scary parts: HITL pauses before high-stakes calls for approve/edit/reject; PII masks/redacts/hashes on inputs, outputs, and tool outputs; Summarization trims history before overflow; call-limit / fallback / retry cover cost and resilience. Check for a built-in before writing custom." },
+
+    // structured output
+    { id:"rformat", step:5, x:26, y:436, w:300, h:52, label:"response_format → typed object (Pydantic)",
+      detail:"Folds structured output into the main loop instead of a second LLM call — 'eliminating extra LLM calls', cutting latency and cost. Accepts a Pydantic model, or ToolStrategy / ProviderStrategy. The typed object is the seam that lets the agent drive a real workflow." },
+
+    // MCP client
+    { id:"mcp", step:6, x:340, y:352, w:146, h:100, label:"MultiServerMCPClient\n.get_tools() → BaseTools",
+      detail:"Bridges MCP servers into LangChain tools that drop straight into create_agent. Stateless by default — each call opens a fresh ClientSession and cleans up; use client.session() for persistence. Failed tool → ToolMessage status='error' so the agent can retry; handle_tool_errors=False to raise instead." },
+
+    // transports
+    { id:"stdio", step:7, x:26, y:504, w:210, h:66, label:"stdio\nlocal subprocess · JSON-RPC over stdin/stdout",
+      detail:"Client launches the server as a subprocess; newline-delimited JSON-RPC, no embedded newlines. Clients SHOULD support stdio whenever possible. The fit for a tool server on the same box." },
+    { id:"http", step:7, x:250, y:504, w:236, h:66, label:"Streamable HTTP\nremote endpoint · single URL · optional SSE",
+      detail:"One endpoint for POST + GET, optional SSE streaming, optional Mcp-Session-Id for state. Servers MUST validate the Origin header and SHOULD bind to localhost when local (DNS-rebinding defense). The fit for a shared network service." },
+
+    // synthesis
+    { id:"prod", step:8, x:26, y:588, w:460, h:52, label:"PRODUCTION SINGLE AGENT = loop + middleware + response_format + MCP",
+      detail:"Every client risk gets a named, composable home: spend without oversight → HITL; data leak → PII; long chats → summarization; flaky tool → retry/fallback; internal API → MCP + transport. Not a smarter model — the same loop, governed and legible." }
+  ],
+  edges: [
+    { id:"e_call", step:0, from:"model", to:"tools", label:"tool call" },
+    { id:"e_res",  step:0, from:"tools", to:"model", label:"result", bend:-28, ly:-2 },
+    { id:"e_done", step:0, from:"model", to:"done",  label:"stop", lx:-8 },
+    { id:"e_wrap", step:2, from:"mw",    to:"loop",  label:"wraps", ly:-4 },
+    { id:"e_hook", step:3, from:"hooks", to:"model", label:"hooks in", ly:-6 },
+    { id:"e_out",  step:5, from:"loop",  to:"rformat", label:"returns", lx:-6 },
+    { id:"e_feed", step:6, from:"mcp",   to:"tools", label:"supplies tools", bend:20, ly:-2 },
+    { id:"e_std",  step:7, from:"stdio", to:"mcp",   label:"", ly:-2 },
+    { id:"e_htp",  step:7, from:"http",  to:"mcp",   label:"", ly:-2 }
+  ],
+  captions: [
+    "An agent is just a <b>model calling tools in a loop</b> until the task is done — model → tool → result → model, then stop. Everything today wraps this. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "<b>create_agent</b> is LangChain 1.0's factory for that loop (on the LangGraph runtime). Four arguments — model, tools, system_prompt — make a runnable agent.",
+    "<b>Middleware</b> is the customization primitive: one concern per piece, hooking the loop at the right moment, composing freely. It <b>wraps</b> the core. <span style='opacity:.7'>(tap)</span>",
+    "Six lifecycle <b>hooks</b> — before/after agent &amp; model, and the powerful <b>wrap_model_call</b> / <b>wrap_tool_call</b> that can retry, fall back, or pause. <span style='opacity:.7'>(tap)</span>",
+    "The framework ships the scary parts as <b>built-ins</b>: HITL approval, PII redaction, summarization, call limits, fallback, retry. Check for one before writing custom. <span style='opacity:.7'>(tap)</span>",
+    "<b>response_format</b> folds structured output into the loop — a typed Pydantic object, no extra LLM call. The seam that lets the agent drive real work. <span style='opacity:.7'>(tap)</span>",
+    "<b>MultiServerMCPClient.get_tools()</b> bridges real MCP servers into LangChain tools — stateless by default, errors returned so the agent can retry. <span style='opacity:.7'>(tap)</span>",
+    "Two transports: <b>stdio</b> (local subprocess) vs <b>Streamable HTTP</b> (remote endpoint, must validate Origin). Local tool → stdio; shared service → HTTP. <span style='opacity:.7'>(tap)</span>",
+    "Stack it all: <b>loop + middleware + response_format + MCP</b>. A production single agent — the same loop with every risk given a named home. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w03-d5",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "In LangChain 1.0, what is the most accurate definition of an agent?",
+      options: [
+        "A fine-tuned model specialized for one task",
+        "A model calling tools in a loop until the task is complete",
+        "A vector database queried at inference time",
+        "A prompt template with few-shot examples" ],
+      answer: 1,
+      explain: "An agent is a model calling tools in a loop until a given task is complete. create_agent builds exactly that loop on the LangGraph runtime; everything else (middleware, response_format, MCP) wraps around it." },
+    { type: "scq",
+      stem: "A client wants the agent to pause for a human's approval before it issues any refund over $100. Which built-in middleware is the direct fit?",
+      options: [
+        "SummarizationMiddleware",
+        "PIIMiddleware",
+        "HumanInTheLoopMiddleware",
+        "ModelFallbackMiddleware" ],
+      answer: 2,
+      explain: "HumanInTheLoopMiddleware pauses the agent before a high-stakes tool call so a person can approve, edit, or reject it — the standard control for actions that spend money or touch customers." },
+    { type: "tf",
+      stem: "Using response_format to get a typed object back adds a second LLM call after the agent finishes.",
+      answer: false,
+      explain: "The opposite. response_format folds structured output into the main model-and-tools loop, which the LangChain team describes as 'eliminating extra LLM calls' — it reduces latency and cost rather than adding a round trip." },
+    { type: "mcq",
+      stem: "Which of these are genuine built-in production middleware you can attach to a create_agent loop? (select all that apply)",
+      options: [
+        "SummarizationMiddleware (trims history before the window overflows)",
+        "PIIMiddleware (mask / redact / hash sensitive data)",
+        "ToolCallLimitMiddleware (cap how many tool calls the loop makes)",
+        "GPUAllocationMiddleware (reserve accelerator hardware)",
+        "ModelFallbackMiddleware (swap to a backup model on error)" ],
+      answer: [0, 1, 2, 4],
+      explain: "Summarization, PII, ToolCallLimit, and ModelFallback are all shipped middleware for real production concerns. 'GPUAllocationMiddleware' is invented — hardware provisioning isn't a middleware concern in this framework." },
+    { type: "match",
+      stem: "Match each production concern to the right mechanism.",
+      pairs: [
+        { l: "Bridge real MCP tools into the agent", r: "MultiServerMCPClient.get_tools()" },
+        { l: "Return a typed object, not free text", r: "response_format (Pydantic)" },
+        { l: "Log every tool call to the client's SIEM", r: "wrap_tool_call hook" },
+        { l: "Local tool server on the same machine", r: "stdio transport" } ],
+      explain: "get_tools() turns MCP servers into BaseTools; response_format shapes the loop's return; wrap_tool_call surrounds each tool execution for custom logging; stdio launches a local subprocess and talks JSON-RPC over stdin/stdout." },
+    { type: "open",
+      stem: "In two or three sentences: your client's tool server is currently stdio on the agent's own box, but three other teams now want to call it too. What transport do you move to, and what's the one security requirement you must not skip?",
+      hint: "Think local subprocess vs. shared network service — and what the 2025-06-18 spec says servers MUST do over HTTP.",
+      model: "Move it to the Streamable HTTP transport, since a shared service other teams call over the network can't be a local subprocess launched per-agent. The non-negotiable is that the server MUST validate the Origin header (and SHOULD bind to localhost when local) to defend against DNS-rebinding attacks — that's the spec's normative security requirement, not optional hardening. Local subprocess → stdio; shared network service → Streamable HTTP with Origin validation actually enforced." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w03d1">
+<meta name="fde-concepts" content="react-loop,augmented-llm,agent-complexity,tool-calling-loop,tool-use-contract,tool-choice">
+<title>W3·D1 — Agent Architectures & the ReAct Loop | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Agents: Reasoning and Acting in a Loop</h1>
+        <div class="meta">
+          <span><b>Week 3</b> · Day 1</span>
+          <span>Agent Architecture</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Last week you learned to fill a context window well. This week the model stops being a
+        one-shot answer machine and becomes something that <em>acts</em>: it reasons, calls a tool, reads what came back,
+        and reasons again — until the job is done. That loop is the whole of agents. Today you'll build the mental model
+        from two directions at once: the <strong>ReAct</strong> pattern that named it, and the <strong>provider-native
+        tool-calling contract</strong> you'll actually write against at a client. The panel on the right assembles the
+        loop one node at a time; the reading tells you why each node exists and where it breaks.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The primitive</div>
+        <h2>Every agent is an "augmented LLM"</h2>
+        <p>Before the word "agent" means anything useful, pin down the atom it's built from. Anthropic calls it the
+        <strong>augmented LLM</strong>: a base model enhanced with three capabilities — <strong>retrieval</strong>
+        (it can pull in outside information), <strong>tools</strong> (it can trigger actions in the world), and
+        <strong>memory</strong> (it can carry state) — where the crucial detail is that <em>the model itself drives all
+        three</em>. It generates its own search queries, selects which tool to call, and decides what to keep. That is
+        the difference between an augmented LLM and last week's plain completion: the plain call reads a window and emits
+        text; the augmented call can <em>decide to reach out</em> mid-thought and pull something new into the window.</p>
+        <p>Hold onto why this matters. A raw LLM has no memory between calls and no live access to your systems — you
+        learned that in Week 1. The augmented LLM doesn't repeal that limit; it gives the model a set of levers it can
+        pull to move facts <em>into</em> the window on its own initiative. Retrieval answers "I need to know X." Tools
+        answer "I need to do X, or fetch X from a live system." Memory answers "I need to remember X across steps."</p>
+        <p>Here's the sentence to carry through the whole week: <strong>every workflow and every agent you will ever
+        build is composed of augmented-LLM calls.</strong> There is no exotic new machinery underneath — a sprawling
+        multi-agent system is just augmented LLMs wired together. So when a client shows you an "AI agent" that misbehaves,
+        your first move is to zoom in on a single augmented call and ask the Week-1 question again: what did this specific
+        call have in its window, and what could it reach for? Master the atom and the molecule stops being intimidating.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">ReAct · the thought</div>
+        <h2>Reasoning traces steer the next action</h2>
+        <p>The pattern that made agents work has a name and a paper: <strong>ReAct</strong> — "Reasoning and Acting" —
+        from Yao et al. (ICLR 2023). Its insight is deceptively small. Instead of forcing the model to either think
+        (chain-of-thought) <em>or</em> act (call a tool), ReAct <strong>interleaves the two in a single loop</strong>.
+        The model writes a free-form <strong>reasoning trace</strong> — a "thought" — and then takes a
+        <strong>task-specific action</strong>, over and over.</p>
+        <p>Start with the thought, because it does more work than it looks. In ReAct the thought is where the model
+        <strong>induces, tracks, and updates its plan</strong>, and where it <strong>handles exceptions</strong>. "The
+        question asks for the director's birth year; I have the film but not the director, so I should look up the film
+        first." That is a thought: it decomposes the task, decides the next move, and — critically — can react when the
+        world doesn't cooperate. When an action returns something unexpected ("no results found"), the next thought is
+        where the model notices, re-plans, and tries a different approach rather than barrelling ahead.</p>
+        <p>This is why a reasoning trace isn't decoration. In a pure act-only agent, a bad tool result derails
+        everything downstream — there's no place to <em>catch</em> it. In ReAct, the thought between actions is exactly
+        that catch: a moment to interpret the last observation and adjust the plan. For you as an FDE, the thought is
+        also the most valuable debugging artifact you'll get. When an agent goes off the rails at a client, the trace of
+        its thoughts tells you <em>where</em> its reasoning turned wrong — long before you start suspecting the tools
+        themselves.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">ReAct · act &amp; observe</div>
+        <h2>The Thought → Action → Observation cycle</h2>
+        <p>Now close the loop. After a thought, the model emits an <strong>action</strong> — a call against an external
+        source, in the paper's canonical setup a Wikipedia API (<code>search[entity]</code>, <code>lookup[string]</code>,
+        <code>finish[answer]</code>). The environment runs that action and returns an <strong>observation</strong>: the
+        search result, the row, the error. That observation is fed back in, and it becomes the raw material for the
+        <em>next</em> thought. Thought → Action → Observation, repeated, until the model emits a <strong>finish</strong>
+        action. That cycle is the beating heart of every agent you'll ever touch.</p>
+        <p>The reason this beats pure chain-of-thought is one word: <strong>grounding</strong>. A chain-of-thought model
+        reasons in a closed room — nothing checks its steps against reality, so a wrong turn on step two compounds into a
+        confidently wrong answer by step five. The ReAct paper is explicit that interleaving actions "overcomes issues of
+        hallucination and error propagation prevalent in chain-of-thought reasoning by interacting with a simple
+        Wikipedia API." Each observation is a fact from the outside world that the next thought has to reckon with. The
+        model can't hallucinate a search result it just received; it has to respond to what actually came back.</p>
+        <p>Two consequences the paper measured and you should remember. First, the visible trajectory of thoughts and
+        actions is <strong>more interpretable</strong> than a bare answer — you can read what the agent did and why.
+        Second, this isn't a party trick that works on one benchmark: ReAct was validated across two very different task
+        families — knowledge-intensive reasoning (HotpotQA multi-hop questions, FEVER fact verification) and interactive
+        decision-making (ALFWorld, WebShop) — which is what established "reason + act" as a general pattern rather than a
+        narrow trick. The loop is the point, not the domain.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: pose a multi-hop question and
+        watch a real Thought → Action → Observation trajectory unfold step by step against a live search tool — pausing
+        at each observation to see how it reshapes the next thought, and how a wrong turn gets caught and corrected.
+        Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">When to reach for it</div>
+        <h2>Workflows vs. agents — and the anti-complexity rule</h2>
+        <p>Here's where good engineers separate from cargo-cultists. Anthropic draws a hard architectural line between
+        two things people lazily both call "agents." A <strong>workflow</strong> is a system where "LLMs and tools are
+        orchestrated through predefined code paths" — <em>you</em> wrote the control flow, the model fills in the steps.
+        An <strong>agent</strong> is a system where the model "dynamically directs its own processes and tool usage,
+        maintaining control over how it accomplishes tasks." The difference is who holds the steering wheel: your code,
+        or the model.</p>
+        <p>Most production "AI features" are workflows, and should be. Anthropic names five workflow patterns worth
+        knowing: <strong>prompt chaining</strong> (decompose into fixed sequential steps), <strong>routing</strong>
+        (classify, then dispatch to a specialist path), <strong>parallelization</strong> (run subtasks concurrently and
+        aggregate), <strong>orchestrator-workers</strong> (a lead model farms out dynamically-sized subtasks), and
+        <strong>evaluator-optimizer</strong> (one model generates, another critiques in a loop). All of these have
+        predictable, developer-authored paths — which means they're cheaper, faster, and far easier to test and debug.</p>
+        <p>Agents earn their keep only when you <strong>cannot hardcode the path but can still verify progress</strong>.
+        That trade — flexibility bought with predictability — is exactly why Anthropic's core guidance is
+        anti-complexity: "Start with simple prompts, optimize them with comprehensive evaluation, and add multi-step
+        agentic systems only when simpler solutions fall short." And whichever you build, the same grounding principle
+        from ReAct applies — it's "crucial for the agents to gain 'ground truth' from the environment at each step (such
+        as tool call results or code execution) to assess its progress." The FDE takeaway is blunt: a dynamic agent is
+        not a prestige upgrade. Reach for the simplest thing that verifiably works, and let the task force you up the
+        ladder — never your enthusiasm.</p>
+        <div class="ix-predict"
+          data-q="A client wants to 'add an AI agent' that reads a support ticket, classifies it into one of five categories, and drafts a reply from a template. They're excited about a fully autonomous multi-step agent. What do you recommend, and why?"
+          data-a="Build a <b>workflow</b>, not an agent. The path here is fully known in advance — classify, then route to the matching template — so this is textbook <b>routing</b> (plus a little prompt chaining), with predictable, testable, cheap steps. Reserve a dynamic <b>agent</b> for tasks whose path you <em>can't</em> hardcode but whose progress you can still verify. 'Start simple; add agentic systems only when simpler solutions fall short.' Recommending an autonomous agent here buys you unpredictability you don't need and can't easily debug.">
+        </div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">The contract</div>
+        <h2>Tool use is a contract — the model never executes</h2>
+        <p>Now descend from theory to the API you'll actually write. The single most important thing to internalize about
+        provider-native tool use is that it is <strong>a contract, not model-side execution</strong>. In Anthropic's
+        words: "The model never executes anything on its own. It emits a structured request, your code (or Anthropic's
+        servers) runs the operation, and the result flows back into the conversation." The model is a planner with a
+        radio, not a robot with hands. It says "please run <code>get_weather(city='SF')</code>"; something on
+        <em>your</em> side actually runs it.</p>
+        <p>The mechanics are worth memorizing because you'll debug them constantly. You <strong>define a tool</strong> by
+        three things: a <code>name</code>, a <code>description</code> (which is really a prompt — the model chooses tools
+        by reading these), and an <code>input_schema</code> expressed as JSON Schema. You send those alongside the user
+        message. Claude replies with <code>stop_reason: "tool_use"</code> and one or more <strong><code>tool_use</code>
+        blocks</strong>, each naming a tool and the arguments it wants. Your application runs the operation and returns
+        the result as a <strong><code>tool_result</code> block</strong> in the next request. Add <code>strict: true</code>
+        to a custom tool definition and the provider guarantees the emitted arguments conform to your schema — no more
+        defensively parsing malformed JSON.</p>
+        <p>This is a cross-vendor pattern, not a Claude quirk. OpenAI's Responses API calls it <strong>function
+        calling</strong>: tools are <code>{"type": "function", "name", "description", "parameters"}</code> with the same
+        JSON-Schema shape, and the docs are equally blunt — "OpenAI's model does not execute your function — it only
+        decides which function should be called and what arguments to pass." The model returns a function call with a
+        <code>name</code> and JSON <code>arguments</code>; your code executes and returns a
+        <code>function_call_output</code> carrying the matching <code>call_id</code>. Same contract, different nouns.
+        Once you see the shape, every provider's tool API stops being a new thing to learn.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">The loop, in code</div>
+        <h2>The agentic loop is a <code>while</code> on <code>stop_reason</code></h2>
+        <p>The ReAct cycle, translated into the code you'll write, is a <strong><code>while</code> loop keyed on the
+        response's <code>stop_reason</code></strong>. That's the whole engine. Concretely, for client tools it's five
+        steps: <strong>(1)</strong> send the request with your <code>tools</code> and the user message; <strong>(2)</strong>
+        Claude returns <code>stop_reason: "tool_use"</code> with one or more <code>tool_use</code> blocks;
+        <strong>(3)</strong> your code executes each requested tool and formats the outputs as <code>tool_result</code>
+        blocks; <strong>(4)</strong> you send a <em>new</em> request containing the original messages, the assistant's
+        response, and your <code>tool_result</code> blocks; <strong>(5)</strong> repeat while
+        <code>stop_reason == "tool_use"</code>.</p>
+        <p>The loop <strong>exits</strong> the moment the model returns any other stop reason — <code>end_turn</code> (it's
+        done and has a final answer), <code>max_tokens</code> (it ran out of room), <code>stop_sequence</code>, or
+        <code>refusal</code>. Map this back onto ReAct and the correspondence is exact: <code>tool_use</code> is
+        Action + Observation (you run the action, the <code>tool_result</code> is the observation), the model's next
+        assistant turn is the Thought, and <code>end_turn</code> is the <code>finish</code> action. Same loop, one at the
+        research altitude and one at the API altitude.</p>
+        <p>Two failure modes fall straight out of this structure, and you'll see both in the wild. If your loop condition
+        is wrong — say you only check for tool calls once instead of looping — the agent makes a single tool call and
+        then silently stops, half-finished. And because <em>you</em> control the loop, you also control its safety rails:
+        a maximum iteration count so a confused agent can't spin forever, and a running token budget so a long trajectory
+        doesn't quietly blow the context window you spent all of Week 1 learning to respect. The loop is trivial to write
+        and easy to write <em>unsafely</em>; that gap is exactly where an FDE earns their fee.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: single-step a live agentic loop
+        — fire a request, inspect the returned <code>stop_reason</code> and <code>tool_use</code> block, run the tool,
+        watch the <code>tool_result</code> get appended, and re-invoke — with the iteration counter and running token cost
+        visible so you feel where the guardrails need to sit. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Who runs the tool</div>
+        <h2>Client tools vs. server tools</h2>
+        <p>Not every tool runs on your machine, and knowing which is which saves you a category of confusion. Claude
+        splits tools into two kinds. <strong>Client tools</strong> are ones <em>your</em> code executes: your own
+        user-defined functions, plus Anthropic-schema tools like <code>bash</code>, <code>text_editor</code>,
+        <code>memory</code>, and <code>computer</code>. For these you run the exact five-step loop above — you receive the
+        <code>tool_use</code>, you do the work, you construct and return the <code>tool_result</code>.</p>
+        <p><strong>Server tools</strong> are different: <code>web_search</code>, <code>web_fetch</code>,
+        <code>code_execution</code>, and <code>tool_search</code> run on <em>Anthropic's</em> servers. When the model
+        calls one, the provider executes it and the <strong>server-side loop iterates internally</strong> — you never
+        construct a <code>tool_result</code> for a server tool, because the result never leaves Anthropic's side until
+        the model is ready to continue. This is a genuine trap for engineers: you go looking for the tool_result you're
+        "supposed" to return and there isn't one, because that tool was never yours to run.</p>
+        <p>One more piece of machinery to file away: a server-side loop that hits its internal iteration cap returns
+        <code>stop_reason: "pause_turn"</code>. That's not an error and not a completion — it's the provider saying "I
+        paused mid-work; hand the conversation back to me to continue." You resume by simply re-sending the conversation.
+        So your outer loop has to know about <em>three</em> shapes of "keep going," not one: <code>tool_use</code> (you
+        run something), <code>pause_turn</code> (the server wants to continue its own work), and everything else (exit).
+        Miss <code>pause_turn</code> and a perfectly healthy agent looks like it froze.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">The steering knob</div>
+        <h2><code>tool_choice</code> — from "answer directly" to "always act"</h2>
+        <p>The last piece is the knob that decides <em>whether and which</em> tool the model may call:
+        <strong><code>tool_choice</code></strong>. It is small, it lives in one line of the request, and it quietly
+        determines whether your feature behaves like a chatbot or a machine. Claude offers four settings:
+        <strong><code>auto</code></strong> (the default — the model decides each turn whether to call a tool or just
+        answer), <strong><code>any</code></strong> (it <em>must</em> call some tool), <strong><code>tool</code></strong>
+        (it must call a <em>specific named</em> tool), and <strong><code>none</code></strong> (no tools this turn).
+        OpenAI mirrors this exactly with <code>auto</code>, <code>required</code>, a named function, and
+        <code>none</code>.</p>
+        <p>Read those as a spectrum from freedom to compulsion, and the design choices become obvious. Use
+        <code>auto</code> for an open-ended assistant that should answer trivia from its own knowledge but reach for
+        tools when a task demands it. Use <code>any</code> or <code>required</code> when the model has no business
+        answering from memory — a booking agent that must always check live availability, never guess it. Use the named
+        <code>tool</code> setting to force a single structured extraction — "always call <code>record_order</code>" — which,
+        combined with <code>strict: true</code>, turns the model into a reliable JSON emitter that cannot wander off and
+        write prose instead.</p>
+        <p>This is the primary lever you'll reach for when steering an agent's behavior, and it's the fix for a whole
+        class of complaints. "The AI sometimes answers from stale memory instead of checking our database" is usually not
+        a smarter-model problem — it's <code>tool_choice: auto</code> where the task needed <code>any</code>. Set the
+        knob to match the task's tolerance for the model improvising, and a surprising amount of "flaky agent" behavior
+        simply disappears.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: send the same prompt four
+        times against a defined tool, flipping <code>tool_choice</code> between <code>auto</code>, <code>any</code>,
+        a named <code>tool</code>, and <code>none</code> — and watch the model swing from answering straight from memory
+        to being forced to call the tool every time. Needs backend standup.</p></div>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>An agent is not a magic upgrade — it's a <strong>loop you own</strong>. The model reasons and requests; your
+          code runs the tools, feeds back the results, counts the iterations, and decides when to stop. When a client's
+          "agent" misbehaves, don't reach for a bigger model. Walk the loop: was the tool defined with a clear
+          description and schema? Did <code>tool_choice</code> let it skip the action it needed to take? Did the loop exit
+          early, or spin without a cap? Every one of those is something you can fix in code — which is exactly why they're
+          paying an engineer, not renting a model.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao et al. — ReAct: Synergizing Reasoning and Acting in Language Models</a> — the paper that named the Thought → Action → Observation loop and showed grounding curbs hallucination and error propagation.</li>
+          <li><a href="https://www.anthropic.com/research/building-effective-agents" target="_blank" rel="noopener">Anthropic — Building effective agents</a> — the augmented LLM, the workflow-vs-agent line, the five workflow patterns, and the anti-complexity rule.</li>
+          <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works" target="_blank" rel="noopener">Claude docs — How tool use works</a> — the tool-use contract, the five-step agentic loop, client vs. server tools, and <code>pause_turn</code>.</li>
+          <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview" target="_blank" rel="noopener">Claude docs — Tool use overview</a> — <code>tool_choice</code> options (<code>auto</code>/<code>any</code>/<code>tool</code>/<code>none</code>) and <code>strict</code> schema enforcement.</li>
+          <li><a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener">OpenAI — Function calling</a> — the same contract under a different name: <code>parameters</code>, <code>function_call_output</code>, <code>call_id</code>, and <code>tool_choice</code>.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Anatomy of one tool_use ⇄ tool_result exchange</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on the loop and the contract</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 3 Day 1</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: one <code>tool_use</code> ⇄ <code>tool_result</code> exchange</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The contract, in the actual message shapes you'll send.</p>
+    <p><strong>1 · You define the tool</strong> — name, description (a mini-prompt the model reads to decide when to
+    call it), and a JSON-Schema <code>input_schema</code>:</p>
+    <div class="model-answer show">
+      <div class="ma-k">tools (sent on the request)</div>
+      <ul class="deliv-list">
+        <li><code>name</code>: <code>get_weather</code></li>
+        <li><code>description</code>: "Get the current weather for a city."</li>
+        <li><code>input_schema</code>: <code>{ type:"object", properties:{ city:{type:"string"} }, required:["city"] }</code></li>
+      </ul>
+    </div>
+    <p style="margin-top:12px"><strong>2 · The model requests a call.</strong> The response comes back with
+    <code>stop_reason: "tool_use"</code> and a block like:
+    <code>{ type:"tool_use", id:"toolu_01A", name:"get_weather", input:{ city:"SF" } }</code>. The model did
+    <em>not</em> run anything — it emitted a structured request.</p>
+    <p><strong>3 · You execute and return the result</strong> as a <code>tool_result</code> block in the next request,
+    referencing the id: <code>{ type:"tool_result", tool_use_id:"toolu_01A", content:"62°F, foggy" }</code>. You send
+    the original messages + the assistant's turn + this block.</p>
+    <p><strong>4 · Loop.</strong> If the model now has what it needs it returns <code>end_turn</code> with a final
+    answer; if it needs another tool it returns <code>tool_use</code> again and you repeat.</p>
+    <p style="margin-top:12px"><strong>OpenAI, same dance, different nouns:</strong> the request block is a function call
+    with <code>name</code> + JSON <code>arguments</code> and a <code>call_id</code>; you reply with a
+    <code>function_call_output</code> carrying that same <code>call_id</code> and the <code>output</code>. Learn one
+    contract, read both docs.</p>
+    <p style="margin-top:12px"><strong>Why <code>strict: true</code> matters:</strong> without it, the model's
+    <code>input</code>/<code>arguments</code> are "usually" valid JSON matching your schema — which means "occasionally
+    not," and you're writing defensive parsers. With it, the provider guarantees conformance, and the named-tool
+    <code>tool_choice</code> setting turns the model into a dependable structured-output emitter.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 1 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Describe the augmented LLM and explain why every workflow and agent is composed of augmented-LLM calls</li>
+      <li>Trace a ReAct Thought → Action → Observation cycle and say why grounding curbs hallucination vs. pure chain-of-thought</li>
+      <li>Tell a workflow apart from an agent, and apply the anti-complexity rule to decide which to build</li>
+      <li>Write the agentic loop as a <code>while</code> on <code>stop_reason</code>, and set <code>tool_choice</code> to match a task</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add to your running <code>NOTES.md</code></li>
+      <li><b>①</b> one task you'd build as a <em>workflow</em> and one you'd build as an <em>agent</em> — with the reason</li>
+      <li><b>②</b> the five-step tool-calling loop written out in your own words, including where it exits</li>
+      <li><b>③</b> one client complaint you'd now diagnose as a <code>tool_choice</code> or loop-control bug before blaming the model</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 2, where we take this loop apart under load — what happens when tools fail,
+    time out, or return garbage, and how a production agent stays safe.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 2 — Tool failure, retries &amp; safe loops →", href: "w03d2.html" };
+window.DIAGRAM = {
+  title: "The agentic loop · reason → act → observe",
+  width: 500, height: 706,
+  nodes: [
+    // the primitive
+    { id:"augllm", step:0, kind:"example", x:104, y:18, w:292, h:66,
+      label:"AUGMENTED LLM\nbase model + retrieval · tools · memory\n(the model drives all three itself)",
+      detail:"Anthropic's foundational building block. A base LLM enhanced with retrieval, tools, and memory that the model itself drives — generating its own queries, selecting tools, deciding what to retain. Every workflow and every agent is composed of these calls." },
+
+    // ReAct cycle
+    { id:"thought", step:1, x:150, y:110, w:200, h:52, label:"THOUGHT\nreasoning trace: plan · track · re-plan",
+      detail:"The free-form reasoning trace where the model induces, tracks, and updates its plan — and handles exceptions. When an action returns something unexpected, the next thought is where the model notices and re-plans instead of barrelling ahead. It's also your best debugging artifact." },
+    { id:"action", step:2, x:28, y:214, w:196, h:58, label:"ACTION\nstructured call → external source",
+      detail:"A task-specific action against a tool or environment — in the ReAct paper, a Wikipedia API (search / lookup / finish). The model emits it; it does not run it." },
+    { id:"obs", step:2, x:276, y:214, w:196, h:58, label:"OBSERVATION\nresult feeds the next thought",
+      detail:"The environment's response — the fact the next thought has to reckon with. Grounding each step in a real observation is what curbs the hallucination and error propagation of pure chain-of-thought, and what makes the trajectory interpretable." },
+
+    // complexity: workflow vs agent
+    { id:"complexity", step:3, x:28, y:308, w:444, h:60,
+      label:"WORKFLOW (predefined code paths) ── vs ── AGENT (model directs its own control)",
+      detail:"Workflows: LLMs + tools on developer-authored paths — prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer. Predictable, cheap, testable. Agents: the model dynamically directs its own process and tool usage. Reserve agents for tasks you can't hardcode but can still verify. Start simple; add agentic systems only when simpler solutions fall short." },
+
+    // the contract
+    { id:"contract", step:4, x:28, y:392, w:444, h:56,
+      label:"TOOL-USE CONTRACT — model emits a schema-validated request; it never executes",
+      detail:"Define a tool by name + description + JSON-Schema input_schema. The model returns stop_reason: tool_use with tool_use block(s); YOUR code (or the provider's server) runs the operation and returns a tool_result. strict:true guarantees the arguments match your schema. OpenAI = the same, renamed 'function calling'." },
+
+    // the loop
+    { id:"loop", step:5, x:28, y:472, w:216, h:70,
+      label:"while stop_reason == tool_use:\n  run tool → tool_result → re-send\nexit on end_turn / max_tokens",
+      detail:"The five-step agentic loop: (1) send tools + message; (2) get tool_use block(s); (3) execute, format tool_result; (4) re-send messages + assistant turn + tool_result; (5) repeat while tool_use. Exits on end_turn, max_tokens, stop_sequence, refusal. Add an iteration cap and a token budget yourself." },
+    { id:"server", step:6, x:256, y:472, w:216, h:70,
+      label:"CLIENT tools: you run them\nSERVER tools: provider runs the loop\n→ pause_turn to continue",
+      detail:"Client tools (your functions + bash/text_editor/memory/computer) — you execute and return tool_result. Server tools (web_search/web_fetch/code_execution/tool_search) — Anthropic runs them, the server-side loop iterates internally, you never build a tool_result. A server loop hitting its cap returns pause_turn; re-send to continue." },
+
+    // steering
+    { id:"choice", step:7, x:88, y:566, w:324, h:56,
+      label:"tool_choice: auto · any/required · tool(named) · none",
+      detail:"The knob for whether/which tool the model may call. auto = model decides per turn; any/required = must call some tool; tool = must call a named tool (great with strict for reliable structured output); none = no tools. The primary lever between 'answer directly' and 'always act.'" }
+  ],
+  edges: [
+    { id:"e_turn",  step:1, from:"augllm", to:"thought", label:"each turn", ly:-2 },
+    { id:"e_act",   step:2, from:"thought", to:"action", label:"act", lx:-8 },
+    { id:"e_run",   step:2, from:"action", to:"obs", label:"run tool", ly:-2 },
+    { id:"e_obs",   step:2, from:"obs", to:"thought", label:"observe → next thought", bend:-28, ly:-4 },
+    { id:"e_loop",  step:5, from:"loop", to:"action", label:"repeat", lx:-6 },
+    { id:"e_choice",step:7, from:"choice", to:"thought", label:"steers", bend:24 }
+  ],
+  captions: [
+    "Every agent is built from one atom: the <b>augmented LLM</b> — a base model plus <b>retrieval, tools, and memory</b> that the model itself drives. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "The <b>ReAct</b> loop starts with a <b>thought</b> — a reasoning trace that plans, tracks, and re-plans when the world surprises it.",
+    "<b>Action → Observation → back to thought.</b> Grounding each step in a real observation is what curbs the hallucination of pure chain-of-thought — repeat until a finish action. <span style='opacity:.7'>(tap)</span>",
+    "Not everything should be a dynamic <b>agent</b>. Most features are <b>workflows</b> — predefined paths. Start simple; add agents only when simpler solutions fall short. <span style='opacity:.7'>(tap)</span>",
+    "Provider-native tool use is a <b>contract</b>: the model emits a schema-validated request and <b>never executes</b> — your code (or the provider) runs it. <span style='opacity:.7'>(tap)</span>",
+    "In code, the loop is a <b>while on <code>stop_reason</code></b>: run the tool, feed back <code>tool_result</code>, re-invoke — exit on <code>end_turn</code>. <span style='opacity:.7'>(tap)</span>",
+    "<b>Client tools</b> you run; <b>server tools</b> the provider runs internally, returning <code>pause_turn</code> to continue. Know which is which. <span style='opacity:.7'>(tap)</span>",
+    "<b><code>tool_choice</code></b> steers the whole loop — from <code>auto</code> (answer directly) to <code>any</code>/<code>required</code> (always act) to a named <code>tool</code>. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w03-d1",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "In provider-native tool use (Claude or OpenAI), who actually runs a client tool the model requests?",
+      options: [
+        "The model executes it internally and returns the result",
+        "Your application code executes it and returns the result to the model",
+        "The tool runs itself the moment it's defined in the schema",
+        "Nobody — the model only pretends to call tools" ],
+      answer: 1,
+      explain: "Tool use is a contract, not model-side execution. The model emits a structured request (tool_use / function call); YOUR code (or the provider's server, for server tools) runs the operation and feeds the result back as tool_result / function_call_output." },
+    { type: "scq",
+      stem: "What primarily makes ReAct less prone to hallucination than pure chain-of-thought?",
+      options: [
+        "It uses a larger model",
+        "It runs at a lower temperature",
+        "Each step is grounded in a real observation from the environment",
+        "It never lets the model reason at all" ],
+      answer: 2,
+      explain: "ReAct interleaves reasoning with actions, so every step is checked against a real observation from an external source. Chain-of-thought reasons in a closed room where a wrong turn compounds; grounding each step in ground truth curbs hallucination and error propagation." },
+    { type: "tf",
+      stem: "You should build a fully dynamic agent whenever a task involves multiple steps.",
+      answer: false,
+      explain: "No. Anthropic's rule is anti-complexity: most multi-step tasks are better as workflows (predefined code paths — prompt chaining, routing, orchestrator-workers). Reserve dynamic agents for tasks whose path you can't hardcode but whose progress you can still verify. Start simple; add agents only when simpler solutions fall short." },
+    { type: "mcq",
+      stem: "Which stop reasons cause the agentic client-tool loop to EXIT (rather than run another tool)? (select all that apply)",
+      options: [
+        "end_turn",
+        "tool_use",
+        "max_tokens",
+        "stop_sequence",
+        "refusal" ],
+      answer: [0, 2, 3, 4],
+      explain: "The loop continues only while stop_reason == tool_use. Every other stop reason — end_turn, max_tokens, stop_sequence, refusal — exits the loop. (pause_turn is a special server-tool case: re-send to let the provider continue its own loop.)" },
+    { type: "match",
+      stem: "Match each term to what it does.",
+      pairs: [
+        { l: "augmented LLM", r: "base model + retrieval/tools/memory the model drives" },
+        { l: "tool_choice", r: "controls whether/which tool the model may call" },
+        { l: "server tool", r: "provider runs it; you never build a tool_result" },
+        { l: "strict: true", r: "guarantees arguments conform to your JSON schema" } ],
+      explain: "The augmented LLM is the primitive every agent is built from. tool_choice (auto/any/tool/none) is the steering knob. Server tools (web_search, code_execution, etc.) run on the provider's side. strict mode enforces schema-conformant arguments so you stop writing defensive parsers." },
+    { type: "open",
+      stem: "A client says: 'Our booking assistant sometimes answers availability from stale memory instead of checking the live calendar.' In one or two sentences, what's your first fix and why — before reaching for a bigger model?",
+      hint: "Think about which single request parameter decides whether the model is allowed to skip the tool call.",
+      model: "Set tool_choice to any/required (or force the named calendar tool) so the model must call the availability tool instead of being free to answer from memory under the default 'auto'. This is a steering-knob bug, not a model-intelligence bug: auto lets the model decide per turn whether to act, and for a task that must never guess live state, you remove that discretion — a one-line change, not a model swap." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

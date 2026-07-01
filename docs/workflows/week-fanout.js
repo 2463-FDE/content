@@ -27,19 +27,20 @@ export const meta = {
   ],
 }
 
-const WEEK = (args && args.week) || 0
+const A = typeof args === 'string' ? JSON.parse(args) : (args || {})   // runtime passes args as a JSON string
+const WEEK = A.week || 0
 const WW = String(WEEK).padStart(2, '0')
 const TEMPLATE = 'content/weeks/w01/d1.html'
 const RDIR = `content/docs/research/w${WW}`
 const WDIR = `content/weeks/w${WW}`
-const DAYS = ((args && args.days) || []).map(x => ({ ...x, slug: `w${WW}d${x.d}` }))
+const DAYS = (A.days || []).map(x => ({ ...x, slug: `w${WW}d${x.d}` }))
 
 const RESEARCH_SCHEMA = { type:'object', additionalProperties:false, properties:{
   concepts:{ type:'array', items:{ type:'object', additionalProperties:false, properties:{ id:{type:'string'}, label:{type:'string'} }, required:['id','label'] } },
   sourceCount:{ type:'number' }, summary:{ type:'string' } }, required:['concepts','sourceCount','summary'] }
 const VERDICT = { type:'object', additionalProperties:false, properties:{ pass:{type:'boolean'}, critiques:{type:'array', items:{type:'string'}}, summary:{type:'string'} }, required:['pass','critiques','summary'] }
 const RECONCILE_SCHEMA = { type:'object', additionalProperties:false, properties:{
-  canonical:{ type:'array', items:{ type:'object', additionalProperties:false, properties:{ id:{type:'string'}, label:{type:'string'}, day:{type:'string'} }, required:['id','label','day'] } },
+  canonical:{ type:'array', items:{ type:'object', additionalProperties:false, properties:{ id:{type:'string'}, label:{type:'string'}, day:{type:'string'}, isNew:{type:'boolean'} }, required:['id','label','day','isNew'] } },
   remap:{ type:'array', items:{ type:'object', additionalProperties:false, properties:{ from:{type:'string'}, to:{type:'string'} }, required:['from','to'] } },
   summary:{ type:'string' } }, required:['canonical','remap','summary'] }
 const READING_SCHEMA = { type:'object', additionalProperties:false, properties:{
@@ -94,16 +95,21 @@ const recon = await gated(
   (cr) => agent(
     `You are the CONCEPT RECONCILER for Week ${WEEK}. The parallel research agents proposed these concept-ids (with the day each came from):\n`+
     JSON.stringify(rawConcepts, null, 1) + '\n'+
+    `FIRST read backend/src/index.js — the CONCEPTS object is the LIVE, already-shipped taxonomy (Weeks 0-2 plus pre-seeded stubs). Those ids are plain kebab-case; the day is noted in the LABEL, never in the id.\n`+
     `Produce a CLEAN canonical taxonomy:\n`+
-    `- Merge near-duplicates and exact duplicates into ONE canonical id (kebab-case). e.g. "embedding-dimensions" + "embedding-dimensionality" -> one id.\n`+
+    `- If a proposed concept means the SAME thing as a live CONCEPTS id, REUSE that exact live id — do NOT mint a synonym. Pre-seeded stubs (e.g. agent-complexity, human-in-loop, checkpointing, agent-observability, knowledge-graph, legacy-modernization) are the intended homes for this week's matching concepts; reuse them.\n`+
+    `- Merge near-duplicates and exact duplicates WITHIN this week into ONE canonical id (kebab-case). e.g. "embedding-dimensions" + "embedding-dimensionality" -> one id.\n`+
+    `- For genuinely new concepts, mint a plain kebab-case id that collides with NO live CONCEPTS id and NO other canonical id.\n`+
+    `- isNew = false for any id reused from the live taxonomy, true for a newly minted id.\n`+
     `- Assign each canonical concept its correct HOME day = the earliest day whose topic genuinely introduces it (fix concept-bleed where an early day over-reached into a later day's topic).\n`+
     `- Return remap = every original id -> its canonical id (include identity maps where unchanged).\n`+
-    `Return canonical[], remap[], one-sentence summary.`+fix(cr),
+    `Return canonical[] (each with isNew), remap[], one-sentence summary.`+fix(cr),
     { schema: RECONCILE_SCHEMA, label:`w${WW}:reconcile`, phase:'Reconcile' }),
   (r) => agent(
     `RECONCILE CRITIC for Week ${WEEK}. Reconciler output:\n`+ JSON.stringify(r, null, 1) +'\n'+
     `Original concepts:\n`+ JSON.stringify(rawConcepts, null, 1) +'\n'+
-    `PASS only if: no two canonical ids are near-duplicates; every original id appears in remap; each canonical concept's home day is plausible for its topic; ids are kebab-case.\n`+
+    `Read backend/src/index.js CONCEPTS (the live shipped taxonomy).\n`+
+    `PASS only if: no two canonical ids are near-duplicates; NO canonical id marked isNew=true collides with or near-duplicates a LIVE CONCEPTS id (a concept matching a live id MUST reuse that id with isNew=false); every original id appears in remap; each canonical concept's home day is plausible for its topic; ids are plain kebab-case (no week prefix, day only in the label).\n`+
     `Else pass=false with specific critiques. One-sentence summary.`,
     { schema: VERDICT, label:`w${WW}:reconcile-crit`, phase:'Reconcile' })
 )

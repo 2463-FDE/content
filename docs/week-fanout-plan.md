@@ -287,6 +287,35 @@ summary per task. Everything else stays in the sub-agents.
 
 ---
 
+## W3-8 day topics (LOCKED 2026-07-01)
+
+5 reading-days each (Mon–Fri). **Wed (d3) = alt-research day** for W3/W4/W6/W7/W8 (W5 d3 stays
+core — spec tooling). d5 = ★ milestone. Feeds the workflow `args.days = [{d,topic,sub}, …]` per
+week, one sequential run per week.
+
+| Wk | Theme (core tech) | d1 | d2 | d3 (Wed) | d4 | d5 ★ |
+|----|----|----|----|----|----|----|
+| W3 | Single-Agent + Memory (LangChain v1.0 +MCP) | Agent architectures + ReAct loop | Tools & MCP (tool/context interface) | *alt:* LC v1 vs CrewAI/AutoGen/OpenAI Agents SDK | Agent memory: working vs long-term | Production single agent E2E |
+| W4 | Multi-Agent + KG (LangGraph + Neo4j) | Orchestration patterns (supervisor/swarm/handoffs) | LangGraph state/persistence/checkpointers | *alt:* CrewAI/AutoGen vs LangGraph | Neo4j KG modeling + Cypher for GraphRAG | GraphRAG E2E |
+| W5 | Spec-Driven Dev & Scoping | Spec-driven fundamentals (GSD/spec-kit) | Requirements synthesis: discovery → spec | Spec frameworks & tooling (core) | Decomposition: spec → phased plans | Spec→impl handoff exercise |
+| W6 | AI-Augmented SDLC (Claude Code) | Coding-agents landscape — Claude Code focus | Agentic SDLC (plan/TDD/review loops, AI in CI/CD) | *alt:* Cursor/Aider/Copilot Workspace vs Claude Code | Brownfield / LEGMOD with agents | E2E AI-augmented feature delivery |
+| W7 | Observability/SRE/Guardrails (LangSmith) | Observability — traces/spans, LangSmith | Evals in production (online/offline) | *alt:* Langfuse/Phoenix/Helicone vs LangSmith | SRE: latency/cost/reliability, OTel GenAI | Guardrails + observability E2E |
+| W8 | Security/Governance/Responsible AI (OWASP LLM Top 10) | OWASP LLM Top 10 framework | Prompt injection & jailbreaks | *alt:* guardrails frameworks (NeMo/Guardrails AI/LLM Guard/Presidio) | Governance, PII, privacy, responsible AI | Red-team + secure agent deploy E2E |
+
+## Cross-week concept collision (fixed 2026-07-01)
+
+Weeks 0-2 concepts are LIVE in backend `CONCEPTS` (plain kebab-case ids; day noted in the
+label, e.g. `chunking-strategy` "…(w02d1)"). W3/W4 stubs are pre-seeded (`agent-complexity`,
+`human-in-loop`, `checkpointing`, `agent-observability`, `knowledge-graph`,
+`legacy-modernization`). Without awareness, a per-week reconciler mints synonyms that collide
+at wire time.
+
+Fix landed in `week-fanout.js`: the reconciler now **reads live `CONCEPTS` first**, reuses an
+existing id when meaning matches (incl. the pre-seeded stubs), mints only genuinely-new
+plain-kebab ids, and tags each canonical concept `isNew`. The reconcile critic fails any
+`isNew=true` id that collides with a live id. **Wire step appends only `isNew=true` concepts**
+to `CONCEPTS` (reused ids are already present).
+
 ## Open follow-ups
 
 - [x] Retrofit Sources block onto all 7 remaining Week-1 readings (done; URLs
@@ -300,9 +329,19 @@ summary per task. Everything else stays in the sub-agents.
       Shakedown fixes folded into the script: (1) concept-reconciliation step
       (parallel research coined dup ids); (2) no question-critic truncation;
       (3) explicit `weeks/wWW/wWWdN.html` filename convention.
-- [ ] Backfill W1 thin technical concepts to ≥4 questions each (context-window,
-      knowledge-graph, model-selection, prompt-engineering, token-optimization,
-      output-guardrails, structured-output) — fold into the run.
+- [x] Backfill W1 thin technical concepts to ≥4 questions each — DONE
+      (2026-07-01, `docs/workflows/w1-backfill.js`; 0 flagged, 18 Q → `tec-021..038`,
+      inserted into BANK, all 9 targets now ≥4). Pending `wrangler deploy` to go live.
+      Target set (true counts):
+      context-window(1→4), model-selection(2), api-integration(2), idempotency(2),
+      prompt-engineering(2), structured-output(2), token-optimization(2),
+      output-guardrails(2), hallucination-grounding(3→4) = 18 new Q. Questions-only
+      (W1 has no research artifact; ground against W1 reading HTML, dedup vs BANK).
+      `requirements-synthesis` / `llm-client-architecture` intentionally left at 0
+      (reading-only, for STT concept-check). `knowledge-graph`/`agent-observability`/
+      `checkpointing`/`legacy-modernization` fill when W3/W4 authored.
+- [x] Cross-week concept collision fix (2026-07-01) — reconciler is live-taxonomy
+      aware; wire appends only isNew concepts. See section above.
 - [ ] Build the deferred "try it" interactives: each reading drops `.ix-future`
       placeholders + logs them to `docs/future-interactives.md`. Stand up the
       backend examples per the tech being taught, then replace placeholders with

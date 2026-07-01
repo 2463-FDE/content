@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w03d3">
+<meta name="fde-concepts" content="agent-orchestration-framework,langchain-langgraph-v1,openai-agents-sdk-handoffs,crewai-crews-vs-flows,microsoft-agent-framework,agent-framework-selection-tradeoffs">
+<title>W3·D3 — The Agent Framework Landscape: LangChain, OpenAI, CrewAI &amp; Microsoft | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>The Agent Framework Landscape: LangChain, OpenAI, CrewAI &amp; Microsoft</h1>
+        <div class="meta">
+          <span><b>Week 3</b> · Day 3</span>
+          <span>Foundation AI Engineering</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Once you decide to build an agent, the next question a client asks is
+        <em>"which framework?"</em> — and in 2026 there are four serious answers, all of which changed shape in the last
+        year. <strong>LangChain/LangGraph</strong> shipped stable 1.0, <strong>OpenAI's Agents SDK</strong> graduated
+        from the experimental Swarm project, <strong>CrewAI</strong> matured into a standalone Crews-plus-Flows engine,
+        and Microsoft <strong>merged AutoGen and Semantic Kernel</strong> into a single Agent Framework. Today you learn
+        what each one actually is, the primitives it gives you, and — the part that earns your fee — how to pick between
+        them on real decision axes instead of hype. The panel on the right assembles the landscape one framework at a
+        time. <strong>One warning up front:</strong> if you learned this space before 2026, half of what you remember is
+        now wrong, and this lesson tells you exactly where.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>What an agent framework is — and why 2026 reset the board</h2>
+        <p>Strip away the branding and an <strong>agent orchestration framework</strong> is one thing: a library that
+        gives you the runtime and abstractions for building LLM agents — the agent loop, tool calling, state and memory,
+        and multi-agent coordination — so you don't hand-roll that plumbing yourself. Every framework on today's board
+        wraps the same beating heart, the <strong>agent loop</strong>: send a request to the model, handle any tool
+        calls it asks for or return the final answer, and repeat until the task is done. What differs is everything built
+        <em>around</em> that loop — how you define agents, how they hand work to each other, how state persists, and how
+        much explicit control the framework hands you versus hides.</p>
+        <p>Here is the trap you must not fall into. If your mental model of this space predates 2026 — or if you let a
+        model trained before 2026 seed your answer — you will describe it wrong in two specific ways. First, you'll talk
+        about <strong>AutoGen</strong> and <strong>Semantic Kernel</strong> as two separate, live Microsoft frameworks.
+        They aren't anymore: Microsoft unified them into one <strong>Agent Framework</strong> that went GA on
+        2026-04-03, and AutoGen is now a legacy/migration source. Second, you'll describe <strong>LangChain</strong> as
+        a pre-1.0 "chains" library. It isn't: LangChain and LangGraph both shipped stable <strong>1.0 on
+        2025-10-22</strong>, re-centered on the agent loop. Getting these two facts wrong in front of a client instantly
+        marks you as out of date, so we anchor the whole day on the current, verified state of the board.</p>
+        <p>The 2026 landscape has four names worth knowing: <strong>LangChain/LangGraph</strong>, the <strong>OpenAI
+        Agents SDK</strong>, <strong>CrewAI</strong>, and the <strong>Microsoft Agent Framework</strong>. They are not
+        interchangeable, and they are not ranked — each makes a different bet about the control model, provider lock-in,
+        and enterprise features you get. Your job is not to have a favorite; it's to map the client's constraints onto
+        the framework whose bets match. We'll take them one at a time, then turn the differences into a decision
+        procedure you can run at a whiteboard.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Framework 1</div>
+        <h2>LangChain + LangGraph 1.0: a loop on a durable runtime</h2>
+        <p>LangChain and LangGraph reached their first stable major versions <strong>together on 2025-10-22</strong>, and
+        LangGraph 1.0 is billed as the first stable major release in the "durable agent framework" space after a
+        year-plus of real production adoption. That simultaneity is the tell: these are not competitors you choose
+        between but <strong>two layers of one stack</strong>. The mistake is to imagine LangChain-versus-LangGraph as a
+        fork in the road. It's a staircase — you start high and drop down when you need to.</p>
+        <p>The high layer is LangChain's new <strong><code>create_agent</code></strong> abstraction, pitched as "the
+        fastest way to build an agent with any model provider." It runs exactly the simple loop we named a moment ago:
+        send the request to the model, handle its tool calls or return the final answer, repeat. On top of that loop
+        1.0 adds two things worth memorizing. <strong>Middleware</strong> is a set of customizable hooks throughout
+        agent execution — for example, a human-in-the-loop gate that lets a person approve, edit, or reject a tool call
+        before it runs, or automatic context-summarization to keep the window under control. And <strong>standard
+        content blocks</strong> give you consistent content types — reasoning traces, citations, tool calls — across
+        providers, so you can swap the underlying model without rewriting the code that parses its output.</p>
+        <p>The low layer is the <strong>LangGraph durable runtime</strong>, and this is the piece clients under-rate.
+        LangChain agents are <em>built on</em> LangGraph, so when the high-level API stops being enough you drop into an
+        explicit graph with built-in persistence, resumable state, and human-in-the-loop control. The practical FDE
+        reading: reach for <code>create_agent</code> to move fast on the common case, and descend to LangGraph when the
+        task needs a long-running, checkpointed, resumable process rather than a single loop. Same stack, two altitudes
+        — you don't migrate frameworks to get durability, you just go one layer down.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Framework 2</div>
+        <h2>OpenAI Agents SDK: five primitives, and it isn't OpenAI-only</h2>
+        <p>The <strong>OpenAI Agents SDK</strong> is a deliberately lightweight, production-ready framework, and OpenAI is
+        explicit about its lineage: it's "a production-ready upgrade of our previous experimentation for agents,
+        Swarm." If someone on the client team remembers Swarm as a fun experiment they couldn't ship, this is the
+        answer to "what happened to it" — Swarm grew up into a supported SDK. The design philosophy is minimalism: a
+        small set of primitives you compose, rather than a large framework you configure.</p>
+        <p>There are five primitives, and they're worth holding as a set. <strong>Agents</strong> are LLMs equipped with
+        instructions and tools. <strong>Handoffs</strong> let one agent delegate to another (the star of the next step).
+        <strong>Guardrails</strong> validate inputs and outputs — the checkpoints that catch a bad request before it
+        runs or a bad answer before it ships. <strong>Sessions</strong> provide persistent conversation memory across
+        turns. And running underneath all of it is <strong>built-in tracing</strong> for visualizing and debugging what
+        the agents actually did — which, on a multi-agent system, is the difference between a bug you can see and a bug
+        you can only guess at.</p>
+        <p>Now the fact that saves you from a real misconception. The SDK <em>defaults</em> to OpenAI's Responses API,
+        which makes it look like an OpenAI-lock-in play — but it is <strong>not OpenAI-only</strong>. It ships extension
+        points for other providers through <strong>LiteLLM</strong> and <strong>Any-LLM</strong> adapters, so you can
+        point the same agents at non-OpenAI models. That distinction matters enormously on an engagement: "OpenAI's
+        SDK" does not mean "you must run OpenAI models forever." When a client worries about being trapped on one
+        vendor, this is the nuance you bring — the default is OpenAI, the ceiling is not.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">The delegation trick</div>
+        <h2>Handoffs are just tool calls the model chooses</h2>
+        <p>Handoffs deserve their own beat because they demystify multi-agent systems entirely. In the OpenAI Agents
+        SDK, a <strong>handoff</strong> — one agent transferring control to another — is implemented as a
+        <strong>tool exposed to the LLM</strong>. Concretely: a handoff to an agent named "Refund Agent" surfaces to the
+        model as a tool named <code>transfer_to_refund_agent</code>. The model doesn't invoke some special orchestration
+        machinery; it simply <em>calls a tool</em>, and that tool call routes the conversation to the other agent.</p>
+        <p>Sit with why that's elegant. Routing and delegation — the thing that sounds like the hard, magical part of
+        "multi-agent AI" — collapses into the exact same mechanism you already learned for tool calling. The model
+        looks at the conversation, decides "this is a refund question," and chooses the <code>transfer_to_refund_agent</code>
+        tool the way it would choose a <code>search_docs</code> tool. There is no separate router model, no rules
+        engine deciding who handles what: the orchestrating LLM makes the routing decision as one more tool selection.
+        Once you see it this way, a triage-plus-specialists system stops being intimidating — it's a handful of agents,
+        each exposed to the others as a transfer tool.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live handoff visualizer —
+        type a customer message ("I want my money back for order 412"), watch a triage agent emit the
+        <code>transfer_to_refund_agent</code> tool call, and see control route to the specialist with the tool name and
+        arguments shown inline. Needs backend standup.</p></div>
+        <p>This is also the mental bridge to the other frameworks. Every multi-agent system on today's board is, under
+        the hood, answering the same question — <em>how does one agent decide to hand work to another?</em> — and the
+        OpenAI SDK gives the cleanest answer: it's a tool call, so it's governed by everything you already know about
+        tool calling, guardrails, and tracing. Hold that as your baseline as we look at how CrewAI and Microsoft frame
+        the same problem differently.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Framework 3</div>
+        <h2>CrewAI: autonomous Crews and deterministic Flows</h2>
+        <p><strong>CrewAI</strong> makes a bet the others don't state as sharply: it gives you <em>two</em> complementary
+        orchestration models and expects you to combine them. <strong>Crews</strong> are autonomous, role-based agent
+        collaboration — you define agents by <em>role, goal, and backstory</em> and let them collaborate with flexible,
+        model-driven decision-making. <strong>Flows</strong> are the opposite temperament: event-driven, deterministic
+        control with precise state management and conditional branching. The README says it plainly — "the true power of
+        CrewAI emerges when combining Crews and Flows." Crews for the parts where you want judgement; Flows for the parts
+        where you want guarantees.</p>
+        <p>The Flows machinery is concrete enough to picture. A Flow is built from <strong><code>@start()</code></strong>
+        entry-point methods and <strong><code>@listen()</code></strong> methods that fire when a prior method produces
+        output, with <code>or_</code>/<code>and_</code> operators to wait on multiple upstream steps, router-based
+        conditional branching, and per-execution state that can be either unstructured (a plain dict) or structured (a
+        Pydantic model). If that reads like an event-driven workflow engine, that's exactly right — and the payoff is
+        that you can embed an autonomous Crew as a <em>step</em> inside a deterministic Flow, getting model judgement
+        where you want it and hard control everywhere else.</p>
+        <p>One grounding fact that changes how you position CrewAI to a client: it is a <strong>standalone
+        framework</strong>. The current PyPI release (<strong>1.15.1, 2026-06-27</strong>) describes CrewAI as "built
+        entirely from scratch — completely independent of LangChain or other agent frameworks," and it requires Python
+        <code>&gt;=3.10,&lt;3.14</code>. That independence is a genuine architectural choice, not marketing — it means
+        adopting CrewAI doesn't drag in the LangChain stack, and its dual Crews/Flows model is its own thing to learn on
+        its own terms. When a team asks "is this just a LangChain wrapper?", the answer is a clean no.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Framework 4</div>
+        <h2>Microsoft Agent Framework: AutoGen and Semantic Kernel, merged</h2>
+        <p>This is the framework most likely to trip up anyone running on pre-2026 memory, so read it carefully. The
+        <strong>Microsoft Agent Framework</strong> (pip package <code>agent-framework</code>, GA
+        <strong>2026-04-03</strong>) is the <strong>direct successor to BOTH AutoGen and Semantic Kernel</strong>, built
+        by the same teams. It didn't replace one with the other; it <em>merged</em> them. It takes AutoGen's simple
+        single- and multi-agent abstractions and combines them with Semantic Kernel's enterprise features — session
+        state, type safety, filters, telemetry — then adds graph-based <strong>Workflows</strong> for explicit
+        multi-agent orchestration. Two frameworks became one.</p>
+        <p>The internal split mirrors a distinction you're now seeing everywhere. Microsoft Agent Framework divides
+        capabilities into <strong>Agents</strong> — an LLM plus tools plus MCP access, aimed at open-ended,
+        conversational tasks — and <strong>Workflows</strong>, which are graph-based, type-safe routing with
+        checkpointing and human-in-the-loop for well-defined, multi-step processes. Agents for when you don't know the
+        path in advance; Workflows for when you do. And the framework hands you a piece of advice worth quoting to
+        every client: <strong>"if you can write a function to handle the task, do that instead of using an AI
+        agent."</strong> Even the vendor selling you the agent framework tells you not to reach for an agent when plain
+        code will do.</p>
+        <p>Now the fact you must not get wrong: <strong>AutoGen is legacy.</strong> Microsoft ships an official
+        <em>AutoGen-to-Agent-Framework migration guide</em> (the page is dated 2026-04-01), which confirms AutoGen is
+        now a migration <em>source</em>, not the recommended target for new work. So if a client says "we're building
+        on AutoGen" or "we're standardizing on Semantic Kernel," the correct, current guidance is: those have been
+        unified into the Microsoft Agent Framework, and new projects should target the merged framework and migrate
+        existing AutoGen code toward it. Saying "use AutoGen for new agents" in 2026 is the single clearest way to sound
+        a year out of date.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">The decision</div>
+        <h2>Choosing: control model, lock-in, and enterprise features</h2>
+        <p>Four frameworks, one decision. The way to pick is not "which is best" — none dominates — but to score the
+        client's situation on a handful of <strong>decision axes</strong> and let the constraints choose. The first and
+        biggest axis is the <strong>control model</strong>: do you want an autonomous agent loop that decides its own
+        path, or an explicit graph/workflow where you specify the steps? Every framework on the board actually offers
+        <em>both</em> ends of this spectrum, which is the deepest pattern of the day — LangChain's <code>create_agent</code>
+        loop drops to LangGraph's explicit graph; CrewAI's autonomous Crews embed inside deterministic Flows; Microsoft's
+        open-ended Agents sit beside graph-based Workflows. The recurring shape is <em>"loop when you don't know the
+        path, graph when you do."</em> Pick the framework, then pick the altitude within it.</p>
+        <p>The second axis is <strong>provider lock-in</strong>. Is the framework provider-agnostic or vendor-first? The
+        OpenAI Agents SDK defaults to OpenAI but reaches other providers via LiteLLM/Any-LLM; LangChain's
+        <code>create_agent</code> is built to work "with any model provider" and its content blocks explicitly let you
+        swap models without rewriting parsing; CrewAI is standalone and independent of any single stack. The nuance,
+        which you now carry, is that "OpenAI's SDK" doesn't force OpenAI models forever — but the <em>default</em> path
+        of least resistance still points at each vendor's own models, and defaults quietly decide architectures.</p>
+        <div class="ix-predict"
+          data-q="A client has an existing .NET and Semantic Kernel investment, needs type-safe, checkpointed, multi-step workflows with human-in-the-loop approvals, and is nervous about betting on anything 'experimental.' They ask you: AutoGen or Semantic Kernel — which do we build the new system on? What do you tell them?"
+          data-a="<b>Neither, as separate frameworks — both have been unified into the Microsoft Agent Framework (GA 2026-04-03).</b> Their Semantic Kernel enterprise features (session state, type safety, filters, telemetry) and AutoGen's agent abstractions now live in one SDK, and their needs map straight onto its graph-based <b>Workflows</b> (type-safe routing, checkpointing, human-in-the-loop). Point them at the merged <code>agent-framework</code> package and Microsoft's official AutoGen migration guide; building net-new on standalone AutoGen in 2026 is building on a legacy/migration source.">
+        </div>
+        <p>The remaining axes round out the scorecard. <strong>Enterprise / state features</strong>: does it give you
+        durable persistence, checkpointing, session state, type safety, and telemetry out of the box (LangGraph's durable
+        runtime, Microsoft's Semantic-Kernel-derived features) or do you bolt those on? <strong>Ecosystem
+        maturity</strong>: LangChain/LangGraph's year-plus of production adoption before 1.0 versus newer entrants.
+        Score the client against these axes, and the "which framework" argument stops being a taste debate and becomes a
+        short, defensible mapping from their constraints to a choice.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a framework-selector wizard —
+        answer four questions (autonomous loop vs explicit graph, provider-agnostic vs OpenAI-first, enterprise
+        state/type-safety needs, ecosystem-maturity appetite) and get a ranked recommendation across the four frameworks
+        with the reasoning shown for each axis. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">The FDE move</div>
+        <h2>The best framework is sometimes no framework</h2>
+        <p>Before any of this framework comparison matters, ask the question every one of these vendors quietly agrees
+        on. Microsoft says it out loud — <strong>"if you can write a function to handle the task, do that instead of
+        using an AI agent"</strong> — and it's the most valuable sentence in the whole landscape. An agent framework buys
+        you an autonomous, tool-calling, sometimes-multi-agent loop; that loop is worth it exactly when the path isn't
+        knowable in advance. When the path <em>is</em> knowable, an agent is slower, costlier, and less predictable than
+        the function you could have written. The first FDE instinct is not "which framework," it's <strong>"does this
+        task even need an agent?"</strong></p>
+        <p>When the answer is yes, the axes from the last step turn a religious debate into an engineering decision.
+        There's no universal winner: LangChain/LangGraph gives you a fast loop over a battle-tested durable runtime; the
+        OpenAI Agents SDK gives you five clean primitives and handoffs-as-tool-calls with tracing built in; CrewAI gives
+        you an independent Crews-plus-Flows engine that pairs autonomy with determinism; the Microsoft Agent Framework
+        gives you the unified AutoGen-plus-Semantic-Kernel enterprise story with graph Workflows. Match the client's
+        control model, lock-in tolerance, and enterprise needs to the framework whose bets fit — and be ready to justify
+        the pick on those axes, not on which name you've heard most.</p>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When a client asks "which agent framework should we standardize on?", don't answer with a favorite. Answer
+          with three questions: <strong>Does this task even need an agent, or would a function do? Do we want an
+          autonomous loop or an explicit graph? And how much does provider-agnosticism and enterprise state actually
+          matter here?</strong> And keep your facts current — it's LangChain/LangGraph <em>1.0</em>, the OpenAI Agents
+          SDK (not Swarm), CrewAI's Crews <em>and</em> Flows, and the Microsoft Agent Framework that <em>merged</em>
+          AutoGen and Semantic Kernel. Getting the map right is half of getting the choice right.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://www.langchain.com/blog/langchain-langgraph-1dot0" target="_blank" rel="noopener">LangChain — LangChain and LangGraph reach v1.0</a> — the 2025-10-22 release, the <code>create_agent</code> loop, middleware hooks, standard content blocks, and the LangChain-on-LangGraph durable runtime layering.</li>
+          <li><a href="https://openai.github.io/openai-agents-python/" target="_blank" rel="noopener">OpenAI Agents SDK — official docs</a> — the Swarm successor framing, the primitives (agents / handoffs / guardrails / sessions / tracing), and the LiteLLM / Any-LLM multi-provider extension points.</li>
+          <li><a href="https://openai.github.io/openai-agents-python/handoffs/" target="_blank" rel="noopener">OpenAI Agents SDK — Handoffs</a> — how a handoff to "Refund Agent" surfaces to the model as the <code>transfer_to_refund_agent</code> tool.</li>
+          <li><a href="https://github.com/crewAIInc/crewAI/blob/main/README.md" target="_blank" rel="noopener">crewAI — README</a> — Crews (autonomous, role-based) vs Flows (event-driven, deterministic), and "the true power of CrewAI emerges when combining Crews and Flows."</li>
+          <li><a href="https://docs.crewai.com/en/concepts/flows" target="_blank" rel="noopener">CrewAI — Flows</a> — <code>@start()</code>/<code>@listen()</code> methods, <code>or_</code>/<code>and_</code> operators, router branching, and unstructured vs Pydantic state.</li>
+          <li><a href="https://pypi.org/project/crewai/" target="_blank" rel="noopener">crewai — PyPI</a> — version 1.15.1 (2026-06-27), "built entirely from scratch — completely independent of LangChain," Python <code>&gt;=3.10,&lt;3.14</code>.</li>
+          <li><a href="https://learn.microsoft.com/en-us/agent-framework/overview/" target="_blank" rel="noopener">Microsoft Agent Framework — Overview</a> — the successor to both AutoGen and Semantic Kernel, the Agents vs graph-based Workflows split, and "if you can write a function to handle the task, do that instead of using an AI agent."</li>
+          <li><a href="https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen/" target="_blank" rel="noopener">Microsoft — AutoGen to Agent Framework migration guide</a> — confirms AutoGen is now a legacy/migration source, not the recommended target for new work.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Version cheat-sheet &amp; the stale-advice traps</div>
+          <div class="ac-meta">optional · +8 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on the framework landscape</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 3 Day 3</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: version cheat-sheet &amp; the stale-advice traps</h2>
+    <p class="quiz-sub">Optional. ~8 minutes. The dates and names that mark you as current — or a year behind.</p>
+    <p><strong>Why this matters.</strong> Models (and engineers) trained before 2026 describe this space with two
+    confident errors: they treat AutoGen and Semantic Kernel as two separate live Microsoft frameworks, and they treat
+    LangChain as a pre-1.0 "chains" library. Both are wrong now. Memorize the corrections below and you'll never seed a
+    client conversation from stale memory.</p>
+    <div class="model-answer show">
+      <div class="ma-k">The 2026 version board (verified 2026-07)</div>
+      <ul class="deliv-list">
+        <li><b>LangChain 1.0 + LangGraph 1.0</b> — both GA <b>2025-10-22</b>; <code>create_agent</code> loop + middleware + standard content blocks, layered on the LangGraph durable runtime.</li>
+        <li><b>OpenAI Agents SDK</b> — the production successor to the experimental <b>Swarm</b>; primitives = agents / handoffs / guardrails / sessions / tracing; multi-provider via LiteLLM &amp; Any-LLM.</li>
+        <li><b>CrewAI 1.15.1</b> — released <b>2026-06-27</b>; standalone (independent of LangChain); dual model of autonomous Crews + deterministic Flows; Python <code>&gt;=3.10,&lt;3.14</code>.</li>
+        <li><b>Microsoft Agent Framework 1.0</b> — GA <b>2026-04-03</b>; the <b>merge</b> of AutoGen + Semantic Kernel; Agents + graph-based Workflows; AutoGen is now legacy/migration-only.</li>
+      </ul>
+    </div>
+    <p style="margin-top:14px"><strong>The two traps, stated as corrections.</strong> (1) "Use AutoGen or Semantic
+    Kernel" → both were unified into the <b>Microsoft Agent Framework</b> (GA 2026-04-03); there's an official AutoGen
+    migration guide, so AutoGen is a source, not a target. (2) "LangChain is a pre-1.0 chains library" → LangChain and
+    LangGraph shipped stable <b>1.0 on 2025-10-22</b>, re-centered on the agent loop. Say the current version out loud
+    and you've already out-classed the room.</p>
+    <p style="margin-top:14px"><strong>The pattern under the names.</strong> Every framework offers both an autonomous
+    loop and an explicit graph/workflow — LangChain→LangGraph, CrewAI Crews→Flows, MS Agents→Workflows. The portable
+    rule: <b>loop when you don't know the path, graph when you do</b> — and, per Microsoft, write a plain function when
+    you don't need an agent at all.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 3 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Name the four 2026 agent frameworks and state what each one actually is, with correct current versions</li>
+      <li>Explain LangChain's <code>create_agent</code>-over-LangGraph layering and the OpenAI SDK's five primitives</li>
+      <li>Describe handoffs as tool calls, CrewAI's Crews-vs-Flows split, and why AutoGen + Semantic Kernel are now one framework</li>
+      <li>Pick a framework for a given client by scoring control model, provider lock-in, and enterprise/state needs — and ask first whether an agent is even needed</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add to your <code>NOTES.md</code></li>
+      <li><b>①</b> for a task in your domain, whether it needs an agent at all — and why</li>
+      <li><b>②</b> which of the four frameworks you'd pick for it, scored on control model + lock-in + enterprise needs</li>
+      <li><b>③</b> one stale-advice trap (AutoGen/SK as separate, or LangChain as pre-1.0) and the current correction</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 4, where we go deeper on building with the framework you chose. This keeps
+    growing the engineering journal you started in Week 1.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 4 — next in Week 3 →", href: "w03d4.html" };
+window.DIAGRAM = {
+  title: "The 2026 agent framework landscape",
+  width: 500, height: 700,
+  nodes: [
+    // the decision (dark payload card)
+    { id:"task", step:0, kind:"example", x:14, y:14, w:472, h:60,
+      label:"DECISION  \"which agent framework do we standardize on?\"\n  2026 board: 4 live options · none dominates · pick on axes" },
+
+    // the shared heart
+    { id:"loop", step:0, x:150, y:88, w:200, h:56, label:"THE AGENT LOOP\nmodel → tool calls → repeat",
+      detail:"Every framework wraps the same loop: send the request to the model, handle its tool calls or return the final answer, repeat. What differs is everything around it — how you define agents, delegate, persist state, and how much explicit control you get." },
+
+    // framework 1
+    { id:"lc", step:1, x:14, y:164, w:228, h:78, label:"LangChain / LangGraph 1.0\ncreate_agent + middleware\n→ durable graph runtime",
+      detail:"Both GA 2025-10-22. LangChain's create_agent runs the loop 'with any provider'; middleware adds hooks (human-in-the-loop, summarization); standard content blocks let you swap models. Built ON LangGraph — drop to the durable runtime (persistence, resumable, HITL) for explicit control." },
+
+    // framework 2
+    { id:"oai", step:2, x:258, y:164, w:228, h:78, label:"OpenAI Agents SDK\nagents · handoffs · guardrails\nsessions · tracing",
+      detail:"Production successor to the experimental Swarm. Five primitives you compose. Defaults to the OpenAI Responses API but is NOT OpenAI-only — reaches other providers via LiteLLM and Any-LLM adapters." },
+
+    // handoffs detail
+    { id:"handoff", step:3, x:300, y:258, w:186, h:52, label:"handoff =\ntransfer_to_refund_agent",
+      detail:"A handoff is a tool exposed to the LLM: delegating to 'Refund Agent' surfaces as a tool named transfer_to_refund_agent. Routing/delegation is just the model choosing a tool — no separate router." },
+
+    // framework 3
+    { id:"crew", step:4, x:14, y:258, w:228, h:88, label:"CrewAI 1.15.1  (standalone)\nCrews: autonomous, role-based\nFlows: @start/@listen, deterministic",
+      detail:"Independent of LangChain, 'built from scratch' (PyPI 1.15.1, 2026-06-27). Crews = role/goal/backstory autonomy; Flows = event-driven @start()/@listen() with routers + Pydantic state. 'True power emerges when combining Crews and Flows.'" },
+
+    // framework 4
+    { id:"ms", step:5, x:14, y:362, w:472, h:60, label:"Microsoft Agent Framework 1.0  (GA 2026-04-03)  =  AutoGen ⊕ Semantic Kernel\nAgents (LLM+tools+MCP)  ·  graph Workflows (type-safe, checkpointed, HITL)",
+      detail:"Direct successor to BOTH AutoGen and Semantic Kernel, merged by the same teams: AutoGen's agent abstractions + Semantic Kernel's enterprise features (session state, type safety, filters, telemetry) + graph Workflows. AutoGen is now legacy — there's an official migration guide." },
+
+    // decision axes
+    { id:"axes", step:6, x:40, y:440, w:420, h:74, label:"DECISION AXES\ncontrol model (loop ↔ graph)  ·  provider lock-in\nenterprise/state features  ·  ecosystem maturity",
+      detail:"Score the client, don't crown a winner. Every framework offers BOTH a loop and an explicit graph — 'loop when you don't know the path, graph when you do.' Lock-in: OpenAI-first (but LiteLLM/Any-LLM) vs provider-agnostic vs standalone. Plus durable state, type safety, telemetry, and maturity." },
+
+    // the function test
+    { id:"func", step:7, x:40, y:534, w:420, h:56, label:"…first ask: does this even NEED an agent?\n'write a function to handle it → do that instead'",
+      detail:"Microsoft's own guidance: if you can write a function to handle the task, do that instead of using an AI agent. Agents earn their cost only when the path isn't knowable in advance. The first FDE question is 'agent or function?', not 'which framework?'." }
+  ],
+  edges: [
+    { id:"e_ll",  step:1, from:"loop", to:"lc",   label:"loop+runtime", lx:-6 },
+    { id:"e_lo",  step:2, from:"loop", to:"oai",  label:"5 primitives", lx:6 },
+    { id:"e_oh",  step:3, from:"oai",  to:"handoff", label:"delegate", ly:-2 },
+    { id:"e_lc",  step:4, from:"loop", to:"crew", label:"crews+flows", bend:-24 },
+    { id:"e_ca",  step:6, from:"crew", to:"axes" },
+    { id:"e_ma",  step:6, from:"ms",   to:"axes", label:"score", ly:-2 },
+    { id:"e_af",  step:7, from:"axes", to:"func", label:"or none", ly:-2 }
+  ],
+  captions: [
+    "One <b>decision</b>: which agent framework? All four wrap the same <b>agent loop</b> — model → tool calls → repeat. The differences live around it. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "<b>LangChain / LangGraph 1.0</b> (GA 2025-10-22): a fast <code>create_agent</code> loop with middleware, layered on a <b>durable graph runtime</b> you drop into for control. <span style='opacity:.7'>(tap)</span>",
+    "<b>OpenAI Agents SDK</b>: five primitives (agents, handoffs, guardrails, sessions, tracing), the production heir to <b>Swarm</b> — and not OpenAI-only. <span style='opacity:.7'>(tap)</span>",
+    "A <b>handoff</b> is just a tool call — delegating to 'Refund Agent' shows up as <code>transfer_to_refund_agent</code>. Routing = the model choosing a tool. <span style='opacity:.7'>(tap)</span>",
+    "<b>CrewAI</b> (standalone): autonomous <b>Crews</b> for judgement + deterministic <b>Flows</b> for guarantees — combine them. <span style='opacity:.7'>(tap)</span>",
+    "<b>Microsoft Agent Framework</b> = <b>AutoGen + Semantic Kernel merged</b> (GA 2026-04-03): Agents beside graph Workflows. AutoGen is now legacy. <span style='opacity:.7'>(tap)</span>",
+    "Don't crown a winner — <b>score the axes</b>: control model, lock-in, enterprise state, maturity. Every framework offers both a loop and a graph. <span style='opacity:.7'>(tap)</span>",
+    "First, though: <b>does it even need an agent?</b> 'If you can write a function to handle the task, do that instead.' <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w03-d3",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A teammate says 'for the new Microsoft build let's use AutoGen for the agents and Semantic Kernel for the enterprise bits.' What's the current, correct guidance?",
+      options: [
+        "That's right — they're two separate Microsoft frameworks you combine",
+        "Use AutoGen only; Semantic Kernel was discontinued",
+        "Both were unified into the Microsoft Agent Framework (GA 2026-04-03); build new work on the merged SDK and migrate AutoGen",
+        "Neither is a Microsoft project" ],
+      answer: 2,
+      explain: "As of 2026-04-03 the Microsoft Agent Framework is the direct successor to BOTH AutoGen and Semantic Kernel — merged into one SDK (AutoGen's agent abstractions + Semantic Kernel's enterprise features + graph Workflows). Microsoft ships an official AutoGen migration guide, so AutoGen is a legacy/migration source, not a target for new work." },
+    { type: "scq",
+      stem: "In the OpenAI Agents SDK, how is a handoff from a triage agent to a 'Refund Agent' actually implemented?",
+      options: [
+        "A separate router model decides who handles the request",
+        "As a tool exposed to the LLM named transfer_to_refund_agent — the model routes by choosing that tool",
+        "By restarting the conversation with a new system prompt",
+        "Through a hard-coded if/else rules engine" ],
+      answer: 1,
+      explain: "Handoffs are implemented as tools: a handoff to 'Refund Agent' surfaces as a tool named transfer_to_refund_agent, so delegation/routing is just the orchestrating model choosing a tool — the same mechanism as any other tool call." },
+    { type: "tf",
+      stem: "The OpenAI Agents SDK can only drive OpenAI models.",
+      answer: false,
+      explain: "False. It defaults to the OpenAI Responses API, but it is not OpenAI-only — it ships extension points for other providers via LiteLLM and Any-LLM adapters, so it can drive non-OpenAI models." },
+    { type: "mcq",
+      stem: "Which statements about the 2026 framework landscape are correct? (select all that apply)",
+      options: [
+        "LangChain and LangGraph both reached stable 1.0 on 2025-10-22, re-centered on the agent loop",
+        "CrewAI is a standalone framework, independent of LangChain, with a dual Crews + Flows model",
+        "LangChain agents are built on the LangGraph durable runtime, so the two are layered rather than competing",
+        "CrewAI is a thin wrapper built on top of LangChain",
+        "AutoGen is the recommended target for new Microsoft agent projects" ],
+      answer: [0, 1, 2],
+      explain: "LangChain/LangGraph 1.0 shipped together on 2025-10-22 with create_agent; LangChain is layered on LangGraph's durable runtime; CrewAI is 'built entirely from scratch — completely independent of LangChain' with Crews (autonomous) + Flows (deterministic). CrewAI is NOT a LangChain wrapper, and AutoGen is legacy/migration-only, not the target for new work." },
+    { type: "match",
+      stem: "Match each framework/primitive to what it is.",
+      pairs: [
+        { l: "LangChain create_agent", r: "high-level agent loop, layered on the LangGraph durable runtime" },
+        { l: "OpenAI Agents SDK handoff", r: "delegation implemented as a tool the LLM chooses" },
+        { l: "CrewAI Flows", r: "event-driven @start/@listen pipeline with deterministic control" },
+        { l: "Microsoft Agent Framework Workflows", r: "graph-based, type-safe routing with checkpointing and HITL" } ],
+      explain: "create_agent is LangChain's loop over LangGraph's durable runtime; an OpenAI SDK handoff is a tool call (transfer_to_...); CrewAI Flows are deterministic event-driven pipelines (Crews are the autonomous half); Microsoft Workflows are graph-based type-safe orchestration for well-defined multi-step processes." },
+    { type: "open",
+      stem: "In one or two sentences: a client asks 'which agent framework should we standardize on?' What should your FIRST response be, and what axes do you use to actually choose?",
+      hint: "There's a question that comes before 'which framework' — and choosing is a scorecard, not a favorite.",
+      model: "First ask whether the task even needs an agent — Microsoft's own guidance is 'if you can write a function to handle the task, do that instead of using an AI agent,' since agents only earn their cost when the path isn't knowable in advance. If it genuinely needs one, choose by scoring the client on decision axes — control model (autonomous loop vs explicit graph), provider lock-in (OpenAI-first-but-LiteLLM vs provider-agnostic vs standalone), enterprise/state features, and ecosystem maturity — rather than picking a favorite." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>
