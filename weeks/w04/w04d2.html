@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w04d2">
+<meta name="fde-concepts" content="stategraph-state-reducers,checkpointing,checkpointer-backends,durability-modes,human-in-loop,time-travel-fork">
+<title>W4·D2 — LangGraph State, Persistence &amp; Checkpointers | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Durable Agents: State, Checkpointers &amp; the Art of Not Losing Your Place</h1>
+        <div class="meta">
+          <span><b>Week 4</b> · Day 2</span>
+          <span>Foundation AI Engineering</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Yesterday you built your first LangGraph. Today you make it <strong>survivable</strong>. A real
+        agent run at a client crosses process restarts, waits hours for a human approval, and occasionally crashes halfway
+        through a five-step workflow — and the difference between a demo and a production system is whether the run can
+        <em>pick up where it left off</em>. That's what LangGraph's persistence layer buys you: a <strong>checkpointer</strong>
+        snapshots graph state at every step, a <strong>thread</strong> gives the run a durable identity, and
+        <strong>interrupt/resume</strong> turns "pause for a human" from a hack into a first-class control-flow primitive.
+        Scroll the reading; the panel on the right follows one refund-approval agent from state schema to crash, resume,
+        and time-travel fork.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">Foundation</div>
+        <h2>A StateGraph is a schema plus functions</h2>
+        <p>Strip LangGraph down to its skeleton and there are only two ideas. First, a <strong>state schema</strong>: you
+        declare the shape of your agent's working memory as a <code>TypedDict</code>, a Pydantic <code>BaseModel</code>, or
+        a dataclass — say <code>{messages, order_id, approved}</code> for a refund agent. That schema becomes the input to
+        <em>every</em> node and edge in the graph. Second, <strong>nodes are plain functions</strong>. Each one receives the
+        current state and returns a <em>partial</em> state update — just the keys it changed, not the whole object. The
+        docs put it bluntly: nodes and edges "are nothing more than functions — they can contain an LLM or just good ol'
+        code."</p>
+        <p>That second point deserves a beat, because it's where beginners overcomplicate. A node that calls a model and a
+        node that runs a SQL query are the same species: <em>state in, partial update out</em>. There is no magic "agent
+        object" holding things together — the state object flowing through the graph <strong>is</strong> the agent's
+        memory, and everything the run knows lives in it. If a fact isn't written into state, it doesn't survive to the
+        next node. Sound familiar? It's Week 1's context-window discipline wearing a graph costume: you decide, explicitly,
+        what the system carries forward.</p>
+        <p>Why does this matter for durability, today's actual topic? Because <strong>you can only persist what you can
+        serialize</strong>. A pile of closures and hidden instance variables can't be snapshotted; a declared, typed state
+        object can. LangGraph's entire persistence story — checkpoints, resume-after-crash, human-in-the-loop, time
+        travel — rests on the fact that at any moment, the whole run is representable as one state value plus a position
+        in the graph. Design the schema first, and everything else today falls out of it.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Merging updates</div>
+        <h2>Reducers decide how updates land</h2>
+        <p>If every node returns a partial update, something has to decide how those updates <em>merge</em> into state.
+        That something is a <strong>reducer</strong>, and every key in your schema has its own. The default is brutal and
+        simple: <strong>overwrite</strong>. Node returns <code>{messages: [x]}</code>, and whatever was in
+        <code>messages</code> is gone, replaced by a one-element list. This is the classic first-day LangGraph bug — "my
+        conversation keeps resetting to the last message" — and it's not a framework glitch, it's the default reducer doing
+        exactly what it says.</p>
+        <p>The fix is to attach a custom reducer with an <code>Annotated</code> type hint:
+        <code>Annotated[list, operator.add]</code> makes updates <em>append</em> instead of replace. For chat history
+        specifically, the prebuilt <code>add_messages</code> reducer goes further — it merges by message ID, so re-sending
+        a message with the same ID <em>updates</em> it in place rather than duplicating it, and it handles deserialization
+        for you. One schema, per-key merge policies: overwrite for a status flag, append for a log, ID-merge for messages.</p>
+        <p>Around the state flow sits control flow: <strong>normal edges</strong> route unconditionally from node to node;
+        <strong>conditional edges</strong> call a routing function that returns the next node's name; <code>START</code>
+        and <code>END</code> are the virtual entry and exit. Two power tools you'll meet again this week:
+        <code>Command</code> lets a node bundle a state update <em>with</em> a routing decision, and <code>Send</code>
+        fans work out dynamically to multiple targets, each with its own state. And one hard rule from the docs:
+        <strong>"You MUST compile your graph before you can use it."</strong> <code>.compile()</code> validates the
+        structure — and, crucially for today, it's where you plug in the checkpointer.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Persistence</div>
+        <h2>Checkpoints: a save file for every step</h2>
+        <p>Here's the move that turns a graph into a durable system. Compile with a <strong>checkpointer</strong>, and
+        LangGraph saves a <strong>checkpoint</strong> — a snapshot of graph state — as the run proceeds, step by step.
+        Those checkpoints are grouped under a <strong>thread</strong>: you pass a <code>thread_id</code> in the config when
+        you invoke the graph, and every checkpoint from that run files under it. The docs call this
+        <strong>"short-term, thread-scoped memory,"</strong> and the framing is exact: a thread is one conversation, one
+        task, one workflow instance — and its checkpoints are that instance's complete save history.</p>
+        <p>Think of it as the save system in a video game. The <code>thread_id</code> is the save slot; each checkpoint is
+        an autosave at the end of a step. Process dies at step three of five? Re-invoke with the same
+        <code>thread_id</code> and the run continues from the last checkpoint instead of starting over. Same mechanism, one
+        id per customer, and yesterday's stateless chatbot becomes a continuous conversation across requests, restarts,
+        and deploys. This single feature is what unlocks everything else today: conversation continuity,
+        human-in-the-loop pauses, time travel, and fault tolerance are all downstream of "the state is snapshotted
+        somewhere durable."</p>
+        <p>One distinction to file now, because clients confuse it constantly: checkpointing is <em>not</em> long-term
+        memory. A checkpointer remembers <em>this thread</em>. For knowledge that must span threads — user preferences,
+        facts learned across many conversations — LangGraph has a separate concept, the <strong>Store</strong>, holding
+        application-defined key-value data <em>across</em> threads. Checkpointer = the run's save file; Store = the
+        agent's notebook. Today is entirely about the save file.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a crash-and-resume lab — start a
+        five-node refund graph with a real <code>thread_id</code>, kill the process at step 3 with a big red button, then
+        re-invoke the same thread and watch it resume from the last checkpoint (and watch a fresh <code>thread_id</code>
+        start from nothing, for contrast). Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Backends</div>
+        <h2>Where checkpoints actually live</h2>
+        <p>A checkpointer is an interface, not a database — the contract is <code>BaseCheckpointSaver</code>, and it's
+        small: <code>put</code> stores a checkpoint, <code>put_writes</code> stores pending writes, <code>get_tuple</code>
+        fetches one, <code>list</code> enumerates a thread's history, <code>delete_thread</code> drops it, and each has an
+        <code>a</code>-prefixed async variant. Anything that implements those methods can be your persistence layer, which
+        is why the backends ship as <strong>separate packages</strong> you choose per deployment.</p>
+        <p>Three tiers, and the tier names are the deployment advice. <strong><code>InMemorySaver</code></strong> (from
+        <code>langgraph-checkpoint</code>) keeps checkpoints in process memory — perfect for dev and tests, and gone the
+        moment the process restarts, which means it silently defeats the entire point in production.
+        <strong><code>SqliteSaver</code> / <code>AsyncSqliteSaver</code></strong> (<code>langgraph-checkpoint-sqlite</code>)
+        persist to a local file — fine for demos and single-machine experiments, explicitly not production.
+        <strong><code>PostgresSaver</code> / <code>AsyncPostgresSaver</code></strong>
+        (<code>langgraph-checkpoint-postgres</code>) is the production tier: durable and shared across app
+        instances. Under the hood, checkpoints are serialized with
+        <code>JsonPlusSerializer</code> (ormsgpack with a JSON fallback), and if your state carries anything sensitive you
+        can wrap it in <code>EncryptedSerializer</code> for encryption at rest — remember, a checkpoint is a full copy of
+        agent state, PII and all, sitting in a database.</p>
+        <p>The FDE reflex here is a one-line code review: <strong>find the checkpointer, check the tier.</strong> "Our
+        agent forgets everything when we redeploy" is almost never a LangGraph bug — it's an <code>InMemorySaver</code>
+        that followed the tutorial into production. The fix is a two-line swap to Postgres, and you'll look like a wizard
+        for spotting it.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Tuning</div>
+        <h2>Durability modes: when the write happens</h2>
+        <p>Having <em>a</em> checkpointer settles where snapshots go; <strong>durability mode</strong> settles
+        <em>when</em> they're written relative to execution — and it's a genuine engineering trade-off, tunable per call:
+        <code>graph.stream(input, config, durability="sync")</code>. Three settings.</p>
+        <p><strong><code>"sync"</code></strong> — changes are persisted synchronously <em>before the next step starts</em>.
+        Most durable, slowest: every step waits for the database write to land, so a crash can never lose a completed
+        step. <strong><code>"async"</code></strong> — changes are persisted <em>while the next step executes</em>. The
+        write and the work overlap, so you get most of the durability at much less latency cost — with a small crash
+        window where a step finished but its checkpoint hadn't landed yet. <strong><code>"exit"</code></strong> — changes
+        are persisted <em>only when the graph exits</em>. Fastest, and if the process dies mid-run there is nothing to
+        resume from; you've opted out of mid-run crash recovery entirely.</p>
+        <p>Notice the shape of this decision — you've made it before. It's the same durability-versus-throughput dial as
+        database write concerns or <code>fsync</code> policy, applied to agent state. And the right answer is
+        workload-shaped, which is why it's per-invocation: a money-touching approval workflow wants <code>"sync"</code>,
+        a chat assistant is happy with <code>"async"</code>, and a bulk overnight batch job that can simply be re-run from
+        the top might choose <code>"exit"</code> and take the speed. When a client asks "why is the agent slow?" <em>and</em>
+        "what happens if it crashes?", know that those two questions share one knob — and you should be able to say which
+        setting they're on and why.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Human-in-the-loop</div>
+        <h2>interrupt(): pausing is just a checkpoint</h2>
+        <p>Now the payoff feature — the one clients ask for by name. "The agent can draft the refund, but a human must
+        approve it before it executes." In a stateless world that's an architectural headache: you'd have to tear the
+        workflow in half, stash intermediate results somewhere, and rebuild everything when the human answers. With
+        checkpointing, it's one function call. Inside a node, call <strong><code>interrupt(payload)</code></strong>: the
+        graph <em>stops</em>, the current state is saved through the checkpointer, and your payload — "Approve this $840
+        refund?" — is surfaced to the caller. Under the hood, <code>interrupt()</code> works by <strong>raising a special
+        exception</strong> that the LangGraph runtime catches; it's control flow, not an error.</p>
+        <p>This is why the docs are blunt that <strong>a checkpointer is mandatory for interrupts</strong> — "state is
+        saved using the checkpointer so execution can be resumed later." A pause with nowhere to save is just a crash with
+        good manners. The paused thread now sits in the database, costing nothing, for seconds or for a week — however
+        long the human takes.</p>
+        <p>Resuming is the mirror image: re-invoke the graph with <strong><code>Command(resume=value)</code></strong> on
+        the <strong>same <code>thread_id</code></strong>, and the value you pass becomes the return value of the
+        <code>interrupt()</code> call inside the node — the human's "approved" flows into the code exactly where the
+        question was asked. The thread id is, in the docs' phrase, <strong>your persistent cursor</strong>: same id, same
+        paused run; new id, fresh thread with empty state — and a support ticket asking why the agent "forgot" the
+        approval. One more contract note: <code>Command(resume=...)</code> is the <em>only</em> <code>Command</code>
+        pattern meant as input to <code>invoke()</code>/<code>stream()</code>; the rest live inside nodes.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: an approval-gate console — the
+        refund agent hits <code>interrupt()</code> and its payload appears as a real approve/reject card; click approve and
+        watch <code>Command(resume=True)</code> re-enter the node, or reject and watch the conditional edge route to a
+        revision loop. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Sharp edges</div>
+        <h2>Resume re-runs the node from the top</h2>
+        <p>Here is the sharpest edge in today's material, and it's exactly the kind of thing that separates "read the
+        quickstart" from "ready for a client." When a thread resumes, the runtime <strong>restarts the entire node from
+        the beginning</strong> — it does <em>not</em> continue from the exact line where <code>interrupt()</code> was
+        called. Everything in the node <em>before</em> the interrupt runs again. Picture the node that charges a card and
+        then asks for approval: <code>charge_card(); interrupt("confirm?")</code>. On resume, <code>charge_card()</code>
+        fires a second time. That's not a hypothetical — it's the canonical double-side-effect bug.</p>
+        <p>The docs draw three rules straight from this semantics. <strong>One:</strong> code before an
+        <code>interrupt()</code> must be <strong>idempotent</strong> — safe to run twice — or moved into its own node
+        <em>before</em> the interrupting one, so the checkpoint boundary protects it. <strong>Two:</strong> never wrap
+        <code>interrupt()</code> in a bare <code>try/except</code> — remember, it's implemented as an exception, and a
+        catch-all will swallow the pause signal and break the mechanism silently. <strong>Three:</strong> if one node
+        contains multiple interrupts, resume values are matched to them <strong>strictly by index</strong> — first resume
+        answers the first interrupt, and so on — so their order must stay consistent across executions; conditionally
+        skipping one shifts every answer onto the wrong question.</p>
+        <p>With the semantics respected, a small set of HITL patterns covers most client asks: <strong>approval
+        workflows</strong> (pause before the sensitive action, route on approve/reject), <strong>state review &amp;
+        editing</strong> (show the human the draft, let them correct it), <strong>tool-call review</strong> (inspect and
+        fix an agent's proposed tool call before it executes — Week 3's consent gate, now durable), and <strong>input
+        validation</strong>. For that last one the docs give structural advice worth quoting into your notes: build
+        validation <em>loops</em> with conditional edges between nodes, not with a <code>while</code> loop wrapped around
+        an interrupt inside one node.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Time travel</div>
+        <h2>Replay and fork: the history is a data structure</h2>
+        <p>Because every step is checkpointed, a finished (or failed) run isn't a log line — it's a <strong>navigable
+        history</strong>. <code>get_state_history(config)</code> returns the thread's checkpoints, newest first, and each
+        one carries a <code>checkpoint_id</code> in its config. Invoke the graph with a prior checkpoint's config and you
+        <strong>replay</strong> from that point: nodes <em>before</em> the checkpoint aren't re-run — their results come
+        straight from the snapshot — while nodes <em>after</em> it execute again for real. And the docs flag the trap in
+        that sentence: <strong>"replay re-executes nodes — it doesn't just read from cache."</strong> LLM calls, API
+        requests, and interrupts genuinely fire again and may return different results. Replaying is rewinding a live
+        system, not scrubbing a recording.</p>
+        <p>The second tool is the fork. <code>update_state</code> doesn't edit history in place — it <strong>creates a new
+        checkpoint that branches from the point you specify, leaving the original history intact</strong>. Then
+        <code>invoke(None, config)</code> continues execution from the fork with your modified state. The
+        <code>as_node</code> parameter attributes your edit to a specific node's writes, so the graph resumes from that
+        node's successors — which also makes it a scalpel for skipping a node or disambiguating parallel branches.
+        Debugging workflow, made concrete: customer reports the agent approved the wrong refund → pull the thread's
+        history → find the checkpoint where retrieval returned the wrong order → fork there with the corrected state →
+        re-run the tail and confirm the fix — all without touching the customer's real thread.</p>
+        <p>Three production footnotes from the docs before you leave: checkpoints <strong>accumulate</strong> over long
+        threads (latency and storage — prune), keep <code>thread_id</code> under 255 characters (a Postgres column limit),
+        and subgraphs checkpoint under their <em>own namespace</em>, so a parent graph doesn't immediately see child state
+        updates. Small print now; incident reports later.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a time-travel explorer — scrub
+        through a real thread's checkpoint history on a timeline, pick a <code>checkpoint_id</code> to replay (and watch
+        the re-executed LLM step come back <em>different</em>), then <code>update_state</code> a fork and see both
+        branches side by side. Needs backend standup.</p></div>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>Clients don't buy "an agent" — they buy a workflow they can trust with money, and trust means
+          <strong>survivability</strong>: survives a crash, waits for a human, and can be rewound when something goes
+          wrong. All three are the same primitive — <em>state, snapshotted at every step under a durable id</em>. When you
+          evaluate any agent framework or any client's homegrown orchestrator, ask the checkpoint questions first: where
+          does state live, when is it written, and can I resume a thread? Tomorrow we put this to work on multi-agent
+          patterns — where the graph gets teammates.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://docs.langchain.com/oss/python/langgraph/graph-api" target="_blank" rel="noopener">LangChain Docs — Graph API</a> — state schemas, reducers, <code>add_messages</code>, edges, <code>Command</code>/<code>Send</code>, and the compile step.</li>
+          <li><a href="https://docs.langchain.com/oss/python/langgraph/persistence" target="_blank" rel="noopener">LangChain Docs — Persistence</a> — checkpoints, threads, Stores vs checkpointers, and the practical limits (pruning, thread-id length, subgraph namespaces).</li>
+          <li><a href="https://docs.langchain.com/oss/python/langgraph/interrupts" target="_blank" rel="noopener">LangChain Docs — Interrupts</a> — <code>interrupt()</code> / <code>Command(resume=...)</code>, node-restart semantics, idempotency rules, and the four HITL patterns.</li>
+          <li><a href="https://docs.langchain.com/oss/python/langgraph/use-time-travel" target="_blank" rel="noopener">LangChain Docs — Use time travel</a> — <code>get_state_history</code>, replay semantics, and forking with <code>update_state</code> / <code>as_node</code>.</li>
+          <li><a href="https://reference.langchain.com/python/langgraph/checkpoints" target="_blank" rel="noopener">LangChain Reference — Checkpoints</a> — the <code>BaseCheckpointSaver</code> contract, backend packages, and serializers (<code>JsonPlusSerializer</code>, <code>EncryptedSerializer</code>).</li>
+          <li><a href="https://reference.langchain.com/python/langgraph/types/Durability" target="_blank" rel="noopener">LangChain Reference — Durability</a> — the <code>sync</code> / <code>async</code> / <code>exit</code> modes, verbatim.</li>
+          <li><a href="https://pypi.org/project/langgraph/" target="_blank" rel="noopener">langgraph — PyPI</a> — v1.2.7 (2026-06-30), Python ≥3.10; durable execution and HITL as headline capabilities.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">The checkpointer contract, serialization &amp; production limits</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on durable agent state</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 4 Day 2</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the checkpointer contract, serialization &amp; production limits</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. What's under the <code>compile(checkpointer=...)</code> line.</p>
+    <p><strong>The contract is tiny.</strong> <code>BaseCheckpointSaver</code> asks for five operations —
+    <code>put</code> (store a checkpoint), <code>put_writes</code> (store pending writes), <code>get_tuple</code> (fetch),
+    <code>list</code> (enumerate a thread's checkpoints), <code>delete_thread</code> (drop one) — plus
+    <code>a</code>-prefixed async variants. That's the whole persistence interface; SQLite, Postgres, and in-memory are
+    just different homes for the same five verbs, which is also why backends ship as separate packages
+    (<code>langgraph-checkpoint</code>, <code>-sqlite</code>, <code>-postgres</code>) you swap without touching graph code.</p>
+    <p><strong>Serialization is a security surface.</strong> Checkpoints are serialized with
+    <code>JsonPlusSerializer</code> — ormsgpack with a JSON fallback. A checkpoint is a <em>complete copy of agent
+    state</em>: messages, retrieved documents, customer data. If that includes PII, the checkpoint table is now a PII
+    store, with all the compliance consequences. <code>EncryptedSerializer</code> wraps the serializer for encryption at
+    rest — cheap to add on day one, painful to retrofit after the audit.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked choice — durability mode per workload</div>
+      <ul class="deliv-list">
+        <li><b>Refund-approval agent (moves money):</b> <code>durability="sync"</code> — every completed step is on disk before the next starts; a crash can never replay or lose a committed step.</li>
+        <li><b>Support chat assistant:</b> <code>"async"</code> — write overlaps the next step; worst case a small crash window re-runs one step of conversation.</li>
+        <li><b>Overnight bulk classifier, safely re-runnable from the top:</b> <code>"exit"</code> — no mid-run recovery, maximum throughput, and that's an acceptable trade because a re-run is free.</li>
+      </ul>
+      <p style="margin:8px 0 0">The knob is per-invocation (<code>graph.stream(input, config, durability=...)</code>), so
+      one deployed graph can serve all three postures.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Production small print</strong> (all from the persistence docs): checkpoints
+    <em>accumulate</em> per thread — long conversations mean growing storage and slower loads, so prune; keep
+    <code>thread_id</code> under 255 characters (Postgres column limit); and <strong>subgraphs checkpoint under their own
+    namespace</strong>, so a parent graph does not immediately observe a child's state updates — remember that before you
+    "fix" a parent that looks stale.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 2 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Define a StateGraph's state schema and pick the right reducer per key (overwrite vs <code>operator.add</code> vs <code>add_messages</code>)</li>
+      <li>Explain what a checkpointer + <code>thread_id</code> buys — continuity, crash recovery, HITL, time travel — and pick the right backend tier</li>
+      <li>Choose a durability mode (<code>sync</code>/<code>async</code>/<code>exit</code>) for a given workload and defend the trade-off</li>
+      <li>Design an <code>interrupt()</code>/<code>Command(resume=...)</code> approval gate that respects restart-from-the-top semantics</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add to <code>NOTES.md</code></li>
+      <li><b>①</b> the state schema (keys + reducers) for one agent workflow in your project, with one sentence per key on why that reducer</li>
+      <li><b>②</b> your checkpointer + durability choice for that workflow, justified in two sentences</li>
+      <li><b>③</b> one place a human approval gate belongs, and the idempotency risk in the node that would host the <code>interrupt()</code></li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 3 — the graph gets teammates, and durable state becomes the thing multiple
+    agents share.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 3 →", href: "w04d3.html" };
+window.DIAGRAM = {
+  title: "One agent run · schema → checkpoint → resume",
+  width: 500, height: 690,
+  nodes: [
+    // the running example (dark payload card)
+    { id:"task", step:0, kind:"example", x:14, y:14, w:472, h:78,
+      label:"AGENT RUN  refund-approval graph · thread_id \"cust-4127\"\n  state: {messages, order_id, approved} · 5 nodes · human gate before payout\n  process dies at step 3 → same thread_id → resumes from checkpoint" },
+
+    // the graph itself
+    { id:"graph", step:0, x:28, y:104, w:212, h:118, label:"StateGraph\nschema = TypedDict /\nPydantic / dataclass\nnodes = plain functions",
+      detail:"The state schema is the input to every node and edge. Nodes receive current state and return PARTIAL updates — 'nothing more than functions; they can contain an LLM or just good ol' code.' Whatever isn't written into state doesn't survive to the next node. .compile() is mandatory — and it's where the checkpointer plugs in." },
+    { id:"red", step:1, x:256, y:104, w:230, h:118, label:"Reducers — per key\ndefault: overwrite\nAnnotated + operator.add\nadd_messages (ID merge)",
+      detail:"Every state key has its own reducer deciding how a node's partial update merges in. Default overwrites — the classic 'my messages list keeps resetting' bug. Annotated[list, operator.add] appends; add_messages merges chat history by message ID and handles deserialization. Control flow around it: normal edges, conditional edges, START/END, Command (update + routing), Send (dynamic fan-out)." },
+
+    // persistence layer
+    { id:"thread", step:2, x:28, y:240, w:330, h:106, label:"THREAD \"cust-4127\"\ncheckpoints per step:  c1 → c2 → c3 ▸\nshort-term, thread-scoped memory",
+      detail:"A checkpointer snapshots graph state as the run proceeds; checkpoints file under the thread_id you pass in config. Same id = same run resumes; new id = blank slate. This is what enables continuity, HITL, time travel, and fault tolerance. Long-term CROSS-thread memory is a different tool — the Store." },
+    { id:"back", step:3, x:372, y:240, w:114, h:106, label:"backend\nInMemory · dev\nSQLite · demo\nPostgres · prod",
+      detail:"BaseCheckpointSaver contract: put / put_writes / get_tuple / list / delete_thread (+ async variants). InMemorySaver dies with the process; SqliteSaver is for demos; PostgresSaver/AsyncPostgresSaver is the production tier. Serialized via JsonPlusSerializer (ormsgpack + JSON fallback); wrap with EncryptedSerializer for encryption at rest." },
+
+    // durability + interrupt row
+    { id:"dur", step:4, x:28, y:366, w:212, h:72, label:"durability=\nsync | async | exit",
+      detail:"WHEN checkpoint writes happen, per invocation. sync: persisted before the next step starts — most durable, slowest. async: persisted while the next step executes — good balance, small crash window. exit: persisted only when the graph exits — fastest, no mid-run crash recovery." },
+    { id:"intr", step:5, x:256, y:366, w:230, h:72, label:"interrupt(payload) ⏸\nraises → runtime catches\nstate saved · payload out",
+      detail:"interrupt() pauses by raising a special exception the runtime catches; state is saved via the checkpointer (mandatory — no checkpointer, no interrupts) and the payload surfaces to the caller. The paused thread waits in the database for seconds or a week." },
+    { id:"res", step:6, x:256, y:454, w:230, h:72, label:"Command(resume=val)\nsame thread_id\n⚠ node re-runs FROM TOP",
+      detail:"Resume re-invokes on the SAME thread_id; the value becomes interrupt()'s return value inside the node. But the runtime restarts the ENTIRE node from the beginning — so pre-interrupt code must be idempotent, never wrap interrupt() in bare try/except (it swallows the control-flow exception), and multiple interrupts match resume values strictly by index." },
+
+    // time travel
+    { id:"tt", step:7, x:28, y:454, w:212, h:72, label:"time travel\nget_state_history\nreplay · fork",
+      detail:"get_state_history returns checkpoints (newest first), each with a checkpoint_id. Invoke with a prior checkpoint's config to replay: earlier nodes come from the snapshot, later nodes RE-EXECUTE for real — LLM calls and interrupts fire again and may differ." },
+    { id:"fork", step:7, x:28, y:544, w:458, h:64, label:"update_state → NEW branch from that point · original history intact\ninvoke(None, config) continues · as_node attributes the write",
+      detail:"Forking never edits history in place — it creates a new checkpoint branching from the chosen point. as_node attributes your update to a specific node's writes so execution resumes from that node's successors: a scalpel for skipping nodes or disambiguating parallel branches." }
+  ],
+  edges: [
+    { id:"e_save",  step:2, from:"graph", to:"thread", label:"checkpoint / step", lx:-8 },
+    { id:"e_back",  step:3, from:"thread", to:"back",  label:"put / get", ly:-4 },
+    { id:"e_dur",   step:4, from:"dur",   to:"thread", label:"when writes land", lx:-6 },
+    { id:"e_intr",  step:5, from:"intr",  to:"thread", label:"save + pause", bend:24, ly:-2 },
+    { id:"e_res",   step:6, from:"res",   to:"intr",   label:"value → return of interrupt()", lx:6 },
+    { id:"e_tt",    step:7, from:"tt",    to:"thread", label:"checkpoint_id", lx:-6 },
+    { id:"e_fork",  step:7, from:"tt",    to:"fork",   label:"branch", lx:-6 }
+  ],
+  captions: [
+    "One refund agent, one run. A <b>StateGraph</b> = a declared state schema + plain functions returning <b>partial updates</b>. Everything the run knows lives in that state object. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Each key merges by its own <b>reducer</b> — default <b>overwrites</b>; <code>operator.add</code> appends; <code>add_messages</code> merges by ID. Then <code>.compile()</code> — where the checkpointer plugs in.",
+    "The <b>checkpointer</b> snapshots state step by step under a <b>thread_id</b> — a save file per run. Same id resumes; new id is a blank slate. <span style='opacity:.7'>(tap)</span>",
+    "Where snapshots live is a swappable <b>backend</b>: InMemory for dev, SQLite for demos, <b>Postgres for production</b>. <span style='opacity:.7'>(tap)</span>",
+    "<b>Durability mode</b> sets WHEN writes land: <b>sync</b> before the next step, <b>async</b> during it, <b>exit</b> only at the end. Crash-safety vs speed, per call.",
+    "<b>interrupt()</b> pauses the run — a raised exception the runtime catches, state saved, payload surfaced. A checkpointer is <b>mandatory</b> for this. <span style='opacity:.7'>(tap)</span>",
+    "<b>Command(resume=…)</b> on the same thread feeds the human's answer back in — but the node <b>re-runs from the top</b>. Pre-interrupt code must be idempotent. <span style='opacity:.7'>(tap)</span>",
+    "History is navigable: <b>replay</b> from any checkpoint (later nodes truly re-execute) or <b>fork</b> with update_state — the original branch stays intact. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w04-d2",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A client's LangGraph agent works fine in dev, but after every production deploy all in-flight conversations reset to zero. Most likely cause?",
+      options: [
+        "The LLM's context window is too small",
+        "The graph was compiled with InMemorySaver, so checkpoints die with the process",
+        "Durability was set to 'sync', which is too slow for production",
+        "The state schema used a TypedDict instead of Pydantic" ],
+      answer: 1,
+      explain: "InMemorySaver keeps checkpoints in process memory — perfect for dev, gone on restart. The fix is a backend swap to PostgresSaver (production tier), not a model or schema change. First code-review question: find the checkpointer, check the tier." },
+    { type: "scq",
+      stem: "A node returns {\"messages\": [new_msg]} and the conversation history keeps shrinking to one message. Why?",
+      options: [
+        "The checkpointer is pruning old messages",
+        "The thread_id changed between turns",
+        "The default reducer overwrites the key — it needs an append-style reducer like add_messages",
+        "interrupt() was wrapped in a try/except" ],
+      answer: 2,
+      explain: "Every key has a reducer, and the default replaces the value outright. Annotated[list, operator.add] appends; the prebuilt add_messages reducer merges chat history by message ID. Classic day-one bug — the framework is doing exactly what the schema says." },
+    { type: "tf",
+      stem: "When you resume an interrupted graph with Command(resume=...), execution continues from the exact line where interrupt() was called.",
+      answer: false,
+      explain: "False — the runtime restarts the ENTIRE node from the beginning. Code before the interrupt runs again, which is why it must be idempotent (or live in its own earlier node), why bare try/except around interrupt() is forbidden, and why multiple interrupts match resume values strictly by index." },
+    { type: "mcq",
+      stem: "Which of these does checkpointing (a checkpointer + thread_id) directly enable? (select all that apply)",
+      options: [
+        "Resuming a run after a process crash",
+        "Pausing for human approval and resuming later",
+        "Replaying or forking a run from a past checkpoint",
+        "Long-term memory shared across different threads",
+        "Conversation continuity across separate requests" ],
+      answer: [0, 1, 2, 4],
+      explain: "Fault tolerance, human-in-the-loop, time travel, and conversation continuity are all downstream of 'state is snapshotted per step under a durable thread_id.' Cross-thread long-term memory is the one exception — that's the Store, a separate concept from checkpointing." },
+    { type: "match",
+      stem: "Match each production symptom to the mechanism behind it.",
+      pairs: [
+        { l: "Resumed 'the same conversation' but the agent knew nothing", r: "a new thread_id was used — fresh thread, empty state" },
+        { l: "Replayed a checkpoint to debug; got a different answer", r: "replay re-executes later nodes — LLM calls fire again" },
+        { l: "Customer charged twice after an approval pause", r: "non-idempotent code before interrupt() re-ran on resume" },
+        { l: "Fastest runs, but a crash means starting over", r: "durability='exit' — persisted only when the graph exits" } ],
+      explain: "The thread id is your persistent cursor — new id, new thread. Replay is rewinding a live system, not reading a cache. Resume restarts the node from the top, so side effects before interrupt() repeat. And 'exit' durability trades all mid-run crash recovery for speed." },
+    { type: "open",
+      stem: "A client wants a human to approve every refund over $500 before the agent executes it. In two or three sentences, sketch the LangGraph design — and name the one sharp edge you'd engineer around.",
+      hint: "Which primitives pause and resume? What does the runtime do to the node on resume?",
+      model: "Compile the graph with a durable checkpointer (PostgresSaver in production) and, in the approval node, call interrupt() with the refund details; the run pauses, state is checkpointed under the thread_id, and the payload surfaces to the approval UI. When the human decides, re-invoke with Command(resume=decision) on the SAME thread_id — the decision becomes interrupt()'s return value, and a conditional edge routes to execute or reject. The sharp edge: resume restarts the whole node from the top, so the refund execution (and any other side effect) must live AFTER the interrupt or in a separate node, and pre-interrupt code must be idempotent." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

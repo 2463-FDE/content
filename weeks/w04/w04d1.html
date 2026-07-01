@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w04d1">
+<meta name="fde-concepts" content="supervisor-orchestration,swarm-handoff-architecture,openai-agents-sdk-handoffs,llm-vs-code-orchestration,orchestrator-worker-parallelism,agent-complexity">
+<title>W4·D1 — Multi-Agent Orchestration Patterns | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Multi-Agent Orchestration Patterns</h1>
+        <div class="meta">
+          <span><b>Week 4</b> · Day 1</span>
+          <span>Multi-Agent Systems</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Last week you built a single production agent. This week the question changes: when is one
+        agent <em>not enough</em> — and when you split the work, <strong>who decides who works next?</strong> Today you
+        learn the two canonical answers — the <strong>supervisor</strong> (a central coordinator that routes everything)
+        and the <strong>swarm</strong> (peers that hand control directly to each other) — plus the mechanism underneath
+        both: the <strong>handoff</strong>, which turns out to be nothing more exotic than a tool call. Scroll the
+        reading; the panel on the right builds both architectures side by side, then shows why naive multi-agent
+        systems fail and the one rule that makes them work.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The threshold</div>
+        <h2>One agent is the default — multi-agent has to earn it</h2>
+        <p>Start with the least glamorous fact in this whole topic, straight from the people who sell multi-agent
+        frameworks. LangChain's own multi-agent documentation opens with a warning: <em>"Not every complex task requires
+        this approach — a single agent with the right (sometimes dynamic) tools and prompt can often achieve similar
+        results."</em> That's the vendor telling you not to buy the second agent. Take the hint. The single agent you
+        built last week — one loop, curated tools, a tight system prompt — remains the default architecture, and
+        everything today is about knowing exactly when it stops being enough.</p>
+        <p>So when does it stop? The same docs name three legitimate drivers. <strong>Context management:</strong> a
+        support agent that handles research, billing, <em>and</em> refunds needs three domains of instructions, schemas,
+        and tools crammed into one window — you learned in Week 1 what happens to a window treated like a junk drawer.
+        Splitting into specialists gives each its own focused context. <strong>Distributed development:</strong> separate
+        teams can own separate agents with clear boundaries, the same reason you split a monolith into services.
+        <strong>Parallelization:</strong> some tasks genuinely decompose into independent pieces that can run at the same
+        time.</p>
+        <p>And there's an equally important <em>anti</em>-signal. Anthropic, who run one of the most successful
+        multi-agent systems in production, are blunt that the approach falls short for domains that require all agents
+        to share the same context, or that involve many dependencies between agents — which is why, in their words, most
+        coding tasks don't have enough truly parallelizable components to benefit. Tightly coupled work wants one agent
+        with one window. Hold that line: <strong>agent count is a cost you pay, not a feature you ship.</strong> If a
+        client's first instinct is "let's have twelve agents," your first instinct is to ask which of the three drivers
+        is actually present.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Pattern 1</div>
+        <h2>Supervisor: one hub, all decisions</h2>
+        <p>Once you've decided to split, the first architecture to reach for is the <strong>supervisor</strong>. One
+        central agent — the supervisor — owns the conversation with the user and coordinates a set of specialized
+        workers. Every routing decision flows through the hub: the supervisor reads the current state and, in the words
+        of the LangGraph reference, "makes decisions about which agent to invoke based on the current context and task
+        requirements." A worker does its slice, hands its result back up, and the supervisor decides what happens
+        next — another worker, a follow-up, or a final answer to the user.</p>
+        <p>This is such a common shape that LangGraph ships it prebuilt: the <code>langgraph-supervisor</code> package
+        gives you <code>create_supervisor()</code> to wire the hub, <code>create_handoff_tool()</code> for delegation,
+        and plumbing helpers like <code>create_forward_message_tool()</code> and
+        <code>create_handoff_back_messages()</code> for moving messages between hub and workers. LangChain 1.0's docs
+        describe the same shape under the name <strong>subagents</strong> — "a main agent coordinates specialized agents
+        as tools, with all routing flowing through the primary coordinator." Notice that phrasing: workers <em>as
+        tools</em>. To the supervisor, delegating to the billing agent looks exactly like calling any other tool. That's
+        a preview of today's biggest punchline.</p>
+        <p>The supervisor's virtues are control and observability. There is exactly one place where routing happens, so
+        there's one prompt to debug, one trace to read, one throat to choke. The cost is that the hub becomes a
+        bottleneck — every worker result round-trips through the supervisor, burning latency and tokens — and the
+        supervisor's own context fills with routing traffic. It's the org chart with a manager: clear accountability,
+        extra meetings.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Pattern 2</div>
+        <h2>Swarm: peers hand off directly, no manager</h2>
+        <p>The second architecture deletes the manager. A <strong>swarm</strong> is — verbatim from the
+        <code>langgraph-swarm</code> project — "a type of multi-agent architecture where agents dynamically hand off
+        control to one another based on their specializations." No central coordinator. A triage agent talking to a
+        traveler realizes this is a flight question and transfers control <em>directly</em> to the flights agent; if
+        hotel questions come up mid-conversation, the flights agent transfers to the hotels agent. Whoever holds the
+        conversation, holds it fully — until they hand it off.</p>
+        <p>The detail that makes swarms feel natural in chat products is the <strong>sticky active agent</strong>: "the
+        system remembers which agent was last active, ensuring that on subsequent interactions, the conversation resumes
+        with that agent." If the hotels agent was helping you when you went to lunch, the hotels agent picks up when you
+        come back — no re-triage, no "please hold while I transfer you" on every turn. In code it's compact:
+        <code>create_swarm(agents, default_active_agent="Alice")</code> assembles the team, and each agent gets handoff
+        tools like <code>create_handoff_tool(agent_name="Bob", description="Transfer to Bob")</code> naming the peers it
+        may transfer to.</p>
+        <p>The trade against the supervisor is exactly what you'd guess. Swarms cut out the hub round-trip — transfers
+        are one hop, so latency and token overhead drop, and the conversation flows like being walked between desks
+        rather than filtered through a receptionist. But routing logic is now smeared across every agent's prompt
+        instead of concentrated in one place, so answering "why did the wrong agent take this?" means auditing N prompts
+        instead of one. Supervisor when you want central control and auditable routing; swarm when the conversation
+        should follow specialization fluidly and you can tolerate distributed routing logic.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: run the same three-agent
+        support team as a supervisor and as a swarm on the same conversation, and diff the message traffic — every
+        result round-tripping through the hub versus direct peer handoffs with the sticky active agent picking up turn
+        two. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">The mechanism</div>
+        <h2>A handoff is just a tool call</h2>
+        <p>Both patterns run on the same primitive, and the OpenAI Agents SDK — the canonical implementation — defines
+        it with no mystery at all: <em>"handoffs allow an agent to delegate tasks to another agent,"</em> and they are
+        <em>"represented as tools to the LLM."</em> Read that twice. There is no telepathy between agents, no shared
+        consciousness. When the triage agent decides a refund specialist should take over, what actually happens is that
+        the model emits a tool call — named, by default, <code>transfer_to_&lt;agent_name&gt;</code>, so handing off to
+        the refund agent is literally a call to <code>transfer_to_refund_agent</code>. Everything you learned in Week 3
+        about tool calling — schemas, the loop, failure handling — applies unchanged. Multi-agent is tool calling with
+        agents on the other end.</p>
+        <p>Because it's a tool, you can customize it like one. The SDK's <code>handoff()</code> function takes the
+        target <code>agent</code> plus <code>tool_name_override</code> and <code>tool_description_override</code> (what
+        the routing model sees), <code>on_handoff</code> (a callback to fire when the transfer happens — log it, prefetch
+        data), <code>input_type</code> (a schema for structured handoff arguments, so the escalation agent receives a
+        typed <em>reason</em>, not vibes), and <code>is_enabled</code> to switch routes on and off. The consequential one
+        is <code>input_filter</code>: it controls <strong>what conversation history the receiving agent sees</strong>.
+        By default the new agent sees the entire prior conversation; a filter can prune it — the SDK ships prebuilt
+        filters in <code>agents.extensions.handoff_filters</code>, like one that strips old tool calls. That single
+        parameter is context engineering applied to agent boundaries, and it foreshadows today's failure section:
+        what the next agent <em>can't see</em>, it can't respect.</p>
+        <p>Two more production details. Agents route better when they're told handoffs exist — the SDK ships
+        <code>RECOMMENDED_PROMPT_PREFIX</code> and <code>prompt_with_handoff_instructions()</code> in
+        <code>agents.extensions.handoff_prompt</code> precisely so you don't hand-roll that boilerplate. And there's an
+        opt-in beta, <code>nest_handoff_history</code> on <code>RunConfig</code>, that collapses the prior transcript
+        into a summary block on transfer instead of forwarding it raw — the framework authors converging on the same
+        window discipline you learned in Week 1.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: wire two OpenAI Agents SDK
+        agents with a <code>transfer_to_refund_agent</code> handoff, send one message, and inspect the raw tool call —
+        then re-run with an <code>input_filter</code> attached and diff exactly what history the receiving agent saw
+        each time. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">The axis</div>
+        <h2>Who routes: the LLM or your code?</h2>
+        <p>Underneath supervisor-vs-swarm sits a deeper axis that the OpenAI SDK docs name explicitly: <strong>who makes
+        the routing decision?</strong> Everything so far has been <strong>LLM-driven orchestration</strong> — a model
+        reads the situation and chooses, via handoff tools, which agent acts next. The docs' verdict: that "is great
+        when the task is open-ended." When you can't enumerate the paths a conversation might take, an intelligent
+        router earns its tokens.</p>
+        <p>But there's a second option that beginners skip because it doesn't feel AI enough:
+        <strong>code-driven orchestration</strong>. Have a model classify the request into a structured output, then let
+        ordinary Python route on it. Chain agent A's output into agent B as plain function composition. Fan out
+        independent subtasks with <code>asyncio.gather</code>. The SDK docs are unambiguous about the payoff:
+        orchestrating via code "makes tasks more deterministic and predictable, in terms of speed, cost and
+        performance." No routing model to prompt, no routing model to pay, no routing model to <em>misroute</em>. If
+        every refund request should go to the refund pipeline, an <code>if</code> statement is a better router than an
+        LLM — cheaper, faster, and it has never once hallucinated.</p>
+        <p>The FDE reflex: <strong>use exactly as much LLM in the control flow as the task's open-endedness demands, and
+        not one call more.</strong> Known, enumerable paths → route in code. Genuinely open-ended conversation → let the
+        model route via handoffs. Most real systems are hybrids — code-orchestrated pipelines whose individual stages
+        are agents, with LLM routing reserved for the one junction where intent is truly ambiguous. When a client shows
+        you an "agentic workflow" where an LLM decides something a lookup table could decide, you've found latency,
+        cost, and a failure mode to delete in your first week.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">At scale</div>
+        <h2>Orchestrator-worker: parallelism with a price tag</h2>
+        <p>Now the pattern working hardest in production, with real numbers attached. Anthropic's research feature is an
+        <strong>orchestrator-worker</strong> system: "a lead agent coordinates the process while delegating to
+        specialized subagents that operate in parallel." It's the supervisor shape tuned for the third driver —
+        parallelization — with one crucial property: <strong>each subagent gets its own context window</strong>. The lead
+        agent plans; workers explore different facets of a question simultaneously, each burning its own window instead
+        of crowding into one; results compress back to the lead. Separation of concerns, and no single window has to
+        hold the whole investigation.</p>
+        <p>Does it work? On Anthropic's internal research eval, the multi-agent system — an Opus 4 lead with Sonnet 4
+        subagents — beat single-agent Opus 4 by <strong>90.2%</strong>, and parallel tool calling cut research time by
+        up to 90% for complex queries. But read the fine print like an engineer, because it's a token story: they found
+        token usage explains about <strong>80% of the variance</strong> in performance. Multi-agent wins substantially
+        <em>because</em> it spends more — an agent uses roughly <strong>4×</strong> the tokens of a chat, and a
+        multi-agent system around <strong>15×</strong>. The architecture is a machine for converting money into
+        coverage. Anthropic's own conclusion: the economics only make sense for high-value tasks where the answer is
+        worth the burn. "15× tokens for 90% better research" is a great trade on due diligence and a terrible one on
+        password resets.</p>
+        <p>Their orchestration-prompt lessons generalize to any supervisor you'll build. Early lead agents gave workers
+        vague briefs, and workers duplicated each other's effort or wandered — so the fix was <strong>explicit
+        delegation</strong>: every subagent brief states an objective, an output format, the tools to use, and task
+        boundaries. And the lead is taught <strong>scaling rules</strong> so effort matches complexity: a simple query
+        gets one agent; a complex investigation fans out to ten-plus subagents with divided responsibilities. Delegation
+        quality, not agent count, is what separates a research team from an expensive mob.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: fan a research question out to
+        1 vs 4 parallel subagents and watch a live token meter climb toward the ~15× multiple alongside the coverage
+        gain — feel the economics, not just read them. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">The counter-argument</div>
+        <h2>Why naive multi-agent systems fail</h2>
+        <p>Time for the cold water, because a client will quote it at you. In June 2025, Cognition — the Devin team —
+        published a post titled, bluntly, <em>"Don't Build Multi-Agents."</em> Their argument rests on two principles.
+        One: <em>"Share context, and share full agent traces, not just individual messages."</em> An agent that sees
+        only a summary of what happened is reasoning about a redacted case file. Two: <em>"Actions carry implicit
+        decisions, and conflicting decisions carry bad results."</em> Their running example: parallel subagents building
+        a Flappy Bird clone, where one picked a visual style for the background and another, unable to see that choice,
+        drew a bird that matched nothing. Neither agent was wrong; the <em>system</em> was, because every action smuggles
+        in decisions the other agents never learn about. Note what both principles actually are: context-window
+        arguments. Week 1 again, wearing an org chart.</p>
+        <p>The empirical record backs the skepticism. The Berkeley MAST study — <em>Why Do Multi-Agent LLM Systems
+        Fail?</em> — analyzed 150+ expert-annotated execution traces across seven frameworks (annotator agreement
+        κ&nbsp;=&nbsp;0.88; the dataset has since grown past 1,600 traces) and found that multi-agent gains over strong
+        single agents are often minimal, while the failures are <em>systematic</em> enough to taxonomize:
+        <strong>14 recurring failure modes in 3 categories</strong> — system design issues, inter-agent misalignment, and
+        task verification failures. Read that list against today's mechanics and it stops being surprising. Fragmented
+        context and conflicting implicit decisions <em>are</em> inter-agent misalignment; a supervisor accepting a
+        worker's confident garbage is a verification failure; wrong topology for a coupled task is a design issue. The
+        failure taxonomy is the mirror image of the patterns — which means architecture choices, not model quality, are
+        usually what's broken when a client's agent team embarrasses itself.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">The resolution</div>
+        <h2>2026's rule: single-threaded writes, extra intelligence</h2>
+        <p>So who's right — Anthropic's 90.2% or Cognition's "don't"? As of this spring, they've converged. In April
+        2026 Cognition published a follow-up, <em>"Multi-Agents: What's Actually Working,"</em> naming three patterns
+        that survived contact with production. The <strong>code-review loop</strong>: a second agent with fresh context
+        reviews the first agent's diff, catching around two bugs per PR precisely <em>because</em> it doesn't share the
+        author's context and assumptions. The <strong>smart-friend</strong> pattern: a stronger model consulted for a
+        hard sub-decision, returning advice, not code. And <strong>manager-child delegation</strong>: a lead handing
+        scoped work down — Anthropic's orchestrator-worker by another name.</p>
+        <p>One throughline unites all three, and it's the sentence to carry out of today: <em>"multi-agent systems work
+        best today when writes stay single-threaded and the additional agents contribute intelligence rather than
+        actions."</em> Look at what the extra agents do in every working pattern — review, advise, research. They add
+        <strong>reads and judgment</strong>. Exactly one thread holds the pen. The moment two agents both take actions on
+        shared state — both writing code, both mutating the same ticket — you're back in Flappy Bird territory, with
+        implicit decisions colliding where no one can see them. Notice this also explains the research system: subagents
+        <em>read</em> the web in parallel, but one lead agent writes the report.</p>
+        <p>That gives you the whole decision procedure on one napkin. First: does a single agent with better tools and a
+        tighter prompt solve it? Ship that. If not, which driver — context, ownership, parallelism — justifies the
+        split? Then: enumerable routing → code; open-ended → LLM handoffs. Central control → supervisor; fluid
+        specialization → swarm; parallel research → orchestrator-worker. And across all of it, one invariant: writes
+        stay single-threaded, and every extra agent must justify its tokens by adding intelligence the main thread
+        lacks.</p>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="7">
+        <div class="tag">Your tools · AI coding</div>
+        <h2>You already operate a supervisor</h2>
+        <p>Here's the part that makes this concrete before lunch: <strong>Claude Code's subagents are a supervisor
+        architecture, and you've been the beneficiary all program.</strong> When it fans a big search across parallel
+        subagents, that's orchestrator-worker — each explorer burns its own context window and reports a compressed
+        summary back, so the lead's window stays clean. When you ask for a review of code the main thread just wrote,
+        you're running Cognition's code-review loop: the value comes precisely from the reviewer's <em>fresh</em>
+        context. And notice what the subagents return — findings, never direct edits to your files. Writes stay
+        single-threaded in the main thread. The 2026 rule is implemented in the tool on your laptop.</p>
+        <p>So today's deliverable practice is free: next time you use it, narrate the architecture. Who routed — model
+        or harness code? What did the delegation brief contain? What came back, intelligence or actions? An FDE who can
+        read the orchestration pattern out of a tool they use daily can read it out of a client's system in the first
+        hour on site.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When a client says "we want a multi-agent system," they're proposing an org chart for software. Your job is
+          the same as any good consultant staring at an org chart: <strong>ask what the communication cost is, who owns
+          each decision, and whether the work actually decomposes.</strong> Agent count is a cost you pay, not a feature
+          you ship — and the winning architectures are the ones where exactly one thread holds the pen. Tomorrow we get
+          our hands dirty building these topologies for real.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://docs.langchain.com/oss/python/langchain/multi-agent" target="_blank" rel="noopener">LangChain — Multi-agent</a> — the five-pattern taxonomy (subagents, handoffs, skills, router, custom workflow), the single-agent-first caveat, and the three drivers.</li>
+          <li><a href="https://reference.langchain.com/python/langgraph-supervisor" target="_blank" rel="noopener">LangGraph — langgraph-supervisor reference</a> — <code>create_supervisor()</code> and the handoff/forward-message utilities behind the hub pattern.</li>
+          <li><a href="https://github.com/langchain-ai/langgraph-swarm-py" target="_blank" rel="noopener">langgraph-swarm-py — GitHub</a> — the swarm definition, sticky active agent, and <code>create_swarm</code> / <code>create_handoff_tool</code> usage.</li>
+          <li><a href="https://reference.langchain.com/python/langgraph-swarm" target="_blank" rel="noopener">LangGraph — langgraph-swarm reference</a> — <code>default_active_agent</code> and the swarm API surface.</li>
+          <li><a href="https://openai.github.io/openai-agents-python/handoffs/" target="_blank" rel="noopener">OpenAI Agents SDK — Handoffs</a> — handoffs as tools, <code>transfer_to_&lt;agent_name&gt;</code>, the full <code>handoff()</code> parameter list, input filters, and the nested-history beta.</li>
+          <li><a href="https://openai.github.io/openai-agents-python/multi_agent/" target="_blank" rel="noopener">OpenAI Agents SDK — Orchestrating multiple agents</a> — the LLM-orchestration vs code-orchestration tradeoff.</li>
+          <li><a href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank" rel="noopener">Anthropic — How we built our multi-agent research system</a> — orchestrator-worker, the 90.2% / 4× / 15× numbers, delegation and scaling-rule lessons, and when not to go multi-agent.</li>
+          <li><a href="https://arxiv.org/abs/2503.13657" target="_blank" rel="noopener">Why Do Multi-Agent LLM Systems Fail? — arXiv 2503.13657</a> — the MAST taxonomy: 14 failure modes in 3 categories from expert-annotated traces across 7 frameworks.</li>
+          <li><a href="https://cognition.com/blog/dont-build-multi-agents" target="_blank" rel="noopener">Cognition — Don't Build Multi-Agents</a> — the two context-engineering principles and the Flappy Bird cautionary tale.</li>
+          <li><a href="https://cognition.com/blog/multi-agents-working" target="_blank" rel="noopener">Cognition — Multi-Agents: What's Actually Working</a> — the 2026 refinement: code-review loop, smart-friend, manager-child, and the single-threaded-writes rule.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">The handoff() API surface &amp; version reality-check</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on orchestration patterns</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 4 Day 1</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the handoff() API surface &amp; version reality-check</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The parameters you'll actually touch, and how fresh this ecosystem is.</p>
+    <p><strong>The full <code>handoff()</code> customization surface</strong> (OpenAI Agents SDK). Every one of these is
+    a lever on a tool call, because that's all a handoff is:</p>
+    <div class="model-answer show">
+      <div class="ma-k">handoff(...) parameters — what each one is for</div>
+      <ul class="deliv-list">
+        <li><code>agent</code> — the target agent to transfer to</li>
+        <li><code>tool_name_override</code> / <code>tool_description_override</code> — rename what the routing model sees (default name: <code>transfer_to_&lt;agent_name&gt;</code>)</li>
+        <li><code>on_handoff</code> — callback fired at transfer time (audit-log it, prefetch data)</li>
+        <li><code>input_type</code> — a schema for structured handoff arguments (typed escalation reason, not vibes)</li>
+        <li><code>input_filter</code> — controls what conversation history the receiving agent sees; prebuilt filters live in <code>agents.extensions.handoff_filters</code> (e.g. strip old tool calls)</li>
+        <li><code>is_enabled</code> — turn a route on/off without rewiring the graph</li>
+        <li><code>nest_handoff_history</code> — with <code>RunConfig</code>, the opt-in beta that collapses prior transcript into a summary block on transfer</li>
+      </ul>
+      <p style="margin:8px 0 0">The one to remember under pressure is <code>input_filter</code>: it is the context-window
+      lever at the agent boundary. Cognition's principle — share full traces, not fragments — is a policy you implement
+      (or violate) with exactly this parameter. And don't hand-roll routing prompts: use
+      <code>prompt_with_handoff_instructions()</code> / <code>RECOMMENDED_PROMPT_PREFIX</code> from
+      <code>agents.extensions.handoff_prompt</code>.</p>
+    </div>
+    <p style="margin-top:14px"><strong>How young is this stack? Check the version numbers.</strong> As of mid-2026:
+    <code>langgraph-supervisor</code> is at <strong>0.0.31</strong> (2025-11-19) and <code>langgraph-swarm</code> at
+    <strong>0.1.0</strong> (2025-12-04) — pre-1.0 packages wrapping patterns the industry settled on within the last
+    eighteen months. LangChain 1.0's docs now frame multi-agent as <em>five</em> patterns — subagents, handoffs, skills,
+    router, custom workflow — with "supervisor" and "swarm" living on as the prebuilt libraries. The vocabulary is still
+    moving. For a client, that means two things: pin your versions, and sell them the <em>pattern</em> (hub vs peer
+    handoffs vs orchestrator-worker), not the package name — the pattern will outlive this quarter's API.</p>
+    <p style="margin-top:14px"><strong>The MAST taxonomy, one level deeper.</strong> The Berkeley team's 14 failure
+    modes group into three categories worth memorizing as a diagnostic checklist: <em>system design issues</em> (wrong
+    topology or roles for the task), <em>inter-agent misalignment</em> (agents working from fragmented context or
+    undoing each other's implicit decisions), and <em>task verification</em> (nobody competent checks the work before
+    it ships). When a client's agent team misbehaves, walk the categories in that order — it's the multi-agent version
+    of Week 1's "walk the window."</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Week 4 · Day 1 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Argue when a single agent is still the right architecture — and name the three drivers that justify going multi-agent</li>
+      <li>Choose between supervisor, swarm, and orchestrator-worker topologies and defend the trade-offs of each</li>
+      <li>Explain a handoff as a tool call (<code>transfer_to_&lt;agent&gt;</code>) and use <code>input_filter</code> to control what the receiving agent sees</li>
+      <li>Decide, per junction, whether the LLM or plain code should make the routing decision</li>
+      <li>Apply the 2026 rule — writes single-threaded, extra agents contribute intelligence — to critique a proposed multi-agent design</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add a <b>W4D1</b> entry to <code>NOTES.md</code></li>
+      <li><b>①</b> one feature in your project you'd keep single-agent, and which of the three drivers is absent</li>
+      <li><b>②</b> one place a supervisor or swarm genuinely fits — name the topology and who holds the pen (the single write-thread)</li>
+      <li><b>③</b> one routing decision currently imagined as LLM-driven that plain code should make instead, and what that saves</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 2, where we stop drawing topologies and start wiring them. Today's napkin
+    decision procedure is the thing to have internalized.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 2 →", href: "w04d2.html" };
+window.DIAGRAM = {
+  title: "Orchestration · who decides who works next",
+  width: 500, height: 690,
+  nodes: [
+    // the client ask
+    { id:"task", step:0, kind:"example", x:14, y:14, w:472, h:78,
+      label:"CLIENT ASK  \"one AI assistant: research + billing + refunds\"\n  one agent · ~40 tools · one window → prompt becomes a junk drawer\n  drivers to split: context · team ownership · parallelism" },
+
+    // supervisor (left column)
+    { id:"sup", step:1, x:30, y:112, w:180, h:44, label:"SUPERVISOR\nall routing via hub",
+      detail:"Central coordinator: 'makes decisions about which agent to invoke based on the current context and task requirements.' Prebuilt as create_supervisor() in langgraph-supervisor; LangChain 1.0 calls the same shape 'subagents' — workers coordinated as tools. One place to debug routing; every result round-trips through the hub." },
+    { id:"wA", step:1, x:22, y:192, w:92, h:44, label:"billing\nworker" },
+    { id:"wB", step:1, x:126, y:192, w:92, h:44, label:"refunds\nworker" },
+
+    // swarm (right column)
+    { id:"sA", step:2, x:268, y:112, w:96, h:44, label:"triage\nagent",
+      detail:"Swarm: 'agents dynamically hand off control to one another based on their specializations' — no central coordinator. create_swarm(agents, default_active_agent=\"Alice\") + create_handoff_tool(agent_name=\"Bob\"). Sticky active agent: the conversation resumes with whoever was last active." },
+    { id:"sB", step:2, x:384, y:112, w:96, h:44, label:"flights\nagent" },
+    { id:"sC", step:2, x:326, y:192, w:96, h:44, label:"hotels\nagent" },
+
+    // the shared mechanism
+    { id:"hand", step:3, x:30, y:270, w:456, h:54, label:"HANDOFF = a tool call\ntransfer_to_refund_agent · on_handoff · input_type · input_filter",
+      detail:"OpenAI Agents SDK: handoffs 'are represented as tools to the LLM', default name transfer_to_<agent_name>. input_filter controls what history the receiving agent sees (prebuilt filters strip tool calls); prompt_with_handoff_instructions() teaches agents to route; nest_handoff_history (beta) collapses the transcript into a summary on transfer." },
+
+    // the routing axis
+    { id:"llm", step:4, x:36, y:352, w:196, h:52, label:"LLM routes\nopen-ended tasks",
+      detail:"LLM-driven orchestration (handoff tools) 'is great when the task is open-ended' — when you can't enumerate the paths. Cost: a routing model to prompt, pay, and debug on every junction." },
+    { id:"code", step:4, x:268, y:352, w:196, h:52, label:"CODE routes\ndeterministic paths",
+      detail:"Code-driven orchestration — structured-output classification + if/else, chaining, asyncio.gather fan-out — 'makes tasks more deterministic and predictable, in terms of speed, cost and performance.' An if statement never hallucinates a route." },
+
+    // orchestrator-worker at scale
+    { id:"orch", step:5, x:30, y:432, w:456, h:62, label:"ORCHESTRATOR-WORKER  lead + parallel subagents (own windows)\n+90.2% vs single-agent · ~15× tokens · explicit delegation briefs",
+      detail:"Anthropic's research system: lead agent plans, subagents search in parallel, each with its own context window. Beat single-agent Opus 4 by 90.2%; token use explains ~80% of performance variance; agents ≈4× chat tokens, multi-agent ≈15× — economics only work for high-value tasks. Briefs carry objective, output format, tools, boundaries; scaling rules match agent count to complexity." },
+
+    // failure + resolution
+    { id:"fail", step:6, x:30, y:522, w:212, h:74, label:"⚠ WHY THEY FAIL\nfragmented context\nconflicting implicit decisions",
+      detail:"Cognition: 'Share context, and share full agent traces, not just individual messages' and 'Actions carry implicit decisions, and conflicting decisions carry bad results' (the Flappy Bird mismatch). MAST (arXiv 2503.13657): 14 failure modes in 3 categories — system design, inter-agent misalignment, task verification — from 150+ expert-annotated traces across 7 frameworks (κ=0.88)." },
+    { id:"rule", step:7, x:274, y:522, w:212, h:74, label:"2026 RULE\nwrites single-threaded\nagents add intelligence",
+      detail:"Cognition's refinement: three patterns work in production — code-review loop (fresh-context reviewer, ~2 bugs/PR), smart-friend (stronger model as consultant), manager-child delegation. Throughline: 'multi-agent systems work best today when writes stay single-threaded and the additional agents contribute intelligence rather than actions.'" }
+  ],
+  edges: [
+    { id:"e_supA", step:1, from:"sup", to:"wA", label:"delegate", lx:-8 },
+    { id:"e_supB", step:1, from:"sup", to:"wB", label:"report ↑", lx:8 },
+    { id:"e_sAB",  step:2, from:"sA", to:"sB", label:"handoff", ly:-6 },
+    { id:"e_sBC",  step:2, from:"sB", to:"sC", label:"handoff", lx:8 },
+    { id:"e_hand", step:3, from:"hand", to:"sup", label:"same primitive", lx:-6 },
+    { id:"e_orch", step:5, from:"llm", to:"orch", label:"lead plans", lx:-6 },
+    { id:"e_fail", step:6, from:"orch", to:"fail", label:"naive split", lx:-8 },
+    { id:"e_rule", step:7, from:"fail", to:"rule", label:"resolution →", ly:-4 }
+  ],
+  captions: [
+    "One assistant, three domains, forty tools — the window becomes a junk drawer. Splitting is justified by <b>three drivers</b>: context, team ownership, parallelism. Single agent stays the default. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "<b>Supervisor:</b> a central hub owns every routing decision; workers report back up. One prompt to debug — and one bottleneck every message round-trips through. <span style='opacity:.7'>(tap)</span>",
+    "<b>Swarm:</b> no manager — peers transfer control directly, and the <b>last-active agent</b> resumes the conversation next turn. Fluid, but routing logic lives in N prompts. <span style='opacity:.7'>(tap)</span>",
+    "Both run on one primitive: a <b>handoff is just a tool call</b> — <code>transfer_to_refund_agent</code> — and <code>input_filter</code> decides what history the next agent sees. <span style='opacity:.7'>(tap)</span>",
+    "The deeper axis: <b>who routes?</b> An LLM for open-ended tasks; plain code — cheaper, faster, deterministic — for every path you can enumerate. <span style='opacity:.7'>(tap)</span>",
+    "At scale: <b>orchestrator-worker</b>. Parallel subagents, each with its own window — +90.2% on research, at ~<b>15× tokens</b>. Coverage bought with money. <span style='opacity:.7'>(tap)</span>",
+    "The failure mode: split agents can't see each other's <b>implicit decisions</b>. MAST catalogued 14 systematic ways this goes wrong. <span style='opacity:.7'>(tap)</span>",
+    "The 2026 resolution: <b>writes stay single-threaded</b> — extra agents contribute <b>intelligence, not actions</b>. One thread holds the pen. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w04-d1",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A client wants to split their working single support agent into five agents 'because multi-agent is the state of the art.' Your first move?",
+      options: [
+        "Agree — more agents means more intelligence",
+        "Ask which driver is present: context overload, team ownership boundaries, or genuine parallelism — and keep the single agent if none is",
+        "Propose a swarm, since it has the least overhead",
+        "Propose an orchestrator-worker with ten subagents for headroom" ],
+      answer: 1,
+      explain: "Single agent is the default — even LangChain's multi-agent docs open by saying a single agent with the right tools and prompt often achieves similar results. Multi-agent must be justified by one of the three drivers: context management, distributed development, or parallelization. Agent count is a cost, not a feature." },
+    { type: "scq",
+      stem: "In the OpenAI Agents SDK, what IS a handoff, mechanically?",
+      options: [
+        "A shared memory space both agents read and write",
+        "A special API endpoint that merges two agents into one",
+        "A tool call — e.g. transfer_to_refund_agent — that the routing model emits like any other tool",
+        "A background process that copies the model weights to the target agent" ],
+      answer: 2,
+      explain: "Handoffs are 'represented as tools to the LLM' with the default name transfer_to_<agent_name>. There's no telepathy — multi-agent is tool calling with agents on the other end, which is why everything from Week 3 still applies." },
+    { type: "tf",
+      stem: "In a swarm architecture, every new user message goes back to a central triage agent that re-routes it.",
+      answer: false,
+      explain: "False on both counts: a swarm has no central coordinator — peers hand off directly — and the system is sticky: it 'remembers which agent was last active' and resumes the conversation with that agent (default_active_agent sets the starting one)." },
+    { type: "mcq",
+      stem: "Which of these routing decisions should be made by CODE rather than an LLM? (select all that apply)",
+      options: [
+        "Every request whose subject line contains 'refund' goes to the refund pipeline",
+        "Fan out five independent research subtasks and gather the results",
+        "An ambiguous, open-ended user message that could belong to any of the specialists",
+        "Chain the extractor agent's structured output into the writer agent",
+        "Route based on which of three known document types a classifier already identified" ],
+      answer: [0, 1, 3, 4],
+      explain: "Enumerable paths, fan-out, chaining, and routing on an already-computed classification are all deterministic — code makes them 'more deterministic and predictable, in terms of speed, cost and performance.' Only the genuinely open-ended message earns an LLM router via handoffs." },
+    { type: "match",
+      stem: "Match each situation to the orchestration pattern that fits it.",
+      pairs: [
+        { l: "Compliance demands one auditable place where all routing happens", r: "supervisor (hub routes everything)" },
+        { l: "Conversation should flow between specialists and resume with the last one", r: "swarm (peer handoffs, sticky active agent)" },
+        { l: "High-value research that decomposes into independent parallel searches", r: "orchestrator-worker (lead + parallel subagents)" },
+        { l: "Tightly coupled coding task where every step depends on the last", r: "single agent (don't split it)" } ],
+      explain: "Central control and auditability → supervisor. Fluid specialization in conversation → swarm. Parallelizable, high-value work that justifies ~15× tokens → orchestrator-worker. And when agents would all need the same context with many dependencies — Anthropic's own anti-signal — stay single-agent." },
+    { type: "open",
+      stem: "A prospect's engineers quote Cognition's 'Don't Build Multi-Agents' at you. In two or three sentences, give the 2026 answer: what actually failed in naive multi-agent systems, and what rule makes the working patterns work?",
+      hint: "Think fragmented context, implicit decisions in actions — and who holds the pen.",
+      model: "What failed was context engineering: parallel agents that couldn't see each other's full traces made conflicting implicit decisions (Cognition's Flappy Bird example), and MAST catalogued 14 systematic failure modes around exactly that misalignment. The patterns that work in production — code-review loop, smart-friend consultation, manager-child delegation — all follow one rule: writes stay single-threaded and the extra agents contribute intelligence (reads, review, advice) rather than actions. So the answer isn't 'never multi-agent'; it's one thread holds the pen, and every additional agent must add judgment, not competing changes." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

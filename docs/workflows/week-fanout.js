@@ -30,9 +30,11 @@ export const meta = {
 const A = typeof args === 'string' ? JSON.parse(args) : (args || {})   // runtime passes args as a JSON string
 const WEEK = A.week || 0
 const WW = String(WEEK).padStart(2, '0')
-const TEMPLATE = 'content/weeks/w01/d1.html'
-const RDIR = `content/docs/research/w${WW}`
-const WDIR = `content/weeks/w${WW}`
+const ROOT = '/Users/jestercharles/2463-fde'   // absolute — agent CWD drifts, relative paths land in wrong dirs
+const BACKEND = `${ROOT}/backend/src/index.js`
+const TEMPLATE = `${ROOT}/content/weeks/w01/d1.html`
+const RDIR = `${ROOT}/content/docs/research/w${WW}`
+const WDIR = `${ROOT}/content/weeks/w${WW}`
 const DAYS = (A.days || []).map(x => ({ ...x, slug: `w${WW}d${x.d}` }))
 
 const RESEARCH_SCHEMA = { type:'object', additionalProperties:false, properties:{
@@ -95,7 +97,7 @@ const recon = await gated(
   (cr) => agent(
     `You are the CONCEPT RECONCILER for Week ${WEEK}. The parallel research agents proposed these concept-ids (with the day each came from):\n`+
     JSON.stringify(rawConcepts, null, 1) + '\n'+
-    `FIRST read backend/src/index.js — the CONCEPTS object is the LIVE, already-shipped taxonomy (Weeks 0-2 plus pre-seeded stubs). Those ids are plain kebab-case; the day is noted in the LABEL, never in the id.\n`+
+    `FIRST read ${BACKEND} — the CONCEPTS object is the LIVE, already-shipped taxonomy (Weeks 0-2 plus pre-seeded stubs). Those ids are plain kebab-case; the day is noted in the LABEL, never in the id.\n`+
     `Produce a CLEAN canonical taxonomy:\n`+
     `- If a proposed concept means the SAME thing as a live CONCEPTS id, REUSE that exact live id — do NOT mint a synonym. Pre-seeded stubs (e.g. agent-complexity, human-in-loop, checkpointing, agent-observability, knowledge-graph, legacy-modernization) are the intended homes for this week's matching concepts; reuse them.\n`+
     `- Merge near-duplicates and exact duplicates WITHIN this week into ONE canonical id (kebab-case). e.g. "embedding-dimensions" + "embedding-dimensionality" -> one id.\n`+
@@ -108,14 +110,15 @@ const recon = await gated(
   (r) => agent(
     `RECONCILE CRITIC for Week ${WEEK}. Reconciler output:\n`+ JSON.stringify(r, null, 1) +'\n'+
     `Original concepts:\n`+ JSON.stringify(rawConcepts, null, 1) +'\n'+
-    `Read backend/src/index.js CONCEPTS (the live shipped taxonomy).\n`+
+    `Read ${BACKEND} CONCEPTS (the live shipped taxonomy).\n`+
     `PASS only if: no two canonical ids are near-duplicates; NO canonical id marked isNew=true collides with or near-duplicates a LIVE CONCEPTS id (a concept matching a live id MUST reuse that id with isNew=false); every original id appears in remap; each canonical concept's home day is plausible for its topic; ids are plain kebab-case (no week prefix, day only in the label).\n`+
     `Else pass=false with specific critiques. One-sentence summary.`,
     { schema: VERDICT, label:`w${WW}:reconcile-crit`, phase:'Reconcile' })
 )
+const reconResult = (recon && recon.result) || { remap: [], canonical: [] }   // gen hard-fail leaves result null
 const remap = {}
-;(recon.result.remap || []).forEach(m => { remap[m.from] = m.to })
-const canonical = recon.result.canonical || []
+;(reconResult.remap || []).forEach(m => { remap[m.from] = m.to })
+const canonical = reconResult.canonical || []
 const canonByDay = {}
 canonical.forEach(c => { (canonByDay[c.day] = canonByDay[c.day] || []).push(c.id) })
 log(`Reconciled ${rawConcepts.length} -> ${canonical.length} canonical concepts`)
@@ -145,6 +148,24 @@ const readings = await parallel(DAYS.map((day) => () => gated(
     { schema: VERDICT, label:`${day.slug}:reading-crit`, phase:'Readings' })
 )))
 
+// Salvage (W3 bug c): a StructuredOutput hard-fail on the RETURN often follows a
+// successfully WRITTEN file. A null entry here is NOT "no file" — post-hoc critic
+// checks the disk. Never let a hard-fail vanish from flaggedCount.
+const readingsRepaired = await parallel(DAYS.map((day, i) => () => {
+  const r = readings[i]
+  if (r && r.status) return Promise.resolve(r)
+  return agent(
+    `POST-HOC SALVAGE CRITIC for ${WDIR}/${day.slug}.html. The authoring agent hard-failed its structured return, but it may have already written a valid file. If the file does NOT exist, return pass=false with critique "file missing — regenerate". Otherwise apply the FULL reading critic: read it, ${RDIR}/${day.slug}.md (allowed sources), ${TEMPLATE} (design gold standard). Load WebFetch (ToolSearch: select:WebFetch).\n`+
+    `PASS only if: prose 2,400-3,000 words; 7-9 .step sections; window.DIAGRAM present, captions.length == steps, nodes carry coords; 6-Q modal + deep-dive present; .reading-sources present with >=3 URLs spot-checked live; every claim traces to the brief; >=1 .ix-future placeholder and ZERO functional ix-run; meta fde-concepts uses only ${JSON.stringify(canonByDay[day.slug] || [])}; structure matches the template.\n`+
+    `Else pass=false with specific critiques. One-sentence summary.`,
+    { schema: VERDICT, label:`${day.slug}:salvage-crit`, phase:'Readings' }
+  ).then(v => ({ task:`${day.slug} reading`, status: (v && v.pass) ? 'done' : 'flagged', passes: 0,
+                 ...(v && !v.pass ? { flags: v.critiques } : (v ? {} : { flags: ['salvage critic hard-failed too'] })),
+                 summary: 'hard-fail salvage: ' + ((v && v.summary) || 'no verdict'), result: null }))
+}))
+const readingHardFails = DAYS.map((day, i) => (readings[i] && readings[i].status) ? null : day.slug).filter(Boolean)
+if (readingHardFails.length) log(`Salvaged ${readingHardFails.length} hard-failed reading return(s): ${readingHardFails.join(', ')} — wordCount/steps/futureInteractives missing for these, verify at wire time`)
+
 phase('Questions')
 const questionSets = await parallel(canonical.map(c => () => gated(
   `${c.id} questions`, 'Questions',
@@ -164,19 +185,25 @@ const questionSets = await parallel(canonical.map(c => () => gated(
 )))
 
 // ---------- compact report ----------
+// Null -> flagged everywhere (W3 bug c): a hard-failed agent must surface as
+// flagged, never silently drop out of flaggedCount.
+const repairNulls = (arr, labelFor) => arr.map((x, i) => x || ({ task: labelFor(i), status:'flagged', passes:0, flags:['agent hard-failed (structured return / terminal error)'], summary:'hard-fail — regenerate' }))
+const researchRepaired = repairNulls(research, i => `${DAYS[i].slug} research`)
+const questionsRepaired = repairNulls(questionSets, i => `${canonical[i].id} questions`)
+const reconRepaired = recon || { task:`w${WW} concept reconciliation`, status:'flagged', passes:0, flags:['reconciler hard-failed'], summary:'hard-fail — regenerate' }
 const compact = (arr) => arr.filter(Boolean).map(x => ({ task:x.task, status:x.status, passes:x.passes, ...(x.flags?{flags:x.flags}:{}), summary:x.summary }))
 const allQuestions = []
 questionSets.forEach((q, i) => { if (q && q.result && Array.isArray(q.result.questions)) allQuestions.push({ concept: canonical[i].id, day: canonical[i].day, questions: q.result.questions }) })
 const futureInteractives = []
 readings.forEach((r, i) => { if (r && r.result && Array.isArray(r.result.futureInteractives)) r.result.futureInteractives.forEach(fi => futureInteractives.push({ day: DAYS[i].slug, ...fi })) })
-const flaggedCount = [...research, recon, ...readings, ...questionSets].filter(x => x && x.status === 'flagged').length
+const flaggedCount = [...researchRepaired, reconRepaired, ...readingsRepaired, ...questionsRepaired].filter(x => x && x.status === 'flagged').length
 log(`W${WW} run complete. Flagged items: ${flaggedCount}`)
 
 return {
   week: WEEK, flaggedCount,
-  research: compact(research), reconcile: compact([recon])[0],
-  readings: compact(readings), questions: compact(questionSets),
-  concepts: canonical, remap: recon.result.remap,
+  research: compact(researchRepaired), reconcile: compact([reconRepaired])[0],
+  readings: compact(readingsRepaired), questions: compact(questionsRepaired),
+  concepts: canonical, remap: reconResult.remap,
   questionCounts: allQuestions.map(q => ({ concept:q.concept, day:q.day, n:q.questions.length })),
   questionBank: allQuestions, futureInteractives,
 }

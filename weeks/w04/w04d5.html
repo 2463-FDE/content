@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w04d5">
+<meta name="fde-concepts" content="kg-construction-pipeline,lexical-vs-entity-graph,community-summarization,local-vs-global-search">
+<title>W4·D5 — GraphRAG End-to-End: Vector + Graph Hybrid Retrieval | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>GraphRAG End-to-End: When Retrieval Grows a Graph</h1>
+        <div class="meta">
+          <span><b>Week 4</b> · Day 5 · ★ milestone</span>
+          <span>Knowledge Graphs &amp; Multi-Agent Systems</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Week 2 gave you vector RAG; yesterday gave you Neo4j and Cypher. Today they fuse. GraphRAG
+        is the end-to-end pipeline that turns unstructured documents into a knowledge graph, then retrieves with
+        <strong>vector similarity as the entry point and graph traversal as the context expander</strong> — and it
+        exists because a whole class of client questions is simply unanswerable by top-k chunk retrieval. This is the
+        week's milestone: by the end you can draw the full path from raw docs to grounded, graph-aware answers, and
+        justify every stage. Scroll the reading; the panel on the right assembles the pipeline one layer at a time.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The gap</div>
+        <h2>Vector RAG hits a wall on "whole corpus" questions</h2>
+        <p>Start with the failure that motivates everything today. Your Week 2 RAG pipeline — embed the query, pull the
+        top-k most similar chunks, answer against them — is excellent at one shape of question: <em>"find me the passage
+        that says X."</em> Now imagine the client asks, <strong>"What are the top themes across all of last quarter's
+        incident reports?"</strong> There is no chunk anywhere in the corpus that contains that answer. Similarity search
+        retrieves five near-duplicate fragments about whichever theme happens to sit closest to the query embedding, and
+        the model summarizes a sliver while sounding like it surveyed the whole.</p>
+        <p>Microsoft's GraphRAG paper — <em>From Local to Global: A Graph RAG Approach to Query-Focused Summarization</em>
+        (Edge et al.) — names this precisely: baseline vector RAG fails on questions "directed at an entire text corpus."
+        These are <strong>global sensemaking</strong> questions — query-focused summarization tasks, not needle-in-haystack
+        lookups. Their proposed fix has two moves: use an LLM to build an <strong>entity knowledge graph</strong> out of
+        the documents, and <strong>pre-generate summaries for communities of closely related entities</strong> so the
+        corpus has a structured, hierarchical index to reason over. Answers are then produced hierarchically — a partial
+        answer per community summary, then a final summarizing pass. On corpora in the one-million-token range, the paper
+        reports substantial improvements over a conventional RAG baseline in both the <em>comprehensiveness</em> and
+        <em>diversity</em> of answers, and the approach "scales with both the generality of user questions and the
+        quantity of source text."</p>
+        <p>Microsoft's own framing is the one to carry into a client meeting: GraphRAG is "a structured, hierarchical
+        approach to RAG, as opposed to naive semantic-search approaches using plain text snippets." Keep the diagnostic in
+        your pocket — when a client's RAG demo aces lookup questions and faceplants on "summarize the landscape" questions,
+        that isn't a tuning problem. It's a missing layer of structure, and today you learn to build it.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">The shape</div>
+        <h2>Two pipelines, one system: index time and query time</h2>
+        <p>Every GraphRAG system, whichever library you use, is really two pipelines welded together. The
+        <strong>index-time pipeline</strong> runs once (and on updates): it eats raw documents and emits a knowledge graph
+        plus supporting indexes. The <strong>query-time pipeline</strong> runs per request: it takes a question, enters the
+        graph somewhere, expands context, and generates a grounded answer. Confuse the two and every architecture
+        conversation goes sideways — index-time cost is paid up front and amortized; query-time cost is paid on every call,
+        the same budget discipline you learned in Week 1.</p>
+        <p>Microsoft's reference indexing pipeline is four stages. <strong>One:</strong> segment the raw text into
+        <strong>TextUnits</strong> — the chunks that remain the unit of analysis and citation throughout. <strong>Two:</strong>
+        use the LLM to extract <strong>entities, relationships, and claims</strong> from each unit. <strong>Three:</strong>
+        run hierarchical community detection over the resulting entity graph with the <strong>Leiden</strong> algorithm,
+        clustering entities that are densely connected to each other. <strong>Four:</strong> generate
+        <strong>community summaries bottom-up</strong>, so every cluster — and cluster of clusters — has a pre-written
+        digest of what it's about.</p>
+        <p>Notice what stages three and four buy you: they are the paper's answer to the global-question gap from the last
+        section. The graph alone gives you structure; the community summaries give you a <em>corpus-level semantic
+        index</em> you can answer "top themes" questions from. We'll return to them in depth near the end of the reading.
+        For the next three sections we zoom into the first half of the story — how unstructured text becomes a graph at
+        all — using the first-party Neo4j tooling you'll build the milestone with, because it plugs straight into the
+        Neo4j instance and Cypher skills you set up yesterday.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Index time · construction</div>
+        <h2>SimpleKGPipeline: docs in, graph out</h2>
+        <p>Neo4j's official Python package, <code>neo4j-graphrag</code> (v1.18.0 as of late June 2026 — the long-term
+        maintained successor to the deprecated <code>neo4j-genai</code>), wraps the entire index-time pipeline in one
+        orchestrator: <strong><code>SimpleKGPipeline</code></strong>. It chains four components, and each one maps to a
+        decision you'll defend at a client.</p>
+        <p>First, a <strong><code>FixedSizeSplitter</code></strong> chunks the documents — with <code>approximate=True</code>
+        by default so chunk boundaries land cleanly rather than mid-word. Second, a <strong><code>TextChunkEmbedder</code></strong>
+        computes an embedding for every chunk and stores it <em>as a property on the chunk node</em> — this is the hook
+        that lets vector search live inside the graph database later. Third, the star of the show: the
+        <strong><code>LLMEntityRelationExtractor</code></strong> reads each chunk and pulls out entities and relationships,
+        guided by a schema you supply. It uses structured output on providers that support it (OpenAI, VertexAI), and its
+        <code>on_error</code> setting decides per-chunk failure behavior — whether one malformed extraction kills the run
+        or gets skipped and logged. Fourth, a <strong><code>Neo4jWriter</code></strong> persists everything, batching
+        writes 1,000 rows at a time by default.</p>
+        <p>Read that chain again and you'll see something familiar: it's your Week 2 ingestion pipeline with one component
+        swapped. Split, embed, store — but between "embed" and "store" now sits an LLM doing <em>information
+        extraction</em>, upgrading a pile of chunks into a network of entities. That framing matters for cost
+        conversations too: the extractor is an LLM call per chunk, which makes index-time the expensive phase. You pay it
+        once per corpus, not once per query — but you should be able to estimate it before you run it.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: paste a short incident report and
+        run a live <code>SimpleKGPipeline</code> pass — watch the splitter, embedder, and extractor stages fire and the
+        extracted entity graph render node by node. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Index time · quality control</div>
+        <h2>Schema guardrails and entity resolution</h2>
+        <p>Left unguided, an LLM extractor will happily invent forty entity types and a zoo of one-off relationships —
+        a graph that's technically populated and practically useless. <code>SimpleKGPipeline</code> takes a
+        <strong>schema</strong> for exactly this reason: you pass <code>node_types</code>, <code>relationship_types</code>,
+        and <code>patterns</code> — triples like <code>("Person", "PARENT_OF", "Person")</code> — that spell out which
+        relationships are allowed between which types. Set <code>additional_node_types: False</code> and the pipeline
+        <em>rejects</em> anything outside the schema instead of letting the graph drift. Skip properties on a type and a
+        <code>name: STRING</code> property is auto-added, so every entity is at least addressable. This is yesterday's
+        modeling lesson operationalized: the schema you designed on the whiteboard becomes the contract the extractor is
+        held to, chunk after chunk.</p>
+        <p>The second quality problem is subtler. Chunk 12 mentions "Acme Corp", chunk 87 says "Acme Corporation", chunk
+        203 says "ACME" — and a naive pipeline writes three disconnected nodes, quietly shattering the connectivity that
+        makes graph retrieval worth anything. The fix is an <strong>entity resolution</strong> pass after writing, and the
+        package ships a ladder of resolvers: <code>SinglePropertyExactMatchResolver</code> merges nodes whose key property
+        matches exactly; <code>SpaCySemanticMatchResolver</code> merges on semantic similarity of names;
+        <code>FuzzyMatchResolver</code> handles the typo-and-abbreviation middle ground. Which rung you pick is a
+        precision/recall trade you should make consciously — over-merging is as destructive as under-merging, because
+        fusing two genuinely different "J. Smith"s poisons every traversal that passes through the merged node.</p>
+        <p>The FDE habit here: <strong>inspect the graph before you build retrieval on it.</strong> A handful of Cypher
+        spot-checks — how many entity types actually got created, which entities have suspicious duplicate near-names,
+        what the degree distribution looks like — catches extraction drift on day one instead of after the demo.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">The two-layer graph</div>
+        <h2>Lexical graph vs entity graph — you need both</h2>
+        <p>Here is the single most load-bearing design idea of the day. When <code>SimpleKGPipeline</code> runs with
+        <code>create_lexical_graph=True</code>, it doesn't build one graph — it builds <strong>two coexisting layers</strong>
+        in the same database.</p>
+        <p>The <strong>lexical graph</strong> preserves the documents themselves: <code>Document</code> and
+        <code>Chunk</code> nodes, wired with <code>FROM_DOCUMENT</code> relationships (which chunk came from which file)
+        and <code>NEXT_CHUNK</code> relationships (reading order). Its embeddings live on the chunk nodes. This layer is
+        the model's <em>evidence locker</em> — the actual source text, structure intact, that a grounded answer quotes
+        from. The <strong>entity graph</strong> is the schema-pruned domain layer the extractor produced: people,
+        systems, incidents, whatever your schema named, connected by typed relationships. It's the <em>map of what the
+        corpus is about</em>, abstracted away from any single passage.</p>
+        <p>Why insist on both? Because each one alone reproduces a failure you've already met. Entity graph only, and you
+        can traverse beautifully but you've thrown away the source text — answers float free of quotable evidence, which
+        is exactly the hallucination-adjacent behavior Week 1 taught you to fear. Lexical graph only, and you're back to
+        Week 2: chunks and similarity, with no structural way to hop from a retrieved passage to the related facts two
+        documents away. The magic is in the <em>connections between the layers</em>: entities link back to the chunks
+        that mention them, so retrieval can enter through one layer and harvest from the other. Find a chunk by vector
+        similarity, hop to the entities it mentions, walk the entity graph to related entities, then collect <em>their</em>
+        source chunks — text the query's embedding would never have surfaced, but the graph knows is relevant.</p>
+        <p>That two-layer hop is the entire mechanical basis of "hybrid vector + graph retrieval." Which brings us to
+        query time.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Query time · retrieval</div>
+        <h2>The retriever ladder: vector entry, graph expansion</h2>
+        <p>The <code>neo4j-graphrag</code> package expresses query-time strategy as a family of first-party retrievers —
+        best understood as a ladder, each rung adding one capability. <strong><code>VectorRetriever</code></strong> is the
+        floor: pure vector-index similarity over chunk embeddings — your Week 2 pipeline living inside Neo4j.
+        <strong><code>VectorCypherRetriever</code></strong> is the day's headline: vector search finds the entry chunks,
+        then a <strong>Cypher traversal you write</strong> runs from each hit to enrich the result with connected-node
+        context — the cross-layer hop from the last section, made concrete in one class.
+        <strong><code>HybridRetriever</code></strong> widens the entry point instead: it searches a vector index <em>and</em>
+        a full-text index simultaneously and merges results, so exact keywords (error codes, product names, statute
+        numbers) can't slip past a purely semantic match. <strong><code>HybridCypherRetriever</code></strong> combines
+        both upgrades — hybrid entry plus follow-up graph traversal. And <strong><code>Text2CypherRetriever</code></strong>
+        steps off the ladder entirely: an LLM translates the natural-language question into Cypher, executes it, and
+        returns structured results — with a guardrail added in v1.16.0 that validates generated queries before execution
+        to block destructive operations.</p>
+        <p>Two composition notes that matter in real engagements. <strong><code>ToolsRetriever</code></strong> exposes
+        multiple retrievers to an LLM <em>as tools</em>, letting it pick per query and combine results with attribution —
+        Week 3's tool-routing pattern applied to retrieval. And the external-store retrievers
+        (<code>QdrantNeo4jRetriever</code>, <code>WeaviateNeo4jRetriever</code>, <code>PineconeNeo4jRetriever</code>) run
+        vector search in an external vector database and map hits back to Neo4j nodes — so a client's existing Qdrant
+        investment composes with the graph rather than competing with it.</p>
+        <p>Generation, after all that machinery, is one class:
+        <code>GraphRAG(retriever=..., llm=...)</code>, then
+        <code>rag.search(query_text=..., retriever_config={"top_k": 5}, return_context=True)</code> — retriever fetches
+        context, LLM answers against it, and <code>return_context</code> hands you the evidence for citation and evals.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: fire the same question at a
+        <code>VectorRetriever</code> and a <code>VectorCypherRetriever</code> side by side and diff the retrieved
+        context — see exactly what the graph hop added. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Index time · the corpus-level index</div>
+        <h2>Communities and their summaries: a table of contents the LLM wrote</h2>
+        <p>Now back to the two Microsoft indexing stages we parked earlier, because they're the part of GraphRAG that
+        answers the question this whole day opened with. Once the entity graph exists, the <strong>Leiden algorithm</strong>
+        partitions it into <strong>hierarchical communities</strong> — clusters of entities that are densely connected to
+        each other and sparsely connected to everything else. Hierarchical is the key word: small tight communities nest
+        inside larger ones, level by level, so the corpus gets organized at multiple resolutions at once — like sections
+        nesting inside chapters.</p>
+        <p>Then comes the insight that makes global questions tractable: for every community, at every level, the
+        pipeline <strong>pre-generates a summary, bottom-up</strong> — leaf communities are summarized from their
+        entities and relationships, and parent communities are summarized from their children's summaries. The result is
+        a <em>corpus-level semantic index</em>: a layered, LLM-written table of contents describing what every
+        neighborhood of the graph is about, sitting there before any user asks anything.</p>
+        <p>Spot the trade, because it's the same one you've been making all program — <strong>spend tokens at index time
+        to save capability at query time.</strong> Community summarization is a pile of LLM calls you pay once per corpus
+        build. In exchange, "what are the major themes?" stops being an impossible retrieval problem and becomes a
+        <em>reading</em> problem over a few dozen pre-written summaries. When a client balks at GraphRAG's indexing bill,
+        this is the sentence: you are pre-paying for the questions vector RAG can't answer at any price. And when their
+        corpus is genuinely all lookup traffic — no sensemaking questions in sight — that same sentence tells you they
+        may not need this layer at all. The pipeline is a menu, not a mandate.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Query time · modes</div>
+        <h2>Local vs global search: match the mode to the question's shape</h2>
+        <p>Microsoft's reference library ships <strong>four query modes</strong> — Global, Local, DRIFT, and Basic — and
+        the local/global pair is the vocabulary you'll use for the rest of your career to sort questions into retrieval
+        strategies.</p>
+        <p><strong>Local search</strong> is entity-centric, for questions <em>about specific things</em>: "what happened
+        with the Meridian outage?" It embeds the query and matches it against <strong>entity description embeddings</strong>
+        — entering the graph through entities, not chunks. From those access points it fans out to connected entities,
+        relationships, covariates, community reports, <em>and</em> the associated raw text chunks, then the candidates are
+        "prioritized and filtered to fit within a single context window." Hear the echo of Week 1? Even the fanciest graph
+        retrieval terminates in the same finite window, and the last step is always triage.</p>
+        <p><strong>Global search</strong> is for the corpus-shaped questions from the top of the reading, and it never
+        touches individual entities at all — it runs <strong>map-reduce over the community reports</strong>. Map: chunk
+        the community reports, and have the LLM produce intermediate answer points from each batch, <em>each with a
+        numerical importance rating</em>. Reduce: filter to the top-rated points and aggregate them as context for the
+        final answer. The dial is which community <strong>hierarchy level</strong> you read from — lower levels mean more
+        detailed reports, better answers, and more LLM calls. That's a literal cost/quality knob you can quote in a
+        proposal. <strong>DRIFT</strong> blends the two — entity-centric local search with community context folded in —
+        and <strong>Basic</strong> is plain vector similarity, kept around as the baseline (and as a quiet reminder that
+        the baseline is sometimes enough).</p>
+        <p>The milestone, assembled: <code>SimpleKGPipeline</code> ingests your corpus into the two-layer graph on
+        yesterday's Neo4j instance; a vector index goes over the chunk embeddings; a <code>VectorCypherRetriever</code> or
+        <code>HybridCypherRetriever</code> does hybrid retrieval; <code>GraphRAG.search()</code> generates grounded
+        answers — with local-vs-global as the frame for explaining <em>why</em> the graph hop earns its complexity over
+        Week 2's pure-vector RAG.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: ask one entity question and one
+        "top themes" question against the same indexed corpus, toggling local vs global mode — watch local fan out from
+        entities while global map-reduces over community summaries. Needs backend standup.</p></div>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>GraphRAG is not "better RAG" — it's <strong>more RAG</strong>: an indexing bill, a schema to govern, resolvers
+          to tune, and two retrieval layers to keep healthy. The FDE move is to ask what <em>shape</em> of question the
+          client actually has. Lookup questions? Week 2's pipeline is cheaper and simpler. Sensemaking questions across a
+          corpus — or answers that must follow relationships the text never states in one place? Now the graph earns its
+          keep. Recommending the simpler system when it suffices is what makes the client trust you when you recommend the
+          complex one.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://arxiv.org/abs/2404.16130" target="_blank" rel="noopener">Edge et al. — From Local to Global: A Graph RAG Approach to Query-Focused Summarization (arXiv 2404.16130)</a> — the paper: global sensemaking gap, entity KG + pre-generated community summaries, comprehensiveness/diversity results.</li>
+          <li><a href="https://microsoft.github.io/graphrag/" target="_blank" rel="noopener">Microsoft GraphRAG — Welcome</a> — the structured/hierarchical framing, the four-stage index pipeline (TextUnits → extraction → Leiden → community summaries), and the four query modes.</li>
+          <li><a href="https://microsoft.github.io/graphrag/query/local_search/" target="_blank" rel="noopener">Microsoft GraphRAG — Local Search</a> — entity-description-embedding entry points, fan-out sources, context-window prioritization.</li>
+          <li><a href="https://microsoft.github.io/graphrag/query/global_search/" target="_blank" rel="noopener">Microsoft GraphRAG — Global Search</a> — map-reduce over community reports, importance ratings, the hierarchy-level cost dial.</li>
+          <li><a href="https://neo4j.com/docs/neo4j-graphrag-python/current/" target="_blank" rel="noopener">neo4j-graphrag-python — documentation home</a> — first-party package status, compatibility, and release highlights.</li>
+          <li><a href="https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_kg_builder.html" target="_blank" rel="noopener">neo4j-graphrag — User Guide: KG Builder</a> — <code>SimpleKGPipeline</code> components and defaults, schema guidance, lexical vs entity graph, entity resolvers.</li>
+          <li><a href="https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_rag.html" target="_blank" rel="noopener">neo4j-graphrag — User Guide: RAG</a> — the full retriever ladder, <code>ToolsRetriever</code>, external vector-store retrievers, and the <code>GraphRAG</code> class.</li>
+          <li><a href="https://pypi.org/project/neo4j-graphrag/" target="_blank" rel="noopener">neo4j-graphrag — PyPI</a> — v1.18.0, released 2026-06-24.</li>
+          <li><a href="https://github.com/neo4j/neo4j-graphrag-python/releases" target="_blank" rel="noopener">neo4j/neo4j-graphrag-python — Releases</a> — 1.16.0 Cypher 25 SEARCH support + query validation; 1.15.0 constraint alignment.</li>
+          <li><a href="https://github.com/microsoft/graphrag/releases" target="_blank" rel="noopener">microsoft/graphrag — Releases</a> — reference library, v3.1.0 latest.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Versions, Text2Cypher guardrails &amp; a cost sketch</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on the GraphRAG pipeline</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 4 Day 5</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: versions, Text2Cypher guardrails &amp; index-time cost</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The production edges of today's pipeline.</p>
+    <p><strong>Pin your versions.</strong> As of 2026-07-01: <code>neo4j-graphrag</code> is at <strong>1.18.0</strong>
+    (released 2026-06-24), supporting Neo4j ≥ 5.18.1 / Aura ≥ 5.18.0 and Python 3.10–3.14. On Neo4j
+    <strong>2026.01+</strong> the package auto-detects the server and uses the Cypher 25 <code>SEARCH</code> clause for
+    vector queries (support landed in 1.16.0). Microsoft's reference <code>graphrag</code> library is at
+    <strong>v3.1.0</strong>. The Neo4j package replaced the deprecated <code>neo4j-genai</code> — if a client codebase
+    imports the old name, that's a migration item, not a style nit.</p>
+    <p><strong>Text2Cypher is powerful and sharp.</strong> An LLM writing Cypher against production data can also write
+    <em>destructive</em> Cypher. Since 1.16.0 the package validates generated queries before execution to block
+    destructive operations — but treat that as one layer, not the whole answer: run Text2Cypher through a read-only
+    database user, and log every generated query for review. Related hardening: 1.15.0 added schema constraint
+    alignment (EXISTENCE/KEY), so the graph the LLM queries actually honors the schema you promised it.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked sketch — where the index-time money goes</div>
+      <ul class="deliv-list">
+        <li>Chunking &amp; embedding: cheap — embedding-model rates, one pass over the corpus</li>
+        <li>Entity/relation extraction: <strong>one LLM call per chunk</strong> — the dominant line item</li>
+        <li>Entity resolution: cheap-to-moderate depending on resolver (exact match ≈ free; semantic match costs compute)</li>
+        <li>Community summarization: LLM calls per community, per hierarchy level — second-biggest line</li>
+      </ul>
+      <p style="margin:8px 0 0">So the estimate a client actually wants is: <em>(number of chunks × extraction cost) +
+      (number of communities × summary cost)</em>, paid per corpus build. Query-time cost then rides on which retriever
+      and, for global search, which community level you read — lower levels = more detail = more map-reduce calls. Same
+      Week 1 arithmetic, bigger stage.</p>
+    </div>
+    <p style="margin-top:14px"><strong>When vectors live elsewhere.</strong> The external-store retrievers
+    (<code>QdrantNeo4jRetriever</code> and friends) mean "adopt GraphRAG" never has to mean "migrate the vector DB":
+    vector search runs where the embeddings already are, and hits map back to Neo4j nodes for the graph hop.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 5 — goals &amp; deliverable (★ milestone)</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Explain why top-k vector RAG fails on global sensemaking questions — and what structure fixes it</li>
+      <li>Walk the index-time pipeline: <code>SimpleKGPipeline</code> stages, schema guardrails, entity resolution</li>
+      <li>Draw the two-layer graph (lexical vs entity) and show why hybrid retrieval needs both</li>
+      <li>Pick a rung on the retriever ladder — and local vs global search — to match a question's shape</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>★ Milestone: run the E2E pipeline — <code>SimpleKGPipeline</code> ingest into yesterday's Neo4j, vector index on chunk embeddings, <code>VectorCypherRetriever</code> (or <code>HybridCypherRetriever</code>), <code>GraphRAG.search()</code></li>
+      <li><b>①</b> your extraction schema (node types, relationship types, patterns) with one sentence defending each type</li>
+      <li><b>②</b> one question answered better by the graph hop than by pure vector retrieval — include both contexts as evidence</li>
+      <li><b>③</b> in <code>NOTES.md</code>: one client question you'd route to local search and one you'd route to global search, with the why</li>
+    </ul>
+    <p class="goals-foot">This closes Week 4's arc: modeling (D4) → construction and hybrid retrieval (today). Bring the
+    working pipeline — it becomes the retrieval backbone for what comes next.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Back to Program →", href: "../../index.html" };
+window.DIAGRAM = {
+  title: "GraphRAG · docs → graph → hybrid retrieval",
+  width: 500, height: 690,
+  nodes: [
+    // the motivating query (dark payload card)
+    { id:"gap", step:0, kind:"example", x:14, y:14, w:472, h:78,
+      label:"QUERY  \"What are the top themes across ALL of last quarter's incident reports?\"\n  top-k vector RAG → 5 near-duplicate chunks about one theme\n  the answer lives in no single chunk — it needs structure" },
+
+    // index-time pipeline (left column)
+    { id:"idx", step:1, x:14, y:104, w:224, h:298, label:"INDEX TIME — run once per corpus",
+      detail:"Microsoft's reference pipeline: (1) segment text into TextUnits, (2) LLM-extract entities/relationships/claims per unit, (3) Leiden hierarchical community detection, (4) bottom-up community summaries. Paid up front and amortized — query-time cost is paid on every call." },
+    { id:"split", step:2, x:28, y:140, w:196, h:52, label:"FixedSizeSplitter\n+ TextChunkEmbedder",
+      detail:"Chunks the docs (approximate=True keeps boundaries clean) and stores an embedding on every chunk node — the hook that lets vector search live inside the graph DB." },
+    { id:"extract", step:2, x:28, y:200, w:196, h:52, label:"LLMEntityRelationExtractor\n(one LLM call per chunk)",
+      detail:"Reads each chunk and extracts entities + relationships. Structured output on OpenAI/VertexAI; on_error decides whether one bad chunk kills the run. This is the dominant index-time cost line." },
+    { id:"schema", step:3, x:28, y:260, w:196, h:52, label:"schema guardrails\nnode/rel types + patterns",
+      detail:"node_types, relationship_types, and patterns like (\"Person\",\"PARENT_OF\",\"Person\") constrain what the extractor may create; additional_node_types:False rejects anything undefined. A name:STRING property is auto-added when properties are omitted." },
+    { id:"resolve", step:3, x:28, y:320, w:196, h:64, label:"Neo4jWriter (batch 1000)\n→ entity resolver",
+      detail:"Writer persists in batches of 1,000. Then resolution merges duplicates — 'Acme Corp' / 'Acme Corporation' / 'ACME' — via exact-match, SpaCy semantic, or fuzzy resolvers. Over-merging poisons traversals as badly as under-merging fragments them." },
+
+    // the two-layer graph store (right column)
+    { id:"lex", step:4, x:262, y:112, w:224, h:64, label:"LEXICAL GRAPH\nDocument · Chunk · NEXT_CHUNK\nFROM_DOCUMENT · embeddings",
+      detail:"The evidence locker: source text with structure intact, embeddings on chunk nodes. create_lexical_graph=True builds it. Without it, answers float free of quotable evidence." },
+    { id:"ent", step:4, x:262, y:188, w:224, h:64, label:"ENTITY GRAPH\nschema-pruned domain\nentities + relationships",
+      detail:"The map of what the corpus is about. Entities link back to the chunks that mention them — retrieval enters one layer and harvests from the other. That cross-layer hop is what 'hybrid vector + graph' means mechanically." },
+    { id:"comm", step:6, x:262, y:264, w:224, h:70, label:"Leiden communities\n+ pre-written summaries\n(bottom-up, hierarchical)",
+      detail:"Leiden clusters densely-connected entities into nested communities; each gets an LLM-written summary, leaves first, parents from children. A corpus-level semantic index — tokens spent at index time to make 'top themes' questions answerable at all." },
+
+    // query-time (bottom)
+    { id:"ladder", step:5, x:14, y:430, w:290, h:92, label:"RETRIEVER LADDER\nVector → VectorCypher →\nHybrid → HybridCypher →\nText2Cypher · ToolsRetriever",
+      detail:"Vector = pure similarity. VectorCypher adds a Cypher traversal from each hit. Hybrid adds a full-text index for exact keywords. HybridCypher = both. Text2Cypher = LLM-written Cypher (validated before execution since 1.16.0). ToolsRetriever lets an LLM pick per query. Qdrant/Weaviate/Pinecone variants map external vector hits back to Neo4j nodes." },
+    { id:"rag", step:5, x:330, y:444, w:156, h:64, label:"GraphRAG.search()\n→ grounded answer",
+      detail:"GraphRAG(retriever=..., llm=...) then rag.search(query_text=..., retriever_config={'top_k':5}, return_context=True) — retriever fetches, LLM answers, return_context hands you the evidence for citations and evals." },
+    { id:"local", step:7, x:14, y:560, w:224, h:66, label:"LOCAL search\nentity embeddings → fan-out\n→ filtered to one window",
+      detail:"Entity-centric: query embedding matched against entity-description embeddings, then fan-out to connected entities, relationships, covariates, community reports, and raw chunks — prioritized and filtered to fit a single context window. Best for questions about specific entities." },
+    { id:"global", step:7, x:262, y:560, w:224, h:66, label:"GLOBAL search\nmap-reduce over\ncommunity reports",
+      detail:"Map: chunk the community reports, LLM emits intermediate points each with a numerical importance rating. Reduce: top-rated points become context for the final answer. Community hierarchy level is the cost/quality dial. DRIFT blends local+global; Basic is plain vector similarity." }
+  ],
+  edges: [
+    { id:"e_pipe1", step:2, from:"split",   to:"extract", label:"chunks", lx:6 },
+    { id:"e_pipe2", step:3, from:"extract", to:"schema",  label:"guided by", lx:6 },
+    { id:"e_lex",   step:4, from:"idx",     to:"lex",     label:"writes", ly:-4 },
+    { id:"e_ent",   step:4, from:"idx",     to:"ent",     label:"writes", ly:6 },
+    { id:"e_leiden",step:6, from:"ent",     to:"comm",    label:"Leiden", lx:8 },
+    { id:"e_ventry",step:5, from:"lex",     to:"ladder",  label:"vector entry", bend:-24 },
+    { id:"e_hop",   step:5, from:"ent",     to:"ladder",  label:"Cypher hop", ly:-2 },
+    { id:"e_ans",   step:5, from:"ladder",  to:"rag",     label:"context →", ly:-4 },
+    { id:"e_loc",   step:7, from:"local",   to:"ent",     label:"enters via entities", bend:30 },
+    { id:"e_glob",  step:7, from:"global",  to:"comm",    label:"reads summaries", lx:8 }
+  ],
+  captions: [
+    "The question vector RAG can't answer: it lives in <b>no single chunk</b>. Global sensemaking needs structure, not similarity. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "GraphRAG is <b>two pipelines</b>: index-time builds the graph once; query-time answers per request. Microsoft's index recipe: TextUnits → extraction → Leiden → summaries. <span style='opacity:.7'>(tap)</span>",
+    "<b>SimpleKGPipeline</b> starts like Week 2 — split and embed — then an LLM <b>extracts entities and relationships</b> from every chunk. <span style='opacity:.7'>(tap)</span>",
+    "A <b>schema</b> constrains what the extractor may create, and an <b>entity resolver</b> merges 'Acme Corp' with 'ACME' after writing. <span style='opacity:.7'>(tap)</span>",
+    "Two layers coexist: the <b>lexical graph</b> keeps the evidence; the <b>entity graph</b> maps the domain. Entities link back to their chunks — the hybrid hop. <span style='opacity:.7'>(tap)</span>",
+    "Query time: <b>vector entry, graph expansion</b>. The retriever ladder climbs from pure vectors to hybrid+Cypher; <b>GraphRAG.search()</b> answers on the context. <span style='opacity:.7'>(tap)</span>",
+    "<b>Leiden</b> clusters the entity graph into nested communities; each gets a <b>pre-written summary</b> — a table of contents the LLM wrote at index time. <span style='opacity:.7'>(tap)</span>",
+    "<b>Local</b> enters through entity embeddings and fans out; <b>global</b> map-reduces over community reports. Match the mode to the question's shape. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w04-d5",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A client's vector RAG bot answers 'what does clause 14.2 say?' perfectly but produces shallow, one-sided answers to 'what are the recurring risk themes across all our contracts?' Why?",
+      options: [
+        "The embedding model is too small and should be upgraded",
+        "The answer lives in no single chunk — global sensemaking questions need corpus-level structure, not top-k similarity",
+        "The chunks are too large for the context window",
+        "Temperature is set too high for summarization" ],
+      answer: 1,
+      explain: "That's the gap GraphRAG targets: questions 'directed at an entire text corpus' are query-focused summarization tasks. Top-k similarity retrieves a few near-duplicate fragments; the fix is structural — an entity graph plus pre-generated community summaries — not a bigger embedding model." },
+    { type: "scq",
+      stem: "In SimpleKGPipeline, what job does the schema (node_types, relationship_types, patterns) do?",
+      options: [
+        "It defines the vector index configuration for chunk embeddings",
+        "It constrains what the LLM extractor may create — and with additional_node_types:False, rejects anything undefined",
+        "It sets the batch size for the Neo4jWriter",
+        "It selects which entity resolver runs after writing" ],
+      answer: 1,
+      explain: "Left unguided, the extractor invents entity types freely and the graph drifts into noise. The schema is the contract: allowed node types, relationship types, and patterns like (\"Person\",\"PARENT_OF\",\"Person\") — with additional_node_types:False turning it from guidance into enforcement." },
+    { type: "tf",
+      stem: "The lexical graph (Document/Chunk nodes with NEXT_CHUNK and FROM_DOCUMENT) is a temporary artifact you can discard once the entity graph is built.",
+      answer: false,
+      explain: "False — hybrid retrieval needs both layers. The lexical graph is the evidence locker: source text with structure and chunk embeddings, which is where vector search enters and where grounded answers quote from. Discard it and answers float free of quotable evidence; keep only it and you're back to Week 2's pure-vector RAG with no graph hop." },
+    { type: "mcq",
+      stem: "Which statements about the retriever ladder are true? (select all that apply)",
+      options: [
+        "VectorCypherRetriever uses vector search as the entry point, then runs a Cypher traversal to enrich context from connected nodes",
+        "HybridRetriever searches a vector index and a full-text index simultaneously and merges results",
+        "Text2CypherRetriever has an LLM generate Cypher from natural language — with query validation before execution to block destructive operations",
+        "Using GraphRAG requires migrating all embeddings into Neo4j — external vector stores can't participate",
+        "ToolsRetriever replaces all other retrievers and must be used in production" ],
+      answer: [0, 1, 2],
+      explain: "The first three are exactly right. The fourth is false — QdrantNeo4jRetriever, WeaviateNeo4jRetriever, and PineconeNeo4jRetriever run vector search externally and map hits back to Neo4j nodes. The fifth is false — ToolsRetriever is a router that lets an LLM choose among retrievers per query, not a mandatory replacement." },
+    { type: "match",
+      stem: "Match each pipeline stage to what it produces or prevents.",
+      pairs: [
+        { l: "Leiden community detection", r: "nested clusters of densely connected entities" },
+        { l: "Bottom-up community summaries", r: "a pre-written corpus-level semantic index" },
+        { l: "Entity resolution (exact / semantic / fuzzy)", r: "'Acme Corp' and 'ACME' merged into one node" },
+        { l: "TextChunkEmbedder", r: "embeddings stored as chunk properties for vector entry" } ],
+      explain: "Leiden organizes the entity graph hierarchically; summaries turn those clusters into readable digests that make global questions answerable; resolution protects graph connectivity from name variants; the chunk embedder is what lets vector similarity search live inside the graph database." },
+    { type: "open",
+      stem: "A client asks: 'Why does global search cost more than local search, and what knob controls that cost?' Answer in two or three sentences using today's mechanics.",
+      hint: "Think map-reduce over community reports, importance ratings, and hierarchy levels.",
+      model: "Global search runs a map-reduce over the community reports: the map stage chunks the reports and makes LLM calls to produce intermediate points with numerical importance ratings, and the reduce stage aggregates the top-rated points into the final answer — many LLM calls per query versus local search's single fan-out from entity matches filtered into one context window. The knob is the community hierarchy level you read from: lower levels mean more detailed reports and better answers, but more report chunks to map over and therefore more compute per query." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>
