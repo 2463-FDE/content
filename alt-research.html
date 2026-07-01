@@ -61,8 +61,12 @@
 
   /* per-learner assignment highlight */
   .ar-alt.mine { border-left-color:var(--info); background:var(--info-soft); box-shadow:0 4px 16px rgba(28,126,214,.10); }
-  .ar-mybadge { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--surface); background:var(--info); border-radius:20px; padding:2px 10px; margin-bottom:7px; }
+  .ar-mybadge { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--surface); background:var(--info); border-radius:20px; padding:2px 10px; }
   .ar-mybadge.preview { background:#868e96; }
+  /* assigned-presenter chip (First Name + Last Initial) shown on every alternative */
+  .ar-assignline { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:7px; }
+  .ar-presenter { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; color:var(--ink-soft); background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:2px 10px; }
+  .ar-alt.mine .ar-presenter { color:var(--info); border-color:var(--info-line); background:var(--info-soft); }
 
   /* trainer assignment table */
   .ar-assign { width:100%; border-collapse:collapse; margin:8px 0 0; font-size:14px; }
@@ -362,6 +366,14 @@ window.ALT = {
   function learners() {
     return AR_LEARNERS.slice().sort((a, b) => a.localeCompare(b)).map(name => ({ name }));
   }
+  // Display name = First Name + Last Initial (e.g. "Armaan D."). Matching against
+  // the login still uses the FULL name below; this is display only.
+  function shortName(name) {
+    const p = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (!p.length) return "";
+    if (p.length === 1) return p[0];
+    return p[0] + " " + p[p.length - 1][0].toUpperCase() + ".";
+  }
   // Which learner index owns alternative `a` (0..3) in week `week`.
   function ownerIndex(week, a, n) { return (a + (week - 1)) % n; }
   // Which alternative index a given learner (by list index) owns this week.
@@ -371,24 +383,28 @@ window.ALT = {
     const ls = learners();
     const n = ls.length;
     const idt = getIdentity();
-    let mine = -1, previewName = "";
+    let mine = -1, isTesterPreview = false;
     if (idt && n > 0) {
       const li = ls.findIndex(r => r.name === idt.name);
       if (li >= 0) {                       // a real learner
         mine = myAltIndex(week, li, n);
       } else if (idt.role === "tester") {  // tester previews the first learner's slot
         mine = myAltIndex(week, 0, n);
-        previewName = ls[0] ? ls[0].name : "";
+        isTesterPreview = true;
       }
     }
     return items.map((a, i) => {
       const isMine = i === mine;
-      const badge = isMine
-        ? (previewName
-            ? `<span class="ar-mybadge preview">🎯 Tester preview · ${previewName}'s assignment</span>`
-            : `<span class="ar-mybadge">🎯 Your assignment this week</span>`)
+      // Every alternative shows its assigned presenter (First Name + Last Initial)
+      // so the whole group knows who presents what on Friday.
+      const owner = n ? ls[ownerIndex(week, i, n)] : null;
+      const presenter = owner ? `<span class="ar-presenter">🎤 ${shortName(owner.name)}</span>` : "";
+      const mineBadge = isMine
+        ? (isTesterPreview
+            ? `<span class="ar-mybadge preview">🎯 Tester preview</span>`
+            : `<span class="ar-mybadge">🎯 Your assignment</span>`)
         : "";
-      return `<div class="ar-alt${isMine ? " mine" : ""}">${badge}<div class="ar-name">${a.name}</div><p>${a.body}</p></div>`;
+      return `<div class="ar-alt${isMine ? " mine" : ""}"><div class="ar-assignline">${presenter}${mineBadge}</div><div class="ar-name">${a.name}</div><p>${a.body}</p></div>`;
     }).join("");
   }
 
@@ -400,7 +416,7 @@ window.ALT = {
     const rows = ls.map((r, li) => {
       const ai = myAltIndex(week, li, n);
       const alt = wk.alts[ai];
-      return `<tr><td class="who">${r.name}</td><td>${alt ? alt.name : "—"}</td></tr>`;
+      return `<tr><td class="who">${shortName(r.name)}</td><td>${alt ? alt.name : "—"}</td></tr>`;
     }).join("");
     return `<table class="ar-assign"><thead><tr><th>Learner</th><th>Assigned alternative (Week ${week})</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
