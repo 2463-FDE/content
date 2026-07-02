@@ -234,12 +234,18 @@
     try {
       const r = await fetch(RUN + "/trainer/cohorts", { headers: authHeaders() });
       const data = await r.json();
-      COHORTS = (r.ok && data && data.ok && Array.isArray(data.cohorts)) ? data.cohorts : [];
-    } catch (e) { COHORTS = []; }
-    // Populate the add-login cohort select (default: none / UAT).
+      if (r.ok && data && data.ok && Array.isArray(data.cohorts)) COHORTS = data.cohorts;
+    } catch (e) { /* keep whatever we had — don't clobber optimistic state on a blip */ }
+    syncCohortUI();
+  }
+
+  // Repaint every cohort-bound control from the current COHORTS array. Kept separate
+  // from the fetch so optimistic add/delete can update the UI without a re-list (KV
+  // list is eventually consistent — an immediate re-fetch after a write often lags).
+  function syncCohortUI() {
+    COHORTS.sort((a, b) => String(a.slug).localeCompare(String(b.slug)));
     const fc = document.getElementById("f-cohort");
-    if (fc) fc.innerHTML = cohortOptions(fc.value || "", { none: true });
-    // Populate the overview filter (default: All), preserving the current choice.
+    if (fc) { const cur = fc.value || ""; fc.innerHTML = cohortOptions(cur, { none: true }); }
     const oc = document.getElementById("ov-cohort");
     if (oc) { const cur = oc.value || "__all"; oc.innerHTML = cohortOptions(cur, { all: true, uat: true }); }
     renderCohortList();
@@ -269,7 +275,12 @@
     try {
       const r = await fetch(RUN + "/trainer/cohort/add", { method: "POST", headers: authHeaders(), body: JSON.stringify({ cohort }) });
       const data = await r.json();
-      if (r.ok && data && data.ok) { inp.value = ""; await loadCohorts(); loadList(); loadOverview(); }
+      if (r.ok && data && data.ok) {
+        inp.value = "";
+        // Optimistically merge the returned record (KV list may not show it yet).
+        if (data.cohort && data.cohort.slug && !COHORTS.some(c => c.slug === data.cohort.slug)) COHORTS.push(data.cohort);
+        syncCohortUI(); loadList(); loadOverview();
+      }
       else if (r.status === 403) err.textContent = "Trainer session required.";
       else err.textContent = "Could not add cohort (" + (data && data.error ? data.error : r.status) + ").";
     } catch (e) { err.textContent = "Network error — is the backend reachable?"; }
@@ -281,7 +292,11 @@
     try {
       const r = await fetch(RUN + "/trainer/cohort/delete", { method: "POST", headers: authHeaders(), body: JSON.stringify({ cohort: slug }) });
       const data = await r.json();
-      if (r.ok && data && data.ok) { await loadCohorts(); loadList(); loadOverview(); }
+      if (r.ok && data && data.ok) {
+        // Optimistically drop it (KV list may still return it briefly).
+        COHORTS = COHORTS.filter(c => c.slug !== slug);
+        syncCohortUI(); loadList(); loadOverview();
+      }
       else alert("Could not remove cohort (" + (data && data.error ? data.error : r.status) + ").");
     } catch (e) { alert("Network error — is the backend reachable?"); }
   }
