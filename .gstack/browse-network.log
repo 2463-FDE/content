@@ -1,0 +1,6 @@
+[2026-07-02T18:17:04.733Z] GET http://localhost:8799/index.html → pending (?ms, ?B)
+[2026-07-02T18:17:04.752Z] GET http://localhost:8799/assets/css/style.css?v=20260702-3 → 200 (3ms, 51834B)
+[2026-07-02T18:17:04.752Z] GET http://localhost:8799/assets/js/theme.js → 200 (5ms, 4095B)
+[2026-07-02T18:17:04.752Z] GET http://localhost:8799/assets/js/progress.js?v=20260630-2 → 200 (8ms, 6267B)
+[2026-07-02T18:17:04.752Z] GET http://localhost:8799/assets/js/roster.js → 200 (4ms, 692B)
+[2026-07-02T18:17:04.752Z] GET http://localhost:8799/assets/js/auth.js → 200 (5ms, 5160B)
