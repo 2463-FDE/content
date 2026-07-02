@@ -550,6 +550,10 @@ body.is-trainer .trainer-only { display:block; }
 .cal-hero { text-align:center; padding:46px 20px 24px; }
 .cal-hero h1 { font-size:50px; margin:0 0 8px; letter-spacing:-1px; } .cal-hero h1 b { color:var(--accent); }
 .cal-hero p { color:var(--ink-soft); max-width:700px; margin:0 auto; font-size:20px; }
+.friday-rituals { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; margin-top:22px; }
+.friday-rituals .fr-label { font-size:14px; font-weight:700; color:var(--ink-soft); }
+.fr-btn { text-decoration:none; font-weight:700; font-size:14px; padding:9px 18px; border-radius:9px; border:1.5px solid var(--accent); background:var(--accent); color:#fff; box-shadow:0 2px 8px -2px rgba(232,89,12,.5); transition:filter .1s, transform .1s; }
+.fr-btn:hover { filter:brightness(1.06); transform:translateY(-1px); }
 .legend { display:flex; flex-wrap:wrap; gap:12px 20px; justify-content:center; margin-top:22px; }
 .legend .lg { display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--ink-soft); }
 .legend .lg i { width:12px; height:12px; border-radius:3px; display:inline-block; }
