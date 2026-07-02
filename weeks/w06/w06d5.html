@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w06d5">
+<meta name="fde-concepts" content="merge-quality-gate,agent-pr-lifecycle,delivery-throughput-stability">
+<title>W6·D5 — AI-Augmented Feature Delivery End-to-End | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>AI-Augmented Feature Delivery, End to End</h1>
+        <div class="meta">
+          <span><b>Week 6</b> · Day 5 · ★ milestone</span>
+          <span>Agentic Delivery</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">All week you've collected the pieces: coding agents, agentic SDLC loops, alternative tools,
+        brownfield tactics. Today they become <strong>one delivery</strong> — a single feature carried from a
+        self-contained spec through implementation, automated review, CI quality gates, and a human merge decision,
+        with the result <em>measured</em>, not just declared done. The through-line: an agent's output only becomes
+        delivery when it passes gates the agent cannot talk its way through. Scroll the reading; the panel on the
+        right assembles the pipeline stage by stage, from <code>SPEC.md</code> to a merge that survives DORA's
+        throughput-vs-stability question.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">★ The milestone</div>
+        <h2>Delivery ends at a PR, not at "code done"</h2>
+        <p>Start with the shape of the whole exercise. Claude Code's canonical feature workflow has four phases:
+        <strong>Explore</strong> (plan mode, read-only), <strong>Plan</strong> (a detailed implementation plan you can
+        edit with <code>Ctrl+G</code> before proceeding), <strong>Implement</strong> (the agent "verifying against its
+        plan"), and — the phase teams forget — <strong>Commit</strong>: "Ask Claude to commit with a descriptive message
+        and create a PR." Notice what that makes the unit of delivery. Not a diff sitting in a working tree. Not a chat
+        transcript where the agent says it's finished. <strong>A pull request</strong> — an artifact other systems and
+        other humans can gate, review, and merge.</p>
+        <p>The entry point is equally specific, and it's the artifact you built in Week 5: for larger features, have
+        the agent interview you until you have a complete <code>SPEC.md</code>, then "start a fresh session to execute
+        it." The docs are precise about what makes a spec worth handing off — the most useful ones are
+        "self-contained: they name the files and interfaces involved, state what is out of scope, and end with an
+        end-to-end verification step that proves the feature works." That last clause is the load-bearing one. A spec
+        that ends with a <em>verification step</em> gives the whole pipeline something objective to aim at; a spec that
+        ends with a vibe gives you a negotiation.</p>
+        <p>So today's milestone run is: self-contained spec → fresh-session Explore/Plan/Implement → evidence-bearing
+        commit and PR → automated review → hard merge gates → human merge decision → measurement. Everything you've
+        practiced this week slots into one of those stages. The rest of the reading walks the pipeline in order, and
+        the diagram builds it beside you.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">The stop signal</div>
+        <h2>"Looks done" is not a gate — build one</h2>
+        <p>Here's the problem that defines the whole exercise, straight from the best-practices docs: "Claude stops
+        when the work looks done. Without a check it can run, 'looks done' is the only signal available, and you become
+        the verification loop." An agent has no native sense of shipped. It has a sense of <em>plausible</em>. If the
+        only thing standing between plausible and merged is your attention, you haven't automated delivery — you've
+        automated typing.</p>
+        <p>The docs name an escalation ladder for how hard the check gates the stop, and it's worth memorizing as a
+        design menu. Lightest: <strong>in-prompt iteration</strong> — tell it to run the tests and keep going until
+        they pass. Next: a <strong><code>/goal</code> condition</strong> re-checked every turn. Then: a deterministic
+        <strong>Stop hook</strong> that "blocks the turn from ending until it passes" — the agent literally cannot
+        declare victory while the check fails. Heaviest: a <strong>fresh-context verification subagent</strong> that
+        inspects the result without the reasoning that produced it. "Each step trades setup for attention." Pick the
+        rung that matches the stakes; for a milestone delivery, you want the deterministic end of the ladder.</p>
+        <p>And when the run does stop, demand receipts. "Have Claude show evidence rather than asserting success: the
+        test output, the command it ran and what it returned, or a screenshot of the result. Reviewing evidence is
+        faster than re-running the verification yourself, and it works for sessions you weren't watching." The docs
+        give this failure pattern a name — the <strong>trust-then-verify gap</strong> — and a rule blunt enough to
+        put on the wall: <strong>"If you can't verify it, don't ship it."</strong></p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a stop-gate sandbox — run the
+        same seeded feature task twice, once with "looks done" as the stop signal and once with a Stop hook wired to
+        the test suite, and diff what each session ships. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Calibration</div>
+        <h2>Feature work is where agents are weakest — plan for it</h2>
+        <p>Before you trust the pipeline, calibrate your expectations with data, because the gap between what
+        benchmarks advertise and what feature delivery demands is enormous. <strong>FeatureBench</strong> (ICLR 2026)
+        benchmarks "end-to-end, feature-oriented software development" — the real thing, spanning "multiple commits and
+        PRs scattered across the development timeline" — across 200 tasks, 3,825 executable environments, and 24
+        open-source repos, with execution-based evaluation. The headline result: "Claude 4.5 Opus, which achieves a
+        74.4% resolved rate on SWE-bench, succeeds on only 11.0% of tasks."</p>
+        <p>Sit with that ratio. The same model that resolves three out of four scoped bug-fixes completes roughly one
+        in nine end-to-end features. Bug-fix benchmarks wildly overstate feature-delivery capability, because a feature
+        isn't a localized patch — it's a spec interpreted, decomposed, implemented across files and commits, and
+        verified as a whole. Which is exactly the work you're doing today.</p>
+        <p>This is not an argument against the milestone; it's the argument <em>for the gates</em>. If agents shipped
+        features reliably, today would be a demo. Because they don't, today is an engineering exercise: the deliverable
+        isn't the feature, it's the <strong>delivery system</strong> — the stack of checks that catches the eight
+        failures out of nine before a client ever sees them. When a client asks "can the agent just build features for
+        us?", this number is your honest, useful answer: yes, inside a pipeline designed for an 11% first-pass world.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">The hard gate</div>
+        <h2>Branch protection: where output meets non-negotiable pass/fail</h2>
+        <p>Now the wall the PR must climb. GitHub's merge gate is refreshingly deterministic: "Required status checks
+        must have a <code>successful</code>, <code>skipped</code>, or <code>neutral</code> status before collaborators
+        can make changes to a protected branch." Add required reviews and "collaborators can only push changes to a
+        protected branch via a pull request that is approved by the required number of reviewers." Checks can be
+        <strong>strict</strong> (the branch must be up to date with the base before merging) or loose. That's the whole
+        mechanism — and it's exactly the mechanism you want, because it is immune to persuasion.</p>
+        <p>This layer matters more with agents than it ever did with humans. An agent can write a confident PR
+        description, summarize its own diff flatteringly, and assert that tests pass. Branch protection doesn't read
+        prose. Tests, lint, and build become <strong>gates the agent must satisfy, not suggestions</strong> — the
+        merge button stays grey until every required check reports green, no matter how "done" the work looks.</p>
+        <p>The FDE framing: this is where you convert this week's soft practices into hard policy. The verification
+        step your spec ends with? Make it a required status check. The style rules in <code>CLAUDE.md</code>? Lint
+        gate. On an engagement, configuring the client's protected branch is often the single highest-leverage hour
+        of AI-delivery work you'll do, because it makes every future agent run — yours, theirs, attended or not —
+        answer to the same non-negotiable bar.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Agents in CI</div>
+        <h2>Agents can run inside the gate, too</h2>
+        <p>The pipeline isn't just something agents pass through — agents can be <em>stages of it</em>. Claude Code's
+        headless mode, <code>claude -p</code>, is the non-interactive interface built for "CI pipelines, pre-commit
+        hooks, or any automated workflow." The flags are the interesting part, because each one answers a question an
+        unattended run raises. <code>--output-format json</code> returns structured results — including
+        <code>total_cost_usd</code>, so every CI invocation is billed and visible. <code>--json-schema</code>
+        constrains the output shape so downstream steps can parse it. And <code>--allowedTools "Bash,Read,Edit"</code>
+        plus permission rules like <code>Bash(git commit *)</code> scope exactly what an unattended agent may touch —
+        least-privilege for a process that writes code.</p>
+        <p>One flag deserves special attention for CI: <code>--bare</code> skips auto-discovery of hooks, skills, and
+        MCP servers — "for CI and scripts where you need the same result on every machine." The docs note it's
+        recommended for scripted and SDK calls and "will become the default for <code>-p</code> in a future release."
+        Reproducibility is the whole point of a pipeline stage; an agent that behaves differently depending on which
+        engineer's dotfiles happen to be on the runner isn't a stage, it's a liability.</p>
+        <p>The docs' own example shows the pattern at its smallest: pipe <code>git diff main</code> into
+        <code>claude -p</code> as a project-specific typo linter wired into <code>package.json</code>. Diff in,
+        structured verdict out, exit code gates the pipeline. Once you see that shape, you can put a scoped agent
+        anywhere a deterministic check would go — with the agent held to the same standard: parseable output,
+        bounded permissions, same result on every machine.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live headless run — paste a
+        small diff, we pipe it through <code>claude -p --bare --output-format json</code> with a lint prompt, and you
+        inspect the structured verdict and the <code>total_cost_usd</code> it reports. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Review as a stage</div>
+        <h2>Automated review is a pipeline stage, not a favor</h2>
+        <p>Next stage: review the diff before a human spends attention on it. Claude Code's <strong>Code Review</strong>
+        feature (research preview, Team/Enterprise) runs "a fleet of specialized agents" over the diff in the context
+        of the full codebase, hunting "logic errors, security vulnerabilities, broken edge cases, and subtle
+        regressions." Crucially, it doesn't just generate suspicions — "a verification step checks candidates against
+        actual code behavior to filter out false positives" before anything is posted. What lands on the PR is
+        deduplicated, severity-ranked inline comments: 🔴 <strong>Important</strong> ("a bug that should be fixed
+        before merging"), 🟡 <strong>Nit</strong>, 🟣 <strong>Pre-existing</strong>. Default scope "focuses on
+        correctness: bugs that would break production, not formatting preferences." It triggers on PR open, on every
+        push, or manually via <code>@claude review</code> — and it runs about 20 minutes and $15–25 per review, so
+        it's a real stage with a real budget line.</p>
+        <p>And it's a <strong>config surface, not a prayer</strong>. A <code>REVIEW.md</code> at repo root is
+        "injected directly into every agent in the review pipeline as highest priority." Teams use it to redefine what
+        Important means for their codebase, cap noise ("report at most five nits"), skip generated code and lockfiles,
+        add repo-specific always-checks ("new API routes must have an integration test"), set an evidence bar
+        ("behavior claims need a <code>file:line</code> citation"), and control re-review convergence ("after the first
+        review, suppress new nits and post Important findings only"). Even <code>CLAUDE.md</code> is enforced
+        bidirectionally — code that violates it surfaces as a nit, and so does code that makes the docs stale.</p>
+        <p>Prefer to self-host the stage? <code>anthropics/claude-code-action@v1</code> runs the full Claude Code
+        runtime on GitHub runners — <code>@claude</code> mention mode or automation mode with a <code>prompt</code> on
+        <code>pull_request: [opened, synchronize]</code>, auto-detected. It respects your <code>CLAUDE.md</code>,
+        supports skills and plugins in the prompt, and <code>claude_args</code> passes any CLI flag
+        (<code>--max-turns</code>, <code>--allowedTools</code>, <code>--model</code>). Setup is
+        <code>/install-github-app</code>; enterprises auth via Bedrock/Vertex with OIDC — no static keys. The security
+        guidance is worth quoting because it's the theme of the day: GitHub Secrets only, minimal permissions, and
+        "Review Claude's suggestions before merging."</p>
+        <p>One caveat travels with any adversarial review, managed or the fresh-context subagent flavor from the
+        best-practices docs (a reviewer that "sees only the diff and the criteria you give it, not the reasoning that
+        produced the change"): "A reviewer prompted to find gaps will usually report some, even when the work is
+        sound." Chase only correctness-affecting findings, or the review stage becomes an over-engineering machine.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Wiring review into the gate</div>
+        <h2>Blocking on AI findings is a decision you build</h2>
+        <p>Here's a subtlety that separates people who read the docs from people who assume. The Code Review check run
+        "always completes with a <strong>neutral</strong> conclusion so it never blocks merging through branch
+        protection rules." By default, the AI reviewer <em>advises</em> — it does not gate. That's a deliberate vendor
+        choice, and the escape hatch is explicit: "If you want to gate merges on Code Review findings, read the
+        severity breakdown from the check run output in your own CI." The check's Details text ends with a
+        machine-readable comment — <code>bughunter-severity: {"normal": 2, "nit": 1, "pre_existing": 0}</code> —
+        where a non-zero <code>normal</code> count means at least one bug worth fixing before merge. Parse it with
+        <code>gh</code> and <code>jq</code>, fail your own required check on it, and now branch protection enforces
+        the AI's findings deterministically.</p>
+        <div class="ix-predict"
+          data-q="Your client enables Claude Code Review, sees it post a 🔴 Important finding, and is shocked the PR merged anyway. What happened — and what's the fix?"
+          data-a="Nothing malfunctioned. The review check run <b>always completes neutral</b> so it never blocks merges through branch protection — advisory by default. Blocking on AI findings is an <b>explicit team decision you build</b>: parse the machine-readable <code>bughunter-severity:</code> JSON from the check-run output in your own CI (<code>gh</code> + <code>jq</code>), fail your check when <code>normal &gt; 0</code>, and mark <i>that</i> check required in branch protection. The vendor gives you the signal; the gate is yours to wire.">
+        </div>
+        <p>Note also what the service does <em>not</em> promise: review runs are "best-effort. A failed run never
+        blocks your PR." Read that as a design assignment — the <strong>resilience of the merge gate is your CI's
+        job</strong>, not the review service's. If AI review is load-bearing for you, your required check must decide
+        what a missing review means (fail closed? re-trigger?) rather than silently merging past it.</p>
+        <p>This is the pattern to generalize on client engagements: vendors ship AI signals as <em>advice</em> and
+        leave enforcement to you, because how hard to gate is a team-culture decision with real throughput costs.
+        Making that decision explicitly — which severities block, what happens when the reviewer is down, who can
+        override — is FDE work. Leaving it implicit is how teams end up believing they have a gate they don't have.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a severity-gate builder —
+        paste a check run's <code>bughunter-severity:</code> JSON, choose your blocking policy (block on
+        <code>normal</code>? on nit volume? fail closed on missing runs?), and watch the merge button allow or refuse
+        a set of sample PRs. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">The human merge</div>
+        <h2>The agent PR meets its reviewer — and that's normal</h2>
+        <p>The last gate is a person, and the empirical picture of what happens there is more interesting than the
+        folklore. A 2026 study of 9,799 human-reviewed agentic PRs (717 manually inspected) found that "only 35.7% of
+        rejected PRs reflected clear agentic failures" — while 31.2% of rejections stemmed from <strong>workflow
+        constraints</strong>, not bad code. Wrong branch, duplicate effort, project didn't want the change: rejection
+        reasons that have nothing to do with whether the agent can program. Flip side: among <em>merged</em> PRs,
+        "15.4% required explicit reviewer involvement through feedback or direct commits." Roughly one in six shipped
+        agent PRs shipped <em>because a human pushed it over the line</em>.</p>
+        <p>The study also found the agents differ by how they're embedded: "Copilot and Devin more often embedded in
+        reviewer-mediated workflows, while Codex and Cursor PRs were typically merged with minimal interaction." Same
+        artifact — a PR — but different delivery systems around it. Which is the teaching point: <strong>the human
+        reviewer is part of the delivery system</strong>, not a bug in it, and raw merge-rate is a bad solo metric.
+        The paper's own conclusion is that evaluation should be "interaction-aware … grounded in review behavior" —
+        measure the collaboration, not just the outcome bit.</p>
+        <p>Mechanics of that collaboration, for your milestone PR: when the AI reviewer posts a finding,
+        <strong>replying does nothing</strong> — "To act on a finding, fix the code and push." Push-triggered
+        re-reviews auto-resolve threads when the issue is actually fixed, and 👍/👎 reactions feed reviewer tuning.
+        The loop is code-shaped, not conversation-shaped: findings are resolved by commits, approval is earned by
+        green checks, and the human's merge click is a judgment call informed by evidence — exactly what you set up
+        in step one.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="8">
+        <div class="tag">Measure it</div>
+        <h2>Throughput without stability isn't delivery</h2>
+        <p>You merged. Are you done? DORA says: not until you've measured what the speed cost you. The
+        <em>State of AI-assisted Software Development 2025</em> report's core finding is that "AI's primary role is as
+        an amplifier, magnifying an organization's existing strengths and weaknesses" — and that "the greatest returns
+        on AI investment come … from a strategic focus on the underlying organizational system," not the tools. The
+        tension it documents is the one your milestone must answer for, verbatim: "higher AI adoption is associated
+        with an increase in both software delivery throughput <strong>and</strong> software delivery instability."
+        Faster and shakier, together, by default. (The context: 90% of tech professionals now use AI at work — while
+        30% of developers report little to no trust in the code it generates. Both numbers are rational.)</p>
+        <p>DORA names the control systems that decouple the two, and you should recognize every one of them as a stage
+        you just built: <strong>robust test automation</strong> ("potentially more valuable than optimizing manual code
+        reviews") — your required checks. <strong>Small-batch discipline</strong> — "force large AI-generated changes
+        into reviewable, testable units," which is what a self-contained spec with a bounded scope does.
+        <strong>AI feedback moved to the authoring phase</strong> rather than piling up at review — the stop-gate and
+        in-loop verification from step one. And <strong>context-aware review agents enforcing org standards</strong> —
+        your <code>REVIEW.md</code>. Measure with holistic frameworks, DORA insists, not lines of code or PR counts.</p>
+        <p>So the milestone debrief is three questions, asked honestly. Did the throughput come with instability — what
+        would have broken if the gates hadn't caught it? Which control system did the catching — tests, batch size,
+        authoring-phase feedback — and which was missing? And what does the run say about the <em>system</em>, not the
+        agent — because the agent is an amplifier, and what it amplified today was the pipeline you built around it.
+        That reframe, from "how good is the agent" to "how good is the delivery system the agent runs inside," is the
+        week's graduation criterion.</p>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>Clients will ask you to make the agent ship features. The FDE move is to hear the real request:
+          <strong>make delivery trustworthy at agent speed.</strong> You do that with gates that can't be persuaded —
+          required checks, severity-wired review, evidence at the stop — and you prove it with delivery metrics, not
+          demos. FeatureBench's 11% is why the gates exist; DORA's amplifier is why they're worth more than the model
+          choice. If you can't verify it, don't ship it.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://code.claude.com/docs/en/best-practices" target="_blank" rel="noopener">Claude Code — Best practices</a> — Explore/Plan/Implement/Commit, the stop-signal escalation ladder, evidence over assertion, and "if you can't verify it, don't ship it."</li>
+          <li><a href="https://code.claude.com/docs/en/headless" target="_blank" rel="noopener">Claude Code — Run programmatically</a> — <code>claude -p</code>, <code>--bare</code>, <code>--output-format json</code>, <code>--json-schema</code>, and <code>--allowedTools</code> scoping for CI.</li>
+          <li><a href="https://code.claude.com/docs/en/github-actions" target="_blank" rel="noopener">Claude Code — GitHub Actions</a> — <code>claude-code-action@v1</code>, automation vs mention mode, <code>claude_args</code>, OIDC auth, security guidance.</li>
+          <li><a href="https://code.claude.com/docs/en/code-review" target="_blank" rel="noopener">Claude Code — Code Review</a> — the multi-agent review fleet, severity taxonomy, <code>REVIEW.md</code> tuning, and the neutral check-run + <code>bughunter-severity</code> JSON for self-built gating.</li>
+          <li><a href="https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches" target="_blank" rel="noopener">GitHub Docs — About protected branches</a> — required status checks and required reviews: the deterministic merge gate.</li>
+          <li><a href="https://dora.dev/dora-report-2025/" target="_blank" rel="noopener">DORA — State of AI-assisted Software Development 2025</a> — AI as amplifier; returns come from the organizational system.</li>
+          <li><a href="https://dora.dev/insights/balancing-ai-tensions/" target="_blank" rel="noopener">DORA — Balancing AI tensions</a> — throughput and instability rise together; the control systems that decouple them.</li>
+          <li><a href="https://arxiv.org/abs/2602.10975" target="_blank" rel="noopener">FeatureBench (arXiv 2602.10975, ICLR 2026)</a> — end-to-end feature benchmark; 74.4% SWE-bench vs 11.0% feature-work resolution.</li>
+          <li><a href="https://arxiv.org/abs/2605.22534" target="_blank" rel="noopener">Why Are Agentic Pull Requests Merged or Rejected? (arXiv 2605.22534)</a> — 9,799 agentic PRs; rejection ≠ agent failure; interaction-aware evaluation.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Wiring a severity gate with gh + jq, and the review cost math</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on gated agent delivery</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 6 Day 5</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: building the severity gate &amp; costing the review stage</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The plumbing behind "blocking is a decision you build."</p>
+    <p><strong>The signal.</strong> Every Claude Code Review check run finishes <em>neutral</em> — it can never block a
+    merge on its own. But its Details text ends with a machine-readable comment:
+    <code>bughunter-severity: {"normal": 2, "nit": 1, "pre_existing": 0}</code>. A non-zero <code>normal</code> means
+    at least one bug the reviewer judged worth fixing before merge.</p>
+    <p><strong>The gate.</strong> In your own CI, fetch the check run with <code>gh api</code>, extract the JSON tail
+    with <code>jq</code>, and exit non-zero when <code>normal &gt; 0</code>. Mark <em>that</em> job as a required
+    status check in branch protection. Now the deterministic GitHub gate — which only cares about
+    successful/skipped/neutral — enforces the AI's findings, on your policy: maybe <code>normal</code> blocks, nits
+    warn, and a <em>missing</em> review run fails closed (remember: review runs are best-effort, "a failed run never
+    blocks your PR" — deciding what absence means is your job).</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked cost check — does the review stage pay for itself?</div>
+      <p style="margin:8px 0 0">A managed review averages <strong>~20 minutes and $15–25 per review</strong>. Say your
+      team ships 15 agent-authored PRs a week: ≈ $225–375/week, ≈ $1,200–1,600/month. Against that: one 🔴 Important
+      finding is "a bug that should be fixed before merging" — a production incident pre-empted. If the stage catches
+      even one real incident a month, it's cheap; if it's drowning you in nits, that's a <code>REVIEW.md</code>
+      tuning problem ("report at most five nits", "Important findings only on re-review"), not a reason to drop the
+      stage. Budget it like a stage, tune it like a stage.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Reproducibility footnote.</strong> Any agent you put <em>inside</em> the gate
+    should run <code>claude -p --bare</code>: <code>--bare</code> skips auto-discovery of hooks, skills, and MCP
+    servers so the check behaves identically on every runner — and the docs flag it as the future default for
+    <code>-p</code>. A gate that depends on whatever configuration happens to be lying around isn't a gate.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Week 6 · Day 5 — ★ milestone goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Carry one feature from a self-contained <code>SPEC.md</code> through Explore/Plan/Implement to an evidence-bearing commit and PR</li>
+      <li>Gate the agent's stop with the right rung of the escalation ladder — and refuse to ship what you can't verify</li>
+      <li>Configure branch protection so tests, lint, build, and (by your explicit choice) AI-review severity are non-negotiable merge gates</li>
+      <li>Read an agent-PR's fate the way the data does — rejection ≠ agent failure, reviewer involvement is normal — and debrief the run against DORA's throughput-vs-instability tension</li>
+    </ul>
+    <div class="ma-k">Deliverable — the milestone run, committed to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Your <code>SPEC.md</code> (names files/interfaces, states out-of-scope, ends with an end-to-end verification step)</li>
+      <li>A merged (or deliberately rejected) PR with: evidence of verification in the description, an automated review pass, and required status checks green</li>
+      <li>Your gating policy written down: which checks are required, whether AI-review severity blocks, and what happens when the reviewer is unavailable</li>
+      <li>A short <code>DEBRIEF.md</code>: did throughput come with instability, which control system caught what, and what you'd change in the <em>system</em> before the next run</li>
+    </ul>
+    <p class="goals-foot">This is the week's ★ integration milestone — the pieces from d1–d4 assembled into one gated
+    delivery. Bring the debrief to the next session; the delivery system you just built is the artifact, not the feature.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Back to Program →", href: "../../index.html" };
+window.DIAGRAM = {
+  title: "Spec → shipped code · the gated pipeline",
+  width: 500, height: 690,
+  nodes: [
+    { id:"spec", step:0, kind:"example", x:14, y:14, w:472, h:56,
+      label:"SPEC.md — self-contained\n  names files & interfaces · states out-of-scope · ends with an\n  end-to-end verification step  →  fresh session executes it" },
+
+    { id:"loop", step:0, x:36, y:92, w:270, h:56, label:"AGENT SESSION\nExplore → Plan → Implement → Commit",
+      detail:"Claude Code's canonical feature workflow. Explore in plan mode (read-only), edit the plan via Ctrl+G before proceeding, implement 'verifying against its plan', then commit with a descriptive message and create a PR. The unit of delivery is the PR, not the diff." },
+
+    { id:"bench", step:2, x:330, y:92, w:156, h:56, label:"FeatureBench\n74.4% → 11.0%",
+      detail:"Same model: 74.4% resolved on SWE-bench bug-fixes, 11.0% on end-to-end feature tasks (200 tasks, 3,825 environments, 24 repos, execution-based). Bug-fix benchmarks overstate feature delivery — which is why every gate below exists." },
+
+    { id:"stop", step:1, x:36, y:172, w:270, h:48, label:"STOP GATE — is it actually done?",
+      detail:"'Looks done' is the agent's only native stop signal. Escalation ladder: in-prompt iteration → /goal re-checked every turn → deterministic Stop hook that blocks the turn from ending until the check passes → fresh-context verification subagent. Each step trades setup for attention." },
+
+    { id:"pr", step:1, x:36, y:244, w:270, h:48, label:"PR + EVIDENCE (output, commands, shots)",
+      detail:"Have the agent show evidence rather than asserting success: test output, the command it ran and what it returned, or a screenshot. Reviewing evidence is faster than re-running verification — and it works for sessions you weren't watching. If you can't verify it, don't ship it." },
+
+    { id:"gate", step:3, x:22, y:316, w:456, h:212, label:"PROTECTED BRANCH — required checks + reviews" },
+
+    { id:"checks", step:3, x:38, y:352, w:200, h:52, label:"tests · lint · build\n(must be green)",
+      detail:"Required status checks must be successful, skipped, or neutral before changes reach a protected branch; required reviews demand approval by the set number of reviewers. Strict mode also requires the branch to be up to date. Deterministic — immune to a persuasive PR description." },
+
+    { id:"headless", step:4, x:254, y:352, w:208, h:52, label:"agent AS a check\nclaude -p --bare",
+      detail:"Headless mode for CI: --output-format json (incl. total_cost_usd), --json-schema to constrain shape, --allowedTools + permission rules to scope what an unattended run may do, --bare to skip auto-discovered hooks/skills/MCP so every machine gets the same result. Docs example: git diff main | claude -p as a typo lint gate." },
+
+    { id:"review", step:5, x:38, y:420, w:200, h:60, label:"AI REVIEW stage\n🔴 Important 🟡 Nit 🟣 Pre-ex",
+      detail:"A fleet of specialized agents reviews the diff in full-codebase context (logic errors, security, edge cases, regressions); a verification step filters false positives before posting deduplicated, severity-ranked comments. Tuned via REVIEW.md — injected into every review agent at highest priority. ~20 min, $15–25/review. Self-host with claude-code-action@v1." },
+
+    { id:"sev", step:6, x:254, y:420, w:208, h:60, label:"bughunter-severity JSON\n→ YOUR blocking check",
+      detail:"The review check run always completes neutral — it never blocks by default. To gate on findings, parse the machine-readable bughunter-severity JSON ({\"normal\":2,...}) from the check-run output in your own CI with gh + jq and fail when normal > 0. Review runs are best-effort — a failed run never blocks — so gate resilience is your CI's job." },
+
+    { id:"human", step:7, x:36, y:548, w:250, h:56, label:"HUMAN REVIEWER\nfix & push · merge decision",
+      detail:"Replying to an AI finding does nothing — fix the code and push; re-reviews auto-resolve fixed threads. Across 9,799 agentic PRs: only 35.7% of rejections were clear agent failures (31.2% workflow constraints), and 15.4% of merged PRs needed reviewer feedback or direct commits. The reviewer is part of the delivery system." },
+
+    { id:"ship", step:7, x:330, y:548, w:132, h:56, label:"MERGED ✓" },
+
+    { id:"dora", step:8, x:36, y:626, w:426, h:50, label:"MEASURE — throughput ↑ … and instability ↑ ?",
+      detail:"DORA 2025: AI is an amplifier of the existing system; higher AI adoption raises throughput AND instability together. Decouple them with test automation, small-batch discipline, AI feedback in the authoring phase, and context-aware review agents — and measure holistically, not in lines of code." }
+  ],
+  edges: [
+    { id:"e_spec",  step:0, from:"spec",  to:"loop",  label:"fresh session", lx:-8 },
+    { id:"e_stop",  step:1, from:"loop",  to:"stop",  label:"'looks done'?", lx:-6 },
+    { id:"e_evid",  step:1, from:"stop",  to:"pr",    label:"evidence attached", lx:-4 },
+    { id:"e_bench", step:2, from:"bench", to:"loop",  label:"11% E2E → gate it", ly:-4 },
+    { id:"e_gate",  step:3, from:"pr",    to:"checks", label:"must pass", lx:-6 },
+    { id:"e_ci",    step:4, from:"pr",    to:"headless", label:"diff in, verdict out", bend:24, ly:-4 },
+    { id:"e_rev",   step:5, from:"pr",    to:"review", label:"every push", bend:-18, lx:-10 },
+    { id:"e_sev",   step:6, from:"review", to:"sev",  label:"neutral + JSON", ly:-4 },
+    { id:"e_wire",  step:6, from:"sev",   to:"checks", label:"you wire the block", bend:-20, ly:6 },
+    { id:"e_hum",   step:7, from:"gate",  to:"human", label:"green checks", lx:-8 },
+    { id:"e_merge", step:7, from:"human", to:"ship",  label:"judgment call", ly:-4 },
+    { id:"e_dora",  step:8, from:"ship",  to:"dora",  label:"then measure", lx:6 }
+  ],
+  captions: [
+    "One feature, one pipeline. A <b>self-contained spec</b> enters a fresh agent session: Explore → Plan → Implement → <b>Commit + PR</b>. The PR is the unit of delivery. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "The agent stops when work <b>looks</b> done — so you gate the stop (in-prompt → /goal → Stop hook → verify subagent) and demand <b>evidence</b>, not assertions. <span style='opacity:.7'>(tap)</span>",
+    "Calibration: the same model that resolves <b>74.4%</b> of SWE-bench bug-fixes completes <b>11.0%</b> of end-to-end features. The gates exist because of this number. <span style='opacity:.7'>(tap)</span>",
+    "The <b>protected branch</b> is the deterministic wall: required status checks and required reviews. Tests, lint, build become gates the agent must satisfy — not suggestions. <span style='opacity:.7'>(tap)</span>",
+    "Agents run <b>inside</b> the gate too: <code>claude -p --bare</code> with JSON output and scoped tools turns a prompt into a reproducible CI check. <span style='opacity:.7'>(tap)</span>",
+    "<b>AI review as a stage</b>: a fleet of agents, false-positive verification, 🔴/🟡/🟣 severities — tuned by <code>REVIEW.md</code>, injected at highest priority. <span style='opacity:.7'>(tap)</span>",
+    "The review check finishes <b>neutral</b> by design. Want it to block? Parse the <code>bughunter-severity</code> JSON in <b>your own CI</b> — the gate is yours to wire. <span style='opacity:.7'>(tap)</span>",
+    "The <b>human merge</b>: findings are resolved by fix-and-push, not replies. Rejection ≠ agent failure (35.7%), and 15.4% of merged agent PRs needed reviewer help — that's normal. <span style='opacity:.7'>(tap)</span>",
+    "Merged isn't measured. DORA: AI raises throughput <b>and</b> instability together — your tests, small batches, and authoring-phase feedback are what decouple them. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w06-d5",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A client enables Claude Code Review, it posts a 🔴 Important finding — and the PR merges anyway. What happened?",
+      options: [
+        "The review service failed and should be restarted",
+        "Branch protection was misconfigured by GitHub",
+        "The review check always completes neutral, so it never blocks by default — gating on its findings is a check the team must build in their own CI",
+        "Important findings only block after three occurrences" ],
+      answer: 2,
+      explain: "By design the Code Review check run completes with a neutral conclusion so it never blocks through branch protection. To gate merges on findings, parse the machine-readable bughunter-severity JSON from the check-run output in your own CI and make that check required. Blocking on AI findings is an explicit team decision, not a vendor default." },
+    { type: "scq",
+      stem: "Your agent session ends with 'All done — the feature works and tests pass.' Per the delivery discipline from today, your next move is:",
+      options: [
+        "Merge — the agent verified against its plan",
+        "Ask it to restate its summary in more detail",
+        "Demand evidence: the test output, the exact commands it ran and what they returned, or a screenshot of the result",
+        "Re-run the entire session at lower temperature" ],
+      answer: 2,
+      explain: "'Looks done' is the agent's only native stop signal, and assertion is not verification. Have it show evidence — reviewing evidence is faster than re-running verification yourself and works for sessions you weren't watching. If you can't verify it, don't ship it." },
+    { type: "tf",
+      stem: "When a human rejects an agent-authored PR, it's almost always because the agent produced bad code.",
+      answer: false,
+      explain: "No. In the 9,799-PR study, only 35.7% of rejections reflected clear agentic failures — 31.2% stemmed from workflow constraints (wrong branch, duplicate effort, unwanted change) that say nothing about code quality. Merge/reject outcomes overstate agent failure, which is why the paper argues for interaction-aware evaluation over raw merge-rate." },
+    { type: "mcq",
+      stem: "DORA finds AI adoption raises throughput AND instability together. Which controls does it name for decoupling them? (select all that apply)",
+      options: [
+        "Robust test automation",
+        "Small-batch discipline — force large AI changes into reviewable, testable units",
+        "Moving AI feedback to the authoring phase instead of piling it up at review",
+        "Switching to a larger foundation model",
+        "Tracking lines of code generated per developer" ],
+      answer: [0, 1, 2],
+      explain: "DORA's named control systems are test automation (potentially more valuable than optimizing manual review), small-batch discipline, authoring-phase AI feedback, and context-aware review agents enforcing org standards. A bigger model amplifies the same system harder, and DORA explicitly warns off output metrics like lines of code." },
+    { type: "match",
+      stem: "Match each situation on the milestone PR to the mechanism behind it.",
+      pairs: [
+        { l: "You replied to the AI review comment; nothing happened", r: "findings resolve by fix-and-push, not replies" },
+        { l: "Agent declared victory with the feature half-built", r: "'looks done' stop signal — gate it with a Stop hook / verify subagent" },
+        { l: "AI review run errored, PR merged anyway", r: "review is best-effort; gate resilience is your own CI's job" },
+        { l: "A 74%-on-SWE-bench model keeps failing feature tasks", r: "bug-fix benchmarks overstate end-to-end feature capability" } ],
+      explain: "Review threads auto-resolve when a push actually fixes the issue; the stop signal needs a deterministic check; a failed review never blocks a PR, so your required check must decide what absence means; and FeatureBench's 74.4%→11.0% gap is exactly why the gates are the deliverable." },
+    { type: "open",
+      stem: "Your client wants to score their agent rollout by PR merge-rate alone. In two or three sentences: why is that a bad solo metric, and what would you measure instead?",
+      hint: "Think about why rejections happen, what merged PRs hide, and DORA's tension.",
+      model: "Merge-rate hides both directions: only 35.7% of rejected agentic PRs were actual agent failures (31.2% were workflow constraints), and 15.4% of merged ones needed explicit reviewer feedback or commits — so the number neither counts failures correctly nor credits the humans in the loop. Measure interaction-aware: reviewer involvement per PR, plus DORA-style delivery health — did throughput rise without instability (change failure rate, rework) rising with it? The reviewer is part of the delivery system, and the system is what you're scoring." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

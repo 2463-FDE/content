@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w06d3">
+<meta name="fde-concepts" content="agent-form-factor-spectrum,repo-context-strategies,architect-editor-split,async-delegated-agents,human-in-loop,coding-agent-benchmarks">
+<title>W6·D3 — Alt Research: Cursor, Aider &amp; Copilot vs Claude Code | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Alt Research: Cursor, Aider &amp; Copilot vs Claude Code</h1>
+        <div class="meta">
+          <span><b>Week 6</b> · Day 3</span>
+          <span>AI-Native Delivery</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">You've spent weeks getting good at one coding agent. Today you zoom out. A client <em>will</em>
+        ask you "why Claude Code and not Cursor?" — or worse, "our team already uses Copilot, convince me" — and the
+        answer "it's what we use" is not an answer. This is an <strong>alt-research day</strong>: you'll learn to read the
+        coding-agent landscape the way an FDE reads any vendor landscape — classify by form factor, dissect the context
+        strategy, map the review-and-permission model, and treat benchmark numbers as claims to verify, not facts to
+        repeat. Scroll the reading; the panel on the right builds the landscape one tool at a time, then overlays the
+        comparison axes that actually decide the question.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The frame</div>
+        <h2>It's a form-factor spectrum, not a feature checklist</h2>
+        <p>Start by throwing away the listicle comparison — the feature grid with green checkmarks. As of mid-2026,
+        every serious tool in this space ships roughly the same checklist: an interactive agent that edits
+        files and runs commands, an async cloud agent you can delegate tasks to, and MCP support for external tools.
+        If you compare on feature names, everything ties. The grid tells you nothing.</p>
+        <p>What actually separates the four tools is <strong>form factor</strong> — where the agent lives, and therefore
+        what workflow it pulls you into. <strong>Cursor</strong> is an AI-native IDE: a proprietary fork of VS Code with
+        the agent built into the editor, now extending outward to cloud agents and even an iOS app. <strong>GitHub
+        Copilot</strong> is a platform: an IDE extension, a terminal CLI, and a GitHub-hosted cloud agent, all riding on
+        the repository host itself. <strong>Aider</strong> is a pure terminal pair-programmer — open source, bring your
+        own API keys, no IDE at all. And <strong>Claude Code</strong> — our pick — is terminal-native first, with the same
+        engine exposed in VS Code, JetBrains, a desktop app, the web, and CI.</p>
+        <p>Form factor drives more than preference. It decides who reviews the agent's work and when, how the agent
+        learns your codebase, what it's allowed to touch, and where the audit trail lives. So the research method for
+        today — and for any tool evaluation you run at a client — is four questions asked of every candidate:
+        <em>where does it live? how does it know the repo? who approves what? and what do its numbers actually
+        measure?</em> Hold those four questions; the rest of the day walks each tool through them.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Tool 1 · Cursor</div>
+        <h2>Cursor: the IDE-native agent, sprinting toward the cloud</h2>
+        <p>Cursor's core bet is that the agent should live <em>inside the editor</em>. Its Agent "can complete complex
+        coding tasks independently, run terminal commands, and edit code," with tools for semantic search over an indexed
+        codebase, file operations, web search, terminal, and even browser control. Two design details matter. First, it auto-creates <strong>checkpoints</strong> — snapshots of your codebase during an agent
+        session — so you can roll back a bad run instead of untangling it. Second, you can queue follow-up messages while
+        the agent is mid-run, which tells you the intended rhythm: you stay in the chair, steering continuously.</p>
+        <p>The 2026 release cadence shows the direction of travel, and it is <em>away</em> from the chair. Version 3.7
+        (June 17) added cloud subagents — <code>/in-cloud</code> spins up subagents in isolated VMs, with handoff between
+        local and cloud sessions. Version 3.8 expanded Automations: always-on agents triggered by Slack emoji or GitHub
+        events, with a computer-use tool. Version 3.9 (June 22) unified "plugins, skills, MCPs, subagents, rules,
+        commands, and hooks" under one management surface at the user, team, or workspace level — and a week later
+        (June 29) shipped a public-beta iOS app so you can "launch and manage always-on agents from anywhere."</p>
+        <p>Read that 3.9 list again slowly: skills, subagents, rules, hooks, MCP. It's near-isomorphic to the Claude Code
+        extension vocabulary you've been using since week one. That's your first
+        research finding of the day: <strong>the ecosystem is converging on the same extension grammar</strong>. Feature
+        names have stopped being differentiators, which is exactly why the listicle comparison died.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Tool 2 · Aider</div>
+        <h2>Aider: the terminal OG and the repo-map idea</h2>
+        <p>Aider is the open-source original of the category: "pair program with LLMs" in your terminal, model-agnostic,
+        bring your own API keys — cloud or local models. It's git-native by design, automatically committing changes with
+        sensible commit messages, and the numbers say it mattered: roughly 44K GitHub stars and 6.8 million pip installs.
+        But it earns a full section in 2026 for one idea the whole field had to answer: the <strong>repo map</strong>.</p>
+        <p>How does an agent "know" a codebase that's a thousand times bigger than any context window? Aider's answer is a
+        <em>static, pre-computed</em> map: a graph-ranking algorithm runs over a graph where each source file is a node
+        and edges connect files with dependencies, then selects "the most important identifiers, the ones which are most
+        often referenced by other portions of the code" into a compact map — about 1k tokens by default, sized
+        dynamically. The agent sees a skeleton of the whole repo — the load-bearing names — and asks for full files only
+        when it needs them.</p>
+        <p>That's one of <strong>three repo-context strategies</strong> you should now be able to name on a whiteboard.
+        Aider's graph-ranked map is static and cheap but can go stale between computations. Cursor's semantic embedding
+        index is richer — meaning-based search over the whole codebase — but requires indexing infrastructure and
+        re-indexing as code changes. Claude Code and Copilot CLI mostly take the third path: <strong>agentic on-demand
+        search</strong> — grep, read, follow the imports, exactly like a human orienting in a strange repo — which is
+        always fresh but spends tokens per task instead of up front. There is no free lunch — only a
+        freshness-cost-scale triangle — and "how does it know the repo?" is now a question you can answer for any
+        agent.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a repo-context strategy
+        lab — point it at a sample repo and see the three strategies side by side: the graph-ranked ~1k-token repo map
+        aider would build, the chunks an embedding index would retrieve for a query, and the grep/read trail an agentic
+        search takes — with token cost and freshness annotated for each. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Aider's other gift</div>
+        <h2>The architect/editor split — and an honest staleness warning</h2>
+        <p>Aider's second lasting contribution is a workflow called <strong>architect mode</strong>. Instead of asking one
+        model to reason about a change <em>and</em> produce the exact file edits, aider splits the job: it first sends your
+        request to a reasoning "architect" model to propose a solution, then "sends another request to an 'editor model',
+        asking it to turn the architect's proposal into specific file editing instructions." Thinking and editing are
+        different skills, so use a different model for each — a strong reasoner to plan, a fast reliable formatter to
+        produce clean diffs.</p>
+        <p>You've been living inside that pattern's descendants all program. The
+        planner/executor structure of modern agents, Claude Code's subagent teams, Cursor's cloud subagents — all of them
+        are elaborations of the same insight aider shipped as a two-model trick: <strong>separate the model that decides
+        from the model that types</strong>. Recognizing ancestry like this is a research skill in itself; it stops you
+        from believing each vendor invented the idea last quarter.</p>
+        <p>Now the honest part, because verify-first cuts both ways. Aider's last release is v0.86.0, dated August 2025 —
+        roughly eleven months old as you read this. Its homepage still headlines Claude 3.7 Sonnet and o1-era models, and
+        its famous leaderboard was last updated in November 2025. Aider remains a superb <em>teaching artifact</em> — repo
+        map, git-first design, architect mode — but it is no longer tracking the frontier, and a comparison that presents
+        it as a current peer of the other three is misleading. Notice how you learned that: not from a competitor's blog,
+        but from the project's own release page. <strong>Staleness signals live in primary sources</strong>, and checking
+        release dates before recommending a tool is the cheapest diligence you will ever do.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Tool 3 · Copilot</div>
+        <h2>Copilot: from autocomplete brand to agent platform</h2>
+        <p>If your mental model of GitHub Copilot is "the autocomplete thing from 2021," update it — it's now the most
+        platform-shaped player on the board. The centerpiece is the <strong>Copilot cloud agent</strong>, which "works
+        autonomously in a GitHub Actions-powered environment." You assign it a GitHub issue, <code>@copilot</code> it in a
+        PR comment, or prompt it from Copilot Chat; it gets an ephemeral development environment where it can explore the
+        code, make changes, and run tests and linters; then it presents its work as a <strong>draft pull request</strong>
+        for a human to review — it never merges its own work. It's on all paid Copilot plans, and the guardrails are
+        refreshingly concrete: 59-minute runs, one repo, one branch, one PR per task, GitHub-hosted repos only.</p>
+        <p>This is the cleanest example of <strong>async delegated agents</strong>, and it inverts the interaction model
+        you're used to. With an interactive agent, you steer and review continuously. With a delegated agent, you hand
+        over a well-specified task, walk away, and the <em>only</em> control surface is the review gate at the end — the
+        draft PR. That makes two things critical: the quality of the task specification (a vague issue in means a vague
+        PR out — week 5's spec discipline paying rent), and the integrity of the review gate, now the entire safety
+        contract. The 59-minute cap and one-PR limits aren't weaknesses; they're the platform being explicit about the
+        blast radius of an unattended agent — and an FDE should <em>like</em> vendors who state their limits in a docs
+        page instead of letting you discover them in production.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a delegation drill — write the
+        issue description you'd hand to a cloud agent for a small real task, then an LLM grader reviews it against a
+        delegation rubric (acceptance criteria present? scope bounded? test expectations stated?) and shows the draft PR
+        a vague version would likely have produced. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">The venue play</div>
+        <h2>Copilot CLI, and GitHub hosting its rivals</h2>
+        <p>Copilot's second front is the terminal. <strong>Copilot CLI</strong> is, structurally, a Claude Code-shaped
+        product: conversational and autonomous modes, a plan mode, <code>@</code> file references, image and PDF
+        attachments, scheduled prompts (<code>/every</code>, <code>/after</code>), custom instructions and custom agents.
+        Its permission posture is explicit: the agent "may attempt to read, modify, and execute files" only after you
+        grant explicit folder trust, with one-time versus session-wide approvals per action. It ships pre-configured with
+        GitHub's MCP server and extends via <code>/mcp add</code>. Meanwhile in VS Code, agent sessions do multi-file
+        work, run multiple sessions in parallel, and a dedicated Agents window orchestrates tasks across projects.</p>
+        <p>Then comes the move that should make you sit up: GitHub now hosts <em>competitors' agents</em> as first-class
+        citizens. From GitHub's Agents tab — and from issues, PR comments via <code>@AGENT_NAME</code>, and mobile — you
+        can assign work to <strong>Anthropic Claude</strong> or <strong>OpenAI Codex</strong>, not just Copilot. Their
+        output flows through the same plumbing: generated code is automatically scanned with CodeQL and secret scanning,
+        and usage bills as Actions minutes plus AI credits.</p>
+        <p>Think about what that means strategically. GitHub is no longer betting that Copilot beats every agent; it's
+        betting that <em>whichever agent wins, the work lands on GitHub</em>. The moat moved from the model to the venue —
+        the place where code review, CI, security scanning, and billing already live. For client conversations this
+        matters directly: "we use Claude Code" and "our repos and review gates live on GitHub" are no longer competing
+        statements anymore. The platform layer and the agent layer are separating, and an FDE who can articulate that
+        separation sounds five years ahead of one still arguing brand-versus-brand.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">The axis that matters most</div>
+        <h2>Review &amp; permission models: how each tool says "not so fast"</h2>
+        <p>Here's the comparison axis that matters most for client work, and the one vendor marketing talks about least:
+        when a semi-autonomous agent is loose in a codebase, <strong>what stops it from doing damage, and who signs off on
+        what?</strong> Each tool's answer reveals its theory of trust.</p>
+        <p><strong>Cursor</strong> trusts you to supervise and makes recovery cheap: automatic checkpoints of the codebase
+        during agent sessions, so any run can be rolled back. <strong>Copilot's cloud agent</strong> assumes no one is
+        watching and gates the output: everything arrives as a draft PR, a human must approve, and it never auto-merges —
+        the review gate <em>is</em> the product. <strong>Copilot CLI</strong> gates the input instead: explicit folder
+        trust before the agent touches anything, then per-action approvals, one-time or session-wide.
+        <strong>Claude Code</strong> gives you a programmable perimeter: a permission system for tools and paths, plus
+        hooks that let a team encode its own hard rules — you've lived inside one all program, where hooks block
+        <code>.env</code> reads and secret-shaped writes before the model ever sees them.</p>
+        <div class="ix-predict"
+          data-q="A regulated-industry client says: 'We can't have an AI changing code unsupervised — which of these tools is even admissible for us?' What's the FDE answer?"
+          data-a="Reframe the question: <b>every one of these tools ships a human-approval gate</b> — Cursor checkpoints with rollback, Copilot's cloud agent can only produce a draft PR a human must approve and never auto-merges, Copilot CLI requires folder trust plus per-action approvals, Claude Code has permissions and hooks you can program with the client's own rules. The admissibility question isn't <i>which tool</i>, it's <b>which review model matches their compliance posture</b> — output-gated (draft PR), input-gated (trust + approvals), or policy-gated (hooks). Pick the gate first; the tool follows.">
+        </div>
+        <p>Notice the pattern: rollback, output gate, input gate, policy perimeter. Which one fits depends on the
+        client — a fintech with change-control requirements wants the
+        draft-PR gate's paper trail; a startup wants checkpoints and speed; a security-sensitive team wants hooks it can
+        write itself. This axis, not the benchmark score, is usually what decides a real procurement conversation.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Reading the numbers</div>
+        <h2>Benchmarks: what SWE-bench and the polyglot board actually measure</h2>
+        <p>Sooner or later someone slides a leaderboard across the table, so learn to read the two names you'll see most.
+        <strong>SWE-bench</strong> (Jimenez et al., Princeton) is the canonical academic anchor: 2,294 real GitHub
+        issue/PR pairs drawn from 12 Python repositories, where the task is to "edit the codebase to address the issue."
+        Real issues, real codebases — that's why it stuck. Keep this calibration fact: at publication, the best model of
+        the day (Claude 2) resolved <strong>1.96%</strong> of tasks. Today vendors quote "SWE-bench Verified" numbers
+        vastly higher. Both facts are true; the gap is model progress <em>plus</em> scaffold progress <em>plus</em> a
+        change of variant — which is exactly why a naked number is meaningless.</p>
+        <p>So the three questions you ask of any SWE-bench claim: <em>which variant</em> (full, Lite, or the
+        human-validated Verified subset — not comparable to each other), <em>what scaffold</em> (the same model scores
+        wildly differently in different agent harnesses), and <em>what date</em> (a number from last year describes last
+        year). A vendor number missing any of the three is a marketing sentence, not a measurement.</p>
+        <p>The <strong>aider polyglot leaderboard</strong> measures something narrower: 225 hard Exercism exercises across
+        C++, Go, Java, JavaScript, Python, and Rust, testing whether a model can follow instructions and produce correctly
+        formatted edits inside one fixed harness, no human in the loop. That makes it a <em>model</em> benchmark, not an
+        <em>agent</em> benchmark — useful for comparing raw models on edit discipline, useless for deciding between Cursor
+        and Copilot. It also doubles as today's staleness exhibit: last updated November 2025, top entry gpt-5 at 88.0%.
+        A board that has stopped updating doesn't say "these rankings hold"; it says "nobody is maintaining this" — a
+        historical document.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a benchmark-claims workbench —
+        paste a vendor's "X% on SWE-bench" quote and it extracts variant, scaffold, and date, flags what's missing, and
+        shows how the same model's score moves across variants and harnesses. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="7">
+        <div class="tag">Our pick · for the record</div>
+        <h2>Why Claude Code — and what would change the answer</h2>
+        <p>Now the question you'll be asked, answered properly. Claude Code is "an agentic coding tool that reads your
+        codebase, edits files, runs commands, and integrates with your development tools" — one engine across terminal,
+        VS Code, JetBrains, desktop, and web, with shared CLAUDE.md memory, settings, and MCP config across all of them.
+        The distinctives you already use daily: CLAUDE.md plus auto memory, skills, hooks, subagent teams, a
+        Unix-composable CLI (<code>tail -200 app.log | claude -p ...</code>), GitHub Actions and GitLab CI integration,
+        and an Agent SDK for building custom agents on the same engine.</p>
+        <p>But be honest the way a researcher is honest: most of those historical differentiators <strong>now have
+        counterparts</strong>. Cursor 3.9 ships skills, subagents, rules, and hooks; Copilot CLI is terminal-native with
+        MCP and custom agents. So the durable case rests on the axes that don't converge overnight: <strong>model
+        access</strong> (Anthropic-first and immediate, versus a router's menu), the <strong>composable-CLI and SDK
+        posture</strong> (an agent you can pipe, script, and embed, not just sit in front of), and the <strong>maturity of
+        the extension ecosystem</strong> your team has already built on — this program's own pipeline of skills and hooks
+        being exhibit A. And the professional's coda: name what would flip the decision. If the frontier model you depend
+        on moved elsewhere, if a client's estate made the GitHub-venue integration decisive, or if a rival's permission
+        model fit a compliance regime yours couldn't — those are real reasons. "The leaderboard changed this month" is
+        not.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>An FDE's tool recommendation is a <strong>research artifact, not an allegiance</strong>. You classified four
+          tools by form factor, dissected three context strategies, mapped four permission models, and stress-tested two
+          benchmarks — all from primary sources with dates on them. That method survives every product cycle; the
+          conclusions are always dated the day you write them. Re-run the method, not the loyalty.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://cursor.com/changelog" target="_blank" rel="noopener">Cursor Changelog</a> — 3.7 cloud subagents (<code>/in-cloud</code>), 3.8 Automations, 3.9 unified plugins/skills/MCP/subagents/rules/hooks + iOS public beta.</li>
+          <li><a href="https://cursor.com/docs/agent/overview" target="_blank" rel="noopener">Agent Overview — Cursor Docs</a> — agent capabilities, semantic codebase search, checkpoints and rollback, message queuing.</li>
+          <li><a href="https://aider.chat/" target="_blank" rel="noopener">Aider — AI pair programming in your terminal</a> — terminal pair-programming framing, automatic git commits, model-agnostic BYO keys.</li>
+          <li><a href="https://aider.chat/docs/repomap.html" target="_blank" rel="noopener">Repository map — aider docs</a> — graph-ranked repo map over the file-dependency graph, ~1k-token default, dynamic sizing.</li>
+          <li><a href="https://aider.chat/docs/usage/modes.html" target="_blank" rel="noopener">Chat modes — aider docs</a> — architect mode's two-model workflow: reasoning proposal → editor-model file edits.</li>
+          <li><a href="https://github.com/Aider-AI/aider/releases" target="_blank" rel="noopener">aider releases — GitHub</a> — latest release v0.86.0 (2025-08-09); the staleness signal, from the primary source.</li>
+          <li><a href="https://aider.chat/docs/leaderboards/" target="_blank" rel="noopener">Aider LLM Leaderboards</a> — 225 Exercism exercises across 6 languages; last updated 2025-11-20.</li>
+          <li><a href="https://docs.github.com/copilot/concepts/agents/coding-agent/about-coding-agent" target="_blank" rel="noopener">About GitHub Copilot cloud agent — GitHub Docs</a> — Actions-powered ephemeral environment, draft-PR review gate, 59-minute / one-PR limits.</li>
+          <li><a href="https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/overview" target="_blank" rel="noopener">Copilot CLI overview — GitHub Docs</a> — plan mode, folder trust + approvals, MCP pre-configured, scheduled prompts.</li>
+          <li><a href="https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode" target="_blank" rel="noopener">Chat in VS Code — VS Code Docs</a> — multi-file agent sessions, parallel sessions, the Agents window.</li>
+          <li><a href="https://docs.github.com/en/copilot/concepts/agents/about-third-party-coding-agents" target="_blank" rel="noopener">About third-party coding agents — GitHub Docs</a> — Anthropic Claude and OpenAI Codex assignable on GitHub; CodeQL + secret scanning of agent output.</li>
+          <li><a href="https://code.claude.com/docs/en/overview" target="_blank" rel="noopener">Claude Code overview — official docs</a> — surfaces, CLAUDE.md memory, skills/hooks/subagents, composable CLI, Agent SDK.</li>
+          <li><a href="https://arxiv.org/abs/2310.06770" target="_blank" rel="noopener">SWE-bench — arXiv 2310.06770</a> — Jimenez et al.; 2,294 real issue/PR tasks from 12 Python repos; Claude 2 baseline 1.96%.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">How to audit a benchmark claim in 5 minutes</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on reading the agent landscape</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 6 Day 3</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: auditing a benchmark claim in 5 minutes</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The checklist behind "check variant, scaffold, and date."</p>
+    <p><strong>Step 1 — identify the instrument.</strong> SWE-bench is 2,294 real GitHub issue/PR pairs from 12 Python
+    repositories; the task is to edit the codebase so the issue's held-out tests pass. The aider polyglot board is 225
+    hard Exercism exercises in 6 languages, testing edit-format compliance inside one fixed harness. The first measures
+    something agent-shaped on real code; the second measures raw model edit discipline. A vendor quoting polyglot to sell
+    an <em>agent product</em> is already off-instrument.</p>
+    <p><strong>Step 2 — pin the variant.</strong> "SWE-bench" alone is ambiguous: full (all 2,294), Lite (a cheaper
+    subset), and Verified (a human-validated subset) produce different numbers for the same system. Verified scores run
+    higher than full-set scores by construction. Cross-variant comparisons are apples to oranges.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked calibration — why a naked number is meaningless</div>
+      <p style="margin:8px 0 0">At SWE-bench's publication, the best model available — Claude 2 — resolved
+      <strong>1.96%</strong> of tasks. Today's vendor slides quote Verified numbers vastly higher. Between those two
+      figures sit three confounds that all moved at once: the models improved, the <em>scaffolds</em> improved (the same
+      model scores wildly differently in different agent harnesses), and the goalposts moved from full to Verified. Any
+      one of the three can double a number. So the audit question is never "is 70% good?" — it's "70% of <em>which set</em>,
+      inside <em>which harness</em>, measured <em>when</em>?"</p>
+    </div>
+    <p style="margin-top:14px"><strong>Step 3 — date the claim.</strong> The polyglot leaderboard's own page shows a
+    last-updated date of 2025-11-20, with gpt-5 (high) at 88.0% on top. That's not evidence the ranking still holds —
+    it's evidence the board stopped being maintained. Same discipline applies to the tools themselves: aider's release
+    page shows v0.86.0 (2025-08-09) as the latest, which is how you caught its staleness today. Dates are the cheapest
+    verification you'll ever run, and they live in primary sources — release pages, changelogs, the leaderboard's own
+    footer — never in the pitch deck.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 3 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Classify any coding agent by form factor — IDE-fork, platform, pure terminal, terminal-first multi-surface — and say why form factor drives workflow more than model choice</li>
+      <li>Name the three repo-context strategies (graph-ranked repo map, embedding index, agentic search) and their freshness/cost/scale tradeoffs</li>
+      <li>Map a tool's review-and-permission model (checkpoints, draft-PR gate, folder trust + approvals, hooks/permissions) to a client's compliance posture</li>
+      <li>Audit a benchmark claim by variant, scaffold, and date — and spot a stale tool or leaderboard from its own primary sources</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add a <code>TOOL-LANDSCAPE.md</code> comparison matrix: Cursor, Aider, Copilot, Claude Code as rows</li>
+      <li><b>①</b> columns for form factor, repo-context strategy, async/cloud agent, review &amp; permission model — filled from today's primary sources, each cell dated</li>
+      <li><b>②</b> one staleness flag you verified yourself from a primary source (release page, changelog, or leaderboard footer)</li>
+      <li><b>③</b> a three-sentence "why Claude Code" answer for a client — plus the one condition that would legitimately change it</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 4, where you point your agent at the hard case: brownfield code and legacy
+    modernization — where the review gates you mapped today stop being theory.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 4 · Brownfield & legacy modernization →", href: "w06d4.html" };
+window.DIAGRAM = {
+  title: "Coding-agent landscape · four tools, four axes",
+  width: 500, height: 690,
+  nodes: [
+    // header card
+    { id:"task", step:0, kind:"example", x:14, y:14, w:472, h:78,
+      label:"CLIENT QUESTION  \"Why Claude Code and not Cursor / Copilot?\"\n  method: form factor → repo context → review model → benchmarks\n  every claim dated & sourced — 2026-07 snapshot, re-run the method later" },
+
+    // the spectrum frame + four tool cards
+    { id:"spec", step:0, x:28, y:104, w:444, h:216, label:"FORM-FACTOR SPECTRUM  (where the agent lives)" },
+    { id:"cursor", step:1, x:44, y:140, w:206, h:74, label:"CURSOR\nAI-native IDE (VS Code fork)\n+ cloud subagents · iOS",
+      detail:"In-editor agent: semantic search over an indexed codebase, terminal, browser control. Auto checkpoints for rollback; queue messages mid-run. 2026: 3.7 cloud subagents (/in-cloud), 3.8 Automations, 3.9 unified skills/subagents/rules/hooks + iOS public beta — converging on Claude Code's extension vocabulary." },
+    { id:"copilot", step:4, x:262, y:140, w:194, h:74, label:"COPILOT\nplatform: IDE + CLI +\nGitHub-hosted cloud agent",
+      detail:"From autocomplete brand to agent platform. Cloud agent runs in a GitHub Actions environment and outputs a draft PR; Copilot CLI is a Claude Code-shaped terminal agent with plan mode, folder trust, MCP. VS Code runs parallel agent sessions with an Agents window." },
+    { id:"aider", step:2, x:44, y:228, w:206, h:74, label:"AIDER\npure terminal · open source\nBYO keys · git-native",
+      detail:"The category OG: 44K stars, 6.8M installs, auto git commits. Signature ideas: the graph-ranked repo map and architect/editor mode. Staleness flag: last release v0.86.0 (2025-08-09); homepage still headlines 2025-era models. Great teaching artifact, no longer frontier." },
+    { id:"claude", step:2, x:262, y:228, w:194, h:74, label:"CLAUDE CODE  (our pick)\nterminal-first, multi-surface\nCLI · IDE · desktop · web · CI",
+      detail:"One engine across terminal, VS Code/JetBrains, desktop, web, CI — shared CLAUDE.md, settings, MCP. Distinctives: skills, hooks, subagent teams, Unix-composable CLI, Agent SDK. Fair note: rivals now ship counterparts; the durable axes are model access, composability/SDK, and ecosystem maturity." },
+
+    // context strategies row
+    { id:"repomap", step:2, x:34, y:344, w:140, h:64, label:"repo map\ngraph-ranked\n~1k tokens, static",
+      detail:"Aider's answer to 'how does the agent know the repo': graph-rank a file-dependency graph, keep the most-referenced identifiers in a ~1k-token map, sized dynamically. Cheap and compact — but pre-computed, so it can go stale between builds." },
+    { id:"embed", step:2, x:186, y:344, w:140, h:64, label:"embedding index\nsemantic search\nover whole repo",
+      detail:"Cursor's strategy: index the codebase into embeddings, search by meaning. Rich retrieval at scale — but needs indexing infrastructure and re-indexing as code changes." },
+    { id:"agentic", step:2, x:338, y:344, w:148, h:64, label:"agentic search\ngrep / read / follow\nalways fresh",
+      detail:"Claude Code and Copilot CLI's default: search on demand like a human orienting in a strange repo. Always current, no index to maintain — but spends tokens per task instead of up front. Freshness–cost–scale: pick two." },
+
+    // architect/editor + async sandbox
+    { id:"arch", step:3, x:34, y:432, w:126, h:56, label:"ARCHITECT\nreasoning model\nproposes",
+      detail:"Aider's architect mode: send the request to a strong reasoning model first, get a solution proposal. Thinking and editing are different skills — so split them." },
+    { id:"editm", step:3, x:196, y:432, w:126, h:56, label:"EDITOR\nedit model\nwrites the diffs",
+      detail:"A second request hands the architect's proposal to an 'editor model' that turns it into specific file edits. The precursor of planner/executor agents and subagent teams." },
+    { id:"sandbox", step:4, x:344, y:432, w:142, h:56, label:"ASYNC SANDBOX\nActions VM · 59 min\n→ draft PR only",
+      detail:"Copilot cloud agent: assign an issue or @copilot a PR; it gets an ephemeral Actions-powered environment to explore, edit, and test — then must present a draft PR. Never auto-merges. Limits: 59-min runs, one repo/branch/PR per task. The review gate is the safety contract." },
+
+    // venue + review gates
+    { id:"venue", step:5, x:34, y:512, w:220, h:60, label:"GITHUB AS VENUE\nClaude & Codex assignable\nfrom the Agents tab",
+      detail:"GitHub now hosts rivals' agents first-class: Anthropic Claude and OpenAI Codex assignable from the Agents tab, issues, PRs (@AGENT_NAME), mobile. Output auto-scanned by CodeQL + secret scanning; billed as Actions minutes + AI credits. The moat moved from model to venue." },
+    { id:"gates", step:6, x:268, y:512, w:218, h:60, label:"REVIEW & PERMISSION\ncheckpoints · draft-PR gate\nfolder trust · hooks",
+      detail:"Four theories of trust: Cursor makes recovery cheap (checkpoints/rollback); Copilot cloud agent gates the output (draft PR, never auto-merge); Copilot CLI gates the input (folder trust + per-action approvals); Claude Code gives a programmable perimeter (permissions + hooks). Match the gate to the client's compliance posture." },
+
+    // benchmarks
+    { id:"sweb", step:7, x:34, y:596, w:220, h:72, label:"SWE-BENCH\n2,294 real issues · 12 repos\nask: variant? scaffold? date?",
+      detail:"Jimenez et al.: real GitHub issue/PR pairs; edit the codebase until held-out tests pass. Calibration: best model at publication (Claude 2) resolved 1.96%. Vendor 'Verified' numbers aren't comparable to full-set numbers — always pin variant, scaffold, and date." },
+    { id:"poly", step:7, x:268, y:596, w:218, h:72, label:"AIDER POLYGLOT\n225 Exercism · 6 langs\nmodel bench · stale 2025-11",
+      detail:"Measures edit-format compliance and instruction-following inside one fixed harness — a model benchmark, not an agent benchmark. Last updated 2025-11-20 (top: gpt-5 high, 88.0%). A leaderboard that stopped updating is a historical document." }
+  ],
+  edges: [
+    { id:"e_rm",   step:2, from:"aider",   to:"repomap", label:"pre-computes", lx:-4 },
+    { id:"e_em",   step:2, from:"cursor",  to:"embed",   label:"indexes", bend:24 },
+    { id:"e_ag",   step:2, from:"claude",  to:"agentic", label:"searches live", lx:6 },
+    { id:"e_ae",   step:3, from:"arch",    to:"editm",   label:"proposal →", ly:-4 },
+    { id:"e_sb",   step:4, from:"copilot", to:"sandbox", label:"delegate issue", lx:8 },
+    { id:"e_ven",  step:5, from:"venue",   to:"claude",  label:"hosts rivals", bend:-26, ly:-2 },
+    { id:"e_gate", step:6, from:"gates",   to:"sandbox", label:"the safety contract", ly:2 }
+  ],
+  captions: [
+    "One client question, four axes: form factor → repo context → review model → benchmarks. Every serious tool ships the same feature checklist, so the empty spectrum frame is the point — we'll place the four tools on it one at a time. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "First onto the spectrum: <b>Cursor</b>, the agent that lives in the editor — checkpoints, semantic search — and is sprinting cloud-ward: /in-cloud subagents, Automations, an iOS app, and a 3.9 extension surface that mirrors Claude Code's. <span style='opacity:.7'>(tap)</span>",
+    "<b>Aider</b> and <b>Claude Code</b> join the board with the axis they anchor — three ways an agent <b>knows your repo</b>: aider's static graph-ranked map (~1k tokens), Cursor's embedding index, and agentic on-demand search. Freshness, cost, scale — pick two. <span style='opacity:.7'>(tap)</span>",
+    "Aider's <b>architect/editor split</b>: a reasoning model proposes, an editor model writes the diffs — the ancestor of planner/executor and subagent designs. (And note aider's own staleness: last release 2025-08.)",
+    "The last tool takes its place: <b>Copilot</b>, whose cloud agent shows <b>async delegation</b> — working alone in an ephemeral Actions VM, 59-minute cap, one PR per task, and it can only hand back a <b>draft PR</b>. <span style='opacity:.7'>(tap)</span>",
+    "The venue play: GitHub now hosts <b>competitors' agents</b> — Claude and Codex assignable from the Agents tab, scanned by CodeQL, billed as Actions minutes. The moat moved from model to venue. <span style='opacity:.7'>(tap)</span>",
+    "The axis that decides procurements: <b>review & permission models</b>. Rollback (Cursor) vs output gate (draft PR) vs input gate (folder trust) vs programmable perimeter (hooks). <span style='opacity:.7'>(tap)</span>",
+    "Reading the numbers: <b>SWE-bench</b> needs variant + scaffold + date before you trust it; <b>aider polyglot</b> is a model benchmark, stale since 2025-11. A naked score is marketing. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w06-d3",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A client asks 'which coding agent is best?' As of mid-2026, why is a feature-checklist comparison the wrong instrument?",
+      options: [
+        "Because the tools have wildly different feature sets that can't be tabulated",
+        "Because every serious vendor now ships the same checklist — interactive agent, async cloud agent, MCP — so the grid ties; the real differences are form factor, context strategy, review model, and model access",
+        "Because feature lists are trade secrets and can't be verified",
+        "Because benchmarks already settle the question" ],
+      answer: 1,
+      explain: "Convergence killed the checklist: everyone has an interactive agent, a cloud agent, and MCP. The differentiators left are where the agent lives (form factor), how it knows your repo, who approves what, and which models it can reach." },
+    { type: "scq",
+      stem: "What is aider's repo map?",
+      options: [
+        "A semantic embedding index rebuilt on every keystroke",
+        "A static, graph-ranked selection of the most-referenced identifiers across the file-dependency graph, ~1k tokens by default",
+        "A full copy of the repository streamed into the context window",
+        "A cloud service that summarizes each file with an LLM" ],
+      answer: 1,
+      explain: "Aider ranks a graph where files are nodes and dependencies are edges, then keeps the identifiers most referenced by the rest of the code — a compact, pre-computed skeleton of the repo (~1k tokens, dynamically sized). Static and cheap, versus Cursor's embedding index and Claude Code's agentic on-demand search." },
+    { type: "tf",
+      stem: "Two vendors both claim strong 'SWE-bench' scores, so their numbers can be compared directly.",
+      answer: false,
+      explain: "Not until you pin three things: the variant (full / Lite / Verified are different sets), the scaffold (the same model scores very differently in different harnesses), and the date. Calibration: the best model at SWE-bench's publication resolved 1.96% — today's Verified numbers sit far higher partly because the variant and scaffolds changed, not only the models." },
+    { type: "mcq",
+      stem: "Which of these are review/permission mechanisms that constrain a semi-autonomous coding agent? (select all that apply)",
+      options: [
+        "Cursor's automatic checkpoints with rollback",
+        "Copilot cloud agent's draft-PR gate — a human approves, it never auto-merges",
+        "Copilot CLI's explicit folder trust plus per-action approvals",
+        "Claude Code's permissions and hooks",
+        "Setting the model's temperature to zero" ],
+      answer: [0, 1, 2, 3],
+      explain: "Four theories of trust: rollback (Cursor), output gate (Copilot cloud agent's draft PR), input gate (Copilot CLI's folder trust + approvals), and a programmable perimeter (Claude Code permissions + hooks). Temperature controls sampling randomness — it says nothing about what the agent is allowed to touch." },
+    { type: "match",
+      stem: "Match each tool to its signature design trait from today's reading.",
+      pairs: [
+        { l: "Aider", r: "graph-ranked repo map + architect/editor two-model split" },
+        { l: "Cursor", r: "in-editor agent with semantic index, checkpoints, /in-cloud subagents" },
+        { l: "Copilot cloud agent", r: "ephemeral Actions sandbox → draft PR, 59-min cap, never auto-merges" },
+        { l: "Claude Code", r: "terminal-first multi-surface engine: CLAUDE.md, skills, hooks, subagents, Agent SDK" } ],
+      explain: "Form factor drives the design: aider bet on compact static context and split models; Cursor on the editor plus cloud expansion; Copilot on the GitHub platform with a hard review gate; Claude Code on a composable terminal-first engine exposed across surfaces." },
+    { type: "open",
+      stem: "In two or three sentences: give the honest 'why we standardized on Claude Code' answer you'd say to a client — including what has converged, what hasn't, and one condition that would legitimately change the decision.",
+      hint: "Convergence (skills/subagents/hooks everywhere) vs the durable axes — model access, composable CLI/SDK, ecosystem maturity — and what re-opens the question.",
+      model: "The feature names have converged — Cursor 3.9 and Copilot CLI now ship skills, subagents, hooks, and MCP too — so our case rests on the durable axes: Anthropic-first model access, a Unix-composable CLI and Agent SDK we can pipe and embed in CI, and the extension ecosystem (skills, hooks, pipeline) our team has already built on it. What would legitimately change the call: the frontier model we depend on moving elsewhere, a client estate where GitHub's venue integration is decisive, or a compliance regime that fits a rival's review model better — not a leaderboard shuffle." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

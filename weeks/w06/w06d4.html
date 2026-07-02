@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w06d4">
+<meta name="fde-concepts" content="agent-legacy-comprehension,characterization-tests,legacy-modernization,transitional-architecture-acl,incremental-data-cutover,agentic-modernization-pipelines">
+<title>W6·D4 — Brownfield &amp; Legacy Modernization with Agents | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Brownfield: Modernizing Legacy Systems with Agents</h1>
+        <div class="meta">
+          <span><b>Week 6</b> · Day 4</span>
+          <span>Agentic Engineering in the Real World</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Almost no client hands you a green field. They hand you a fifteen-year-old system that runs
+        the business, that nobody fully understands, and that they're terrified to touch. Today is the FDE playbook for
+        that system: use agents to <strong>read</strong> the legacy code before anyone writes a line, pin down its actual
+        behavior with <strong>characterization tests</strong>, replace it incrementally behind a <strong>strangler-fig
+        façade</strong> instead of a big-bang rewrite, and treat agent-driven translation as fast-but-unproven until
+        validation says otherwise. Scroll the reading; the panel on the right strangles one legacy monolith, piece by
+        piece, the way you will at a client.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The flip</div>
+        <h2>The bottleneck is comprehension, not code</h2>
+        <p>Here is the scene you will actually walk into. A system that has been in production for a decade or more.
+        The original authors are gone. The documentation, if it exists, describes a version of the system that stopped
+        being true years ago. And every feature request now takes months, because nobody is confident about what any
+        change will break. That's <strong>brownfield</strong> — and it's where most of the world's software value
+        actually lives.</p>
+        <p>The instinct everyone brings to agents here is wrong. People assume the win is generation: "the AI will
+        rewrite our old code fast." But the Thoughtworks team that built the CodeConcise modernization accelerator put
+        their finger on the real bottleneck: developers spend far more time <em>reading</em> code than writing it, so
+        GenAI's biggest modernization value is <strong>understanding existing systems</strong> — reverse-engineering
+        what the legacy code actually does, so the humans and agents downstream aren't working blind.</p>
+        <p>Their approach makes the point concrete. CodeConcise parses the legacy codebase into an AST-derived
+        <strong>knowledge graph</strong>, and lets LLM traversal over that graph "reduce noise (i.e. unnecessary code)
+        from the context provided to LLMs" — the same window discipline you learned in Week 1, applied to a million
+        lines of someone else's COBOL. The measured result on one client engagement: reverse-engineering a mainframe
+        module dropped <strong>from six weeks to two</strong>, projected at roughly <strong>240 FTE-years saved</strong>
+        across the client's whole modernization program. That's the shape of the prize — and notice it was won by
+        reading, not writing.</p>
+        <p>One caveat from the same team, worth keeping honest: not everything in legacy work is an LLM job.
+        Dead-code detection, for instance, stays with classical static analysis — in their words, "GenAI offers minimal
+        value here." The FDE skill is knowing which tool owns which part of the problem.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Agents that read</div>
+        <h2>Broad → narrow: the comprehension workflow</h2>
+        <p>You already own the tool for this. Claude Code's official brownfield recipe is a <strong>broad-to-narrow
+        funnel</strong>: start with "give me an overview of this codebase," then tighten — "how is authentication
+        handled?" — then tighten again — "trace the login process from front-end to database." Each question spends
+        context on a smaller, deeper slice, and by the third pass you have an execution-flow map that would have taken
+        a new hire weeks to build by hand. The docs also recommend targeted sweeps like "find deprecated API usage in
+        our codebase" to build a refactor hit-list before anyone commits to a plan.</p>
+        <p>Two details in that recipe are load-bearing. First, <strong>delegate exploration to subagents</strong>
+        ("use a subagent to investigate…") so the hundreds of file-reads an investigation burns don't pollute your main
+        context — the orchestrator keeps the map, the subagents do the walking. Second, when you graduate from reading
+        to refactoring, the docs' rule is that changes should "maintain the same behavior" and land "in small, testable
+        increments." Hold that phrase; the entire rest of today is about making it enforceable.</p>
+        <p>And keep a human in the loop on the outputs. When MITRE and collaborators evaluated LLM-generated
+        line-by-line documentation for genuinely dead languages — <strong>MUMPS</strong> in an EHR system and
+        <strong>IBM mainframe Assembly (ALC)</strong> — the generated comments were largely accurate and useful, but
+        they found that <em>no automated metric strongly correlates with comment quality</em>. There is no scorer you
+        can point at machine-written legacy docs and trust; a person who knows the domain has to review them. Agents
+        make legacy comprehension cheap. They do not make it self-certifying.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a legacy comprehension console —
+        a seeded, undocumented legacy repo you interrogate broad→narrow ("overview" → "how does billing work?" →
+        "trace one invoice"), with a live view of what each question cost in context and what the subagent actually
+        read. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Pin it down</div>
+        <h2>Characterization tests: the code is its own spec</h2>
+        <p>Before any agent — or any human — changes a line of untested legacy code, you pin down what it actually does.
+        The tool is the <strong>characterization test</strong>, and the definition comes from Michael Feathers, who
+        coined the term in <em>Working Effectively with Legacy Code</em>: its purpose is "to document your system's
+        actual behavior, not check for the behavior you wish your system had." Once code is in production, Feathers
+        argues, "it becomes its own specification. We need to know when we are changing existing behavior regardless of
+        whether we think it's right or not." Even the bugs are load-bearing: some downstream process probably depends
+        on them.</p>
+        <p>The mechanics are almost embarrassingly simple. Write a test that calls the legacy function with a real
+        input and asserts a dummy expectation — <code>null</code>, say. Run it. It fails, and the failure message tells
+        you what the code <em>actually</em> returned. Record that actual value as the assertion, rename the test to
+        describe what you just learned, and repeat across the input space. You aren't judging the behavior; you're
+        photographing it. The genuinely hard part, Feathers notes, isn't writing the assertions — it's <strong>breaking
+        dependencies</strong> enough to get the legacy code into a test harness at all.</p>
+        <p>Now the agent angle, and it's the single highest-leverage pre-agent step in brownfield work. Generating
+        characterization tests is mechanical — call, observe, record, repeat — which is exactly the kind of work agents
+        are good at, so you can build hundreds of pins cheaply. And the resulting suite is your <strong>tripwire</strong>:
+        when an agent later refactors or translates that code and quietly changes behavior, a pinned test goes red.
+        Write this on the whiteboard at the client: <strong>the legacy system is the oracle; the agent must never
+        be.</strong> The running production code is the only authority on what "correct" means, and characterization
+        tests are how you make that authority executable.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a characterization workbench —
+        a mystery legacy function behind an API; you probe it with inputs, record actual outputs into a pin-suite, then
+        an agent "refactors" it and your suite either catches the behavior drift or doesn't. Needs backend
+        standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">The pattern</div>
+        <h2>Strangler fig: replace it while it runs</h2>
+        <p>So you understand the system and you've pinned its behavior. How do you actually replace it? Not with a
+        big-bang rewrite — the multi-year project that freezes the old system, rebuilds everything in parallel, and
+        cuts over in one terrifying weekend. The alternative has a name and a quarter-century pedigree:
+        the <strong>strangler fig</strong>, named by Martin Fowler in 2001 after the vine that grows around a host tree
+        until it can stand on its own — and substantially rewritten as a pattern in his 2024 bliki revision.</p>
+        <p>Fowler's current framing is four activities, and none of them is "rewrite." First, <strong>understand the
+        outcomes you want</strong> — modernization serves a goal, not nostalgia for new frameworks. Second,
+        <strong>identify the parts that can be independently replaced</strong> — seams where a piece of the system can
+        come out without dragging the whole organism with it. Third, <strong>deliver replacements in manageable
+        pieces</strong>: new work lands as "small additions, often new features, that are built on top of, yet separate
+        to the legacy code base," so each increment carries small risk and ships real value early. Fourth — the one
+        engineers forget — <strong>drive the organizational change</strong> needed to sustain the effort, because a
+        strangler migration is a way of working, not a sprint.</p>
+        <p>The economics are the argument you'll make to the client. Replacing small components one at a time means no
+        risk-everything cutover, and the early value from the first new components is what <em>justifies</em> the
+        temporary scaffolding — what Fowler calls <strong>transitional architecture</strong>, code that exists only so
+        the old and new systems can coexist and that is deliberately built to be thrown away. A big-bang rewrite delivers
+        nothing until it delivers everything; a strangler delivers something every increment, and every increment
+        tightens your characterization-test tripwire around what remains.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">In operation</div>
+        <h2>The façade: routing is the migration</h2>
+        <p>The Azure Architecture Center's write-up of the pattern gives you its operational shape, and it's beautifully
+        mechanical. You put a <strong>façade</strong> — a proxy — in front of the legacy system, so that every incoming
+        request passes through it. At the start, the façade routes everything to the legacy system and users notice
+        nothing. Then, as each new service comes online, the façade starts routing <em>that slice</em> of requests to the
+        new implementation instead. Migration progress becomes a routing table: 0% new, then 10%, then 60%, until the
+        legacy system is receiving no traffic at all — at which point it can be decommissioned and, last of all, the
+        façade itself removed. The vine has consumed the tree.</p>
+        <p>Notice what this buys the agent-assisted version of the work. Each routing shift is a <strong>small, testable
+        increment</strong> — exactly the granularity your characterization suite can verify. Route one endpoint to the
+        new service, run the pins, compare. If the new implementation drifts from the oracle, route back. The façade
+        turns "rewrite the system" into a long series of reversible experiments.</p>
+        <p>The pattern has sharp edges, and Azure's considerations list is your pre-flight check. The façade sits in
+        every request path, so you must keep it from becoming a <strong>single point of failure or a performance
+        bottleneck</strong> — it inherits the availability requirements of everything behind it. You should structure
+        the <em>new</em> services so that they can themselves be strangled one day; today's replacement is tomorrow's
+        legacy. And the pattern simply doesn't fit everywhere: if requests to the back-end system <strong>can't be
+        intercepted</strong>, or you can't modify the legacy source at all, there is no seam for the façade to occupy,
+        and you need a different strategy.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Coexistence</div>
+        <h2>The anti-corruption layer: don't import the disease</h2>
+        <p>During the long middle of a strangler migration, old and new must talk to each other — the new order service
+        still needs customer data that lives in the monolith, and the monolith still needs results the new service now
+        owns. The naive move is to let the new system call the legacy system directly, speaking its dialect. Do that and
+        you've imported the disease: legacy data shapes, legacy naming, legacy assumptions leak into the new codebase,
+        and at the end of the migration you discover you've rebuilt the old system with newer syntax.</p>
+        <p>The guard is the <strong>anti-corruption layer</strong> (ACL), which the Azure strangler-fig doc
+        cross-references as the companion pattern for exactly this moment: "an adapter that translates requests between
+        the two systems… protects the new system's design from legacy semantics." All cross-system dependencies route
+        through it. The new side speaks its clean domain model; the ACL translates to and from whatever the legacy side
+        requires. Without it, in the doc's words, "cross-system dependencies can break components or force the new
+        system to adopt legacy conventions" — the corruption the layer is named for.</p>
+        <p>Together, the façade and the ACL are the <strong>transitional architecture</strong> Fowler described: pure
+        scaffolding, with a planned demolition date. That's a strange thing to build deliberately — engineers hate
+        writing throwaway code — so say the quiet part to your client out loud: this code's <em>job</em> is to be
+        deleted. Its value isn't longevity; it's that it lets the old and new systems coexist safely while value ships
+        every increment. Budget for building it <em>and</em> for removing it, because a "temporary" adapter with no
+        demolition date is just the next generation's legacy.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">State</div>
+        <h2>Data strangles last: ETL, CDC, and the rollback window</h2>
+        <p>Everything so far moved <em>behavior</em>. The scariest part of any modernization is moving
+        <em>state</em> — the database where the business actually lives. The Azure doc's database-decomposition example
+        is the template, and it strangles data with the same incremental discipline as code, in three phases.</p>
+        <p><strong>Phase one:</strong> the new domain service goes live, but it keeps reading and writing the
+        <em>monolith's</em> database. Behavior has moved; data hasn't. This feels unsatisfying and is exactly right —
+        you've isolated the risky move instead of making two risky moves at once. <strong>Phase two:</strong> stand up
+        the isolated domain database and start filling it — an <strong>ETL</strong> job loads the history, and
+        <strong>change-data-capture (CDC)</strong> keeps it synchronized with ongoing writes to the monolith. Critically,
+        you now "validate consistency between both databases before cutover": the two stores run side by side, and you
+        measure whether they agree, with real production data flowing. <strong>Phase three:</strong> cut the service
+        over to its own database as system of record — and only then, as a separate and deliberate act, remove the
+        domain's tables from the monolith.</p>
+        <p>The design property to sell to the client is the <strong>rollback window</strong>. Through phase two and into
+        early phase three, going back is cheap: the monolith database is still there, still complete, still synchronized.
+        Deleting the legacy objects is, in the doc's words, "a deliberate final step… only after the new system is
+        validated" — because that deletion is the one move in the whole migration that closes the escape hatch. An FDE
+        never lets that step happen implicitly, on a schedule, or because a script got ahead of the checklist. Validation
+        gates open doors; only a human decision should close one behind you.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a cutover simulator — drive a
+        strangler migration's routing table and DB phases yourself (ETL load, CDC lag, consistency checks), inject a
+        failure mid-cutover, and see what rollback costs before vs. after the legacy tables are dropped. Needs backend
+        standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Agentic pipelines</div>
+        <h2>Assess → plan → transform → validate: validation is the product</h2>
+        <p>Now put the agents back in, at full scale. Repository-level agentic modernization is real and shipping — and
+        the honest numbers tell you where the value actually sits. <strong>AlphaTrans</strong>, published at FSE 2025, is
+        a neuro-symbolic system that translates whole repositories compositionally — source <em>and</em> test code —
+        then validates syntax, runtime behavior via translated test execution, and functional correctness via assertions.
+        Across ten projects (836 classes, 8,575 methods, 2,719 tests), it translated 17,874 code fragments with
+        <strong>96.4% syntactic correctness</strong>. Impressive — until you read the next line: only around
+        <strong>25–27%</strong> passed runtime and functional validation, and developers still needed roughly
+        <strong>20 hours per project</strong> to get the translated tests fully passing. Ninety-six percent
+        <em>compiles</em>; a quarter <em>behaves the same</em>. That gap between "compiles" and "behaves" is the entire
+        lesson of today compressed into two numbers — and it's precisely the gap characterization tests exist to
+        measure.</p>
+        <p>The productized version of the same loop is <strong>GitHub Copilot app modernization</strong>, generally
+        available for Java and .NET since September 2025. Its four-phase agent workflow is a strangler-era pipeline in
+        miniature: <strong>assess</strong> (analyze code, configuration, dependencies), <strong>plan</strong> (a
+        customizable modernization path, saved as plan.md and tasks), <strong>upgrade</strong> (code changes, build
+        files, deprecated-API refactors), and <strong>validate</strong> (build patching, test validation after each
+        step, CVE checks, generated reports). And the human-in-the-loop isn't a disclaimer, it's the design: the docs
+        say plainly that "you may frequently be prompted by Copilot cloud agent for confirmation before it performs
+        specific actions," and direct teams to review architectural fit and testing gaps before anything deploys.</p>
+        <p>Read both systems the same way: <strong>transformation is fast and cheap now; validation is the
+        product.</strong> The agent will happily translate a million lines over a weekend. What the client is paying an
+        FDE for is the harness around that speed — the characterization suite that defines "same behavior," the façade
+        that makes each change reversible, the consistency checks that gate the data cutover, and the human review at
+        every confirmation prompt. Speed was never the constraint on legacy modernization. Confidence was. Agents fix
+        the first; today's patterns are how you manufacture the second.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>At a brownfield client, the naive pitch is "AI will rewrite your legacy system fast." The FDE pitch is
+          different: <strong>agents to understand it, tests to pin it, a façade to replace it one reversible slice at a
+          time, and validation gates before anything irreversible.</strong> The running system is the oracle — the agent
+          never is. Tomorrow you put the whole week together and deliver a feature end-to-end.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://martinfowler.com/bliki/StranglerFigApplication.html" target="_blank" rel="noopener">Fowler — Strangler Fig Application</a> — the 2024 rewrite: four activities, independent replaceability, and transitional architecture.</li>
+          <li><a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig" target="_blank" rel="noopener">Azure Architecture Center — Strangler Fig pattern</a> — façade routing, considerations, the ACL cross-reference, and the ETL + CDC database-decomposition example.</li>
+          <li><a href="https://martinfowler.com/articles/legacy-modernization-gen-ai.html" target="_blank" rel="noopener">Ferri, Coggrave &amp; Sheth — Legacy Modernization meets GenAI</a> — CodeConcise, the AST knowledge graph, and the 6-weeks-to-2 mainframe result.</li>
+          <li><a href="https://michaelfeathers.silvrback.com/characterization-testing" target="_blank" rel="noopener">Feathers — Characterization Testing</a> — actual behavior, not desired behavior; the dummy-expectation mechanic.</li>
+          <li><a href="https://arxiv.org/abs/2411.14971" target="_blank" rel="noopener">arXiv 2411.14971 — Leveraging LLMs for Legacy Code Modernization</a> — LLM documentation of MUMPS and IBM ALC; why human review of generated docs stays mandatory.</li>
+          <li><a href="https://arxiv.org/abs/2410.24117" target="_blank" rel="noopener">arXiv 2410.24117 — AlphaTrans (FSE 2025)</a> — repository-level translation: 96.4% syntactic correctness vs ~25% validated behavior.</li>
+          <li><a href="https://docs.github.com/en/copilot/tutorials/modernize-java-applications" target="_blank" rel="noopener">GitHub Docs — Modernizing Java applications with Copilot</a> — the assess → plan → upgrade → validate agent workflow.</li>
+          <li><a href="https://github.blog/changelog/2025-09-22-github-copilot-app-modernization-is-now-generally-available-for-java-and-net/" target="_blank" rel="noopener">GitHub Changelog — Copilot app modernization GA</a> — GA for Java and .NET, 2025-09-22.</li>
+          <li><a href="https://code.claude.com/docs/en/common-workflows" target="_blank" rel="noopener">Claude Code Docs — Common workflows</a> — "Understand new codebases" and "Refactor code": broad→narrow, trace flows, subagents, small testable increments.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">The modernization numbers: 96% compiles, 25% behaves</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on strangling a legacy system</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 6 Day 4</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the numbers behind agentic modernization</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. What the measured results actually say.</p>
+    <p><strong>Comprehension pays first.</strong> Thoughtworks' CodeConcise parses a legacy codebase into an AST-derived
+    knowledge graph and lets LLM traversal trim irrelevant code out of the context. On one client's mainframe program,
+    reverse-engineering a module went from <strong>6 weeks to 2 weeks</strong> — projected at ~<strong>240 FTE-years</strong>
+    saved across the whole modernization effort. The same authors flag the boundary: dead-code detection stays with
+    static analysis, where "GenAI offers minimal value."</p>
+    <p><strong>Translation is cheap; validated translation isn't.</strong> AlphaTrans (FSE 2025) ran repository-level,
+    compositional translation — source <em>and</em> tests — across 10 projects: 836 classes, 8,575 methods, 2,719 tests,
+    17,874 fragments.</p>
+    <div class="model-answer show">
+      <div class="ma-k">AlphaTrans — the gap, in numbers</div>
+      <ul class="deliv-list">
+        <li>Syntactic correctness (it compiles): <strong>96.4%</strong> of 17,874 fragments</li>
+        <li>Runtime / functional validation (it behaves): <strong>~25–27%</strong></li>
+        <li>Human effort remaining: ~<strong>20 hours per project</strong> to reach full test passage</li>
+      </ul>
+      <p style="margin:8px 0 0">Roughly <strong>seven in ten fragments compile but are unproven or wrong at runtime</strong>.
+      If your acceptance gate is "it compiles," an agent will modernize your client's system into a plausible-looking
+      liability. The gate has to be behavioral — which is exactly what a characterization suite gives you.</p>
+    </div>
+    <p style="margin-top:14px"><strong>The productized loop.</strong> GitHub Copilot app modernization (GA for Java and
+    .NET, 2025-09-22) runs <em>assess → plan → upgrade → validate</em>: dependency and config analysis; a customizable
+    plan saved as plan.md/tasks; code and build-file changes with deprecated-API refactors; then build patching, per-step
+    test validation, CVE checks, and generated reports. HITL is built in — "you may frequently be prompted by Copilot
+    cloud agent for confirmation before it performs specific actions" — and the docs direct teams to review architectural
+    fit and testing gaps before deployment. Read it as an admission from the vendor: even a shipped, GA modernization
+    agent treats human confirmation and test-based validation as part of the product, not overhead.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 4 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Explain why comprehension — not code generation — is where agents pay off first in legacy work</li>
+      <li>Write a characterization test Feathers-style and say why the legacy system, not the agent, is the oracle</li>
+      <li>Sketch a strangler-fig migration: façade routing, ACL, transitional architecture with a demolition date</li>
+      <li>Gate a data cutover with ETL + CDC + consistency validation, and protect the rollback window</li>
+      <li>Quote the AlphaTrans gap (96% compiles vs ~25% behaves) when a client asks "can't AI just rewrite it?"</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add a <code>LEGMOD.md</code> to your notes repo</li>
+      <li><b>①</b> pick any legacy-ish module in your own project (or a past one) and write its broad→narrow question ladder — the three questions you'd ask an agent, in order</li>
+      <li><b>②</b> write one characterization test for it: input, dummy expectation, the actual recorded value, and the renamed test name</li>
+      <li><b>③</b> sketch its strangler plan in five bullets: the seam, the façade, the ACL boundary, the data phase, and the one irreversible step you'd gate on a human decision</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 5, where the whole week converges: delivering a real feature end-to-end with
+    the agentic pipeline you've been assembling.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 5 · End-to-end feature delivery →", href: "w06d5.html" };
+window.DIAGRAM = {
+  title: "Strangling a legacy monolith · one reversible slice at a time",
+  width: 500, height: 690,
+  nodes: [
+    // the engagement card
+    { id:"eng", step:0, kind:"example", x:14, y:14, w:472, h:78,
+      label:"ENGAGEMENT  ·  15-year-old monolith that runs the business\n  original authors gone · docs stale · few tests · every change feared\n  client ask: \"can't AI just rewrite it?\"  →  FDE answer: strangle it" },
+
+    // the legacy system
+    { id:"legacy", step:0, x:28, y:106, w:214, h:118, label:"LEGACY MONOLITH\n(the running system\n= the only true spec)",
+      detail:"Brownfield reality: the system works, nobody fully knows why, and documentation describes a version that stopped being true years ago. The bottleneck isn't writing new code — it's understanding this. Thoughtworks: devs spend far more time reading code than writing it, so GenAI's biggest modernization value is comprehension." },
+
+    // agent comprehension
+    { id:"kg", step:1, x:258, y:106, w:228, h:118, label:"AGENT COMPREHENSION\nAST → knowledge graph\nbroad → narrow Q&A\nsubagents explore",
+      detail:"CodeConcise parses the codebase into an AST-derived knowledge graph so LLM traversal can cut noise from the context. Claude Code recipe: 'overview' → 'how is auth handled?' → 'trace login front-end to DB'; delegate exploration to subagents so reads don't pollute the main context. Result on one mainframe module: 6 weeks → 2 weeks. Caveat: no automated metric tracks doc quality — human review stays mandatory; dead-code detection stays with static analysis." },
+
+    // characterization harness
+    { id:"char", step:2, x:28, y:238, w:214, h:52, label:"CHARACTERIZATION TESTS\npin ACTUAL behavior",
+      detail:"Feathers: document the system's actual behavior, not the behavior you wish it had — in production, code becomes its own specification. Mechanic: assert a dummy value (null), run, record what actually came back, rename the test to what you learned, repeat. Agents can generate these cheaply; the suite is the tripwire that catches agent-introduced behavior drift. The legacy system is the oracle — the agent never is." },
+
+    // the facade
+    { id:"facade", step:3, x:28, y:322, w:458, h:44, label:"FAÇADE / PROXY — every request routes through here",
+      detail:"Azure: the façade intercepts requests and routes each to legacy or new; routing shifts incrementally until legacy has zero traffic, then legacy is decommissioned and the façade removed last. Watch-outs: don't let it become a single point of failure or bottleneck; doesn't fit if requests can't be intercepted or legacy source can't change." },
+
+    // new services
+    { id:"newsvc", step:4, x:276, y:396, w:210, h:64, label:"NEW SERVICE(S)\nsmall pieces, shipped early",
+      detail:"Fowler's four activities: understand the outcomes you want; identify parts that can be independently replaced; deliver replacements in manageable pieces; drive the organizational change to sustain it. New work is 'small additions… built on top of, yet separate to the legacy code base.' Build the new services so they can themselves be strangled later." },
+
+    // ACL
+    { id:"acl", step:5, x:88, y:400, w:150, h:56, label:"ANTI-CORRUPTION\nLAYER (adapter)",
+      detail:"During coexistence, cross-system dependencies go through the ACL: 'an adapter that translates requests between the two systems… protects the new system's design from legacy semantics.' Without it, dependencies break components or force the new system to adopt legacy conventions. Façade + ACL = transitional architecture — scaffolding with a planned demolition date." },
+
+    // data cutover
+    { id:"mdb", step:6, x:28, y:490, w:200, h:56, label:"MONOLITH DB\n(system of record… for now)",
+      detail:"Phase 1: the new service still reads/writes the monolith DB — behavior moves before data. The rollback window stays open as long as this store is complete and synchronized. Deleting legacy tables is 'a deliberate final step… only after the new system is validated' — the one move that closes the escape hatch." },
+    { id:"ndb", step:6, x:286, y:490, w:200, h:56, label:"NEW DOMAIN DB\nvalidate before cutover",
+      detail:"Phase 2: ETL loads history, CDC syncs ongoing changes, and you validate consistency between both databases before cutover. Phase 3: cut over to the new store as system of record, then — separately and deliberately — remove the domain tables from the monolith." },
+
+    // agentic pipeline + the gap
+    { id:"pipe", step:7, x:28, y:578, w:274, h:92, label:"AGENTIC PIPELINE\nassess → plan →\nupgrade → validate",
+      detail:"GitHub Copilot app modernization (GA Java + .NET, Sep 2025): assess code/config/dependencies; plan a customizable path saved as plan.md/tasks; upgrade code, build files, deprecated APIs; validate with build patching, per-step tests, CVE checks, reports. HITL by design: 'you may frequently be prompted… for confirmation before it performs specific actions.'" },
+    { id:"gap", step:7, x:318, y:578, w:168, h:92, label:"⚠ THE GAP\n96% compiles\n~25% behaves",
+      detail:"AlphaTrans (FSE 2025), 10 projects / 17,874 fragments: 96.4% syntactic correctness but only ~25–27% passed runtime/functional validation — plus ~20 developer-hours per project to full test passage. 'Compiles' is not 'behaves the same.' Validation is the product; your characterization suite is what measures it." }
+  ],
+  edges: [
+    { id:"e_read",  step:1, from:"kg",     to:"legacy", label:"reads, never rewrites", ly:-4 },
+    { id:"e_pin",   step:2, from:"char",   to:"legacy", label:"pins the oracle", lx:6 },
+    { id:"e_route", step:3, from:"facade", to:"legacy", label:"100% traffic", lx:-8 },
+    { id:"e_shift", step:4, from:"facade", to:"newsvc", label:"traffic shifts →", lx:8 },
+    { id:"e_acl1",  step:5, from:"newsvc", to:"acl",    label:"via ACL", ly:-2 },
+    { id:"e_sync",  step:6, from:"mdb",    to:"ndb",    label:"ETL + CDC sync", ly:-4 },
+    { id:"e_val",   step:7, from:"pipe",   to:"gap",    label:"validate!", ly:-2 }
+  ],
+  captions: [
+    "The client's reality: a <b>legacy monolith</b> that runs the business and that nobody dares touch. The running system is the only true spec. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Agents flip the bottleneck: they <b>read</b> first — knowledge-graph context, broad→narrow questions, subagent exploration. 6 weeks of reverse-engineering → 2. <span style='opacity:.7'>(tap)</span>",
+    "Before anything changes, <b>characterization tests</b> photograph actual behavior. The legacy system is the <b>oracle</b>; the suite is the tripwire for agent drift. <span style='opacity:.7'>(tap)</span>",
+    "Enter the <b>strangler fig</b>: a façade intercepts every request. Day one it routes 100% to legacy — users notice nothing. <span style='opacity:.7'>(tap)</span>",
+    "New services land as <b>small, independently replaceable pieces</b>; the façade shifts traffic slice by slice. Every shift is reversible.",
+    "Old and new must coexist — so cross-calls go through the <b>anti-corruption layer</b>, keeping legacy semantics out of the new design. Built to be thrown away. <span style='opacity:.7'>(tap)</span>",
+    "Data strangles last: <b>ETL history + CDC sync</b>, validate consistency, cut over — and keep the rollback window open until a human closes it. <span style='opacity:.7'>(tap)</span>",
+    "Agentic pipelines run <b>assess → plan → upgrade → validate</b> at repo scale — but 96% compiles vs ~25% behaves. <b>Validation is the product.</b> <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w06-d4",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A client says: 'Let's have the AI rewrite the whole legacy system in one go — it's fast now.' The FDE counter-position is:",
+      options: [
+        "Agree — repository-level translation is a solved problem",
+        "Refuse to use agents on legacy code at all",
+        "Strangle it: replace independently-identifiable pieces behind a façade, incrementally, with each slice validated and reversible",
+        "Rewrite it by hand first, then let agents maintain it" ],
+      answer: 2,
+      explain: "Big-bang rewrites deliver nothing until they deliver everything, and agent translation is fast but unproven (96% compiles, ~25% behaves). The strangler fig delivers value every increment, keeps each routing shift reversible, and lets your characterization suite validate every slice." },
+    { type: "scq",
+      stem: "Before letting an agent refactor an untested legacy module, the single highest-leverage step is:",
+      options: [
+        "Upgrading to the largest available model",
+        "Generating characterization tests that record the module's actual current behavior",
+        "Writing fresh unit tests for what the module should do per the original spec",
+        "Deleting dead code so the agent has less to read" ],
+      answer: 1,
+      explain: "Feathers' point: in production, code becomes its own specification. Characterization tests pin actual behavior — bugs included — so any agent-introduced behavior change trips a red test. Testing what the code 'should' do misses the point: downstream systems depend on what it actually does." },
+    { type: "tf",
+      stem: "A characterization test asserts the behavior described in the system's original specification.",
+      answer: false,
+      explain: "False — it documents the system's ACTUAL behavior, 'not the behavior you wish your system had.' The mechanic: assert a dummy value, run the test, record what really came back as the assertion, rename the test to what you learned. You're photographing behavior, not judging it." },
+    { type: "mcq",
+      stem: "Which belong in an incremental data cutover for a strangled domain? (select all that apply)",
+      options: [
+        "An ETL job to load historical data into the new domain database",
+        "CDC sync to keep the new store current with ongoing monolith writes",
+        "Validating consistency between both databases before cutover",
+        "Dropping the legacy tables first, so nobody accidentally writes to them",
+        "Cutting all domains over to the new database in one release" ],
+      answer: [0, 1, 2],
+      explain: "ETL for history, CDC for ongoing changes, and a consistency validation gate before cutover — that's the Azure template. Dropping legacy tables first destroys the rollback window; removing them is a deliberate FINAL step, only after the new system is validated. And one-release cutovers are the big-bang the pattern exists to avoid." },
+    { type: "match",
+      stem: "Match each artifact to the concept it embodies.",
+      pairs: [
+        { l: "Proxy that shifts request routing from old to new, slice by slice", r: "strangler-fig façade" },
+        { l: "Adapter that keeps legacy semantics out of the new system's design", r: "anti-corruption layer" },
+        { l: "Test whose expected value was recorded from a real run of the old code", r: "characterization test" },
+        { l: "96.4% syntactic correctness, ~25% passing runtime validation", r: "the compiles-vs-behaves validation gap" } ],
+      explain: "The façade makes migration a routing table; the ACL is transitional scaffolding that protects the new design during coexistence; the characterization test makes the running system's behavior executable; and AlphaTrans' numbers are why validation — not translation — is the product." },
+    { type: "open",
+      stem: "In one or two sentences: why must the legacy system — not the agent — be the oracle during modernization, and what concretely enforces that at the code level?",
+      hint: "Think about what 'correct' even means for fifteen-year-old production code, and which artifact makes that definition executable.",
+      model: "Fifteen years of production means the running system's actual behavior — bugs included — is the only real specification; an agent's output is a plausible guess about that behavior, so it can never define correctness. Characterization tests enforce it concretely: they record the legacy system's actual outputs as assertions, so any agent-introduced drift during refactoring or translation turns a test red instead of shipping silently." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

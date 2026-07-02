@@ -62,7 +62,7 @@ async function gated(label, phaseName, gen, crit) {
     const v = await crit(result, pass)
     if (v && v.pass) return { task: label, status:'done', passes: pass, summary: (v.summary || (result&&result.summary) || ''), result }
     if (pass === 3) return { task: label, status:'flagged', passes: 3, flags: (v ? v.critiques : ['critic returned null']), summary: (result&&result.summary) || (v&&v.summary) || '', result }
-    result = await gen(v.critiques)
+    result = await gen(v ? v.critiques : ['prior critic hard-failed (returned null) — regenerate from scratch, full quality bar'])
   }
 }
 const fix = (cr) => cr && cr.length ? ('\n\nThis is a REPASS. A critic flagged these issues — fix every one, keep what was good:\n- ' + cr.join('\n- ')) : ''

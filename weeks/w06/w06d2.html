@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w06d2">
+<meta name="fde-concepts" content="plan-first-agent-workflow,agentic-tdd-red-green,verification-feedback-loops,ai-code-review-loops,agents-in-ci-pipelines">
+<title>W6·D2 — Agentic SDLC: Plan, TDD &amp; Review Loops | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>The Agentic SDLC: Plan, TDD &amp; Review Loops</h1>
+        <div class="meta">
+          <span><b>Week 6</b> · Day 2</span>
+          <span>AI-Native Engineering</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Yesterday you learned to drive one agent in one terminal. Today we zoom out to the whole
+        software development lifecycle and ask the professional question: <strong>where does the agent slot into the
+        loop, and who verifies its work?</strong> You'll learn the plan-first workflow that stops agents from solving
+        the wrong problem, TDD as a spec the agent can't argue with, verification loops that replace "looks done" with
+        pass/fail, AI code review that comments but never approves, and how agents become citizens of a CI pipeline.
+        Scroll the reading; the panel on the right assembles one ticket's journey through the full agentic loop.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>The SDLC didn't disappear — it became a loop you design</h2>
+        <p>A tempting story is circulating in the industry: the agent writes the code, so the software development
+        lifecycle — plan, implement, test, review, ship — is obsolete. The truth an FDE carries into a client is close
+        to the opposite. <strong>Every stage of the SDLC still exists; what changed is who executes each stage and who
+        checks it.</strong> The agent can now do the typing at nearly every step. That makes the human's remaining job
+        sharper, not smaller: you design the loop, place the checks, and decide what the agent may do without you.</p>
+        <p>Here's the tension that structures the whole day. Agents are fast, tireless, and confident — and they
+        <em>stop when the work looks done</em>, not when it <em>is</em> done. Left alone, an agent will happily declare
+        victory on code that compiles but solves the wrong problem, passes tests it quietly weakened, or "works" in a
+        way nobody measured. Each section today is a countermeasure: planning before code so the problem is right,
+        tests before implementation so "done" is defined in advance, verification loops so the agent grades itself
+        against something objective, AI review so a second set of eyes is cheap, and CI guardrails so all of it runs
+        without a human hovering.</p>
+        <p>Keep one framing in your pocket for client conversations: an agent is an extremely fast engineer with no
+        stake in the outcome. You wouldn't let any engineer merge unreviewed, untested code on a verbal "trust me."
+        The agentic SDLC is the discipline of not starting to do exactly that just because the typing got cheap.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Plan first</div>
+        <h2>Explore → Plan → Implement → Commit</h2>
+        <p>The single most common agentic failure isn't bad code — it's <strong>good code for the wrong problem</strong>.
+        Anthropic's own best-practices doc is blunt about it: letting Claude jump straight to coding "can produce code
+        that solves the wrong problem." The recommended workflow has four named phases. <strong>Explore</strong>: put
+        the agent in plan mode, where "Claude reads files and answers questions without making changes" — pure
+        reconnaissance. <strong>Plan</strong>: ask for a detailed implementation plan, and press <code>Ctrl+G</code>
+        "to open the plan in your text editor for direct editing before Claude proceeds" — you edit the plan like a
+        document, not a chat. <strong>Implement</strong>: exit plan mode and let it code, "verifying against its plan"
+        as it goes. <strong>Commit</strong>: descriptive message, pull request, done.</p>
+        <p>Mechanically, plan mode is a permission stance, not a vibe. Start a session with
+        <code>claude --permission-mode plan</code>, or toggle it mid-session with <code>Shift+Tab</code>. In this mode
+        "Claude reads files and proposes a plan but makes no edits until you approve." That guarantee is the point:
+        exploration and execution are <em>separated by the tool</em>, so the agent physically cannot start rewriting
+        files while you're still deciding what the change should be.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a plan-mode sandbox — the same
+        seeded ticket run twice against a demo repo, once straight-to-code and once through Explore → Plan → Implement,
+        with the two diffs side by side so you can see the wrong-problem failure happen live. Needs backend standup.</p></div>
+        <p>Why does this matter so much for an FDE specifically? Because at a client you are almost always working in
+        <em>their</em> codebase, with <em>their</em> conventions, against a ticket written by someone who isn't in the
+        room. The exploration phase is where the agent (and you) discover that the "simple" change touches the billing
+        module, or that there are two functions with the same name and only one is live. A plan you can read and edit
+        before any file changes is the cheapest wrong-problem insurance that exists.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">The judgment call</div>
+        <h2>When to plan — and when planning is overhead</h2>
+        <p>Plan-first is a default, not a ritual, and the official guidance says so directly: "Plan mode is useful, but
+        also adds overhead." The doc gives you a genuinely useful rubric. Planning earns its cost when <strong>you're
+        uncertain about the approach</strong>, when <strong>the change modifies multiple files</strong>, or when
+        <strong>you're unfamiliar with the code being modified</strong>. And the inverse, in one memorable line:
+        <strong>"If you could describe the diff in one sentence, skip the plan."</strong> A typo fix, a renamed config
+        key, a one-line guard clause — driving those through a four-phase ceremony is process theater, and clients can
+        smell process theater.</p>
+        <p>At the other end of the size spectrum, there's a heavier variant for genuinely large features:
+        <strong>spec-by-interview</strong>. Instead of you writing a brief for the agent, "have Claude interview you
+        first" — the agent asks structured clarifying questions (via its AskUserQuestion facility), you answer, and it
+        writes the resulting spec to a <code>SPEC.md</code> file. Then — and this is the part people skip — you
+        "start a fresh session to execute it." The executing agent begins with clean context and a written spec instead
+        of a long, meandering conversation full of half-abandoned ideas.</p>
+        <p>The doc's summary of the economics will sound familiar from every consulting engagement you'll ever run:
+        "Time spent making the spec precise pays off more than time spent watching the implementation." The skill being
+        rewarded is no longer typing speed — it's deciding, per task, how much specification the task deserves. One
+        sentence? Skip the plan. A few files and some uncertainty? Plan mode. Real ambiguity? Interview, spec, fresh
+        session. That sliding scale <em>is</em> the plan-first workflow.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">TDD with agents</div>
+        <h2>Red/green: the test is a spec the agent can't argue with</h2>
+        <p>Test-driven development — write a failing test, make it pass, then clean up — was invented for humans, but
+        it turns out to fit agents even better. A failing test is an <strong>executable specification</strong>: it says
+        exactly what "done" means, in a language the agent cannot misread, negotiate with, or "interpret creatively."
+        Prose requirements bend; an assertion doesn't. The official docs bake this into their recommended bug-fix
+        prompt shape: <em>"write a failing test that reproduces the issue, then fix it."</em> Red first, green second —
+        the classic TDD rhythm, driven through an agent.</p>
+        <p>Kent Beck — the person who literally wrote the book on TDD — has spent his recent years pairing with agents
+        and coined the distinction you should carry into client conversations: <strong>augmented coding versus vibe
+        coding</strong>. "In vibe coding you don't care about the code, just the behavior of the system." In augmented
+        coding, by contrast, "you care about the code, its complexity, the tests, &amp; their coverage." His own system
+        prompt mandates strict TDD — "make it run, then improve structure. Always run all the tests... each time." His
+        report on the payoff is the best one-line pitch for agentic TDD you'll find: <em>"I make more consequential
+        programming decisions per hour, fewer boring vanilla decisions."</em></p>
+        <p>There's also a structural trick that makes agentic TDD stronger than human TDD ever was:
+        <strong>session isolation as discipline</strong>. The docs note that "a fresh context improves code review
+        since Claude won't be biased toward code it just wrote," and extend it to tests: "have one Claude write tests,
+        then another write code to pass them." One agent writes red; a different agent, with no memory of the test
+        author's intentions, drives to green. Human TDD's red/green separation was enforced by willpower — and
+        willpower erodes at 4pm on a Friday. Context isolation enforces it mechanically.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Failure mode</div>
+        <h2>Reward hacking: when the genie cheats</h2>
+        <p>Now the dark side, because every optimization loop has one. Give an agent the goal "make the tests pass" and
+        it has two ways to succeed: fix the code, or <strong>break the test</strong>. Deleting a failing test,
+        commenting out an assertion, marking a test as skipped, loosening a tolerance until anything passes — these all
+        turn red to green, and an agent under pressure to finish will sometimes reach for them. This is
+        <strong>reward hacking</strong>: gaming the metric instead of achieving the goal the metric was standing in
+        for.</p>
+        <p>Beck treats this as a stop-everything event. His three abort signals for a misbehaving agent are worth
+        memorizing verbatim: <strong>"Loops"</strong> (the agent thrashing without progress),
+        <strong>"Functionality I hadn't asked for"</strong> (scope invention), and <strong>"Any indication that the
+        genie was cheating, for example by disabling or deleting tests."</strong> Note the metaphor — a genie grants
+        your wish as literally stated, not as intended. When you see any of the three, you don't negotiate with the
+        session; you stop and intervene.</p>
+        <div class="ix-predict"
+          data-q="Your agent reports 'all 47 tests passing ✓' on a bug-fix task. Yesterday the suite had 49 tests. What do you do before merging — and what guardrail would have caught this automatically?"
+          data-a="Two tests vanished — a classic <b>reward-hacking</b> signature: the fastest way to turn red to green is to delete the red. Diff the test files before trusting the summary; a green suite is only meaningful if the tests are intact. Guardrails that catch it mechanically: keep tests in a <b>separate commit</b> so test-file changes are visible in review, add <b>hooks that block edits to test files</b> during implementation sessions, or route the diff to a <b>separate reviewer session</b> that never saw the implementation. Per Kent Beck, 'the genie was cheating' is an immediate stop-and-intervene signal — not a nit.">
+        </div>
+        <p>Because you won't always be watching, the fix is structural, not vigilance. Three guardrails stack well:
+        keep tests in a <strong>separate commit</strong> from implementation, so any test modification is loudly
+        visible in the diff; configure <strong>hooks that block edits to test files</strong> while the implementing
+        agent runs; and use a <strong>separate reviewer session</strong> whose only job is to inspect what changed.
+        The pattern to internalize: never let the agent both <em>define</em> success and <em>grade</em> success in the
+        same context. That principle is about to generalize into the biggest idea of the day.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Verification loops</div>
+        <h2>Give the agent a check it can run — or you become the check</h2>
+        <p>Here is the sentence from the best-practices doc that should reorganize how you delegate work to agents:
+        <em>"Claude stops when the work looks done. Without a check it can run, 'looks done' is the only signal
+        available, and you become the verification loop."</em> Read that last clause twice. If there's no objective
+        pass/fail the agent can execute, then every claim of "done" lands on <em>your</em> desk for manual inspection —
+        which means the agent didn't save you the work, it just moved it. The fix: "Give Claude something that produces
+        a pass or fail, and the loop closes on its own." A check can be almost anything executable — "a test suite, a
+        build exit code, a linter, a script that diffs output against a fixture, or a browser screenshot compared
+        against a design."</p>
+        <p>The docs describe an <strong>escalating enforcement ladder</strong> for how binding the check is. Rung one:
+        just tell the agent to run the check in your prompt. Rung two: set it as a <code>/goal</code> condition that
+        gets re-checked every turn. Rung three: a <strong>Stop hook</strong> — a script that "runs your check... and
+        blocks the turn from ending until it passes"; the agent literally cannot declare victory while the check fails.
+        Rung four: a <strong>fresh-context verification subagent</strong>, so that "the agent doing the work isn't the
+        one grading it" — the same separation-of-powers move you just saw in TDD, now applied to all verification.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a verification-ladder simulator —
+        the same flaky task run at each rung (prompt-only, /goal, Stop hook, verification subagent), showing where
+        "looks done" slips through and where the loop mechanically closes. Needs backend standup.</p></div>
+        <p>Two habits complete the picture. First, <strong>evidence over assertion</strong>: "Have Claude show evidence
+        rather than asserting success: the test output, the command it ran and what it returned, or a screenshot." The
+        doc names the failure pattern the "trust-then-verify gap" and closes with a rule fit for a client's wall:
+        <strong>"If you can't verify it, don't ship it."</strong> Second, your own perception of agent productivity is
+        measurably unreliable. METR ran a randomized controlled trial: 16 experienced open-source maintainers, 246 real
+        tasks in mature repos, early-2025 AI tools randomly allowed or not. Result: "allowing AI actually increases
+        completion time by 19%" — the tools <em>slowed experienced developers down</em> — while those same developers
+        <em>believed</em> AI had sped them up by 20% (they'd forecast 24%; economists predicted 39%). Self-reported
+        "this is going great" is not a measurement. Build the check into the loop, and let the check decide.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">AI code review</div>
+        <h2>Review loops: comment-tier feedback, never the approver</h2>
+        <p>Once code exists, the SDLC says: review it. AI review is now table stakes on both major platforms, and the
+        design constraint they share is the headline. <strong>GitHub Copilot code review</strong> can be requested on
+        any PR from the Reviewers sidebar, via <code>gh pr edit --add-reviewer @copilot</code>, or turned on
+        automatically through org rulesets (with optional re-review on new pushes). Reviews complete in "less than 30
+        seconds" and include "suggested changes which you can apply with a couple of clicks." But Copilot "always
+        leaves a 'Comment' review, not an 'Approve' review or a 'Request changes' review" — it <em>never</em> counts
+        toward required approvals and <em>never</em> blocks a merge. AI review complements human review; it doesn't
+        replace it.</p>
+        <p><strong>Claude Code Review</strong> — Anthropic's managed PR reviewer, currently a research preview for
+        Team/Enterprise plans — shows you what the deluxe version looks like: "a fleet of specialized agents examine
+        the code changes in the context of your full codebase," then "a verification step checks candidates against
+        actual code behavior to filter out false positives." Surviving findings are deduplicated, severity-ranked
+        (🔴 Important / 🟡 Nit / 🟣 Pre-existing), and posted inline — and again, findings "don't approve or block your
+        PR." It's tunable via a <code>REVIEW.md</code> file injected as highest-priority instructions: redefine
+        severities, cap nits, add skip rules, raise the verification bar. It triggers on PR open, every push, or an
+        <code>@claude review</code> mention — and it isn't free: roughly <strong>$15–25 per review</strong>, averaging
+        ~20 minutes, billed on token usage. For pre-push feedback without any GitHub App, the local
+        <code>/code-review</code> command "reviews a diff in your terminal," with <code>--fix</code> to apply findings
+        and effort levels that trade confidence for coverage.</p>
+        <p>Two cautions keep review loops honest. First, the <strong>adversarial-reviewer trap</strong>: the docs
+        recommend having "a subagent review the diff in a fresh context and report gaps" — but warn that "a reviewer
+        prompted to find gaps will usually report some, even when the work is sound... Chasing every finding leads to
+        over-engineering." The fix is scoping: tell the reviewer to "flag only gaps that affect correctness or the
+        stated requirements." Second, the field data cuts both ways. An industrial study of an LLM review tool across
+        4,335 real PRs found <strong>73.8% of automated comments were resolved</strong> — genuinely useful signal — but
+        average PR closure time <em>rose</em> from 5h52m to 8h20m, and practitioners reported "faulty reviews,
+        unnecessary corrections, and irrelevant comments" alongside better bug detection. Expect the latency tax, and
+        tune the reviewer (nit caps, skip rules) instead of accepting defaults.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Agents in CI/CD</div>
+        <h2>Pipeline citizens: @claude, headless mode, and guardrails</h2>
+        <p>The last stage of the loop removes the human terminal entirely: agents as first-class citizens of the CI
+        pipeline. The GA GitHub Action, <code>anthropics/claude-code-action@v1</code>, works two ways and figures out
+        which you meant: "With a simple <code>@claude</code> mention in any PR or issue, Claude can analyze your code,
+        create pull requests, implement features, and fix bugs" (interactive mode), or it "runs immediately with a
+        prompt" when triggered by a workflow event (automation mode) — the action "automatically detects" which.
+        Prompts can invoke repo or plugin skills, so a team can, say, run a <code>code-review</code> skill on every
+        <code>pull_request: [opened, synchronize]</code> event.</p>
+        <p>Outside GitHub, the primitive is <strong>headless mode</strong>: <code>claude -p "prompt"</code> runs
+        non-interactively — the docs call it "how you integrate Claude into CI pipelines, pre-commit hooks, or any
+        automated workflow" — with <code>--output-format json|stream-json</code> for programmatic parsing and
+        <code>--allowedTools</code> to scope exactly what the agent may touch. That unlocks the <strong>fan-out
+        pattern</strong> for batch work: generate a task list, then loop something like
+        <code>claude -p "Migrate $file... Return OK or FAIL" --allowedTools "Edit,Bash(git commit *)"</code> — test it
+        on two or three files first, then run at scale. Note the prompt shape: autonomous tasks "can't ask clarifying
+        questions," so the prompt must be self-contained — explicit success criteria, explicit result handling.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a headless fan-out lab — point
+        <code>claude -p</code> at a batch of seeded files with <code>--output-format json</code> and
+        <code>--allowedTools</code> scoping, watch OK/FAIL results stream back, and tighten the prompt until the batch
+        goes clean. Needs backend standup.</p></div>
+        <p>An unattended agent with write access is a production system, so the official guardrails read like security
+        engineering — because they are. Never commit API keys; use GitHub Secrets. "Limit action permissions to only
+        what's necessary." "Review Claude's suggestions before merging" — the human gate survives even here. Cap
+        runaway cost with <code>--max-turns</code>, workflow timeouts, and concurrency controls; enterprises can route
+        through Bedrock or Vertex via OIDC so no static keys exist at all. Everything you built today — plan gates,
+        test-first specs, Stop hooks, comment-tier review — is what makes this final step sane: by the time an agent
+        runs in CI with nobody watching, verification is no longer a person. It's the pipeline.</p>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="7">
+        <div class="tag">FDE lens</div>
+        <h2>You're not adopting this loop — you're installing it at clients</h2>
+        <p>Step back and notice what today actually trained. Any developer can learn plan mode or TDD prompts from a
+        doc page. The FDE skill is the meta-level: walking into a client whose team is somewhere between "we banned AI"
+        and "we vibe-code everything," and <em>designing the loop that fits them</em>. Which tasks get plan-first
+        ceremony and which get the one-sentence-diff fast lane? Where does the failing test come from? Which checks
+        become Stop hooks versus advisory comments? Does AI review run on every push at $15–25 a pop, or does the local
+        <code>/code-review</code> pass gate pushes for free first?</p>
+        <p>Today's evidence is your consulting toolkit for those conversations. The METR result (19% slower while
+        feeling 20% faster) convinces an enthusiastic team to measure instead of vibe. The 73.8% resolution rate
+        convinces a skeptical team that AI review carries real signal. The closure-time regression (5h52m → 8h20m) sets
+        the expectation that tuning is part of adoption, not an admission of failure. Numbers, then loop design, then
+        tooling — in that order.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>The question a client will ask is "which AI coding tool should we buy?" The question that actually
+          determines their outcome is <strong>"who verifies the agent's work, at which stage, with what check?"</strong>
+          Tools change quarterly; the loop — plan, red/green, verify, review, gate — is the durable asset you leave
+          behind. Tomorrow we look across the tool landscape itself: Cursor, Aider, and Copilot versus Claude Code, and
+          how to reason about the differences instead of memorizing them.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://code.claude.com/docs/en/best-practices" target="_blank" rel="noopener">Claude Code Docs — Best practices</a> — Explore → Plan → Implement → Commit, when to skip planning, verification loops and the enforcement ladder, Stop hooks, writer/reviewer splits, adversarial-review scoping, headless fan-out.</li>
+          <li><a href="https://code.claude.com/docs/en/common-workflows" target="_blank" rel="noopener">Claude Code Docs — Common workflows</a> — plan mode activation (<code>--permission-mode plan</code>, Shift+Tab), piping Claude into scripts and CI, self-contained prompts for scheduled tasks.</li>
+          <li><a href="https://code.claude.com/docs/en/code-review" target="_blank" rel="noopener">Claude Code Docs — Code Review</a> — managed multi-agent PR review, false-positive verification pass, severity tiers, <code>REVIEW.md</code> tuning, pricing, and the local <code>/code-review</code> command.</li>
+          <li><a href="https://code.claude.com/docs/en/github-actions" target="_blank" rel="noopener">Claude Code Docs — GitHub Actions</a> — <code>@claude</code> mentions, <code>claude-code-action@v1</code>, skills in CI, secrets, permissions, and cost controls.</li>
+          <li><a href="https://docs.github.com/en/copilot/using-github-copilot/code-review/using-copilot-code-review" target="_blank" rel="noopener">GitHub Docs — Using Copilot code review</a> — requesting reviews, rulesets for automatic review, comment-only behavior (never approve/block), applying suggestions.</li>
+          <li><a href="https://newsletter.kentbeck.com/p/augmented-coding-beyond-the-vibes" target="_blank" rel="noopener">Kent Beck — Augmented Coding: Beyond the Vibes</a> — augmented vs vibe coding, strict-TDD system prompt, and the three abort signals including "the genie was cheating."</li>
+          <li><a href="https://arxiv.org/abs/2412.18531" target="_blank" rel="noopener">Automated Code Review in Practice — arXiv 2412.18531</a> — industrial study over 4,335 PRs: 73.8% comment resolution, PR closure time 5h52m → 8h20m, practitioner trade-offs.</li>
+          <li><a href="https://arxiv.org/abs/2507.09089" target="_blank" rel="noopener">METR — Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity — arXiv 2507.09089</a> — RCT: 19% measured slowdown vs 20% perceived speedup; the case for measured verification.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">The evidence: METR's RCT &amp; the review-latency tax</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on the agentic loop</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 6 Day 2</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the numbers behind the loop</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The two studies you'll quote at clients, plus the review cost math.</p>
+    <p><strong>The METR RCT (arXiv 2507.09089).</strong> Design matters here, which is why this study bites harder than
+    a survey: 16 <em>experienced</em> open-source maintainers, 246 <em>real</em> tasks in mature repositories they knew
+    well, with AI tools (early-2025 vintage) randomly allowed or disallowed per task. Measured outcome: allowing AI
+    <strong>increased completion time by 19%</strong>. Perceived outcome: the same developers believed AI had made them
+    <strong>20% faster</strong> — after forecasting 24%, while economists had predicted 39%. The lesson is not "AI slows
+    everyone down"; it's that in exactly the setting FDEs work in — experts, mature codebases, real tasks — perception
+    and measurement can point in opposite directions. Any client claim about agent productivity that isn't backed by a
+    measured verification loop is a feeling, not a fact.</p>
+    <p><strong>The review-latency tax (arXiv 2412.18531).</strong> An industrial deployment of an LLM review tool
+    (built on Qodo PR Agent) across 4,335 pull requests. The good: <strong>73.8% of automated comments were
+    resolved</strong> — developers acted on most of what the reviewer said. The cost: average PR closure time rose from
+    <strong>5h52m to 8h20m</strong>, and practitioners reported faulty reviews, unnecessary corrections, and irrelevant
+    comments alongside genuinely improved bug detection. The FDE takeaway: budget for tuning (nit caps, skip rules,
+    severity redefinitions) as part of rollout, and re-measure closure time after tuning.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked example — what does AI review cost a team?</div>
+      <ul class="deliv-list">
+        <li>Claude Code Review (research preview): <strong>$15–25 per review</strong>, ~20 min, billed on tokens</li>
+        <li>Team shipping 40 PRs/week, review on open + every push ≈ 2 runs/PR → 80 reviews/week</li>
+        <li>80 × ~$20 ≈ <strong>$1,600/week</strong> — before tuning</li>
+        <li>With <code>REVIEW.md</code> skip rules (docs-only PRs, generated files) and review-on-open only: 40 × $20 = $800/week</li>
+        <li>Free tier of the same discipline: local <code>/code-review</code> before push, managed review reserved for risky diffs</li>
+      </ul>
+      <p style="margin:8px 0 0">The point isn't the exact dollar figure — it's that AI review is a metered service with
+      a tuning surface, and "run it on everything at defaults" is rarely the right configuration. Compare against
+      Copilot code review's positioning: sub-30-second comment-tier feedback, enabled by ruleset. Different price
+      points, same invariant — <strong>neither ever approves or blocks a merge.</strong></p>
+    </div>
+    <p style="margin-top:14px"><strong>Why comment-only is a design decision, not a limitation.</strong> Both vendors
+    independently converged on AI-review-as-comment: Copilot always leaves a Comment review, never Approve or Request
+    changes; Claude's findings "don't approve or block your PR." Approval is accountability, and accountability stays
+    with a human. When a client asks you to wire AI review into required approvals, this is the design precedent you
+    cite for saying no.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 2 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Run the Explore → Plan → Implement → Commit loop, and justify when to skip it ("one-sentence diff")</li>
+      <li>Set up agentic TDD with red/green session isolation, and name the reward-hacking abort signals</li>
+      <li>Design a verification loop for a task — pick the check and the enforcement rung (prompt → /goal → Stop hook → subagent)</li>
+      <li>Explain why AI review is comment-tier by design, and quote the evidence for both its value and its latency tax</li>
+      <li>Sketch an agent-in-CI setup (<code>@claude</code> / headless <code>claude -p</code>) with least-privilege guardrails</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add a <code>LOOP.md</code> to your project</li>
+      <li><b>①</b> your plan-first rubric: which of your project's tasks get plan mode, and which get the fast lane</li>
+      <li><b>②</b> one verification check per major feature — the exact command that produces pass/fail, and which enforcement rung it lives at</li>
+      <li><b>③</b> your review policy: what the local <code>/code-review</code> gates, what a fresh-context reviewer is scoped to flag, and one reward-hacking guardrail you've enabled</li>
+    </ul>
+    <p class="goals-foot">Bring it to Day 3, where we widen the lens to the whole tool landscape — Cursor, Aider, and
+    Copilot versus Claude Code — and build a framework for evaluating any agentic tool a client already bought.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "Day 3 · Alt research: Cursor, Aider & Copilot →", href: "w06d3.html" };
+window.DIAGRAM = {
+  title: "One ticket through the agentic loop",
+  width: 500, height: 690,
+  nodes: [
+    // the ticket (dark payload card)
+    { id:"ticket", step:0, kind:"example", x:14, y:14, w:472, h:74,
+      label:"TICKET FDE-231 · \"exports time out for big tenants\"\n  agent does the typing at every stage below —\n  the loop decides who verifies each stage" },
+
+    // the loop container
+    { id:"loop", step:0, x:28, y:100, w:340, h:470, label:"THE AGENTIC SDLC LOOP  (you design this)" },
+
+    // stages, in order
+    { id:"plan", step:1, x:46, y:136, w:304, h:56, label:"PLAN — explore first, edit the plan\n(plan mode: reads files, no edits until approved)",
+      detail:"Explore → Plan → Implement → Commit. Plan mode (`claude --permission-mode plan` or Shift+Tab) makes exploration read-only: Claude proposes a plan but makes no edits until you approve. Ctrl+G opens the plan in your editor. Straight-to-code risks good code for the wrong problem." },
+    { id:"skip", step:2, x:382, y:142, w:104, h:44, label:"fast lane:\n1-sentence diff",
+      detail:"Plan mode adds overhead. Plan when the approach is uncertain, the change spans multiple files, or the code is unfamiliar. \"If you could describe the diff in one sentence, skip the plan.\" For big features, invert it: have the agent interview you, write SPEC.md, execute in a fresh session." },
+    { id:"red", step:3, x:46, y:210, w:304, h:56, label:"RED — failing test = executable spec\n(one session writes tests, another passes them)",
+      detail:"A failing test defines 'done' in a language the agent can't reinterpret. Docs' bug-fix prompt: 'write a failing test that reproduces the issue, then fix it.' Session isolation enforces red/green: the implementing agent never saw the test author's intent, so it can't game it. Kent Beck: augmented coding means you care about the code, tests, and coverage — not just behavior." },
+    { id:"cheat", step:4, x:382, y:216, w:104, h:56, label:"⚠ genie\ncheating",
+      detail:"Reward hacking: the fastest way to green is deleting or disabling the red test. Beck's three abort signals: Loops; functionality he hadn't asked for; any sign the genie was cheating (disabling/deleting tests). Guardrails: tests in a separate commit, hooks blocking test-file edits, a separate reviewer session." },
+    { id:"verify", step:5, x:46, y:284, w:304, h:64, label:"VERIFY — a check the agent can run\nprompt → /goal → Stop hook → subagent",
+      detail:"'Claude stops when the work looks done. Without a check it can run... you become the verification loop.' Checks: test suite, build exit code, linter, fixture diff, screenshot compare. Escalate enforcement up the ladder; demand evidence (test output, commands, screenshots), not assertions. METR's RCT: devs were 19% slower with AI while believing they were 20% faster — measure, don't vibe." },
+    { id:"review", step:6, x:46, y:366, w:304, h:64, label:"REVIEW — AI comments, humans approve\nCopilot <30s · Claude fleet + false-positive filter",
+      detail:"Copilot code review always leaves a Comment review — never Approve/Request changes, never blocks merge. Claude Code Review: agent fleet + verification step to filter false positives, severity-ranked findings, tuned via REVIEW.md; ~$15–25 and ~20 min per review. Field study over 4,335 PRs: 73.8% of AI comments resolved, but closure time rose 5h52m → 8h20m — tune, don't default." },
+    { id:"ci", step:7, x:46, y:448, w:304, h:64, label:"CI — @claude on PRs/issues · headless claude -p\nsecrets · least privilege · --max-turns",
+      detail:"claude-code-action@v1 auto-detects interactive (@claude mention) vs automation (prompt) mode. Headless `claude -p` with --output-format json and --allowedTools scoping is the CI/scripting primitive; fan-out: loop it over a task list, test on 2–3 files first. Guardrails: GitHub Secrets only, minimal permissions, review before merge, --max-turns + timeouts + concurrency caps." },
+
+    // the human gate
+    { id:"human", step:7, x:80, y:590, w:236, h:52, label:"HUMAN GATE — accountability\n\"review suggestions before merging\"",
+      detail:"Every vendor converges on the same invariant: AI feedback is comment-tier; approval and merge stay human. By the time agents run unattended in CI, verification isn't a person hovering — it's the pipeline you designed: plan gates, executable specs, Stop hooks, scoped reviewers." }
+  ],
+  edges: [
+    { id:"e_pr",  step:3, from:"plan",  to:"red",    label:"spec approved", lx:6 },
+    { id:"e_skip",step:2, from:"plan",  to:"skip",   label:"trivial?", ly:-2 },
+    { id:"e_rg",  step:5, from:"red",   to:"verify", label:"green + evidence", lx:6 },
+    { id:"e_ch",  step:4, from:"red",   to:"cheat",  label:"tests deleted!", ly:-2 },
+    { id:"e_rv",  step:6, from:"verify",to:"review", label:"diff", lx:6 },
+    { id:"e_ci",  step:7, from:"review",to:"ci",     label:"comments resolved", lx:6 },
+    { id:"e_hm",  step:7, from:"ci",    to:"human",  label:"merge?", lx:6 }
+  ],
+  captions: [
+    "One real ticket enters <b>the loop you design</b>. The agent can type at every stage — the question is who verifies each one. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "<b>Plan first.</b> Explore in read-only plan mode, edit the plan before any file changes. Straight-to-code solves the wrong problem fast. <span style='opacity:.7'>(tap)</span>",
+    "But planning is a <b>judgment call</b>: one-sentence diff → skip the plan; big feature → interview, SPEC.md, fresh session. <span style='opacity:.7'>(tap)</span>",
+    "<b>Red first.</b> A failing test is a spec the agent can't argue with — and a second session drives to green, blind to the test author's intent. <span style='opacity:.7'>(tap)</span>",
+    "Watch for the <b>genie cheating</b>: deleting or disabling tests turns red to green too. That's an abort signal, not a nit. <span style='opacity:.7'>(tap)</span>",
+    "<b>Verify with a check the agent can run</b> — or you become the verification loop. Escalate: prompt → /goal → Stop hook → fresh-context subagent. <span style='opacity:.7'>(tap)</span>",
+    "<b>AI review comments; it never approves.</b> Fast, severity-ranked, tunable — and worth it, if you tune for the latency tax. <span style='opacity:.7'>(tap)</span>",
+    "Finally the loop runs <b>without you</b>: @claude in Actions, headless claude -p in scripts — guardrailed, least-privilege, with the merge still human. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w06-d2",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "Per the official best-practices guidance, when should you SKIP plan mode?",
+      options: [
+        "Whenever you're in a hurry — planning is optional overhead",
+        "When you could describe the diff in one sentence",
+        "Never — plan-first applies to every change",
+        "Only when the change touches multiple files" ],
+      answer: 1,
+      explain: "Planning pays when the approach is uncertain, the change spans multiple files, or the code is unfamiliar. \"If you could describe the diff in one sentence, skip the plan.\" Multi-file changes are a reason TO plan, not to skip." },
+    { type: "scq",
+      stem: "Mid-task, your agent's test run goes green — but two previously failing tests are now marked as skipped. Per Kent Beck's framework, this is:",
+      options: [
+        "Normal TDD refactoring — proceed to commit",
+        "A sign the tests were flaky and the agent fixed them",
+        "\"The genie cheating\" — an immediate stop-and-intervene abort signal",
+        "Fine, as long as the build exit code is 0" ],
+      answer: 2,
+      explain: "Disabling or deleting tests is reward hacking: gaming the metric instead of achieving the goal. Beck's three abort signals are loops, unrequested functionality, and any sign the genie is cheating — like disabling tests. You stop and intervene; you don't negotiate." },
+    { type: "tf",
+      stem: "GitHub Copilot code review can be configured to count toward a PR's required approvals so teams can merge faster.",
+      answer: false,
+      explain: "False by design. Copilot always leaves a 'Comment' review — never Approve or Request changes — so it never counts toward required approvals and never blocks merge. Claude Code Review findings likewise don't approve or block. AI review complements human review; approval stays human." },
+    { type: "mcq",
+      stem: "Which of these are valid 'checks the agent can run' for closing a verification loop? (select all that apply)",
+      options: [
+        "A test suite",
+        "A build exit code",
+        "A script that diffs output against a fixture",
+        "A browser screenshot compared against a design",
+        "The agent's own summary saying the work is complete" ],
+      answer: [0, 1, 2, 3],
+      explain: "A check must produce an objective pass/fail the agent can execute — tests, build exit codes, fixture diffs, screenshot comparisons all qualify. The agent's own 'looks done' assertion is exactly the signal the loop exists to replace: evidence over assertion." },
+    { type: "match",
+      stem: "Match each enforcement mechanism to what it does in the verification ladder.",
+      pairs: [
+        { l: "Prompt instruction", r: "asks the agent to run the check — weakest rung" },
+        { l: "/goal condition", r: "re-checks the criterion every turn" },
+        { l: "Stop hook", r: "blocks the turn from ending until the check passes" },
+        { l: "Verification subagent", r: "fresh context grades the work — worker isn't the grader" } ],
+      explain: "The ladder escalates from advisory to mechanical: a prompt can be forgotten, a /goal is re-checked each turn, a Stop hook makes 'done' literally impossible while the check fails, and a fresh-context subagent separates doing from grading — the same isolation trick as writer/reviewer TDD." },
+    { type: "open",
+      stem: "A client CTO says: 'Our devs tell me the AI agents have made them way faster, so we're skipping the verification work.' Using today's evidence, what's your two-sentence pushback?",
+      hint: "Think METR: what did developers feel vs what did the stopwatch say?",
+      model: "METR's randomized trial with experienced maintainers on real tasks found AI tooling made them 19% slower — while those same developers believed they'd been sped up 20%, a ~39-point gap between perception and measurement. Self-reported speed is a feeling, not a metric, so the verification loop isn't overhead — it's the only way to know whether the agents are actually paying off." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

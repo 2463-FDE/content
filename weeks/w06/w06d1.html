@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w06d1">
+<meta name="fde-concepts" content="agent-cli-landscape,claude-code-surfaces,permission-rules,claude-md-memory,skills-vs-hooks,harness-vs-model-enforcement">
+<title>W6·D1 — Coding-Agents Landscape: Claude Code Up Close | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Coding Agents: the Landscape, and Claude Code Up Close</h1>
+        <div class="meta">
+          <span><b>Week 6</b> · Day 1</span>
+          <span>Agentic Engineering</span>
+          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">You've driven Claude Code since Week 1. This week you stop being a passenger. Today's job is
+        two-fold: first, map the <strong>terminal-native coding-agent landscape</strong> — Claude Code, Codex CLI, and
+        Gemini CLI have converged on one recognizable shape, and knowing that shape lets you walk into any client stack —
+        then go deep on Claude Code's control surfaces: <strong>permissions</strong>, <strong>CLAUDE.md memory</strong>,
+        <strong>skills</strong>, and <strong>hooks</strong>. The single idea holding it all together is the difference
+        between what the <em>harness enforces</em> and what the <em>model is merely told</em>. Scroll the reading; the
+        panel on the right assembles the landscape, then splits Claude Code's controls into their two very different
+        halves.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The landscape</div>
+        <h2>Three vendors, one converged shape</h2>
+        <p>The terminal-native coding agent has settled into a category with three vendor flagships:
+        <strong>Claude Code</strong> (Anthropic), <strong>Codex CLI</strong> (OpenAI), and <strong>Gemini CLI</strong>
+        (Google). All three are the same species of tool: an agent that lives in your terminal, <strong>reads your
+        codebase, edits files, and runs commands</strong> — Anthropic's own one-line description of Claude Code, and it
+        applies to all three almost word for word. Codex CLI is open source, written in Rust, installed with a one-line
+        curl script, and bundled into ChatGPT paid plans. Gemini CLI is Apache-2.0, installed via
+        <code>npm install -g @google/gemini-cli</code>, ships a free OAuth tier (60 requests/minute, 1,000/day), and
+        pairs a 1M-token context window with Gemini 3 models.</p>
+        <p>What matters more than the roster is the <strong>convergence</strong>. All three tools have independently
+        arrived at the same core mechanics: a <strong>project instruction file</strong> the agent reads on startup
+        (CLAUDE.md, AGENTS.md, GEMINI.md), <strong>approval or sandbox modes</strong> that gate what the agent may run —
+        Codex tells you to "choose the approval mode that matches your comfort level before Codex edits or runs
+        commands" — and <strong>MCP support</strong> for wiring in external tools. Even extensibility has standardized:
+        the <strong>Agent Skills</strong> format, originated by Anthropic, is now an open standard at agentskills.io
+        adopted by Codex, Gemini CLI, Cursor, GitHub Copilot, Goose, OpenCode, and dozens more.</p>
+        <p>Why does an FDE care about the shape rather than the horse race? Because clients will already have a tool
+        when you arrive, and benchmark standings churn too fast to memorize. <strong>Terminal-Bench</strong> is the
+        reference benchmark for terminal agents — versions 2.0 and 2.1 are live, 3.0 announced — and the professional
+        move is to know where to look up current standings, not to recite stale scores. The durable knowledge is the
+        converged shape: if you can locate the memory file, the approval system, and the extension mechanism in one of
+        these tools, you can find them in all of them.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Claude Code</div>
+        <h2>One engine, five surfaces</h2>
+        <p>Claude Code is our primary tool for the rest of the program, so let's pin down what it actually is. The
+        native install is one line — <code>curl -fsSL https://claude.ai/install.sh | bash</code> — after which
+        <code>claude</code> in any project directory starts a session (the native installer keeps itself up to date).
+        But "the terminal app" undersells it: Claude Code runs across <strong>five surfaces</strong> — the terminal
+        CLI, a VS Code/Cursor extension, a JetBrains plugin, a desktop app, and the web at claude.ai/code.</p>
+        <p>The load-bearing fact is that <strong>all surfaces share the same engine</strong>. Your CLAUDE.md files,
+        your settings, your MCP servers — configure them once and they work identically whether you're in a terminal
+        over SSH, inside VS Code, or in a browser tab. For an FDE this is a deployment gift: you can standardize a
+        client team's agent configuration in the repo itself, and it doesn't matter that half the team lives in
+        JetBrains and the other half in a terminal. The configuration <em>is</em> the product you hand over; the
+        surface is personal preference.</p>
+        <p>This also reframes what "learning Claude Code" means this week. You are not learning a UI. You are learning
+        a configurable agent harness — a system with documented places to put instructions, documented rules for what
+        it may execute, and documented extension points. Every one of those is a file you can check into a client's
+        repository and review in a pull request. That's the difference between "we tried an AI tool" and "we deployed
+        an agent with controls" — and the rest of today walks those controls one by one.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Surfaces · headless</div>
+        <h2>The CLI is Unix-composable — and CI-ready</h2>
+        <p>The surface that separates engineers from tourists is <strong>headless mode</strong>. <code>claude -p
+        "&lt;prompt&gt;"</code> runs a single non-interactive turn and prints the result — which means Claude Code
+        composes like any Unix tool. It accepts piped stdin: <code>tail -200 app.log | claude -p "what broke?"</code>
+        sends the last 200 log lines in as context. It chains in shell scripts and CI pipelines. The agent stops being
+        an app you sit inside and becomes a command you can wire into anything that can spawn a process.</p>
+        <p>CI needs auth without a browser, and there's a documented path: <code>claude setup-token</code> mints a
+        one-year OAuth token that you provide via the <code>CLAUDE_CODE_OAUTH_TOKEN</code> environment variable. And
+        once environment variables enter the picture, you need the <strong>credential precedence</strong> order,
+        because it's a documented failure mode: cloud-provider flags (Bedrock/Vertex/Foundry) beat
+        <code>ANTHROPIC_AUTH_TOKEN</code>, which beats <code>ANTHROPIC_API_KEY</code>, which beats the
+        <code>apiKeyHelper</code> script, which beats <code>CLAUDE_CODE_OAUTH_TOKEN</code>, which beats the
+        subscription login from <code>/login</code>. The classic gotcha: a stray <code>ANTHROPIC_API_KEY</code>
+        exported in someone's shell profile silently overrides their subscription — they burn metered API credits while
+        their paid plan sits unused. Diagnostic: run <code>/status</code> and read which credential won.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a sandboxed terminal that runs
+        <code>claude -p</code> against a tiny demo repo — pipe a log file in, watch a headless answer come back, then
+        chain two calls in a script. Needs backend standup.</p></div>
+        <p>File this under FDE instincts: when a client says "can the agent review every PR automatically?" or "can it
+        triage overnight alerts?", the answer starts with <code>-p</code>, a token, and a pipeline — not with a person
+        sitting in a chat window.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Permissions · evaluation</div>
+        <h2>Deny → ask → allow, first match wins</h2>
+        <p>Now the controls. Before Claude Code touches a file or runs a command, the <strong>permission system</strong>
+        decides whether to proceed, prompt you, or refuse. The evaluation order is fixed and worth memorizing:
+        <strong>deny rules first, then ask rules, then allow rules — and the first match determines the outcome.</strong>
+        Crucially, <em>specificity does not change the order</em>. If you write a broad deny like
+        <code>Bash(aws *)</code> and a narrower allow like <code>Bash(aws s3 ls)</code>, the deny matches first and the
+        command is blocked. Deny rules cannot carry allowlist exceptions — this is not firewall-style
+        "most-specific-rule-wins," and engineers who assume it is will ship rules that don't do what they think.</p>
+        <p>Rules live in settings files, and those have their own precedence: <strong>managed settings</strong>
+        (deployed by IT, highest) beat <strong>CLI arguments</strong>, which beat
+        <code>.claude/settings.local.json</code> (personal, gitignored), which beats
+        <code>.claude/settings.json</code> (project — shareable, checked in), which beats
+        <code>~/.claude/settings.json</code> (user-wide). And one property makes the whole scheme trustworthy for
+        security reviews: <strong>a deny at any level cannot be re-allowed at another</strong>. If the enterprise
+        managed policy denies something, no project file, local file, or CLI flag can resurrect it.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a permission-rule evaluator —
+        paste a deny/ask/allow ruleset plus a candidate command, and step through which rule matches first and why the
+        broad deny beats the narrow allow. Needs backend standup.</p></div>
+        <p>For an FDE, <code>.claude/settings.json</code> is the artifact that turns a security conversation from
+        vibes into a reviewable diff: the client's platform team can read exactly what the agent may and may not do,
+        approve it in a PR, and know a laptop-level tweak can't loosen it.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Permissions · syntax &amp; modes</div>
+        <h2>Rule syntax, honest limits, and permission modes</h2>
+        <p>A rule is <code>Tool</code> or <code>Tool(specifier)</code>. Bash rules use <code>*</code> globs and are
+        shell-operator aware — a compound command like <code>a &amp;&amp; b</code> must match your rules for
+        <em>each</em> subcommand independently, so nothing sneaks through by riding after an <code>&amp;&amp;</code>.
+        Read and Edit rules use gitignore-style paths with anchors: <code>//</code> for absolute paths, <code>~/</code>
+        for home, <code>/</code> for project root. WebFetch rules match on <code>domain:</code>.</p>
+        <p>The docs are refreshingly honest about where patterns break down: <strong>argument-constraining Bash
+        patterns are fragile</strong>. A rule trying to restrict <code>curl</code> to certain URLs can be bypassed with
+        flag reordering, redirects, or shell variables. The documented recommendation is to not build load-bearing
+        security out of Bash argument patterns at all — use deny rules on the command family plus WebFetch domain
+        allows, or a PreToolUse hook (coming up in step 7) that inspects the real call. Knowing the limits of your own
+        controls is exactly the kind of thing a client security team will probe you on.</p>
+        <p>Above individual rules sit <strong>permission modes</strong>, set via <code>defaultMode</code>:
+        <code>default</code> (prompt on first use of each tool), <code>acceptEdits</code> (auto-accept file edits),
+        <code>plan</code> (read-only analysis, no changes), <code>auto</code> (a research preview with background
+        safety checks), <code>dontAsk</code>, and <code>bypassPermissions</code>. That last one skips prompts entirely
+        — except explicit <code>ask</code> rules and a hard-coded circuit breaker on <code>rm -rf /</code> and
+        <code>rm -rf ~</code> — and the docs say plainly it's safe only in isolated containers or VMs with no
+        credentials worth stealing. The FDE translation: <code>bypassPermissions</code> on a developer laptop with
+        production AWS keys is malpractice; the same mode inside a throwaway CI container is a reasonable engineering
+        choice. Context decides.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Memory</div>
+        <h2>CLAUDE.md: layered context, plus a memory that writes itself</h2>
+        <p><strong>CLAUDE.md</strong> is the instruction file Claude Code reads at session start — project conventions,
+        commands, architecture notes. It's layered, loading broadest to most specific: a <strong>managed policy</strong>
+        file (e.g. <code>/Library/Application Support/ClaudeCode/CLAUDE.md</code> on macOS), your <strong>user</strong>
+        file (<code>~/.claude/CLAUDE.md</code>, all projects), the <strong>project</strong> file (<code>./CLAUDE.md</code>
+        or <code>./.claude/CLAUDE.md</code>, checked in), and a <strong>local</strong> overlay
+        (<code>./CLAUDE.local.md</code>, gitignored, personal). Discovery walks <em>up</em> the directory tree — so
+        launching from a subdirectory still finds the repo-root file — and CLAUDE.md files in subdirectories load
+        on demand when Claude reads files there. In a monorepo, <code>api/CLAUDE.md</code> costs nothing until the
+        agent actually works in <code>api/</code>.</p>
+        <p>Files compose via <strong>imports</strong>: an <code>@path/to/file</code> line pulls another file in (max
+        depth four hops, loaded at launch; the first import from outside the project prompts for approval). That's
+        also the documented interop answer for the landscape from step 1: Claude Code reads CLAUDE.md, <em>not</em>
+        AGENTS.md — so a repo serving multiple agents keeps one AGENTS.md and a CLAUDE.md containing
+        <code>@AGENTS.md</code>, or a symlink. Guidance: keep each file under ~200 lines, because imported files still
+        cost context on every session. For instructions only relevant to part of the tree, <strong>path-scoped
+        rules</strong> (<code>.claude/rules/*.md</code> with <code>paths:</code> frontmatter) load only when Claude
+        touches matching files.</p>
+        <p>Then there's the second memory system: <strong>auto memory</strong> (v2.1.59+, on by default). Claude writes
+        its own notes to <code>~/.claude/projects/&lt;project&gt;/memory/</code> — a <code>MEMORY.md</code> index whose
+        first 200 lines / 25KB load every session, with topic files loaded on demand. It's all plain markdown, and
+        <code>/memory</code> opens it for audit. Notice the design echo from Week 1: both systems are answers to "how
+        do we spend the window on standing knowledge?" — always-loaded index, on-demand detail.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Extension · skills</div>
+        <h2>Skills: procedures that load only when needed</h2>
+        <p>A <strong>skill</strong> is a folder containing a <code>SKILL.md</code> — YAML frontmatter with at minimum a
+        <code>name</code> and <code>description</code>, then markdown instructions. Skills live at four scopes:
+        personal (<code>~/.claude/skills/&lt;name&gt;/</code>), project (<code>.claude/skills/&lt;name&gt;/</code>),
+        plugin, and enterprise. The directory name becomes a slash command — <code>.claude/skills/deploy/</code> gives
+        you <code>/deploy</code> — and Claude will also <strong>auto-invoke</strong> a skill when its description
+        matches the task at hand. (The old <code>.claude/commands/</code> custom commands have been merged into skills;
+        one mechanism now.) Same-name collisions resolve enterprise &gt; personal &gt; project, and nested monorepo
+        skills get directory-qualified names like <code>apps/web:deploy</code>.</p>
+        <p>The reason skills exist as a separate mechanism from CLAUDE.md is economics. Skills use <strong>three-stage
+        progressive disclosure</strong>: at startup the agent loads <em>only each skill's name and description</em>;
+        full instructions load when a task matches; and supporting files load only if the instructions call for them.
+        The docs put it plainly: "a skill's body loads only when it's used, so long reference material costs almost
+        nothing until you need it." Your 500-line deploy runbook costs a one-line description until deploy day. This is
+        Week 1's token accounting applied to agent configuration — CLAUDE.md is always-loaded rent, skills are
+        pay-per-use.</p>
+        <p>Two more things make skills strategic. First, the format is the <strong>open Agent Skills standard</strong>
+        from step 1 — a skill you author for a client works in Codex, Gemini CLI, Cursor, and Copilot too, so runbook
+        work survives a vendor switch. Second, Claude Code extends the standard with invocation control, subagent
+        execution, and dynamic context injection — <code>!`cmd`</code> lines in a skill run <em>before</em> Claude reads
+        it, injecting live output (current branch, failing tests) into the instructions.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Extension · hooks</div>
+        <h2>Hooks: deterministic code at lifecycle events</h2>
+        <p>Skills are still instructions — the model reads them and <em>decides</em>. <strong>Hooks</strong> are the
+        opposite animal: user-defined shell commands (or HTTP endpoints, or LLM prompts) that <strong>fire at lifecycle
+        events</strong>, outside the model's control. The events span the session (<code>SessionStart</code>,
+        <code>SessionEnd</code>), the turn (<code>UserPromptSubmit</code>, <code>Stop</code>), and — most usefully —
+        every tool call (<code>PreToolUse</code>, <code>PostToolUse</code>). Hooks are configured under
+        <code>hooks</code> in the same settings files as permissions, with matchers targeting tool names: exact
+        matches, <code>|</code>-separated lists, regex, or MCP tools via <code>mcp__server__tool</code>.</p>
+        <p>A hook talks back through two channels. Exit codes: <strong>exit 2 blocks the action</strong> and feeds the
+        hook's stderr to Claude as feedback (exit 1 is non-blocking — a warning that doesn't stop anything). Or exit 0
+        with a JSON payload for fine-grained control: <code>permissionDecision</code> of allow/deny/ask,
+        <code>continue: false</code> to halt the turn, <code>additionalContext</code> to inject information. That means
+        a PreToolUse hook can implement policies no glob pattern can express — parse the actual command, check the
+        target path against a manifest, call your compliance API, and return a verdict.</p>
+        <p>The interaction with permissions is precisely specified, and asymmetric in the safe direction: <strong>a
+        blocking hook takes precedence over allow rules, but a hook's "allow" never bypasses deny or ask rules.</strong>
+        Hooks can only tighten, never loosen. That's the property you quote when a client's security architect asks
+        whether custom automation could accidentally open a hole.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a hook playground — attach a
+        PreToolUse hook to a sample tool call, toggle its exit code between 0, 1, and 2, and watch the call pass, warn,
+        or block with stderr fed back to the model. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="7">
+        <div class="tag">The load-bearing idea</div>
+        <h2>Harness enforcement vs model steering</h2>
+        <p>Step back and the four mechanisms sort into two piles — and the docs draw the line themselves, twice. On
+        permissions: <em>"Permission rules are enforced by Claude Code, not by the model. Instructions in your prompt
+        or CLAUDE.md shape what Claude tries to do, but they don't change what Claude Code allows."</em> On memory:
+        CLAUDE.md files are <em>"context, not enforced configuration. To block an action regardless of what Claude
+        decides, use a PreToolUse hook instead."</em> <strong>Permissions and hooks are harness enforcement —
+        deterministic, running as code outside the model. CLAUDE.md and skills are model steering — context the model
+        reads and, in the overwhelming majority of cases, follows — but following is a behavior, not a guarantee.</strong>
+        Sandboxing adds a third, OS-level layer around Bash and its child processes; permissions plus sandbox is
+        defense-in-depth, not redundancy.</p>
+        <p>Anthropic's published mental model for choosing among them is worth committing to memory: facts Claude
+        should always hold → <strong>CLAUDE.md</strong>. Instructions tied to part of the tree → <strong>path-scoped
+        rules</strong>. Procedures and runbooks → <strong>skills</strong> ("procedures belong in skills; CLAUDE.md is
+        for facts"). Anything that must happen deterministically → <strong>hooks</strong>. Context-heavy side work →
+        subagents (later this week).</p>
+        <p>Here's the client scene this was all building to. A security lead tells you: "We're safe — we wrote 'NEVER
+        touch production configs' in the CLAUDE.md." You now know that sentence is a steering instruction: valuable,
+        usually followed, and <em>not an enforcement boundary</em>. The FDE answer is to keep the sentence and add the
+        guarantee — a deny rule on the config paths in checked-in settings, or a PreToolUse hook that blocks the write
+        with exit 2. Prompts shape behavior; the harness bounds it. Deploying agents at clients means knowing, for
+        every control in your design, which side of that line it lives on.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When a client asks "is the agent allowed to do X?", never answer from the CLAUDE.md. Answer from the
+          harness: <strong>what do the permission rules and hooks actually enforce?</strong> Instructions are what the
+          agent will <em>probably</em> do; enforcement is what it <em>can</em> do. Clients are buying the second one —
+          and tomorrow we put these controls to work on real multi-step agent workflows.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://code.claude.com/docs/en/overview" target="_blank" rel="noopener">Claude Code — Overview</a> — install, the five surfaces, and headless <code>-p</code> / piped usage.</li>
+          <li><a href="https://code.claude.com/docs/en/permissions" target="_blank" rel="noopener">Claude Code — Configure permissions</a> — deny → ask → allow evaluation, rule syntax, settings precedence, permission modes, sandboxing.</li>
+          <li><a href="https://code.claude.com/docs/en/memory" target="_blank" rel="noopener">Claude Code — How Claude remembers your project</a> — CLAUDE.md scopes, imports, path-scoped rules, auto memory, AGENTS.md interop.</li>
+          <li><a href="https://code.claude.com/docs/en/skills" target="_blank" rel="noopener">Claude Code — Extend Claude with skills</a> — SKILL.md format, scopes, progressive disclosure, dynamic context injection.</li>
+          <li><a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener">Claude Code — Hooks reference</a> — lifecycle events, matchers, exit codes, JSON control.</li>
+          <li><a href="https://code.claude.com/docs/en/authentication" target="_blank" rel="noopener">Claude Code — Authentication</a> — <code>setup-token</code> for CI and the credential precedence chain.</li>
+          <li><a href="https://claude.com/blog/steering-claude-code-skills-hooks-rules-subagents-and-more" target="_blank" rel="noopener">Anthropic — Steering Claude Code</a> — the official mental model: facts vs procedures vs deterministic behavior.</li>
+          <li><a href="https://agentskills.io" target="_blank" rel="noopener">Agent Skills — open standard</a> — the cross-vendor SKILL.md format and its adopter showcase.</li>
+          <li><a href="https://developers.openai.com/codex/cli/" target="_blank" rel="noopener">OpenAI — Codex CLI</a> — approval modes, AGENTS.md, install.</li>
+          <li><a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener">Google — Gemini CLI (GitHub)</a> — GEMINI.md context files, MCP config, free tier.</li>
+          <li><a href="https://www.tbench.ai/leaderboard" target="_blank" rel="noopener">Terminal-Bench — leaderboard</a> — where to look up current terminal-agent standings instead of memorizing them.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">The three precedence chains that bite in production</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on agents, permissions &amp; enforcement</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 6 Day 1</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the three precedence chains that bite in production</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. Three ordered lists that explain most "the agent isn't obeying my config" tickets.</p>
+    <p><strong>1 · Credentials.</strong> Highest wins: cloud-provider env flags (Bedrock / Vertex / Foundry) →
+    <code>ANTHROPIC_AUTH_TOKEN</code> → <code>ANTHROPIC_API_KEY</code> → <code>apiKeyHelper</code> →
+    <code>CLAUDE_CODE_OAUTH_TOKEN</code> → subscription OAuth from <code>/login</code>. The classic incident: an
+    <code>ANTHROPIC_API_KEY</code> left in a dotfile silently overrides the team's subscription, and the metered bill
+    climbs. First move: <code>/status</code>, read which credential is active.</p>
+    <p><strong>2 · Settings.</strong> Managed settings → CLI arguments → <code>.claude/settings.local.json</code> →
+    <code>.claude/settings.json</code> (project) → <code>~/.claude/settings.json</code> (user). The property to quote in
+    a security review: <strong>a deny at any level cannot be re-allowed at any other level.</strong> Enterprise policy
+    denies it → it is dead, everywhere, regardless of local files or flags.</p>
+    <p><strong>3 · Hooks × permissions.</strong> A blocking PreToolUse hook (exit 2, or JSON
+    <code>permissionDecision: "deny"</code>) beats an allow rule. A hook returning "allow" never bypasses a deny or ask
+    rule. Hooks tighten; they cannot loosen.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked example — a guardrail that actually guarantees</div>
+      <p style="margin:8px 0 0">Requirement: "the agent must never modify <code>infra/prod/</code>." The layered
+      answer: <b>①</b> a line in CLAUDE.md ("never touch infra/prod — ask a human") so the model steers away by
+      default; <b>②</b> a deny rule <code>Edit(infra/prod/**)</code> in the checked-in <code>.claude/settings.json</code>
+      so the harness refuses even if the model tries; <b>③</b> optionally a PreToolUse hook that logs the blocked
+      attempt to the client's audit channel. Layer ① is steering, ② is enforcement, ③ is observability. If you can
+      label each layer of your own design this way, you're ready for the client's security architect.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Version floors worth noting</strong> (docs-referenced, as of this writing):
+    auto memory needs v2.1.59+, <code>/cd</code> needs v2.1.169+, the bundled <code>/run</code> and <code>/verify</code>
+    skills need v2.1.145+. The native installer auto-updates, so these mostly matter when diagnosing a client's pinned
+    or stale install.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Week 6 · Day 1 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Describe the converged shape of terminal coding agents (memory file + approval modes + MCP + skills standard) across Claude Code, Codex CLI, and Gemini CLI</li>
+      <li>Predict a permission outcome from a ruleset: deny → ask → allow, first match, no specificity override, deny un-reallowable across levels</li>
+      <li>Place an instruction in the right home: CLAUDE.md scope, path-scoped rule, skill, or hook — and justify it with the facts/procedures/deterministic test</li>
+      <li>Draw the harness-vs-model line for any proposed guardrail — and say which side a client's "we told it not to" lives on</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <ul class="deliv-list check">
+      <li>Add a <code>.claude/settings.json</code> to your project with at least one deny rule and one allow rule you can defend</li>
+      <li>Write (or tighten) your project's <code>CLAUDE.md</code> — under 200 lines, facts only</li>
+      <li>In <code>NOTES.md</code>: one guardrail from your project stated twice — once as steering (CLAUDE.md line) and once as enforcement (permission rule or hook) — plus a sentence on what only the enforcement version guarantees</li>
+    </ul>
+    <p class="goals-foot">Bring the settings file to Day 2 — we start driving multi-step agent workflows against real
+    repos, and your permission rules are the seatbelt.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "W6 · Day 2 →", href: "w06d2.html" };
+window.DIAGRAM = {
+  title: "Coding agents · steering vs enforcement",
+  width: 500, height: 690,
+  nodes: [
+    // scene card
+    { id:"scene", step:0, kind:"example", x:14, y:14, w:472, h:72,
+      label:"CLIENT ENGAGEMENT · \"our devs want an AI coding agent\"\n  three terminal-native candidates — one converged shape:\n  memory file + approval modes + MCP + open skills standard" },
+
+    // the landscape row
+    { id:"cc",    step:0, x:28,  y:100, w:186, h:56, label:"CLAUDE CODE\n(Anthropic) · CLAUDE.md",
+      detail:"Reads your codebase, edits files, runs commands. Native install: curl -fsSL https://claude.ai/install.sh | bash, then `claude` in any project. Our primary tool — the rest of the diagram unpacks its control surfaces." },
+    { id:"codex", step:0, x:226, y:100, w:126, h:56, label:"Codex CLI\nAGENTS.md",
+      detail:"OpenAI's open-source CLI, written in Rust; included in ChatGPT paid plans. Approval modes gate edits and commands; configured via AGENTS.md and config.toml. Same converged shape." },
+    { id:"gem",   step:0, x:362, y:100, w:124, h:56, label:"Gemini CLI\nGEMINI.md",
+      detail:"Apache-2.0, npm install -g @google/gemini-cli. Free OAuth tier: 60 req/min, 1,000 req/day; 1M-token context with Gemini 3 models. GEMINI.md context files + MCP servers in settings. Same shape again." },
+
+    // surfaces + headless
+    { id:"surf", step:1, x:28, y:170, w:220, h:64, label:"5 surfaces · one engine\nCLI · IDE · desktop · web",
+      detail:"Terminal, VS Code/Cursor extension, JetBrains plugin, desktop app, claude.ai/code — all share one engine, so CLAUDE.md, settings, and MCP servers work identically everywhere. Configure once in the repo; the surface is personal preference." },
+    { id:"head", step:2, x:262, y:170, w:224, h:64, label:"headless: claude -p\npipes · CI · setup-token",
+      detail:"`claude -p` runs one non-interactive turn; accepts piped stdin (tail -200 app.log | claude -p ...); chains in CI. `claude setup-token` mints a one-year OAuth token used via CLAUDE_CODE_OAUTH_TOKEN. Gotcha: a stray ANTHROPIC_API_KEY outranks your subscription — check /status." },
+
+    // steering column (model reads it)
+    { id:"steer", step:5, x:28, y:258, w:218, h:256, label:"MODEL STEERING — context Claude reads" },
+    { id:"cmd",  step:5, x:42, y:294, w:190, h:66, label:"CLAUDE.md\nmanaged→user→project→local",
+      detail:"Loads broadest → most specific: managed policy, ~/.claude/CLAUDE.md, ./CLAUDE.md (or .claude/CLAUDE.md), CLAUDE.local.md (gitignored). Walks up the tree; subdirectory files load on demand. @file imports (max 4 hops); keep each file under ~200 lines. AGENTS.md interop: a CLAUDE.md containing @AGENTS.md." },
+    { id:"amem", step:5, x:42, y:370, w:190, h:56, label:"auto memory\nMEMORY.md index",
+      detail:"v2.1.59+, on by default. Claude writes its own notes to ~/.claude/projects/<project>/memory/ — MEMORY.md's first 200 lines / 25KB load every session, topic files on demand. All plain markdown; audit with /memory." },
+    { id:"skl",  step:6, x:42, y:436, w:190, h:66, label:"Skills · SKILL.md\nbody loads on use",
+      detail:"A folder with SKILL.md (frontmatter name + description). Three-stage progressive disclosure: startup loads only name+description; body loads when a task matches. Directory name = /command; auto-invoked when the description matches. Open cross-vendor standard (agentskills.io). !`cmd` lines inject live output before Claude reads the skill." },
+
+    // enforcement column (harness runs it)
+    { id:"harn", step:3, x:258, y:258, w:228, h:256, label:"HARNESS ENFORCEMENT — deterministic" },
+    { id:"perm", step:3, x:272, y:294, w:200, h:66, label:"Permissions\ndeny → ask → allow",
+      detail:"First match in that order wins — specificity does NOT reorder: deny Bash(aws *) blocks allow Bash(aws s3 ls). Settings precedence: managed > CLI args > .claude/settings.local.json > .claude/settings.json > ~/.claude/settings.json. A deny at any level can't be re-allowed at another." },
+    { id:"mode", step:4, x:272, y:370, w:200, h:56, label:"modes & rule syntax\ndefault … bypassPermissions",
+      detail:"Modes: default, acceptEdits, plan, auto (research preview), dontAsk, bypassPermissions (skips prompts except ask rules + an rm -rf / circuit breaker — isolated containers/VMs only). Syntax: Bash * globs (compound commands match per-subcommand), gitignore-style paths (// absolute, ~/ home, / project root), WebFetch domain:. Bash argument patterns are fragile — prefer denies + hooks." },
+    { id:"hook", step:7, x:272, y:436, w:200, h:66, label:"Hooks · lifecycle code\nexit 2 = block",
+      detail:"Shell commands / HTTP / LLM prompts at SessionStart/End, UserPromptSubmit, Stop, PreToolUse, PostToolUse. Exit 2 blocks and feeds stderr to Claude; exit 1 warns; exit 0 + JSON gives permissionDecision / continue:false / additionalContext. A blocking hook beats an allow rule; a hook 'allow' never bypasses deny/ask." },
+
+    // the tool call both sides converge on
+    { id:"act", step:7, x:118, y:556, w:264, h:70, label:"EVERY TOOL CALL\nsteering shapes what it TRIES\nharness decides what's ALLOWED",
+      detail:"The docs, verbatim: 'Permission rules are enforced by Claude Code, not by the model.' And: CLAUDE.md files are 'context, not enforced configuration. To block an action regardless of what Claude decides, use a PreToolUse hook instead.' Sandboxing adds an OS-level layer around Bash — defense-in-depth." }
+  ],
+  edges: [
+    { id:"e_shape", step:0, from:"codex", to:"cc",   label:"same shape", ly:-2 },
+    { id:"e_surf",  step:1, from:"cc",    to:"surf", label:"one engine", lx:-4 },
+    { id:"e_head",  step:2, from:"cc",    to:"head", label:"-p · scriptable", bend:20 },
+    { id:"e_hp",    step:7, from:"hook",  to:"perm", label:"block beats allow", lx:6 },
+    { id:"e_st",    step:7, from:"steer", to:"act",  label:"tries", lx:-8 },
+    { id:"e_hn",    step:7, from:"harn",  to:"act",  label:"allows", lx:8 }
+  ],
+  captions: [
+    "The landscape: <b>Claude Code, Codex CLI, Gemini CLI</b> — three vendors, one converged shape: memory file + approval modes + MCP + the open skills standard. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Claude Code is <b>one engine on five surfaces</b> — terminal, IDE extensions, desktop, web. CLAUDE.md, settings, and MCP config work identically on all of them.",
+    "Headless <b><code>claude -p</code></b> makes it Unix-composable: pipe logs in, chain it in CI, auth with <code>setup-token</code>. <span style='opacity:.7'>(tap for the credential gotcha)</span>",
+    "First enforcement layer: <b>permissions</b>. Deny → ask → allow, <b>first match wins</b> — a broad deny beats a narrow allow, and no level can re-allow another level's deny. <span style='opacity:.7'>(tap)</span>",
+    "Rule syntax has honest limits (Bash argument globs are fragile), and <b>permission modes</b> run from <code>plan</code> to <code>bypassPermissions</code> — container-only. <span style='opacity:.7'>(tap)</span>",
+    "The steering side: <b>CLAUDE.md</b> loads in four scopes plus imports and path-scoped rules — and <b>auto memory</b> is Claude writing its own notes. <span style='opacity:.7'>(tap)</span>",
+    "<b>Skills</b> are procedures with progressive disclosure — a one-line description until the task matches, then the full runbook. An open standard across vendors. <span style='opacity:.7'>(tap)</span>",
+    "<b>Hooks</b> complete the harness: deterministic code at lifecycle events — and the two sides meet at every tool call: <b>steering shapes what Claude tries; the harness decides what's allowed.</b> <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w06-d1",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "Your settings contain deny: Bash(aws *) and allow: Bash(aws s3 ls). Claude tries to run `aws s3 ls`. What happens?",
+      options: [
+        "Allowed — the allow rule is more specific, and specificity wins",
+        "Blocked — deny rules are evaluated first and the first match wins; specificity does not reorder",
+        "Claude is prompted, because the rules conflict",
+        "Allowed, but only in acceptEdits mode" ],
+      answer: 1,
+      explain: "Evaluation is deny → ask → allow, first match wins. The broad deny matches before the narrow allow is ever considered — deny rules cannot carry allowlist exceptions. If you need 'aws is blocked except s3 ls', you can't express it with a deny + allow pair." },
+    { type: "scq",
+      stem: "A client's security lead says: 'The agent can never touch production configs — we wrote NEVER TOUCH infra/prod in the CLAUDE.md.' What's the accurate FDE response?",
+      options: [
+        "Correct — CLAUDE.md instructions are enforced by Claude Code",
+        "That's steering, not enforcement: CLAUDE.md is context the model reads. Add a deny permission rule or a PreToolUse hook for a guarantee",
+        "It only works if the line is in the managed CLAUDE.md scope",
+        "It works as long as temperature is set to zero" ],
+      answer: 1,
+      explain: "The docs are explicit: CLAUDE.md files are 'context, not enforced configuration. To block an action regardless of what Claude decides, use a PreToolUse hook instead.' Keep the instruction for steering; add harness enforcement for the guarantee." },
+    { type: "tf",
+      stem: "A project's .claude/settings.local.json can re-allow a command that the enterprise managed settings deny.",
+      answer: false,
+      explain: "No. Settings precedence orders which file wins on conflicts, but a deny at ANY level cannot be re-allowed at another. That property is what makes checked-in and managed permission policies trustworthy in a security review." },
+    { type: "mcq",
+      stem: "Which of these are HARNESS-enforced (deterministic — they hold even if the model 'decides' otherwise)? (select all that apply)",
+      options: [
+        "A deny permission rule in .claude/settings.json",
+        "A PreToolUse hook that exits with code 2",
+        "A 'never run destructive commands' line in CLAUDE.md",
+        "A skill whose SKILL.md says to always run tests before committing",
+        "OS-level sandboxing around Bash and its child processes" ],
+      answer: [0, 1, 4],
+      explain: "Permissions, hooks, and sandboxing run as code outside the model — deterministic enforcement. CLAUDE.md lines and skill instructions are model steering: context the model reads and usually follows, but following is a behavior, not a guarantee." },
+    { type: "match",
+      stem: "Match each need to the mechanism Anthropic's guidance points at.",
+      pairs: [
+        { l: "A fact Claude should hold in every session", r: "CLAUDE.md" },
+        { l: "Instructions only for files under packages/api/", r: "path-scoped rule (.claude/rules + paths:)" },
+        { l: "A 400-line deploy runbook used twice a month", r: "a skill — body loads only when used" },
+        { l: "Block any write to infra/prod/, no exceptions", r: "PreToolUse hook (or deny rule)" } ],
+      explain: "Facts you always need → CLAUDE.md. Directory-conditional instructions → path-scoped rules. Procedures → skills, whose progressive disclosure means long reference material costs almost nothing until invoked. Deterministic must-happen behavior → hooks/permissions in the harness." },
+    { type: "open",
+      stem: "A client wants Claude Code to triage the last 200 lines of an error log in CI on every failed build — no human at a keyboard. In one or two sentences, name the mode and the auth piece that make this work.",
+      hint: "Think headless invocation and browser-free credentials.",
+      model: "Use headless mode — pipe the log into a one-shot prompt, e.g. `tail -200 app.log | claude -p \"triage this failure\"` — and authenticate without a browser via `claude setup-token`, which mints a one-year OAuth token supplied to CI as CLAUDE_CODE_OAUTH_TOKEN. (Bonus: verify no stray ANTHROPIC_API_KEY outranks it in the credential precedence — check with /status.)" }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+</body>
+</html>

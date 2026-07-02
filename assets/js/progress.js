@@ -14,7 +14,7 @@ window.FDE_PROGRESS = (function () {
 
   var WORKER = (window.FDE_RUN_URL || "https://fde-backend.jestercharles.workers.dev");
   // Canonical curriculum order — only days with reading pages (drive the calendar).
-  var ORDER = ["w01d1", "w01d2", "w01d3", "w01d4", "w01d5", "w02d1", "w02d2", "w02d3", "w02d4", "w02d5", "w03d1", "w03d2", "w03d3", "w03d4", "w03d5", "w04d1", "w04d2", "w04d3", "w04d4", "w04d5", "w05d1", "w05d2", "w05d3", "w05d4", "w05d5"];
+  var ORDER = ["w01d1", "w01d2", "w01d3", "w01d4", "w01d5", "w02d1", "w02d2", "w02d3", "w02d4", "w02d5", "w03d1", "w03d2", "w03d3", "w03d4", "w03d5", "w04d1", "w04d2", "w04d3", "w04d4", "w04d5", "w05d1", "w05d2", "w05d3", "w05d4", "w05d5", "w06d1", "w06d2", "w06d3", "w06d4", "w06d5"];
   var RANK = { none: 0, started: 1, completed: 2 };
 
   function code() {
