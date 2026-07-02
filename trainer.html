@@ -109,6 +109,24 @@
   function authHeaders() { return { "content-type": "application/json", "Authorization": "Bearer " + token() }; }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c])); }
 
+  // ---- cohort state (shared across the reports + logins panels) ----
+  let COHORTS = [];      // [{slug,label,createdAt}] — registered cohorts
+  let OV_LEARNERS = [];  // last-loaded overview rows (each carries a bucketed .cohort)
+
+  // Build <option>s for a cohort <select>. opts: {all} adds "All cohorts" (value
+  // __all), {uat} adds a UAT option, {none} adds an empty "none (UAT)" option.
+  function cohortOptions(selected, opts) {
+    opts = opts || {};
+    let h = "";
+    if (opts.all) h += '<option value="__all"' + (selected === "__all" ? " selected" : "") + ">All cohorts</option>";
+    if (opts.none) h += '<option value=""' + (!selected ? " selected" : "") + ">— none (UAT) —</option>";
+    h += COHORTS.map(c => '<option value="' + esc(c.slug) + '"' + (c.slug === selected ? " selected" : "") + ">" + esc(c.label || c.slug) + "</option>").join("");
+    if (opts.uat) h += '<option value="UAT"' + (selected === "UAT" ? " selected" : "") + ">UAT (unassigned)</option>";
+    return h;
+  }
+  // A stored login cohort is only "selected" if it's still a registered cohort.
+  function knownCohort(slug) { return COHORTS.some(c => c.slug === slug) ? slug : ""; }
+
   function renderDenied() {
     app.innerHTML =
       '<div class="tr-wrap"><div class="tr-denied">' +
@@ -133,10 +151,14 @@
           '<div class="tr-card">' +
             '<h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px">Cohort overview ' +
               '<button class="btn secondary" id="ov-refresh" type="button" style="font-size:13px;padding:6px 12px">Refresh</button></h2>' +
+            '<div class="rep-pick" style="margin-bottom:12px">' +
+              '<div class="tr-field"><label for="ov-cohort">Show cohort</label><select id="ov-cohort"></select></div>' +
+              '<span class="tr-msg" id="ov-count"></span>' +
+            '</div>' +
             '<div id="ov-msg" class="tr-msg">Loading…</div>' +
             '<div style="overflow-x:auto">' +
               '<table class="tr-ov" id="ov-tbl" style="display:none"><thead><tr>' +
-                '<th>Name</th><th>Role</th><th>Days done</th><th>Interview best</th><th>SD best</th><th>Mastery</th><th>Top weak concepts</th>' +
+                '<th>Name</th><th>Cohort</th><th>Role</th><th>Days done</th><th>Interview best</th><th>SD best</th><th>Mastery</th><th>Top weak concepts</th>' +
               '</tr></thead><tbody id="ov-body"></tbody></table>' +
             '</div>' +
           '</div>' +
@@ -155,12 +177,23 @@
         // ----- Logins panel -----
         '<div class="tr-tabpanel" data-panel="logins" hidden>' +
           '<div class="tr-card">' +
+            '<h2>Cohorts</h2>' +
+            '<p class="tr-sub">Add a cohort number first, then assign learners to it — when you generate a code or afterwards. Anyone not assigned to a registered cohort (and non-trainers) is treated as a <b>UAT</b> account.</p>' +
+            '<div class="tr-form">' +
+              '<div class="tr-field"><label for="c-num">Cohort number</label><input id="c-num" type="text" placeholder="e.g. 2463" autocomplete="off" spellcheck="false"></div>' +
+              '<button class="btn" id="c-go" type="button">Add cohort</button>' +
+            '</div>' +
+            '<div class="tr-err" id="c-err"></div>' +
+            '<div id="c-list" class="tr-msg" style="margin-top:14px">Loading…</div>' +
+          '</div>' +
+          '<div class="tr-card">' +
             '<h2>Add a login</h2>' +
             '<div class="tr-form">' +
               '<div class="tr-field"><label for="f-name">Name</label><input id="f-name" type="text" placeholder="Full name" autocomplete="off" spellcheck="false"></div>' +
               '<div class="tr-field"><label for="f-role">Role</label>' +
                 '<select id="f-role"><option value="learner">learner</option><option value="trainer">trainer</option><option value="practice">practice</option></select>' +
               '</div>' +
+              '<div class="tr-field"><label for="f-cohort">Cohort</label><select id="f-cohort"></select></div>' +
               '<button class="btn" id="f-go" type="button">Generate code</button>' +
             '</div>' +
             '<div class="tr-err" id="f-err"></div>' +
@@ -175,7 +208,7 @@
             '<h2>Existing logins</h2>' +
             '<p class="tr-sub">Forgot a code? <b>Reset code</b> issues a fresh one and disables the old. Codes are one-way — they can\'t be recovered, only reissued.</p>' +
             '<div id="list-msg" class="tr-msg">Loading…</div>' +
-            '<table class="tr-list" id="list-tbl" style="display:none"><thead><tr><th>Name</th><th>Role</th><th>Source</th><th></th></tr></thead><tbody id="list-body"></tbody></table>' +
+            '<table class="tr-list" id="list-tbl" style="display:none"><thead><tr><th>Name</th><th>Role</th><th>Cohort</th><th>Source</th><th></th></tr></thead><tbody id="list-body"></tbody></table>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -187,11 +220,79 @@
       app.querySelectorAll(".tr-tabpanel").forEach(p => { p.hidden = p.getAttribute("data-panel") !== which; });
     }));
     document.getElementById("f-go").addEventListener("click", addLogin);
+    document.getElementById("c-go").addEventListener("click", addCohort);
     document.getElementById("ov-refresh").addEventListener("click", loadOverview);
+    document.getElementById("ov-cohort").addEventListener("change", renderOverview);
     document.getElementById("rep-view").addEventListener("click", () => viewReport(document.getElementById("rep-name").value));
     document.getElementById("rep-gen").addEventListener("click", () => genReport(document.getElementById("rep-name").value));
-    loadList();
-    loadOverview();
+    // Cohorts load first so the add-login + filter selects are populated before use.
+    loadCohorts().then(() => { loadList(); loadOverview(); });
+  }
+
+  // ---- cohorts ----
+  async function loadCohorts() {
+    try {
+      const r = await fetch(RUN + "/trainer/cohorts", { headers: authHeaders() });
+      const data = await r.json();
+      COHORTS = (r.ok && data && data.ok && Array.isArray(data.cohorts)) ? data.cohorts : [];
+    } catch (e) { COHORTS = []; }
+    // Populate the add-login cohort select (default: none / UAT).
+    const fc = document.getElementById("f-cohort");
+    if (fc) fc.innerHTML = cohortOptions(fc.value || "", { none: true });
+    // Populate the overview filter (default: All), preserving the current choice.
+    const oc = document.getElementById("ov-cohort");
+    if (oc) { const cur = oc.value || "__all"; oc.innerHTML = cohortOptions(cur, { all: true, uat: true }); }
+    renderCohortList();
+  }
+
+  function renderCohortList() {
+    const el = document.getElementById("c-list");
+    if (!el) return;
+    if (!COHORTS.length) { el.innerHTML = "No cohorts yet — add one above."; return; }
+    el.innerHTML = COHORTS.map(c =>
+      '<span class="tr-pill role" style="margin:0 8px 8px 0;font-size:13px;padding:5px 10px;display:inline-flex;align-items:center;gap:8px">' +
+      esc(c.label || c.slug) +
+      '<button class="tr-revoke" data-slug="' + esc(c.slug) + '" style="padding:1px 7px;font-size:12px" title="Remove cohort">✕</button></span>'
+    ).join("");
+    el.querySelectorAll(".tr-revoke[data-slug]").forEach(b =>
+      b.addEventListener("click", () => deleteCohort(b.getAttribute("data-slug"))));
+  }
+
+  async function addCohort() {
+    const go = document.getElementById("c-go");
+    const err = document.getElementById("c-err");
+    const inp = document.getElementById("c-num");
+    const cohort = inp.value.trim();
+    err.textContent = "";
+    if (!cohort) { err.textContent = "Enter a cohort number."; return; }
+    go.disabled = true;
+    try {
+      const r = await fetch(RUN + "/trainer/cohort/add", { method: "POST", headers: authHeaders(), body: JSON.stringify({ cohort }) });
+      const data = await r.json();
+      if (r.ok && data && data.ok) { inp.value = ""; await loadCohorts(); loadList(); loadOverview(); }
+      else if (r.status === 403) err.textContent = "Trainer session required.";
+      else err.textContent = "Could not add cohort (" + (data && data.error ? data.error : r.status) + ").";
+    } catch (e) { err.textContent = "Network error — is the backend reachable?"; }
+    go.disabled = false;
+  }
+
+  async function deleteCohort(slug) {
+    if (!confirm('Remove cohort "' + slug + '"? Learners tagged with it become UAT until reassigned.')) return;
+    try {
+      const r = await fetch(RUN + "/trainer/cohort/delete", { method: "POST", headers: authHeaders(), body: JSON.stringify({ cohort: slug }) });
+      const data = await r.json();
+      if (r.ok && data && data.ok) { await loadCohorts(); loadList(); loadOverview(); }
+      else alert("Could not remove cohort (" + (data && data.error ? data.error : r.status) + ").");
+    } catch (e) { alert("Network error — is the backend reachable?"); }
+  }
+
+  async function setLoginCohort(name, cohort) {
+    try {
+      const r = await fetch(RUN + "/auth/set-cohort", { method: "POST", headers: authHeaders(), body: JSON.stringify({ name, cohort }) });
+      const data = await r.json();
+      if (!(r.ok && data && data.ok)) { alert("Could not set cohort (" + (data && data.error ? data.error : r.status) + ")."); loadList(); return; }
+      loadOverview(); // reflect the new bucket in the reports table
+    } catch (e) { alert("Network error — is the backend reachable?"); }
   }
 
   function fmtNum(v) { return v == null ? '<span class="ov-na">—</span>' : esc(String(v)); }
@@ -199,40 +300,59 @@
   async function loadOverview() {
     const msg = document.getElementById("ov-msg");
     const tbl = document.getElementById("ov-tbl");
-    const body = document.getElementById("ov-body");
-    const sel = document.getElementById("rep-name");
     msg.style.display = ""; msg.textContent = "Loading…"; tbl.style.display = "none";
     try {
       const r = await fetch(RUN + "/trainer/overview", { headers: authHeaders() });
       const data = await r.json();
       if (!(r.ok && data && data.ok)) { msg.textContent = r.status === 403 ? "Trainer session required." : "Could not load overview."; return; }
-      const learners = data.learners || [];
-      if (!learners.length) { msg.textContent = "No learners yet."; return; }
-      body.innerHTML = learners.map(l => {
-        const mastery = l.sdMastered
-          ? '<span class="tr-pill mastered">mastered</span>'
-          : (l.sdBest != null ? '<span class="tr-pill notmastered">not yet</span>' : '<span class="ov-na">—</span>');
-        const weak = (l.weakConcepts && l.weakConcepts.length)
-          ? '<span class="ov-weak">' + l.weakConcepts.slice(0, 4).map(esc).join(" · ") + '</span>'
-          : '<span class="ov-na">none open</span>';
-        const days = l.daysCompleted == null ? '<span class="ov-na" title="Login code not recoverable for this account">n/a</span>' : esc(String(l.daysCompleted));
-        return '<tr><td class="who">' + esc(l.name) + '</td>' +
-          '<td><span class="tr-pill role">' + esc(l.role) + '</span></td>' +
-          '<td class="num">' + days + '</td>' +
-          '<td class="num">' + fmtNum(l.interviewBest) + '</td>' +
-          '<td class="num">' + fmtNum(l.sdBest) + '</td>' +
-          '<td>' + mastery + '</td>' +
-          '<td>' + weak + '</td></tr>';
-      }).join("");
-      msg.style.display = "none"; tbl.style.display = "table";
-      // Populate the report picker (learners only — practice/trainer can be reported too, keep all).
-      const cur = sel.value;
-      sel.innerHTML = '<option value="">Select a learner…</option>' +
-        learners.map(l => '<option value="' + esc(l.name) + '">' + esc(l.name) + ' (' + esc(l.role) + ')</option>').join("");
-      if (cur) sel.value = cur;
+      OV_LEARNERS = data.learners || [];
+      renderOverview();
     } catch (e) {
       msg.textContent = "Network error — is the backend reachable?";
     }
+  }
+
+  // Cohort pill for the overview table — UAT gets a distinct (warning) style.
+  function cohortPill(c) {
+    if (c === "UAT") return '<span class="tr-pill notmastered">UAT</span>';
+    return '<span class="tr-pill role">' + esc(c) + '</span>';
+  }
+
+  // Renders OV_LEARNERS through the current cohort filter + refreshes the report picker.
+  function renderOverview() {
+    const msg = document.getElementById("ov-msg");
+    const tbl = document.getElementById("ov-tbl");
+    const body = document.getElementById("ov-body");
+    const sel = document.getElementById("rep-name");
+    const count = document.getElementById("ov-count");
+    const filter = (document.getElementById("ov-cohort") || {}).value || "__all";
+    const rows = OV_LEARNERS.filter(l => filter === "__all" || l.cohort === filter);
+    if (!OV_LEARNERS.length) { msg.style.display = ""; msg.textContent = "No learners yet."; tbl.style.display = "none"; count.textContent = ""; return; }
+    if (!rows.length) { msg.style.display = ""; msg.textContent = "No learners in this cohort."; tbl.style.display = "none"; count.textContent = ""; return; }
+    body.innerHTML = rows.map(l => {
+      const mastery = l.sdMastered
+        ? '<span class="tr-pill mastered">mastered</span>'
+        : (l.sdBest != null ? '<span class="tr-pill notmastered">not yet</span>' : '<span class="ov-na">—</span>');
+      const weak = (l.weakConcepts && l.weakConcepts.length)
+        ? '<span class="ov-weak">' + l.weakConcepts.slice(0, 4).map(esc).join(" · ") + '</span>'
+        : '<span class="ov-na">none open</span>';
+      const days = l.daysCompleted == null ? '<span class="ov-na" title="Login code not recoverable for this account">n/a</span>' : esc(String(l.daysCompleted));
+      return '<tr><td class="who">' + esc(l.name) + '</td>' +
+        '<td>' + cohortPill(l.cohort) + '</td>' +
+        '<td><span class="tr-pill role">' + esc(l.role) + '</span></td>' +
+        '<td class="num">' + days + '</td>' +
+        '<td class="num">' + fmtNum(l.interviewBest) + '</td>' +
+        '<td class="num">' + fmtNum(l.sdBest) + '</td>' +
+        '<td>' + mastery + '</td>' +
+        '<td>' + weak + '</td></tr>';
+    }).join("");
+    msg.style.display = "none"; tbl.style.display = "table";
+    count.textContent = rows.length + " of " + OV_LEARNERS.length + " shown";
+    // Report picker follows the same filter (learners in the shown cohort only).
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Select a learner…</option>' +
+      rows.map(l => '<option value="' + esc(l.name) + '">' + esc(l.name) + ' (' + esc(l.cohort) + ')</option>').join("");
+    if (cur && rows.some(l => l.name === cur)) sel.value = cur;
   }
 
   function renderReport(rep) {
@@ -241,7 +361,7 @@
     const when = rep.generatedAt ? new Date(rep.generatedAt).toLocaleString() : "";
     const list = (arr) => (arr && arr.length) ? '<ul>' + arr.map(x => '<li>' + esc(x) + '</li>').join("") + '</ul>' : '<p class="rep-empty">None.</p>';
     bodyEl.innerHTML =
-      '<p class="rep-meta">' + esc(rep.name || "") + (rep.week ? ' · ' + esc(rep.week) : '') + (when ? ' · generated ' + esc(when) : '') + '</p>' +
+      '<p class="rep-meta">' + esc(rep.name || "") + (rep.cohort ? ' · ' + esc(rep.cohort) : '') + (rep.week ? ' · ' + esc(rep.week) : '') + (when ? ' · generated ' + esc(when) : '') + '</p>' +
       '<div class="rep-sec"><h3>Summary</h3><p>' + esc(rep.summary || "—") + '</p></div>' +
       '<div class="rep-sec"><h3>Progress</h3><p>' + esc(rep.progress || "—") + '</p></div>' +
       '<div class="rep-sec"><h3>Weak points</h3>' + list(rep.weakPoints) + '</div>' +
@@ -283,11 +403,12 @@
     const result = document.getElementById("f-result");
     const name = document.getElementById("f-name").value.trim();
     const role = document.getElementById("f-role").value;
+    const cohort = document.getElementById("f-cohort").value;
     err.textContent = ""; result.style.display = "none";
     if (!name) { err.textContent = "Enter a name."; return; }
     go.disabled = true;
     try {
-      const r = await fetch(RUN + "/auth/add", { method: "POST", headers: authHeaders(), body: JSON.stringify({ name, role }) });
+      const r = await fetch(RUN + "/auth/add", { method: "POST", headers: authHeaders(), body: JSON.stringify({ name, role, cohort }) });
       const data = await r.json();
       if (r.ok && data && data.ok) {
         document.getElementById("r-name").textContent = data.name;
@@ -325,8 +446,13 @@
         const revoke = builtin
           ? '<button class="tr-revoke" disabled title="Built-in — cannot be revoked here">built-in</button>'
           : '<button class="tr-revoke" data-name="' + esc(l.name) + '">Revoke</button>';
+        const cohortCell = builtin
+          ? '<span class="ov-na">—</span>'
+          : '<select class="tr-cohort" data-name="' + esc(l.name) + '" style="font:inherit;font-size:13px;padding:4px 6px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)">' +
+            cohortOptions(knownCohort(l.cohort), { none: true }) + '</select>';
         return '<tr><td class="who">' + esc(l.name) + '</td>' +
           '<td><span class="tr-pill role">' + esc(l.role) + '</span></td>' +
+          '<td>' + cohortCell + '</td>' +
           '<td><span class="tr-pill ' + (builtin ? "builtin" : "role") + '">' + esc(l.source) + '</span></td>' +
           '<td style="text-align:right">' + reset + revoke + '</td></tr>';
       }).join("");
@@ -335,6 +461,8 @@
         b.addEventListener("click", () => revoke(b.getAttribute("data-name"))));
       body.querySelectorAll(".tr-reset[data-name]").forEach(b =>
         b.addEventListener("click", () => resetCode(b.getAttribute("data-name"))));
+      body.querySelectorAll(".tr-cohort[data-name]").forEach(s =>
+        s.addEventListener("change", () => setLoginCohort(s.getAttribute("data-name"), s.value)));
     } catch (e) {
       msg.textContent = "Network error — is the backend reachable?";
     }
