@@ -564,6 +564,22 @@ body.is-trainer .trainer-only { display:block; }
   .hero-left, .hero-right { justify-self:center; }
   .friday-rituals, .legend { align-items:center; }
 }
+/* Wide screens: lift the legend + Resources out of the hero into the side
+   gutters as FIXED rails that stay visible while scrolling. The calendar caps
+   at 1560px, so we only engage once each gutter can hold a 150px rail (~1880px
+   viewport). Below that they stay inline in the hero (rules above). With the
+   rails position:fixed, the hero's empty 1fr side tracks keep the title centered. */
+@media (min-width:1880px) {
+  .hero-left, .hero-right {
+    position:fixed; top:104px; width:150px; z-index:30; box-sizing:border-box;
+    padding:14px 16px; border:1px solid var(--line); border-radius:12px;
+    background:var(--surface); box-shadow:0 4px 18px var(--shadow);
+  }
+  .hero-left  { left:  calc((100vw - 1560px) / 4 - 75px); }
+  .hero-right { right: calc((100vw - 1560px) / 4 - 75px); }
+  .friday-rituals, .legend { align-items:stretch; }
+  .fr-btn { width:100%; text-align:center; white-space:normal; }
+}
 .legend .lg i { width:12px; height:12px; border-radius:3px; display:inline-block; }
 .cal { display:grid; grid-template-columns:188px repeat(5,1fr); gap:10px; }
 .cal-dayhead { text-align:center; font-weight:700; color:var(--ink-soft); font-size:13px; text-transform:uppercase; letter-spacing:.08em; padding:4px 0 8px; }
