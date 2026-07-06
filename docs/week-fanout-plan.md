@@ -38,6 +38,9 @@ Week W
 ├─ 2. AUTHOR readings (parallel, 1 agent/day)
 │     → weeks/wWW/dN.html — cites ONLY from step-1 research
 │     → <meta fde-day> + <meta fde-concepts> + Sources block (template v2)
+│     → ONE read-only code popup at the key concept (codeviewer.js + code-cta +
+│       .code-modal); any LLM call = AWS Bedrock (Converse, bearer token, Haiku
+│       4.5 default; Sonnet 4.6 only for size-up) — never OpenAI in the code
 │
 ├─ 3. AUTHOR questions (parallel, per concept-group)
 │     → backend BANK, tagged concepts:[...] + day:"wWWdN"
@@ -261,7 +264,7 @@ attempted — it does not stall the rest of the fan-out.
 | Gate | Critic | Checks | On fail |
 |------|--------|--------|---------|
 | **A** | Research | every claim has a 200 source URL; library version stamped + current (no deprecated APIs, e.g. LangChain pre-1.0); web-research actually run; pull saved to second-brain | repass: re-research the gap |
-| **B** | Reading metrics + citation | 2,400-3,000 words → 16-20 min @150 wpm; 7-9 steps; 6-Q check + deep-dive present; deferred-interactive `.ix-future` placeholder(s) present (NOT functional ix-run); every claim traces to the research artifact (no invented facts); Sources block present, all URLs 200 | repass: trim/expand, re-cite |
+| **B** | Reading metrics + citation | 2,400-3,000 words → 16-20 min @150 wpm; 7-9 steps; 6-Q check + deep-dive present; deferred-interactive `.ix-future` placeholder(s) present (NOT functional ix-run); **exactly one Bedrock-only code popup** (code-cta + `.code-modal` + codeviewer.js loaded; no `openai`/`gpt` in the snippet; code HTML-escaped); every claim traces to the research artifact (no invented facts); Sources block present, all URLs 200 | repass: trim/expand, re-cite |
 | **C** | Design / live-diagram | pull W1 readings as the reference design set; scrolly steps each bound to a *meaningful* diagram step (diagram drives the concept, not decoration); consistent components/classes; comparable interaction density; **browser screenshot-diff vs a W1 exemplar** for layout/hierarchy/AI-slop | repass: rework diagram/layout to match exemplar |
 | **D** | Question | **≥4 questions per technical concept-id** (feeds WEAK_TARGET=4 without repeats); tagged to correct concept-ids; grounded in research (no deprecated-API questions); difficulty spread; new concept-ids added to backend CONCEPTS taxonomy | repass: author more / re-tag |
 | **E** | Integration | `?day=wWWdN` scopes right; cards uniform; progress backfills; all new links 200 | fix wiring (serial) |

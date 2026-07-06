@@ -10,6 +10,12 @@
 //     and assigns each concept its canonical home day (fixes concept-bleed).
 //  2. NO critic truncation — the question critic sees the full question set.
 //  3. Filename convention is explicit: weeks/wWW/wWWdN.html.
+//  4. CODE POPUP per day (from the W1/W2 rollout) — each reading ships one
+//     read-only VS Code-style "production code" popup at its key concept, and
+//     any LLM call in it uses AWS Bedrock (Converse + bearer token, Haiku 4.5
+//     default), never OpenAI. Authored + critic-gated below; codeviewer.js is
+//     already a shared asset. Snippet code stays out of prose (prose keeps its
+//     legitimate multi-vendor comparisons).
 //
 // The workflow does research -> reconcile -> readings + questions (gated, 3-pass
 // repass). It returns structured data; the ORCHESTRATOR does the serial wiring
@@ -46,7 +52,7 @@ const RECONCILE_SCHEMA = { type:'object', additionalProperties:false, properties
   remap:{ type:'array', items:{ type:'object', additionalProperties:false, properties:{ from:{type:'string'}, to:{type:'string'} }, required:['from','to'] } },
   summary:{ type:'string' } }, required:['canonical','remap','summary'] }
 const READING_SCHEMA = { type:'object', additionalProperties:false, properties:{
-  summary:{type:'string'}, wordCount:{type:'number'}, steps:{type:'number'},
+  summary:{type:'string'}, wordCount:{type:'number'}, steps:{type:'number'}, codeFile:{type:'string'},
   futureInteractives:{ type:'array', items:{ type:'object', additionalProperties:false, properties:{ concept:{type:'string'}, description:{type:'string'} }, required:['concept','description'] } } },
   required:['summary','wordCount','steps','futureInteractives'] }
 const QUESTIONS_SCHEMA = { type:'object', additionalProperties:false, properties:{
@@ -137,13 +143,14 @@ const readings = await parallel(DAYS.map((day) => () => gated(
     `- 6-question comprehension modal (model on d1's quiz) + optional deep-dive modal.\n`+
     `- "Sources & deeper dive" <section class="reading-sources"> before </article> with the brief's verified URLs.\n`+
     `- DO NOT build functional ix-run blocks. Where a live try-it belongs, insert <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: ... Needs backend standup.</p></div> and report each in futureInteractives.\n`+
+    `- ADD ONE read-only "production code" popup for THIS day's single key concept (the one that's hard to grasp without seeing the implementation). (a) load <script src="../../assets/js/codeviewer.js"></script> right after interactive.js; (b) place a <button class="code-cta" type="button" data-modal="code-${day.slug}"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· FILE.py</span></button> at that concept; (c) before the roster.js <script>, add <div id="code-${day.slug}" class="modal-overlay" hidden><div class="modal-card code-modal"><button class="modal-close" type="button" aria-label="Close">✕</button><h2>…</h2><p class="cv-cap">…</p><div class="cv" data-file="FILE.py" data-lang="python"><pre class="cv-raw">HTML-ESCAPED CODE</pre></div><p class="cv-foot">…</p></div></div>. Copy the exact markup from w01/d1.html's code-w1d1 popup. Code is SHORT (~15-30 lines), production-shaped, and MUST HTML-escape < > &. For ANY LLM call use AWS Bedrock ONLY (boto3 bedrock-runtime + Converse API; auth via AWS_BEARER_TOKEN_BEDROCK bearer token, no IAM; default Claude Haiku 4.5 "us.anthropic.claude-haiku-4-5-20251001-v1:0", size up to Sonnet 4.6 "us.anthropic.claude-sonnet-4-6-v1" ONLY where sizing up is the lesson) — NEVER OpenAI in code. Verify any Bedrock API shape you're unsure of via WebFetch before writing. Report the filename in codeFile.\n`+
     `- window.FDE_NEXT to the next day (w${WW}d${day.d+1}.html, or ../../index.html for the last day).\n`+
     `- Relative paths ../../assets/... and the template's <script src> includes (incl. progress.js + day-summary.js — the end-of-reading STT summary that completes the day).\n`+
     `Return summary, wordCount (prose), steps, futureInteractives.`+fix(cr),
     { schema: READING_SCHEMA, label:`${day.slug}:reading`, phase:'Readings' }),
   (_r) => agent(
     `READING + DESIGN CRITIC for ${WDIR}/${day.slug}.html. Read it, ${RDIR}/${day.slug}.md (allowed sources), ${TEMPLATE} (design gold standard). Load WebFetch (ToolSearch: select:WebFetch).\n`+
-    `PASS only if: prose 2,400-3,000 words; 7-9 .step sections; window.DIAGRAM present, captions.length == steps, nodes carry coords; 6-Q modal + deep-dive present; .reading-sources present with >=3 URLs spot-checked live; every claim traces to the brief (flag invented facts); >=1 .ix-future placeholder and ZERO functional ix-run; meta fde-concepts uses only the canonical ids ${JSON.stringify(canonByDay[day.slug] || [])}; structure matches the template and diagram steps map 1:1 to sections.\n`+
+    `PASS only if: prose 2,400-3,000 words; 7-9 .step sections; window.DIAGRAM present, captions.length == steps, nodes carry coords; 6-Q modal + deep-dive present; .reading-sources present with >=3 URLs spot-checked live; every claim traces to the brief (flag invented facts); >=1 .ix-future placeholder and ZERO functional ix-run; EXACTLY ONE code popup (a code-cta button + a #code-${day.slug} .code-modal with a .cv/.cv-raw snippet + codeviewer.js loaded) whose code is Bedrock-only (boto3/Converse, NO openai/gpt/text-embedding in the snippet) with the code HTML-escaped; meta fde-concepts uses only the canonical ids ${JSON.stringify(canonByDay[day.slug] || [])}; structure matches the template and diagram steps map 1:1 to sections.\n`+
     `Else pass=false with specific critiques. One-sentence summary.`,
     { schema: VERDICT, label:`${day.slug}:reading-crit`, phase:'Readings' })
 )))
@@ -156,7 +163,7 @@ const readingsRepaired = await parallel(DAYS.map((day, i) => () => {
   if (r && r.status) return Promise.resolve(r)
   return agent(
     `POST-HOC SALVAGE CRITIC for ${WDIR}/${day.slug}.html. The authoring agent hard-failed its structured return, but it may have already written a valid file. If the file does NOT exist, return pass=false with critique "file missing — regenerate". Otherwise apply the FULL reading critic: read it, ${RDIR}/${day.slug}.md (allowed sources), ${TEMPLATE} (design gold standard). Load WebFetch (ToolSearch: select:WebFetch).\n`+
-    `PASS only if: prose 2,400-3,000 words; 7-9 .step sections; window.DIAGRAM present, captions.length == steps, nodes carry coords; 6-Q modal + deep-dive present; .reading-sources present with >=3 URLs spot-checked live; every claim traces to the brief; >=1 .ix-future placeholder and ZERO functional ix-run; meta fde-concepts uses only ${JSON.stringify(canonByDay[day.slug] || [])}; structure matches the template.\n`+
+    `PASS only if: prose 2,400-3,000 words; 7-9 .step sections; window.DIAGRAM present, captions.length == steps, nodes carry coords; 6-Q modal + deep-dive present; .reading-sources present with >=3 URLs spot-checked live; every claim traces to the brief; >=1 .ix-future placeholder and ZERO functional ix-run; EXACTLY ONE Bedrock-only code popup (code-cta + #code-${day.slug} .code-modal + codeviewer.js loaded; no openai/gpt in the snippet); meta fde-concepts uses only ${JSON.stringify(canonByDay[day.slug] || [])}; structure matches the template.\n`+
     `Else pass=false with specific critiques. One-sentence summary.`,
     { schema: VERDICT, label:`${day.slug}:salvage-crit`, phase:'Readings' }
   ).then(v => ({ task:`${day.slug} reading`, status: (v && v.pass) ? 'done' : 'flagged', passes: 0,
