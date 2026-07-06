@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w02d4">
 <meta name="fde-concepts" content="faithfulness,context-precision,context-recall,noise-sensitivity,seven-failure-points,llm-as-judge-eval">
 <title>W2·D4 — RAG Evaluation: Proving the Pipeline Works | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260702-3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260706">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -110,9 +110,7 @@
         <code>IDBasedContextPrecision</code> is a non-LLM variant that matches retrieved chunk IDs against known-relevant
         IDs — cheap and deterministic when you have that labeling. The reference-free variant is the one you reach for
         first on a client engagement where nobody has built a labeled test set yet.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: paste a question and a ranked
-        list of retrieved chunks, mark which are relevant, and watch precision@k recompute live as you drag chunks up and
-        down the ranking — making the position penalty visible. Needs backend standup.</p></div>
+        <div class="ix-precision"></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -136,10 +134,7 @@
         at a threshold of 1, meaning anything less than perfectly grounded fails. That threshold is a policy decision you
         make with the client: a customer-facing medical or financial bot might demand strict mode, while an internal
         brainstorming assistant can tolerate a softer bar.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: submit a response plus its
-        retrieved context and watch the faithfulness pipeline run — claims extracted one by one, each marked
-        supported / unsupported against the context, and the final supported-over-total fraction computed in front of you.
-        Needs backend standup.</p></div>
+        <div class="ix-faith" data-scenario="refund" data-live="1"></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -235,10 +230,8 @@
         next month and demonstrate — with numbers, split by stage — that you made it better. That artifact, more than any
         single clever retrieval trick, is what a client is actually buying when they hire someone to make their RAG
         system trustworthy.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: run a full Ragas-style eval over
-        a small labeled question set and see all four metrics populate a stage-split scorecard — retrieval (recall,
-        precision) in one column, generation (faithfulness, noise sensitivity) in another — so the retrieval-vs-generation
-        diagnosis pops out at a glance. Needs backend standup.</p></div>
+        <div class="ix-ragas"></div>
+        <button class="code-cta" type="button" data-modal="code-d4"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· evaluate.py</span></button>
 
         <div class="callout mindset">
           <div class="k">FDE mindset</div>
@@ -478,7 +471,42 @@ window.QUIZ = {
   ]
 };
 </script>
-<script src="../../assets/js/roster.js"></script>
+<!-- production-code modal (d4) -->
+<div id="code-d4" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: the Ragas eval harness</h2>
+    <p class="cv-cap">Offline evaluation with Ragas, judged by Claude on Bedrock with Titan embeddings -- scoring retrieval and generation separately so the diagnosis is unambiguous.</p>
+    <div class="cv" data-file="evaluate.py" data-lang="python"><pre class="cv-raw"># Offline eval with Ragas -- judged by Claude on Bedrock + Titan embeddings.
+from ragas import evaluate
+from ragas.metrics import (
+    context_recall, context_precision,   # retrieval quality
+    faithfulness, answer_relevancy,       # generation quality
+)
+from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from langchain_aws import ChatBedrockConverse, BedrockEmbeddings
+from datasets import Dataset
+
+# bedrock_api_key sets AWS_BEARER_TOKEN_BEDROCK under the hood -- no IAM creds.
+# The judge is where we deliberately SIZE UP to Sonnet 4.6: eval quality is worth
+# the extra cost. Everywhere else in the pipeline we default to Haiku 4.5.
+judge = LangchainLLMWrapper(ChatBedrockConverse(
+    model=&quot;us.anthropic.claude-sonnet-4-6-v1&quot;, region_name=&quot;us-east-1&quot;))
+emb = LangchainEmbeddingsWrapper(BedrockEmbeddings(
+    model_id=&quot;amazon.titan-embed-text-v2:0&quot;, region_name=&quot;us-east-1&quot;))
+
+def run_eval(samples: list[dict]):
+    # each sample: {question, answer, contexts, ground_truth}
+    ds = Dataset.from_list(samples)
+    return evaluate(ds, llm=judge, embeddings=emb, metrics=[
+        context_recall, context_precision, faithfulness, answer_relevancy,
+    ])</pre></div>
+    <p class="cv-foot">Read it stage-split: low recall means fix the retriever; high recall but low faithfulness means fix generation (re-ranking + grounding), not retrieval.</p>
+  </div>
+</div>
+
+<script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
 <script src="../../assets/js/auth.js"></script>
@@ -487,5 +515,7 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive-rag.js?v=20260706"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706"></script>
 </body>
 </html>

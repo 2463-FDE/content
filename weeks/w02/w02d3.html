@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w02d3">
 <meta name="fde-concepts" content="dense-vs-sparse-retrieval,hybrid-retrieval,reciprocal-rank-fusion,cross-encoder-reranking,late-interaction-colbert">
 <title>W2·D3 — Retrieval Strategies: Dense, Sparse, Hybrid &amp; Re-ranking | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260702-3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260706">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -135,9 +135,7 @@
         single product can even pick alpha per query type: conversational questions ride high alpha, while a query that's
         obviously a part number drops alpha toward sparse. That's not a parlor trick; it's reading the query and spending
         your retrieval budget where the signal is.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a query box with a live
-        alpha slider — type a question, drag alpha from 0 to 1, and watch the dense-leaning vs sparse-leaning result
-        lists reorder in real time. Needs backend standup.</p></div>
+        <div class="ix-retrieve" data-scenario="apikey" data-mode="alpha"></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -204,9 +202,8 @@
         single most important number to take to a skeptical client: the re-ranking stage is not polish, it's often a
         double-digit accuracy jump for a bounded, cheap-per-query cost. When someone asks "is re-ranking worth the extra
         hop?", that range is your answer.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a side-by-side viewer showing
-        the fused top-20 candidate list before re-ranking and after a cross-encoder pass, with each document's rank change
-        animated — so you can see precision being restored. Needs backend standup.</p></div>
+        <div class="ix-retrieve" data-scenario="apikey" data-mode="rerank"></div>
+        <button class="code-cta" type="button" data-modal="code-d3"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· retrieve.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -466,7 +463,38 @@ window.QUIZ = {
   ]
 };
 </script>
-<script src="../../assets/js/roster.js"></script>
+<!-- production-code modal (d3) -->
+<div id="code-d3" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: hybrid retrieval + re-ranking</h2>
+    <p class="cv-cap">Query time: fuse a dense Titan vector search with a sparse (BM25) lexical search, then Bedrock&#x27;s Rerank API re-ranks the shortlist to restore precision.</p>
+    <div class="cv" data-file="retrieve.py" data-lang="python"><pre class="cv-raw"># Query time: hybrid (dense Titan + BM25) fusion, then Bedrock re-rank.
+import boto3
+
+agent = boto3.client(&quot;bedrock-agent-runtime&quot;, region_name=&quot;us-east-1&quot;)
+RERANK_ARN = &quot;arn:aws:bedrock:us-east-1::foundation-model/amazon.rerank-v1:0&quot;
+
+def hybrid_search(q: str, k: int = 20, alpha: float = 0.5) -&gt; list[dict]:
+    qv = embed(q)                    # Titan V2, same model as ingest
+    dense = dense_search(qv, k)      # pgvector: ORDER BY embedding &lt;=&gt; qv
+    sparse = bm25_search(q, k)       # lexical: exact terms, part numbers
+    fused = fuse(dense, sparse, alpha)[:k]   # alpha dials dense-vs-sparse
+
+    out = agent.rerank(
+        queries=[{&quot;type&quot;: &quot;TEXT&quot;, &quot;textQuery&quot;: {&quot;text&quot;: q}}],
+        sources=[{&quot;type&quot;: &quot;INLINE&quot;, &quot;inlineDocumentSource&quot;:
+                  {&quot;type&quot;: &quot;TEXT&quot;, &quot;textDocument&quot;: {&quot;text&quot;: d[&quot;body&quot;]}}} for d in fused],
+        rerankingConfiguration={&quot;type&quot;: &quot;BEDROCK_RERANKING_MODEL&quot;,
+            &quot;bedrockRerankingConfiguration&quot;: {&quot;numberOfResults&quot;: 5,
+                &quot;modelConfiguration&quot;: {&quot;modelArn&quot;: RERANK_ARN}}},
+    )
+    return [fused[r[&quot;index&quot;]] | {&quot;score&quot;: r[&quot;relevanceScore&quot;]} for r in out[&quot;results&quot;]]</pre></div>
+    <p class="cv-foot">The reranker reads (query, doc) together, so it&#x27;s precise but costly -- that&#x27;s why it only runs on the fused top-k shortlist, never the whole corpus. amazon.rerank-v1:0 is called through the bedrock-agent-runtime Rerank API.</p>
+  </div>
+</div>
+
+<script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
 <script src="../../assets/js/auth.js"></script>
@@ -475,5 +503,7 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive-rag.js?v=20260706"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706"></script>
 </body>
 </html>

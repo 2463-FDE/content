@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w02d1">
 <meta name="fde-concepts" content="retrieval-vs-finetuning,document-ingestion-pipeline,chunking-strategy,chunk-overlap,embedding-dimensions,hybrid-retrieval">
 <title>W2·D1 — RAG Fundamentals &amp; Chunking | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260702-3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260706">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -137,9 +137,8 @@
         similarity, so a chunk boundary falls where the <em>topic</em> shifts rather than where a character count runs
         out. It produces the most context-aware chunks, at the cost of more computation up front. Reach for it when
         document structure is messy and topic coherence matters more than speed.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: paste a document, pick a
-        strategy (fixed / recursive / semantic) and a chunk size, and watch the splitter draw the boundaries live so you
-        can <em>see</em> where each strategy cuts. Needs backend standup.</p></div>
+        <div class="ix-chunk"></div>
+        <button class="code-cta" type="button" data-modal="code-d1"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· ingest.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -161,9 +160,7 @@
         it depends on your documents and the questions people ask of them. The FDE habit is to treat chunk size and
         overlap as <strong>tunable knobs you evaluate</strong>, not constants you copy from a tutorial. Later this week
         you'll measure retrieval quality directly and tune these against numbers instead of vibes.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: slide chunk size and overlap
-        and watch a sample query's retrieved chunks change — including the boundary case where a fact split across two
-        chunks is recovered only once overlap is high enough. Needs backend standup.</p></div>
+        <div class="ix-chunk" data-strategy="0" data-overlap="1"></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
@@ -174,21 +171,18 @@
         "understand" that a query about "resetting my password" should match a chunk about "credential recovery" even
         with no shared words. Retrieval is, mechanically, finding the stored vectors nearest the query's vector.</p>
         <p>The vector's length — its <strong>number of dimensions</strong> — is a real engineering lever, not a detail.
-        OpenAI's current models illustrate the tradeoff: <code>text-embedding-3-large</code> defaults to
-        <strong>3072 dimensions</strong> and <code>text-embedding-3-small</code> to <strong>1536</strong>. More
-        dimensions can capture more nuance but cost more to store and compare across millions of chunks. Both models
-        support a <code>dimensions</code> parameter — based on a technique called Matryoshka representation — that lets
-        you <strong>shorten the vectors</strong> while keeping most of their quality. Strikingly, a 256-dimension
-        <code>text-embedding-3-large</code> vector still <strong>beats a full 1536-dimension ada-002</strong> on the MTEB
-        benchmark. The lesson: bigger isn't automatically better, and you can often trade a little accuracy for a large
-        reduction in storage and latency — a classic FDE cost-vs-quality dial.</p>
+        The model we use in this program, <strong>Amazon Titan Text Embeddings V2</strong> (on AWS Bedrock), lets you
+        choose the output size: <strong>1024</strong> (default), <strong>512</strong>, or <strong>256</strong> dimensions.
+        More dimensions can capture more nuance but cost more to store and compare across millions of chunks. Titan V2 was
+        trained with <strong>Matryoshka representation</strong>, so you can <strong>shorten the vector</strong> while keeping
+        most of its quality — <strong>512 dims retain about 99%</strong> of the 1024-dim accuracy, and <strong>256 dims
+        about 97%</strong>. The lesson: bigger isn't automatically better, and you can often trade a little accuracy for a
+        large reduction in storage and latency — a classic FDE cost-vs-quality dial.</p>
         <p>One rule that trips up every beginner: the <strong>same embedding model must be used for both ingestion and
         queries.</strong> Vectors from two different models live in different, incompatible spaces — nearest-neighbour
         math between them is meaningless. Pick a model, embed your whole corpus with it, and embed every query with it
         too. Changing embedding models later means re-embedding the entire corpus.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: type two phrases, embed both,
-        and see their cosine similarity — plus a side-by-side of how truncating the vector's dimensions changes the
-        score. Needs backend standup.</p></div>
+        <div class="ix-sim" data-mode="dims"></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="6">
@@ -211,8 +205,8 @@
         <code>add</code>, <code>update</code>, <code>upsert</code>, and <code>query</code> — you hand it text, it handles
         the vectors. If you don't specify a function it uses a sensible default: <code>DefaultEmbeddingFunction</code>,
         which is Sentence Transformers <strong>all-MiniLM-L6-v2</strong>, a <strong>384-dimension</strong> model that
-        runs locally with no API key. That makes it excellent for prototyping — but note the dimension gap with the
-        OpenAI models above, and remember the don't-mix-embedders rule when you graduate from prototype to production.</p>
+        runs locally with no API key. That makes it excellent for prototyping — but note the dimension gap with Titan V2
+        above, and remember the don't-mix-embedders rule when you graduate from prototype to production.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -237,9 +231,7 @@
         between last week's "the model can only use what's in the window" and the rest of the program, where you'll build,
         measure, and harden these pipelines at a client. Tomorrow we go deeper into making retrieval actually accurate;
         today you've built the map of the whole pipeline.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: run one query three ways —
-        dense-only, BM25-only, and hybrid — against a sample corpus and compare the top-k chunks each returns, so the
-        complementary strengths show up directly. Needs backend standup.</p></div>
+        <div class="ix-retrieve" data-scenario="apikey" data-mode="hybrid" data-live="1"></div>
       </section>
 
       <section class="reading-sources" aria-label="Sources and deeper dive">
@@ -250,7 +242,7 @@
           <li><a href="https://www.anthropic.com/news/contextual-retrieval" target="_blank" rel="noopener">Anthropic — Contextual Retrieval</a> — the &lt;200K-token skip-RAG rule, and the 35% / 49% / 67% failure-reduction numbers.</li>
           <li><a href="https://docs.langchain.com/oss/python/integrations/splitters/recursive_text_splitter" target="_blank" rel="noopener">LangChain — Splitting recursively</a> — <code>RecursiveCharacterTextSplitter</code> separator order and chunk-overlap guidance.</li>
           <li><a href="https://www.ibm.com/think/tutorials/chunking-strategies-for-rag-with-langchain-watsonx-ai" target="_blank" rel="noopener">IBM — Chunking strategies for RAG</a> — fixed-size vs recursive vs semantic, and how to choose.</li>
-          <li><a href="https://developers.openai.com/api/docs/guides/embeddings" target="_blank" rel="noopener">OpenAI — Vector embeddings guide</a> — 3-large/3-small dimensions and the Matryoshka <code>dimensions</code> parameter.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html" target="_blank" rel="noopener">AWS — Titan Text Embeddings V2</a> — the 1024/512/256 dimension options, the <code>normalize</code> flag, and the Matryoshka accuracy retention.</li>
           <li><a href="https://github.com/pgvector/pgvector" target="_blank" rel="noopener">pgvector — README (v0.8.3)</a> — HNSW vs IVFFlat, the index DDL, and the distance operators.</li>
           <li><a href="https://docs.trychroma.com/docs/embeddings/embedding-functions" target="_blank" rel="noopener">Chroma — Embedding Functions</a> — collection-attached embedders and the all-MiniLM-L6-v2 default.</li>
         </ul>
@@ -311,16 +303,16 @@
         <li>Chunk size: 500 tokens</li>
         <li>Overlap at 15%: ~75 tokens repeated per boundary</li>
         <li>A 50,000-token doc → ~118 chunks (vs ~100 with no overlap)</li>
-        <li>Each chunk embedded once with <code>text-embedding-3-small</code> (1536-dim)</li>
+        <li>Each chunk embedded once with <code>amazon.titan-embed-text-v2:0</code> (1024-dim)</li>
       </ul>
       <p style="margin:8px 0 0">The overlap costs ~18% more chunks (and storage) but rescues every fact that straddles a
       boundary. Drop overlap to 0 and you save storage but reopen the seam problem; push it to 40% and you're paying to
       store the same sentences three times. 10–20% is the sweet spot for a reason.</p>
     </div>
-    <p style="margin-top:14px"><strong>Dimensions are a dial.</strong> A 256-dim <code>text-embedding-3-large</code>
-    vector still beats full 1536-dim ada-002 on MTEB. Shortening vectors (Matryoshka) cuts storage and comparison cost
-    across millions of chunks — often a better lever than chasing the highest-dimension model. Just never mix embedding
-    models between ingestion and query: different models, incompatible spaces.</p>
+    <p style="margin-top:14px"><strong>Dimensions are a dial.</strong> Titan V2 at 512 dims keeps ~99% of its 1024-dim
+    accuracy, and 256 dims ~97%. Shortening vectors (Matryoshka) cuts storage and comparison cost across millions of
+    chunks — often a better lever than chasing the highest-dimension model. Just never mix embedding models between
+    ingestion and query: different models, incompatible spaces.</p>
     <p style="margin-top:14px"><strong>Contextual Retrieval, in one line.</strong> Prepend chunk-specific context before
     embedding + BM25 indexing → top-20 failures down 35%; with BM25 hybrid → 49%; add reranking → 67%. Cheap technique,
     large effect.</p>
@@ -388,8 +380,8 @@ window.DIAGRAM = {
     { id:"overlap", step:4, x:150, y:350, w:200, h:44, label:"chunk_overlap 10–20%",
       detail:"Overlap repeats the tail of each chunk at the head of the next, so a fact split across a boundary survives intact in at least one chunk. ~50–100 tokens on a 500-token chunk." },
 
-    { id:"dims",  step:5, x:18,  y:408, w:222, h:64, label:"embeddings → vectors\n3-large 3072d · 3-small 1536d\nMatryoshka: shrink dims",
-      detail:"More dims = more nuance but more storage/compute. The dimensions parameter shortens vectors; a 256-dim 3-large still beats full 1536-dim ada-002 on MTEB. Use the SAME model for ingest + query." },
+    { id:"dims",  step:5, x:18,  y:408, w:222, h:64, label:"embeddings → vectors\nTitan V2: 1024 · 512 · 256d\nMatryoshka: shrink dims",
+      detail:"More dims = more nuance but more storage/compute. Titan V2's dimensions parameter shortens vectors: 512d keeps ~99% of 1024d accuracy, 256d ~97%. Use the SAME model for ingest + query." },
     { id:"store", step:6, x:262, y:408, w:220, h:64, label:"vector store\npgvector HNSW / IVFFlat\nChroma (MiniLM 384d)",
       detail:"pgvector adds vectors to Postgres: HNSW or IVFFlat index, operators <-> L2, <=> cosine, <#> inner product; no index = exact (slow) search. Chroma attaches an embedding function to a collection and applies it on add/query automatically." },
 
@@ -419,7 +411,7 @@ window.DIAGRAM = {
     "Ingestion is a pipeline: <b>load → split → embed → index</b>. Everything downstream inherits the <b>split</b>.",
     "Three chunking families: fixed-size, <b>recursive</b> (the prose default), and semantic. <span style='opacity:.7'>(tap recursive)</span>",
     "<b>chunk_overlap</b> (10–20%) repeats the seam so a fact split across a boundary isn't lost. <span style='opacity:.7'>(tap)</span>",
-    "Each chunk becomes a <b>vector</b>. Dimensions are a dial — 3072d / 1536d, shrinkable via Matryoshka. <span style='opacity:.7'>(tap)</span>",
+    "Each chunk becomes a <b>vector</b>. Dimensions are a dial — Titan V2: 1024 / 512 / 256d, shrinkable via Matryoshka. <span style='opacity:.7'>(tap)</span>",
     "Vectors live in a <b>vector store</b> — pgvector (HNSW/IVFFlat) or Chroma — indexed for fast nearest-neighbour search. <span style='opacity:.7'>(tap)</span>",
     "At query time, <b>hybrid retrieval</b> fuses dense + BM25; contextual prefixes + reranking push failures down further. <span style='opacity:.7'>(tap)</span>"
   ]
@@ -453,13 +445,13 @@ window.QUIZ = {
     { type: "mcq",
       stem: "Which statements about embeddings and vector stores are correct? (select all that apply)",
       options: [
-        "text-embedding-3-large defaults to 3072 dimensions; 3-small to 1536",
+        "Titan Text Embeddings V2 lets you pick 1024, 512, or 256 output dimensions",
         "You can shorten vectors with a dimensions parameter and keep most quality",
         "You should use different embedding models for ingestion and for queries",
         "Without an index, pgvector falls back to exact (slower) search",
         "Chroma's default embedding function is all-MiniLM-L6-v2 at 384 dimensions" ],
       answer: [0, 1, 3, 4],
-      explain: "3-large is 3072d and 3-small 1536d; the Matryoshka dimensions parameter shortens vectors with little quality loss; pgvector does exact search with no index; Chroma defaults to all-MiniLM-L6-v2 (384d). The false one: you must use the SAME embedding model for ingest and query — different models live in incompatible spaces." },
+      explain: "Titan V2 emits 1024/512/256 dims; the Matryoshka dimensions parameter shortens vectors with little quality loss (512d ≈ 99%, 256d ≈ 97% of 1024d); pgvector does exact search with no index; Chroma defaults to all-MiniLM-L6-v2 (384d). The false one: you must use the SAME embedding model for ingest and query — different models live in incompatible spaces." },
     { type: "match",
       stem: "Match each technique to what it does.",
       pairs: [
@@ -475,7 +467,43 @@ window.QUIZ = {
   ]
 };
 </script>
-<script src="../../assets/js/roster.js"></script>
+<!-- production-code modal (d1) -->
+<div id="code-d1" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: the ingestion pipeline</h2>
+    <p class="cv-cap">How W2&#x27;s load -&gt; chunk -&gt; Titan embed -&gt; index pipeline lands in real code. Build-time, run once per corpus, separate from query time. Auth is a Bedrock API key (bearer token) -- no IAM roles.</p>
+    <div class="cv" data-file="ingest.py" data-lang="python"><pre class="cv-raw"># Build-time ingestion: load -&gt; chunk -&gt; Titan embed -&gt; index into pgvector.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import json, boto3
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,      # upper bound per chunk (chars/tokens)
+    chunk_overlap=75,    # 15% -- rescues facts split across a boundary
+)
+
+def embed(text: str, dims: int = 1024) -&gt; list[float]:
+    # Titan Text Embeddings V2 takes ONE inputText per call (no batch array).
+    resp = bedrock.invoke_model(
+        modelId=&quot;amazon.titan-embed-text-v2:0&quot;,
+        body=json.dumps({&quot;inputText&quot;: text, &quot;dimensions&quot;: dims, &quot;normalize&quot;: True}),
+    )
+    return json.loads(resp[&quot;body&quot;].read())[&quot;embedding&quot;]
+
+def ingest(doc_id: str, text: str, conn) -&gt; None:
+    for i, chunk in enumerate(splitter.split_text(text)):
+        conn.execute(
+            &quot;INSERT INTO chunks (doc_id, seq, body, embedding) VALUES (%s,%s,%s,%s)&quot;,
+            (doc_id, i, chunk, embed(chunk)),   # SAME model at ingest AND query
+        )
+    conn.commit()</pre></div>
+    <p class="cv-foot">The vector column is sized to Titan V2&#x27;s default (1024) and the HNSW index is created up front, so upserts just stream in -- HNSW needs no training step, unlike IVFFlat.</p>
+  </div>
+</div>
+
+<script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
 <script src="../../assets/js/auth.js"></script>
@@ -484,5 +512,7 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive-rag.js?v=20260706"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706"></script>
 </body>
 </html>

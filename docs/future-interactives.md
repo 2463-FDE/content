@@ -4,6 +4,15 @@ Each reading drops `.ix-future` placeholders where a live interactive belongs.
 These need backend standup (an endpoint that runs the example against the tech being taught)
 before they become functional `ix-run` blocks. Tracked here per the fan-out plan.
 
+> **W2 status (2026-07-06): DONE, client-side.** All 15 W2 `.ix-future` stubs below were
+> replaced with functional client-side widgets (`assets/js/interactive-rag.js`, baked/tuned
+> demo data — no backend). Each W2 day also gained a read-only VS Code-style "production code"
+> popup (`assets/js/codeviewer.js`) at its key concept. Making retrieval *actually live*
+> (real embeddings + a real vector store) is scoped in `content/docs/rag-vector-store-decision.md`
+> — recommendation: Cloudflare Workers AI bge-small embeddings + Chroma Cloud free tier,
+> orchestrated by the Worker. The sims stay as the offline fallback. The W2 entries below are
+> retained as the design record.
+
 ## w02d1
 - **chunking-strategy** — Step 3: paste a document, pick fixed/recursive/semantic and a chunk size, watch the splitter draw chunk boundaries live.
 - **chunk-overlap** — Step 4: slide chunk size and overlap and watch retrieved chunks change, including a fact split across two chunks recovered only once overlap is high enough.

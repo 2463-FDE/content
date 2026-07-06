@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w02d5">
 <meta name="fde-concepts" content="faithfulness,context-precision,recursive-character-splitting,bi-encoder-retrieval,cross-encoder-rerank,hnsw-index">
 <title>W2·D5 — RAG Eval Harness + End-to-End RAG | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260702-3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260706">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -88,9 +88,7 @@
         base defaults, <code>chunk_size</code> is 4000 and <code>chunk_overlap</code> is 200 characters, though those are
         starting points you'll tune per corpus, not laws. The FDE instinct: when retrieval quality is mysteriously bad,
         the chunker is one of the first places to look, because every downstream stage inherits the boundaries it drew.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: paste a document, drag
-        <code>chunk_size</code> and <code>chunk_overlap</code> sliders, and watch the recursive splitter redraw chunk
-        boundaries live — see exactly where a paragraph survives intact versus gets severed. Needs backend standup.</p></div>
+        <div class="ix-chunk"></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -138,9 +136,8 @@
         never makes it into that shortlist of ~100, no amount of clever reranking or generation downstream can recover it
         — the answer is doomed before it starts. Low recall at this stage is the most expensive failure in RAG, because
         it's invisible: the model will still produce a confident, fluent answer, just an ungrounded one.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: type a query, watch the
-        bi-encoder pull back its top ~100 candidates with similarity scores, and inspect whether the gold chunk made the
-        shortlist. Needs backend standup.</p></div>
+        <div class="ix-retrieve" data-scenario="apikey" data-mode="biencoder" data-live="1"></div>
+        <button class="code-cta" type="button" data-modal="code-d5"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· rag.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -200,9 +197,7 @@
         to what was asked. Together with <strong>Context Precision</strong> and <strong>Context Recall</strong> on the
         retrieval side, these four give you a scorecard that pinpoints <em>where</em> the pipeline failed, not just
         <em>that</em> it did — low recall points at Stage 3, low precision at Stage 4, low faithfulness at Stage 5.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: run Ragas Faithfulness on a
-        generated answer, see the answer decomposed into atomic claims, and watch each claim get marked supported or
-        unsupported against the retrieved context. Needs backend standup.</p></div>
+        <div class="ix-faith" data-scenario="refund" data-live="1"></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -448,7 +443,36 @@ window.QUIZ = {
   ]
 };
 </script>
-<script src="../../assets/js/roster.js"></script>
+<!-- production-code modal (d5) -->
+<div id="code-d5" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: the assembled RAG pipeline</h2>
+    <p class="cv-cap">End to end at query time: Titan embeds the question, the bi-encoder casts a wide net, re-rank to a precise few, then Claude on Bedrock answers -- grounded in the retrieved context.</p>
+    <div class="cv" data-file="rag.py" data-lang="python"><pre class="cv-raw"># Query pipeline: Titan embed -&gt; shortlist -&gt; re-rank -&gt; Claude (Bedrock) answer.
+# Auth: AWS_BEARER_TOKEN_BEDROCK (Bedrock API key) -- no IAM credentials.
+import boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+SYSTEM = &quot;Answer only from the context. If it isn&#x27;t there, say you don&#x27;t know.&quot;
+
+def answer(question: str) -&gt; dict:
+    qv = embed(question)                 # Titan V2, same model as ingest
+    hits = dense_search(qv, k=20)        # bi-encoder wide net (cheap recall)
+    hits = rerank(question, hits)[:5]    # precision pass (Bedrock Rerank)
+    context = &quot;\n\n&quot;.join(f&quot;[{h[&#x27;doc_id&#x27;]}] {h[&#x27;body&#x27;]}&quot; for h in hits)
+    resp = bedrock.converse(
+        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,  # Haiku for cost; size up to Sonnet 4.6 only if answers need it
+        system=[{&quot;text&quot;: SYSTEM}],
+        messages=[{&quot;role&quot;: &quot;user&quot;,
+                   &quot;content&quot;: [{&quot;text&quot;: f&quot;{context}\n\nQ: {question}&quot;}]}],
+    )
+    return {&quot;answer&quot;: resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;], &quot;sources&quot;: hits}</pre></div>
+    <p class="cv-foot">The system prompt forces grounding: answer only from the retrieved context. That single instruction is what makes faithfulness measurable instead of hoped-for. Model IDs are region/version-specific (use an inference-profile ID where required).</p>
+  </div>
+</div>
+
+<script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
 <script src="../../assets/js/auth.js"></script>
@@ -457,5 +481,7 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive-rag.js?v=20260706"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706"></script>
 </body>
 </html>

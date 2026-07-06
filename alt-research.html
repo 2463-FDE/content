@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Alternative Research | 2463-FDE</title>
-<link rel="stylesheet" href="assets/css/style.css?v=20260702-3">
+<link rel="stylesheet" href="assets/css/style.css?v=20260706">
 <script src="assets/js/theme.js"></script>
 <style>
   /* ---- alt-research page-specific layout (reuses site design language) ---- */
@@ -169,7 +169,7 @@ window.ALT = {
       { name: "Pinecone (fully-managed serverless)",
         body: "The Builder tier is a flat $20/mo that maps onto a trainee's budget and removes all ops work. For the healthcare client the decisive feature is the HIPAA add-on (Standard, $50+/mo) and full HIPAA + private networking + audit logs on Enterprise — but you only reach those on paid tiers, and you accept the <b>deepest lock-in</b> of the group (proprietary API, vectors in Pinecone's cloud). DX and maturity are excellent." },
       { name: "Qdrant (open-source + managed, residency-flexible)",
-        body: "OSS core with a free managed tier for prototyping. Its differentiator is deployment flexibility: <b>Hybrid Cloud</b> runs managed Qdrant on the client's own infrastructure so data never leaves their network, and Private Cloud supports air-gapped installs — the strongest fit when both clients are regulated but want managed convenience without shipping PHI/PII to a vendor. Low lock-in (OSS escape hatch). On embeddings (the other half of the decision): Voyage's <code>voyage-4</code> family (incl. <code>voyage-finance-2</code>), OpenAI <code>text-embedding-3</code>, or self-hosted <code>BGE-M3</code>/<code>nomic-embed</code> for zero egress. On retrieval: hybrid BM25 + dense + rerank is current best practice — Anthropic's Contextual Retrieval reports up to -67% failed retrievals." },
+        body: "OSS core with a free managed tier for prototyping. Its differentiator is deployment flexibility: <b>Hybrid Cloud</b> runs managed Qdrant on the client's own infrastructure so data never leaves their network, and Private Cloud supports air-gapped installs — the strongest fit when both clients are regulated but want managed convenience without shipping PHI/PII to a vendor. Low lock-in (OSS escape hatch). On embeddings (the other half of the decision): <b>Amazon Titan Text Embeddings V2</b> on Bedrock (what this program uses — 1024/512/256 Matryoshka dims, in-account for a Bedrock-bound client), Voyage's <code>voyage-4</code> family (incl. <code>voyage-finance-2</code>), OpenAI <code>text-embedding-3</code>, or self-hosted <code>BGE-M3</code>/<code>nomic-embed</code> for zero egress. On retrieval: hybrid BM25 + dense + rerank is current best practice — Anthropic's Contextual Retrieval reports up to -67% failed retrievals." },
       { name: "Chroma (developer-first, embedded or cloud)",
         body: "The lightest on-ramp: an OSS embedded store you can <code>pip install</code> and run in-process with zero infrastructure — ideal for a $20-Pro trainee's first RAG prototype, and free. Chroma Cloud adds a usage-based managed tier ($0 starter + pay-as-you-go) when you outgrow local. The tradeoff is maturity at scale: Chroma is optimized for fast iteration and small/medium corpora rather than the high-QPS, hardened-ops profile a production healthcare/finance deployment needs, so it's often the right place to <i>start</i> and the wrong place to <i>finish</i> — a good FDE names the migration path (to pgvector/Qdrant) up front. Low lock-in (OSS, standard API)." }
     ],
@@ -489,7 +489,7 @@ window.ALT = {
   window.addEventListener("load", render);
 })();
 </script>
-<script src="assets/js/roster.js"></script>
+<script src="assets/js/roster.js?v=20260706"></script>
 <script src="assets/js/auth.js"></script>
 </body>
 </html>

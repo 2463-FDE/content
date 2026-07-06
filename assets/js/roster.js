@@ -9,3 +9,5 @@
    degrade gracefully and progress just stays in localStorage. */
 window.FDE_RUN_URL = "https://fde-backend.jestercharles.workers.dev";
 window.FDE_TRACK_URL = "https://fde-backend.jestercharles.workers.dev/track";
+// Live RAG try-its (W2). Empty = retrieval widgets stay on their client-side sims.
+window.FDE_RAG_URL = "https://fde-backend.jestercharles.workers.dev";

@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w02d2">
 <meta name="fde-concepts" content="embedding-dimensionality,matryoshka-representation-learning,similarity-metrics,ann-index-hnsw,ann-index-ivfflat,sparse-vs-dense-retrieval">
 <title>W2·D2 — Embeddings &amp; Vector Stores | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260702-3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260706">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -54,9 +54,9 @@
         <p>Start with the single operation everything else hangs on. An <strong>embedding model</strong> takes a piece of
         text — a chunk, a query, a product description — and returns a <strong>fixed-length vector</strong>: an ordered
         list of floating-point numbers. "Fixed-length" is the part to hold onto. Whether you feed it one word or a full
-        page, the output is the <em>same</em> length every time. OpenAI's current models make this concrete:
-        <code>text-embedding-3-small</code> returns 1,536 numbers by default and <code>text-embedding-3-large</code>
-        returns 3,072, and both accept up to <strong>8,192 input tokens</strong> per call.</p>
+        page, the output is the <em>same</em> length every time. Our model, <strong>Amazon Titan Text Embeddings V2</strong>
+        (on AWS Bedrock), makes this concrete: it returns <strong>1,024</strong> numbers by default — and you can request
+        <strong>512</strong> or <strong>256</strong> instead — accepting up to <strong>8,192 input tokens</strong> per call.</p>
         <p>Why bother? Because once text is a vector, "related meaning" becomes "near in space," and "find me relevant
         documents" becomes a math problem a computer can do fast: rank every stored vector by its distance to the query
         vector and return the closest. That is the entire mechanical basis of semantic search and of the retrieval half
@@ -74,48 +74,51 @@
         <div class="tag">Choice 1 · dimensionality</div>
         <h2>Dimensionality is a budget decision, not a "bigger is better" one</h2>
         <p>The length of the vector — its <strong>dimensionality</strong> — is your first lever. More dimensions can
-        capture more nuance, and that is exactly why <code>text-embedding-3-large</code> (3,072 dims) tends to score
-        higher than <code>text-embedding-3-small</code> (1,536 dims) on retrieval benchmarks. But every extra dimension
+        capture more nuance, and that is exactly why Titan V2 at its full <strong>1,024</strong> dims scores higher than
+        the same model truncated to <strong>512</strong> or <strong>256</strong>. But every extra dimension
         is a real cost paid on every vector you ever store: more <strong>storage</strong> on disk, more
         <strong>memory</strong> in the index, and more <strong>compute</strong> per comparison. Double the dimensions and
         you roughly double the bytes for your entire corpus.</p>
-        <p>That cost is the part beginners ignore and FDEs lead with. A million chunks at 3,072 float dimensions is a very
-        different memory and infrastructure footprint than a million at 1,536 — and the search itself is slower because
-        every distance calculation has twice as many numbers to chew through. When a client asks why their vector
+        <p>That cost is the part beginners ignore and FDEs lead with. A million chunks at 1,024 float dimensions is a very
+        different memory and infrastructure footprint than a million at 256 — and the search itself is slower because
+        every distance calculation has four times as many numbers to chew through. When a client asks why their vector
         database is expensive or their latency is creeping up, "we picked the biggest embedding by reflex" is one of the
         most common answers.</p>
         <p>There is also a hard ceiling lurking here that catches teams off guard: <strong>dimensionality can exceed an
         index's limits.</strong> As you'll see in a moment, the most popular Postgres extension for vectors won't build
-        its fast index on a raw 3,072-dim vector at all. So dimensionality is never just "how good is it?" — it's "how
-        good, at what storage and memory cost, and will my chosen index even accept it?" Decide it against a budget, the
-        same way you sized the context window on Day 1.</p>
+        its fast index on vectors beyond <strong>2,000 dimensions</strong> — so a raw 3,072-dim model is out unless you
+        shorten it. Titan V2 at 1,024 sits comfortably under that cap, which is one reason its default is convenient. So
+        dimensionality is never just "how good is it?" — it's "how good, at what storage and memory cost, and will my
+        chosen index even accept it?" Decide it against a budget, the same way you sized the context window on Day 1.</p>
         <div class="ix-predict"
-          data-q="A team picks text-embedding-3-large (3,072 dims) for a 5-million-chunk corpus 'to be safe,' then complains storage and query latency are both high. What's the first thing you'd investigate — before changing the model?"
-          data-a="Whether the <b>dimensionality</b> is buying quality they actually need. 3,072 dims means double the storage and double the per-comparison compute of 1,536 across <i>all 5M</i> vectors. The FDE move is to measure retrieval quality at a <b>shorter</b> dimension (the model is built for exactly this — next step) and keep the smaller vector if quality holds. Bigger embeddings are a cost decision, not a free upgrade.">
+          data-q="A team picks Titan V2 at its full 1,024 dims for a 5-million-chunk corpus 'to be safe,' then complains storage and query latency are both high. What's the first thing you'd investigate — before changing the model?"
+          data-a="Whether the <b>dimensionality</b> is buying quality they actually need. 1,024 dims means four times the storage and per-comparison compute of 256 across <i>all 5M</i> vectors. The FDE move is to measure retrieval quality at a <b>shorter</b> dimension — Titan V2 is built for exactly this (512 keeps ~99%, 256 ~97% of the accuracy) — and keep the smaller vector if quality holds. Bigger embeddings are a cost decision, not a free upgrade.">
         </div>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
         <div class="tag">Choice 1b · Matryoshka</div>
         <h2>You can shorten the vector — by design</h2>
-        <p>Here is the lever that makes dimensionality genuinely tunable instead of fixed at the model's default. Both
-        <code>text-embedding-3-*</code> models were <strong>trained so you can shorten the vector</strong> — OpenAI
-        describes it as removing some numbers from the end of the sequence — <em>without</em> the embedding losing its
-        concept-representing properties. You request a shorter vector by passing the <code>dimensions</code> API
-        parameter, and you get back a smaller, faster, cheaper-to-store embedding that still works.</p>
+        <p>Here is the lever that makes dimensionality genuinely tunable instead of fixed at the model's default. Titan
+        Text Embeddings V2 was <strong>trained so you can shorten the vector</strong> — keeping the leading numbers and
+        dropping the rest — <em>without</em> the embedding losing its concept-representing properties. You request a
+        shorter vector by passing the <code>dimensions</code> parameter (1024, 512, or 256), and you get back a smaller,
+        faster, cheaper-to-store embedding that still works.</p>
         <p>This isn't a hack; it comes from a training technique called <strong>Matryoshka Representation Learning</strong>
         (MRL) — named for the nesting dolls. A single embedding is trained to encode information
         <strong>coarse-to-fine</strong>, so the first <em>k</em> dimensions are usable as a standalone embedding all by
         themselves. The leading numbers carry the broad strokes; later numbers add detail. MRL can yield embeddings up to
-        roughly <strong>14× smaller</strong> with much faster retrieval and <em>no extra inference cost</em> — you run the
-        same model, you just keep fewer of the outputs.</p>
-        <p>The headline result is the one to quote to a skeptical client: a <code>text-embedding-3-large</code> vector cut
-        to just <strong>256 dimensions</strong> still outperforms an unshortened older <code>text-embedding-ada-002</code>
-        vector at its full 1,536 dimensions on the MTEB benchmark. Twelve times smaller, still better. One operational
-        warning, though: if you truncate the vector <strong>yourself</strong> after generation rather than via the
-        <code>dimensions</code> parameter, you must <strong>re-normalize</strong> the resulting vector — otherwise the
-        distance math (next step) silently goes wrong. Shorten on purpose, and re-normalize if you do it by hand.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a dimensionality slider — embed a fixed query and corpus once, then drag from 3,072 down to 256 dims (Matryoshka truncation) and watch retrieval recall and storage size move together, so you can find the smallest vector that still hits your quality bar. Needs backend standup.</p></div>
+        much smaller with faster retrieval and <em>no extra inference cost</em> — you run the same model, you just keep
+        fewer of the outputs.</p>
+        <p>The headline result is the one to quote to a skeptical client: Titan V2 cut to <strong>512 dimensions</strong>
+        retains about <strong>99%</strong> of its full 1,024-dim accuracy, and <strong>256 dimensions</strong> about
+        <strong>97%</strong> — a 4× smaller vector for a couple of points of quality. One operational warning, though: Titan
+        returns a normalized vector by default (<code>normalize: true</code>), but if you truncate the vector
+        <strong>yourself</strong> after generation rather than via the <code>dimensions</code> parameter, you must
+        <strong>re-normalize</strong> the result — otherwise the distance math (next step) silently goes wrong. Shorten on
+        purpose, and re-normalize if you do it by hand.</p>
+        <div class="ix-dims"></div>
+        <button class="code-cta" type="button" data-modal="code-d2"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· embed.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -204,22 +207,22 @@
         16,000). But the <strong>index</strong> limit — the max dimensions HNSW or IVFFlat can actually index — is much
         lower: a <code>vector</code> column can only be indexed up to <strong>2,000</strong> dimensions, while
         <code>halfvec</code> (half-precision) can be indexed up to <strong>4,000</strong>.</p>
-        <p>Put those together with a raw <code>text-embedding-3-large</code> embedding at 3,072 dimensions and you get the
-        classic trap: the vector is <strong>fully storable</strong> in a <code>vector</code> column (3,072 is well under
+        <p>Put those together with a <strong>high-dimensional model</strong> — say a raw 3,072-dim embedding — and you get
+        the classic trap: the vector is <strong>fully storable</strong> in a <code>vector</code> column (3,072 is well under
         16,000), so inserts succeed and everything looks fine — but it <strong>exceeds the 2,000-dim index limit</strong>,
         so the moment you try to build an ANN index the whole thing fails. The fixes are exactly the levers from earlier
         in the reading: store it as <strong>halfvec</strong> (indexable to 4,000), or <strong>shorten</strong> the
-        embedding below 2,000 dims using the Matryoshka <code>dimensions</code> parameter. This is why dimensionality and
-        store choice aren't separate decisions — they constrain each other, and the time to notice is before you load five
-        million rows.</p>
+        embedding below 2,000 dims. This is one more reason <strong>Titan V2's 1,024-dim default is convenient</strong> —
+        it indexes directly, no workaround. But the principle stands: dimensionality and store choice aren't separate
+        decisions — they constrain each other, and the time to notice is before you load five million rows.</p>
         <div class="ix-spot"
           data-snippet="-- Postgres + pgvector
-CREATE TABLE chunks (id bigserial, embedding vector(3072));  -- text-embedding-3-large
+CREATE TABLE chunks (id bigserial, embedding vector(3072));  -- a 3,072-dim model
 -- inserts: all succeed, looks fine ✓
 CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
 -- ERROR: column cannot be indexed"
           data-q="The table accepted every row, but the index build fails. Why — and what are the two fixes, in today's terms?"
-          data-a="A 3,072-dim vector is <b>storable</b> in a <code>vector</code> column (limit 16,000) but <b>exceeds the 2,000-dim index limit</b> for <code>vector</code>, so HNSW won't build. Two grounded fixes: (1) use <b><code>halfvec</code></b>, which is indexable up to 4,000 dims, or (2) <b>shorten the embedding below 2,000 dims</b> via the Matryoshka <code>dimensions</code> parameter (re-normalize if you truncate by hand). Same vector, two ways out — both decided <i>before</i> you load the corpus.">
+          data-a="A 3,072-dim vector is <b>storable</b> in a <code>vector</code> column (limit 16,000) but <b>exceeds the 2,000-dim index limit</b> for <code>vector</code>, so HNSW won't build. Two grounded fixes: (1) use <b><code>halfvec</code></b>, which is indexable up to 4,000 dims, or (2) <b>shorten the embedding below 2,000 dims</b> (re-normalize if you truncate by hand). Titan V2 at 1,024 dims sidesteps this entirely — but the decision is made <i>before</i> you load the corpus.">
         </div>
       </section>
 
@@ -245,8 +248,8 @@ CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
         hybrid search. Tomorrow we go deep on retrieval strategies — dense vs sparse, fusion, and re-ranking — but those
         all run on the geometry you wired up today. Get the four choices right here and retrieval has a fighting chance;
         get them wrong and there's nothing downstream that fixes it.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a dense-vs-sparse playground — run the same query (e.g. an exact part number) through a dense embedding and a sparse lexical vector side by side, then blend them into a hybrid score, so you can feel where semantic recall helps and where exact-term matching wins. Needs backend standup.</p></div>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a metric explorer — embed two phrases and score them under cosine, dot product, and L2 at once, watching how the ranking and the score range ([-1, 1] for cosine) change with the metric. Needs backend standup.</p></div>
+        <div class="ix-retrieve" data-scenario="partno" data-mode="hybrid"></div>
+        <div class="ix-sim" data-mode="metric"></div>
 
         <div class="callout mindset">
           <div class="k">FDE mindset</div>
@@ -260,7 +263,7 @@ CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
       <section class="reading-sources" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
-          <li><a href="https://developers.openai.com/api/docs/guides/embeddings" target="_blank" rel="noopener">OpenAI — Vector embeddings</a> — model dimensions (1536 / 3072), the 8,192-token input limit, the <code>dimensions</code> shortening parameter, the re-normalization rule, and the 256-dim-beats-ada-002 result.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html" target="_blank" rel="noopener">AWS — Titan Text Embeddings V2</a> — the 1024/512/256 dimension options, the 8,192-token input limit, the <code>normalize</code> flag, and the Matryoshka accuracy retention (512 ≈ 99%, 256 ≈ 97%).</li>
           <li><a href="https://arxiv.org/abs/2205.13147" target="_blank" rel="noopener">Matryoshka Representation Learning (arXiv:2205.13147)</a> — why a single embedding can be truncated coarse-to-fine and stay useful.</li>
           <li><a href="https://github.com/pgvector/pgvector" target="_blank" rel="noopener">pgvector (GitHub)</a> — the six distance operators, HNSW/IVFFlat indexes and defaults, and the storage-vs-index dimensionality limits.</li>
           <li><a href="https://docs.pinecone.io/guides/index-data/create-an-index" target="_blank" rel="noopener">Pinecone — Create an index</a> — metrics chosen at index creation, dense vs sparse indexes, and the dotproduct rule for sparse.</li>
@@ -318,15 +321,15 @@ CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
         <li><code>bit</code> — store up to <b>64,000</b> dims</li>
         <li><code>sparsevec</code> — store up to <b>16,000</b> non-zero elements · HNSW index up to <b>1,000</b> non-zeros</li>
       </ul>
-      <p style="margin:8px 0 0">A raw <code>text-embedding-3-large</code> vector is <b>3,072</b> dims. It stores fine in a
+      <p style="margin:8px 0 0">A high-dimensional (<b>3,072</b>-dim) vector stores fine in a
       <code>vector</code> column (under 16,000) but <b>exceeds the 2,000-dim index limit</b> — so the ANN index won't
-      build. Fix it by storing as <b><code>halfvec</code></b> (indexable to 4,000) or <b>shortening</b> below 2,000 dims
-      via the Matryoshka <code>dimensions</code> parameter.</p>
+      build. Fix it by storing as <b><code>halfvec</code></b> (indexable to 4,000) or <b>shortening</b> below 2,000 dims.
+      Titan V2 at <b>1,024</b> dims indexes directly — no workaround needed.</p>
     </div>
-    <p style="margin-top:14px"><strong>Why shortening is safe.</strong> <code>text-embedding-3-*</code> models are trained
+    <p style="margin-top:14px"><strong>Why shortening is safe.</strong> Titan Text Embeddings V2 is trained
     with Matryoshka Representation Learning, encoding information coarse-to-fine so the leading <em>k</em> dimensions stand
-    alone. A <code>3-large</code> vector cut to <b>256</b> dims still beats a full <b>1,536</b>-dim
-    <code>ada-002</code> on MTEB — up to ~14× smaller with no extra inference cost. Caveat: truncate via the
+    alone. A Titan V2 vector cut to <b>512</b> dims keeps ~<b>99%</b> of its 1,024-dim accuracy, and <b>256</b> dims
+    ~<b>97%</b> — a 4× smaller vector with no extra inference cost. Caveat: request the size via the
     <code>dimensions</code> parameter, or <b>re-normalize</b> if you cut the vector by hand.</p>
     <p style="margin-top:14px"><strong>HNSW defaults to keep handy.</strong> pgvector: <code>m = 16</code>,
     <code>ef_construction = 64</code>, <code>ef_search = 40</code>. Chroma: <code>ef_construction = 100</code>,
@@ -381,13 +384,13 @@ window.DIAGRAM = {
 
     // the vector + its dimensionality
     { id:"vec",  step:0, x:28, y:112, w:336, h:56, label:"EMBEDDING VECTOR\n[ 0.021, -0.134, 0.087, ... ]",
-      detail:"text-embedding-3-small returns 1,536 dims; 3-large returns 3,072. Both accept up to 8,192 input tokens. Once text is a vector, 'related meaning' becomes 'near in space' and retrieval becomes ranking by distance." },
-    { id:"dims", step:1, x:374, y:112, w:112, h:56, label:"1536 / 3072\ndims",
+      detail:"Titan Text Embeddings V2 returns 1,024 dims by default (or 512 / 256), accepting up to 8,192 input tokens. Once text is a vector, 'related meaning' becomes 'near in space' and retrieval becomes ranking by distance." },
+    { id:"dims", step:1, x:374, y:112, w:112, h:56, label:"1024 / 512 / 256\ndims",
       detail:"Dimensionality is a budget: more dims can capture more nuance but cost more storage, memory, and compute on EVERY vector — and may exceed an index's limits. Decide it against a budget, not by reflex." },
 
     // matryoshka shortening
     { id:"mrl",  step:2, x:28, y:184, w:458, h:46, label:"Matryoshka: cut the tail -> 256 dims (re-normalize if manual)",
-      detail:"text-embedding-3-* are trained coarse-to-fine (MRL), so the first k dims stand alone. Shorten via the dimensions parameter for up to ~14x smaller vectors, no extra inference cost. A 3-large@256 still beats ada-002@1536 on MTEB." },
+      detail:"Titan V2 is trained coarse-to-fine (MRL), so the first k dims stand alone. Request 512 or 256 via the dimensions parameter for a smaller, faster vector, no extra inference cost. 512 dims keep ~99% of 1024d accuracy, 256 ~97%." },
 
     // similarity metric
     { id:"metric", step:3, x:28, y:246, w:458, h:54, label:"SIMILARITY METRIC\ncosine  ·  dot / inner product  ·  L2   (fixed at index creation)",
@@ -420,8 +423,8 @@ window.DIAGRAM = {
   ],
   captions: [
     "One model turns any text into <b>one fixed-length vector</b>. Related meaning becomes 'near in space.' <span style='opacity:.7'>(tap nodes for detail)</span>",
-    "The vector's length — its <b>dimensionality</b> (1536 / 3072) — is a storage, memory, and compute budget, not a free upgrade. <span style='opacity:.7'>(tap)</span>",
-    "<b>Matryoshka</b> lets you cut the tail to a shorter vector and keep the meaning — up to ~14x smaller. Re-normalize if you truncate by hand. <span style='opacity:.7'>(tap)</span>",
+    "The vector's length — its <b>dimensionality</b> (Titan V2: 1024 / 512 / 256) — is a storage, memory, and compute budget, not a free upgrade. <span style='opacity:.7'>(tap)</span>",
+    "<b>Matryoshka</b> lets you cut the tail to a shorter vector and keep the meaning — 512 dims ≈ 99%, 256 ≈ 97% of full accuracy. Re-normalize if you truncate by hand. <span style='opacity:.7'>(tap)</span>",
     "A <b>similarity metric</b> (cosine / dot / L2) decides what 'closest' means — and it's <b>fixed at index creation</b>. <span style='opacity:.7'>(tap)</span>",
     "<b>HNSW</b> gives high recall and fast queries, paid for in slow builds and memory. Tune m / ef_construction / ef_search. <span style='opacity:.7'>(tap)</span>",
     "<b>IVFFlat</b> partitions into lists and probes a subset — lighter and faster to build, but lower recall. <span style='opacity:.7'>(tap)</span>",
@@ -434,7 +437,7 @@ window.QUIZ = {
   title: "Check your understanding",
   questions: [
     { type: "scq",
-      stem: "You stored raw text-embedding-3-large vectors (3,072 dims) in a pgvector vector column. Inserts all succeeded, but CREATE INDEX ... USING hnsw fails. Why?",
+      stem: "You stored raw 3,072-dim embeddings (from a high-dimensional model) in a pgvector vector column. Inserts all succeeded, but CREATE INDEX ... USING hnsw fails. Why?",
       options: [
         "The column is corrupted and must be recreated",
         "3,072 dims is storable (limit 16,000) but exceeds the 2,000-dim index limit for a vector column",
@@ -470,17 +473,45 @@ window.QUIZ = {
       pairs: [
         { l: "pgvector HNSW default m", r: "16" },
         { l: "Chroma default distance space", r: "l2 (squared Euclidean)" },
-        { l: "text-embedding-3-large default dims", r: "3,072" },
+        { l: "Titan Text Embeddings V2 default dims", r: "1,024" },
         { l: "Cosine similarity score range", r: "[-1, 1]" } ],
-      explain: "pgvector HNSW defaults to m=16 (and ef_construction=64, ef_search=40). Chroma defaults to the l2 space. text-embedding-3-large returns 3,072 dims by default (small returns 1,536). Cosine normalizes scores to [-1, 1]." },
+      explain: "pgvector HNSW defaults to m=16 (and ef_construction=64, ef_search=40). Chroma defaults to the l2 space. Titan Text Embeddings V2 returns 1,024 dims by default (or 512 / 256). Cosine normalizes scores to [-1, 1]." },
     { type: "open",
-      stem: "In one or two sentences: why can you shorten a text-embedding-3-* vector with little quality loss, and what's the one operational gotcha you'd warn a teammate about?",
+      stem: "In one or two sentences: why can you shorten a Titan V2 vector with little quality loss, and what's the one operational gotcha you'd warn a teammate about?",
       hint: "Think about how the model was trained (coarse-to-fine) and what happens if you cut the vector yourself.",
-      model: "The models are trained with Matryoshka Representation Learning, encoding information coarse-to-fine so the leading k dimensions stand alone as a usable embedding — that's why a 3-large vector cut to 256 dims still beats ada-002 at 1,536 on MTEB. The gotcha: shorten via the dimensions API parameter, and if you truncate the vector yourself after generation you must re-normalize it or the distance math goes wrong." }
+      model: "Titan Text Embeddings V2 is trained with Matryoshka Representation Learning, encoding information coarse-to-fine so the leading k dimensions stand alone as a usable embedding — that's why 512 dims keep ~99% of the 1,024-dim accuracy and 256 dims ~97%. The gotcha: request the size via the dimensions parameter, and if you truncate the vector yourself after generation you must re-normalize it or the distance math goes wrong." }
   ]
 };
 </script>
-<script src="../../assets/js/roster.js"></script>
+<!-- production-code modal (d2) -->
+<div id="code-d2" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: embeddings and the dimension dial</h2>
+    <p class="cv-cap">Titan Text Embeddings V2 has a built-in Matryoshka dimension dial -- pick 1024, 512, or 256 to trade a little accuracy for storage and latency.</p>
+    <div class="cv" data-file="embed.py" data-lang="python"><pre class="cv-raw"># Embedding with Titan V2&#x27;s built-in dimension dial (Matryoshka).
+# Auth: AWS_BEARER_TOKEN_BEDROCK (Bedrock API key) -- no IAM credentials.
+import json, boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+def embed(text: str, dims: int = 1024) -&gt; list[float]:
+    # Titan V2 emits 1024 (default), 512, or 256 dims. 512 keeps ~99% of 1024&#x27;s
+    # accuracy, 256 ~97% -- shrink the vector at the source to cut storage/latency.
+    resp = bedrock.invoke_model(
+        modelId=&quot;amazon.titan-embed-text-v2:0&quot;,
+        body=json.dumps({&quot;inputText&quot;: text, &quot;dimensions&quot;: dims, &quot;normalize&quot;: True}),
+    )
+    return json.loads(resp[&quot;body&quot;].read())[&quot;embedding&quot;]
+
+# The store&#x27;s vector column MUST match `dims`. Create it once, up front:
+#   CREATE TABLE chunks (id bigserial, body text, embedding vector(1024));
+#   CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);</pre></div>
+    <p class="cv-foot">512 dims keep ~99% of 1024&#x27;s accuracy, 256 ~97%. The store&#x27;s vector column must match `dims` exactly, and you must use the same model at ingest and query -- different models live in incompatible spaces.</p>
+  </div>
+</div>
+
+<script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
 <script src="../../assets/js/auth.js"></script>
@@ -489,5 +520,7 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive-rag.js?v=20260706"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706"></script>
 </body>
 </html>
