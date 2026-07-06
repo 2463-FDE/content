@@ -150,6 +150,7 @@
         clear error, a fallback, a queued retry-for-later — never an unhandled exception. The right answer to a 429 is to
         slow down, not push harder — which makes your client a good <em>citizen</em> of the API and keeps the whole
         system stable under load.</p>
+        <button class="code-cta" type="button" data-modal="code-w1d5"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· transport.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
@@ -487,6 +488,39 @@ window.QUIZ = {
   ]
 };
 </script>
+<!-- production-code modal (w1d5) -->
+<div id="code-w1d5" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: resilient transport</h2>
+    <p class="cv-cap">The retry layer of the client: exponential backoff with full jitter on transient ThrottlingException / timeout / 5xx, a bounded attempt count, and a hard stop on 4xx that would fail identically.</p>
+    <div class="cv" data-file="transport.py" data-lang="python"><pre class="cv-raw"># Resilient transport: retry ONLY transient failures with exponential backoff + jitter.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import random, time, boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+def complete(messages, *, model, max_tries=4, base=1.0, cap=30.0):
+    for attempt in range(max_tries):
+        try:
+            return bedrock.converse(
+                modelId=model,
+                messages=messages,
+                inferenceConfig={&quot;maxTokens&quot;: 512, &quot;temperature&quot;: 0},
+            )
+        except (bedrock.exceptions.ThrottlingException,       # 429 -- slow down
+                bedrock.exceptions.ModelTimeoutException,      # transient
+                bedrock.exceptions.InternalServerException):   # 5xx
+            if attempt == max_tries - 1:
+                raise                                          # exhausted -&gt; caller falls back
+            delay = min(cap, base * 2 ** attempt)              # exponential: 1, 2, 4, 8s
+            time.sleep(random.uniform(0, delay))               # full jitter -- spread the herd
+        except bedrock.exceptions.ValidationException:
+            raise      # 4xx: the request is wrong -- retrying fails identically, so don&#x27;t</pre></div>
+    <p class="cv-foot">Retry only what's transient, cap the attempts, and let an exhausted call raise so the caller's fallback — not a 2 a.m. page — takes over.</p>
+  </div>
+</div>
+
 <script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
@@ -496,5 +530,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 </body>
 </html>

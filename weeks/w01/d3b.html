@@ -204,6 +204,7 @@ resp = model.call(prompt)"
         decided half of these either — which is exactly the value you were brought in to provide. The full end-to-end
         version of this — one real vague ask carried all the way to a schema — is in today's deep dive. Do it; it's the rep
         that matters most this week.</p>
+        <button class="code-cta" type="button" data-modal="code-w1d3b"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· solicitation_spec.py</span></button>
       </section>
 
       <section class="step extra" data-diagram="0" data-step="5">
@@ -499,6 +500,37 @@ window.QUIZ = {
   ]
 };
 </script>
+<!-- production-code modal (w1d3b) -->
+<div id="code-w1d3b" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: the synthesized spec</h2>
+    <p class="cv-cap">The three lenses become three concrete settings on one call — structured (JSON out), deterministic (temperature 0), and grounded (answer only from the document, null when missing).</p>
+    <div class="cv" data-file="solicitation_spec.py" data-lang="python"><pre class="cv-raw"># The vague ask, synthesized into a call: the three lenses become concrete settings.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import json, boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+# GROUNDED: answer only from the document; null for missing -- never invent a due date.
+SYSTEM = (&quot;You are a solicitation-extraction assistant. Extract fields ONLY from the &quot;
+          &quot;document provided. If a field is absent, return null -- never infer or guess. &quot;
+          &quot;Respond with JSON for {solicitation_number, agency, due_date, set_aside} and nothing else.&quot;)
+
+def extract(doc: str) -&gt; dict:
+    resp = bedrock.converse(
+        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+        system=[{&quot;text&quot;: SYSTEM}],
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: f&quot;&lt;document&gt;\n{doc}\n&lt;/document&gt;&quot;}]}],
+        # DETERMINISTIC: temperature 0 so two analysts get the same extraction.
+        inferenceConfig={&quot;maxTokens&quot;: 400, &quot;temperature&quot;: 0},
+    )
+    # STRUCTURED: the reply is JSON your dashboard can ingest -- validate on the way in.
+    return json.loads(resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;])</pre></div>
+    <p class="cv-foot">The synthesis was the hard part; once structured, deterministic, and grounded are decided, the call practically writes itself.</p>
+  </div>
+</div>
+
 <script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
@@ -508,5 +540,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 </body>
 </html>

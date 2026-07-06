@@ -104,6 +104,7 @@ db.save(record)
         intermittent, expensive-to-diagnose data bug into a loud, immediate, trivially-loggable error you can route to a
         retry or a fallback. One schema check buys you that trade on every single call, forever — which is why an FDE adds
         it before anything else and never takes it out.</p>
+        <button class="code-cta" type="button" data-modal="code-w1d4b"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· extract_tool.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -411,6 +412,51 @@ window.QUIZ = {
   ]
 };
 </script>
+<!-- production-code modal (w1d4b) -->
+<div id="code-w1d4b" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: forced structured output</h2>
+    <p class="cv-cap">A tool schema is the output contract: toolChoice forces the model to call it, so the reply is guaranteed-shaped JSON — a real number in total, not the string '1,250.00'.</p>
+    <div class="cv" data-file="extract_tool.py" data-lang="python"><pre class="cv-raw"># Force valid structured output at the source: a tool schema the model must fill.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+# The tool&#x27;s inputSchema IS your output contract -- required fields can&#x27;t be omitted,
+# and a number field can&#x27;t come back as a string.
+tool_config = {
+    &quot;tools&quot;: [{&quot;toolSpec&quot;: {
+        &quot;name&quot;: &quot;record_invoice&quot;,
+        &quot;description&quot;: &quot;Record the fields extracted from an invoice.&quot;,
+        &quot;inputSchema&quot;: {&quot;json&quot;: {
+            &quot;type&quot;: &quot;object&quot;,
+            &quot;properties&quot;: {
+                &quot;total&quot;: {&quot;type&quot;: &quot;number&quot;},
+                &quot;due_date&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;description&quot;: &quot;YYYY-MM-DD&quot;},
+                &quot;vendor&quot;: {&quot;type&quot;: &quot;string&quot;},
+            },
+            &quot;required&quot;: [&quot;total&quot;, &quot;due_date&quot;, &quot;vendor&quot;],
+        }},
+    }}],
+    &quot;toolChoice&quot;: {&quot;tool&quot;: {&quot;name&quot;: &quot;record_invoice&quot;}},   # force the tool -&gt; guaranteed shape
+}
+
+resp = bedrock.converse(
+    modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: f&quot;Extract the invoice:\n{raw_invoice}&quot;}]}],
+    toolConfig=tool_config,
+    inferenceConfig={&quot;maxTokens&quot;: 512, &quot;temperature&quot;: 0},
+)
+
+# The model returns a toolUse block; input already matches the schema (total is a real number).
+block = next(b for b in resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;] if &quot;toolUse&quot; in b)
+invoice = block[&quot;toolUse&quot;][&quot;input&quot;]   # shape guaranteed -- truth is not, so still validate</pre></div>
+    <p class="cv-foot">The shape is guaranteed; the facts are not — still validate on your side and keep a bounded retry plus fallback around this call.</p>
+  </div>
+</div>
+
 <script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
@@ -420,5 +466,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 </body>
 </html>

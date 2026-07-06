@@ -92,6 +92,7 @@
         complicates error handling: a failure can happen <em>after</em> some tokens have reached the user, so "the request
         failed" is no longer a clean before-or-after — you may have a partial answer on screen. Hold that thought; it
         returns at error handling.</p>
+        <button class="code-cta" type="button" data-modal="code-w1d2b"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· stream.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -480,6 +481,40 @@ window.QUIZ = {
   ]
 };
 </script>
+<!-- production-code modal (w1d2b) -->
+<div id="code-w1d2b" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: streaming the response</h2>
+    <p class="cv-cap">A streamed answer arrives as a sequence of delta events, not one JSON blob — you print each token for low time-to-first-token and buffer the pieces for later.</p>
+    <div class="cv" data-file="stream.py" data-lang="python"><pre class="cv-raw"># Stream tokens as they generate -- the user reads at ~0.4s instead of staring for 12s.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+resp = bedrock.converse_stream(
+    modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: &quot;Summarize the RFP in 3 bullets.&quot;}]}],
+    inferenceConfig={&quot;maxTokens&quot;: 1024},
+)
+
+# The response is a sequence of events, not one JSON blob -- assemble the pieces.
+chunks = []
+for event in resp[&quot;stream&quot;]:
+    if &quot;contentBlockDelta&quot; in event:
+        piece = event[&quot;contentBlockDelta&quot;][&quot;delta&quot;][&quot;text&quot;]
+        print(piece, end=&quot;&quot;, flush=True)     # first token shows immediately -&gt; low TTFT
+        chunks.append(piece)
+    elif &quot;metadata&quot; in event:
+        u = event[&quot;metadata&quot;][&quot;usage&quot;]        # usage arrives at the END of the stream
+        print(f&quot;\n[in={u[&#x27;inputTokens&#x27;]} out={u[&#x27;outputTokens&#x27;]}]&quot;)
+
+full_text = &quot;&quot;.join(chunks)   # buffer the complete answer for validation / storage</pre></div>
+    <p class="cv-foot">Usage lands in the final metadata event; the buffered full_text is what you hand on to validation and storage.</p>
+  </div>
+</div>
+
 <script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
@@ -489,5 +524,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 </body>
 </html>

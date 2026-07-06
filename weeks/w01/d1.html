@@ -190,6 +190,7 @@
         and retrieval. That one habit prevents the most common production failure of all: an answer that stops
         mid-sentence because the input ate the room it needed to finish. The same arithmetic, done out loud, is also how
         you give a client a credible monthly cost estimate before you've written a line of code.</p>
+        <button class="code-cta" type="button" data-modal="code-w1d1"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· window.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -475,6 +476,38 @@ window.QUIZ = {
   ]
 };
 </script>
+<!-- production-code modal (w1d1) -->
+<div id="code-w1d1" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: what the model actually sees</h2>
+    <p class="cv-cap">One call is one window — everything the model can reason over this turn is packed in, and the usage meter counts exactly that.</p>
+    <div class="cv" data-file="window.py" data-lang="python"><pre class="cv-raw"># Show what the model actually sees: one call = one window, then read the meter.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+# Everything the model can reason over this turn is assembled here -- nothing else exists.
+system = [{&quot;text&quot;: &quot;You are a support assistant. Answer only from the window.&quot;}]
+messages = [{&quot;role&quot;: &quot;user&quot;,
+             &quot;content&quot;: [{&quot;text&quot;: &quot;My badge is 7741, desk on floor 3. What floor?&quot;}]}]
+
+resp = bedrock.converse(
+    modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,  # current-gen needs the us. prefix
+    system=system,
+    messages=messages,
+    inferenceConfig={&quot;maxTokens&quot;: 200, &quot;temperature&quot;: 0},   # temp 0 -&gt; repeatable
+)
+
+print(resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;])
+u = resp[&quot;usage&quot;]
+# The bill and &quot;what did it see&quot; are the same number: everything you packed in.
+print(f&quot;in={u[&#x27;inputTokens&#x27;]}  out={u[&#x27;outputTokens&#x27;]}  total={u[&#x27;totalTokens&#x27;]}&quot;)</pre></div>
+    <p class="cv-foot">input + output tokens is both the bill and the answer to “what did it see?” — the same number Day 1 keeps returning to.</p>
+  </div>
+</div>
+
 <script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
@@ -484,5 +517,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 </body>
 </html>

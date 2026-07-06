@@ -244,6 +244,7 @@ answer = resp.choices[0].message.content"
           data-q="The model aced the scorecard. Six weeks in, the client mandates a self-hosted model for compliance. What does this code cost you — and what was the real mistake?"
           data-a="The vendor's SDK shape (<code>openai.chat...</code>, <code>resp.choices[0]...</code>) is hard-coded at <b>12 call sites</b>, so a model swap is a hunt-and-replace across the codebase plus a re-test of every one. The pick was never the risk — the missing <b>seam</b> was. The fix is the rule attached to every pick: put the model behind <b>one thin interface</b> (build request → send → parse) so swapping is a config change and a re-run of your eval set, not a rewrite.">
         </div>
+        <button class="code-cta" type="button" data-modal="code-w1d2a"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· llm.py</span></button>
         <div class="callout mindset">
           <div class="k">FDE mindset</div>
           <p>Attach one rule to every pick: <strong>keep it swappable.</strong> Models leapfrog each other every few
@@ -499,6 +500,39 @@ window.QUIZ = {
   ]
 };
 </script>
+<!-- production-code modal (w1d2a) -->
+<div id="code-w1d2a" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: the model seam</h2>
+    <p class="cv-cap">The whole vendor choice lives behind one function and one config string — so swapping Haiku for Sonnet (or a self-hosted model later) is a one-line change, not a codebase-wide rewrite.</p>
+    <div class="cv" data-file="llm.py" data-lang="python"><pre class="cv-raw"># One seam every model call goes through -- swapping models is a config change, not a rewrite.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import boto3
+
+_bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+# The pick lives in ONE place. Change this string, not 12 call sites.
+DEFAULT_MODEL = &quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;   # cheap default
+
+def answer(prompt: str, *, model: str = DEFAULT_MODEL, system: str | None = None) -&gt; str:
+    resp = _bedrock.converse(
+        modelId=model,
+        system=[{&quot;text&quot;: system}] if system else [],
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: prompt}]}],
+        inferenceConfig={&quot;maxTokens&quot;: 512, &quot;temperature&quot;: 0},
+    )
+    return resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;]
+
+# Callers never name a vendor -- they call the seam:
+label = answer(&quot;Classify: &#x27;my card was declined&#x27;  -&gt;  billing | shipping | technical&quot;)
+
+# Size up only where it earns its cost -- same interface, one argument:
+summary = answer(long_rfp, model=&quot;us.anthropic.claude-sonnet-4-6-v1&quot;)</pre></div>
+    <p class="cv-foot">Every caller talks to answer(), never a vendor SDK directly — that is the seam Part 2 wraps in timeouts and retries.</p>
+  </div>
+</div>
+
 <script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
@@ -508,5 +542,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 </body>
 </html>

@@ -112,6 +112,7 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
         and push anything volatile — the user's question, the timestamp, the session ID — to the <em>end</em>, after the
         cache boundary. You confirm it's working by reading the cache-read usage field the API returns; if that number is
         zero across repeated identical-prefix calls, a silent invalidator is hiding in your prefix.</p>
+        <button class="code-cta" type="button" data-modal="code-w1d4a"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· cached_call.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -459,6 +460,41 @@ window.QUIZ = {
   ]
 };
 </script>
+<!-- production-code modal (w1d4a) -->
+<div id="code-w1d4a" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: prompt caching</h2>
+    <p class="cv-cap">A single cachePoint marks where the stable prefix ends; the system rules and manual are served from cache at ~0.1x on every later call, while the volatile question stays after the boundary.</p>
+    <div class="cv" data-file="cached_call.py" data-lang="python"><pre class="cv-raw"># Stop paying full price for the same prefix twice: cache the stable part with a cachePoint.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+# STABLE prefix first (system rules + manual). Haiku 4.5 needs &gt;= 4096 tokens to cache.
+# The cachePoint marks where the cacheable prefix ends; reads bill at ~0.1x.
+system = [
+    {&quot;text&quot;: SYSTEM_RULES + PRODUCT_MANUAL},    # identical on every call
+    {&quot;cachePoint&quot;: {&quot;type&quot;: &quot;default&quot;}},         # &lt;-- everything ABOVE this is cached
+]
+
+def ask(question: str):
+    resp = bedrock.converse(
+        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+        system=system,
+        # VOLATILE content goes AFTER the boundary, so the prefix stays byte-identical.
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: question}]}],
+        inferenceConfig={&quot;maxTokens&quot;: 512, &quot;temperature&quot;: 0},
+    )
+    u = resp[&quot;usage&quot;]
+    # Confirm it: cacheReadInputTokens should be &gt; 0 from the 2nd call onward.
+    print(f&quot;read={u.get(&#x27;cacheReadInputTokens&#x27;, 0)} write={u.get(&#x27;cacheWriteInputTokens&#x27;, 0)}&quot;)
+    return resp</pre></div>
+    <p class="cv-foot">Confirm it worked by reading cacheReadInputTokens — zero across identical-prefix calls means a silent invalidator slipped in above the cachePoint.</p>
+  </div>
+</div>
+
 <script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
@@ -468,5 +504,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 </body>
 </html>

@@ -132,6 +132,7 @@
              data-yourturn-label="✎ Try it: convert →"
              data-placeholder="Run the lazy one, then the engineered one — watch prose become parseable JSON."
              data-yourturn="Summarize the important parts of this solicitation: Solicitation N00024-26-R-3007, responses due 2026-08-15, period of performance 12 months, set-aside: small business, estimated value $4.2M.&#10;&#10;✎ Your turn: harden the lazy prompt above into one you'd ship. Add a role, an explicit JSON schema, one worked example, wrap the input in &lt;solicitation&gt;…&lt;/solicitation&gt;, and say to use null for missing fields instead of guessing. Run both and watch the output go from prose to data your code can trust."></div>
+        <button class="code-cta" type="button" data-modal="code-w1d3a"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· extract_prompt.py</span></button>
         <p>But the cost discipline from Day 1 applies directly: every example is tokens in the window on <em>every call</em>,
         and the benefit has steep <strong>diminishing returns</strong> — zero to two is transformative, eight to twelve
         usually isn't, and a giant example block can crowd out the user's real input. The best-practice prompt above shows
@@ -503,6 +504,42 @@ window.QUIZ = {
   ]
 };
 </script>
+<!-- production-code modal (w1d3a) -->
+<div id="code-w1d3a" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: the hardened prompt</h2>
+    <p class="cv-cap">The lazy “summarize this” turned into a shippable call — a role, one worked example, a JSON-shape instruction, and the document kept as delimited data.</p>
+    <div class="cv" data-file="extract_prompt.py" data-lang="python"><pre class="cv-raw"># The engineered prompt from the reading, as a real call: role + one worked example
+# + a JSON-shape instruction -- &quot;summarize this&quot; hardened into something you can ship.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import json, boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+SYSTEM = &quot;&quot;&quot;You extract fields from federal solicitations. Reply with ONLY JSON matching:
+{&quot;solicitation_id&quot;: str, &quot;due_date&quot;: &quot;YYYY-MM-DD&quot;, &quot;set_aside&quot;: &quot;small_business&quot;|&quot;none&quot;, &quot;value_usd&quot;: number|null}
+If a field is not stated, use null -- never guess.
+
+Example input:  RFP 36C10X26, replies by July 9 2026, full and open.
+Example output: {&quot;solicitation_id&quot;:&quot;36C10X26&quot;,&quot;due_date&quot;:&quot;2026-07-09&quot;,&quot;set_aside&quot;:&quot;none&quot;,&quot;value_usd&quot;:null}&quot;&quot;&quot;
+
+doc = &quot;Solicitation N00024-26-R-3007, responses due 2026-08-15, set-aside: small business, est. $4.2M.&quot;
+
+resp = bedrock.converse(
+    modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+    system=[{&quot;text&quot;: SYSTEM}],
+    # user input stays DATA, wrapped in delimiters -- never instructions
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: f&quot;&lt;solicitation&gt;\n{doc}\n&lt;/solicitation&gt;&quot;}]}],
+    inferenceConfig={&quot;maxTokens&quot;: 300, &quot;temperature&quot;: 0},
+)
+
+fields = json.loads(resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;])
+print(fields[&quot;due_date&quot;])   # 2026-08-15</pre></div>
+    <p class="cv-foot">temperature 0 plus the worked example pins the format; the reply parses straight into fields your code can trust — shape, not yet truth.</p>
+  </div>
+</div>
+
 <script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
@@ -512,5 +549,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 </body>
 </html>
