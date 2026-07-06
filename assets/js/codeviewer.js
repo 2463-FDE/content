@@ -59,19 +59,38 @@
     return out;
   }
 
-  function render(el) {
-    const raw = el.querySelector(".cv-raw");
-    if (!raw) return;
-    const code = raw.textContent.replace(/^\n/, "").replace(/\s+$/, "");
-    const lang = el.dataset.lang || "python";
-    const file = el.dataset.file || "example.py";
+  function paint(code, lang) {
     const lines = highlight(code, lang).split("\n");
     const gutter = lines.map((_, i) => `<span>${i + 1}</span>`).join("");
     const body = lines.map(l => `<span class="cv-line">${l || " "}</span>`).join("");
+    return `<div class="cv-gutter">${gutter}</div><pre class="cv-pre"><code>${body}</code></pre>`;
+  }
+
+  function render(el) {
+    // One or more <pre class="cv-raw" data-file data-lang> children. Multiple ⇒
+    // editor tabs (click to switch); single ⇒ the original one-file view.
+    const raws = Array.from(el.querySelectorAll(".cv-raw"));
+    if (!raws.length) return;
+    const files = raws.map((raw, i) => ({
+      file: raw.dataset.file || el.dataset.file || ("file" + (i + 1)),
+      lang: raw.dataset.lang || el.dataset.lang || "python",
+      code: raw.textContent.replace(/^\n/, "").replace(/\s+$/, ""),
+    }));
+    const tabs = files.map((f, i) =>
+      `<button type="button" class="cv-tab${i === 0 ? " on" : ""}" data-i="${i}">${esc(f.file)}</button>`).join("");
     el.innerHTML =
       `<div class="cv-bar"><span class="cv-dots"><i class="d-r"></i><i class="d-y"></i><i class="d-g"></i></span>` +
-      `<span class="cv-tab">${esc(file)}</span></div>` +
-      `<div class="cv-body"><div class="cv-gutter">${gutter}</div><pre class="cv-pre"><code>${body}</code></pre></div>`;
+      `<span class="cv-tabs">${tabs}</span></div>` +
+      `<div class="cv-body">${paint(files[0].code, files[0].lang)}</div>`;
+    if (files.length > 1) {
+      const bodyEl = el.querySelector(".cv-body");
+      const tabEls = Array.from(el.querySelectorAll(".cv-tab"));
+      tabEls.forEach(t => t.addEventListener("click", () => {
+        const f = files[+t.dataset.i];
+        tabEls.forEach(x => x.classList.toggle("on", x === t));
+        bodyEl.innerHTML = paint(f.code, f.lang);
+      }));
+    }
   }
 
   document.addEventListener("DOMContentLoaded", () => {

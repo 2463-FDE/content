@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w02d5">
 <meta name="fde-concepts" content="faithfulness,context-precision,recursive-character-splitting,bi-encoder-retrieval,cross-encoder-rerank,hnsw-index">
 <title>W2·D5 — RAG Eval Harness + End-to-End RAG | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260706">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260706-2">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -137,7 +137,7 @@
         — the answer is doomed before it starts. Low recall at this stage is the most expensive failure in RAG, because
         it's invisible: the model will still produce a confident, fluent answer, just an ungrounded one.</p>
         <div class="ix-retrieve" data-scenario="apikey" data-mode="biencoder" data-live="1"></div>
-        <button class="code-cta" type="button" data-modal="code-d5"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· rag.py</span></button>
+        <button class="code-cta" type="button" data-modal="code-d5"><span class="cc-ico">&lt;/&gt;</span> Browse the reference repo <span class="cc-meta">· 5 files</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -447,9 +447,75 @@ window.QUIZ = {
 <div id="code-d5" class="modal-overlay" hidden>
   <div class="modal-card code-modal">
     <button class="modal-close" type="button" aria-label="Close">✕</button>
-    <h2>Production code: the assembled RAG pipeline</h2>
-    <p class="cv-cap">End to end at query time: Titan embeds the question, the bi-encoder casts a wide net, re-rank to a precise few, then Claude on Bedrock answers -- grounded in the retrieved context.</p>
-    <div class="cv" data-file="rag.py" data-lang="python"><pre class="cv-raw"># Query pipeline: Titan embed -&gt; shortlist -&gt; re-rank -&gt; Claude (Bedrock) answer.
+    <h2>The reference implementation — the full RAG pipeline</h2>
+    <p class="cv-cap">The whole Week-2 pipeline as one small repo: load → chunk → embed → retrieve → re-rank → answer, plus the eval harness. Same production stack (Bedrock + Titan) the popups showcase — click across the tabs to see how the pieces fit.</p>
+    <div class="cv" data-lang="python">
+      <pre class="cv-raw" data-file="ingest.py"># Build-time ingestion: load -&gt; chunk -&gt; Titan embed -&gt; index into pgvector.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import json, boto3
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,      # upper bound per chunk (chars/tokens)
+    chunk_overlap=75,    # 15% -- rescues facts split across a boundary
+)
+
+def embed(text: str, dims: int = 1024) -&gt; list[float]:
+    # Titan Text Embeddings V2 takes ONE inputText per call (no batch array).
+    resp = bedrock.invoke_model(
+        modelId=&quot;amazon.titan-embed-text-v2:0&quot;,
+        body=json.dumps({&quot;inputText&quot;: text, &quot;dimensions&quot;: dims, &quot;normalize&quot;: True}),
+    )
+    return json.loads(resp[&quot;body&quot;].read())[&quot;embedding&quot;]
+
+def ingest(doc_id: str, text: str, conn) -&gt; None:
+    for i, chunk in enumerate(splitter.split_text(text)):
+        conn.execute(
+            &quot;INSERT INTO chunks (doc_id, seq, body, embedding) VALUES (%s,%s,%s,%s)&quot;,
+            (doc_id, i, chunk, embed(chunk)),   # SAME model at ingest AND query
+        )
+    conn.commit()</pre>
+      <pre class="cv-raw" data-file="embed.py"># Embedding with Titan V2&#x27;s built-in dimension dial (Matryoshka).
+# Auth: AWS_BEARER_TOKEN_BEDROCK (Bedrock API key) -- no IAM credentials.
+import json, boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+def embed(text: str, dims: int = 1024) -&gt; list[float]:
+    # Titan V2 emits 1024 (default), 512, or 256 dims. 512 keeps ~99% of 1024&#x27;s
+    # accuracy, 256 ~97% -- shrink the vector at the source to cut storage/latency.
+    resp = bedrock.invoke_model(
+        modelId=&quot;amazon.titan-embed-text-v2:0&quot;,
+        body=json.dumps({&quot;inputText&quot;: text, &quot;dimensions&quot;: dims, &quot;normalize&quot;: True}),
+    )
+    return json.loads(resp[&quot;body&quot;].read())[&quot;embedding&quot;]
+
+# The store&#x27;s vector column MUST match `dims`. Create it once, up front:
+#   CREATE TABLE chunks (id bigserial, body text, embedding vector(1024));
+#   CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);</pre>
+      <pre class="cv-raw" data-file="retrieve.py"># Query time: hybrid (dense Titan + BM25) fusion, then Bedrock re-rank.
+import boto3
+
+agent = boto3.client(&quot;bedrock-agent-runtime&quot;, region_name=&quot;us-east-1&quot;)
+RERANK_ARN = &quot;arn:aws:bedrock:us-east-1::foundation-model/amazon.rerank-v1:0&quot;
+
+def hybrid_search(q: str, k: int = 20, alpha: float = 0.5) -&gt; list[dict]:
+    qv = embed(q)                    # Titan V2, same model as ingest
+    dense = dense_search(qv, k)      # pgvector: ORDER BY embedding &lt;=&gt; qv
+    sparse = bm25_search(q, k)       # lexical: exact terms, part numbers
+    fused = fuse(dense, sparse, alpha)[:k]   # alpha dials dense-vs-sparse
+
+    out = agent.rerank(
+        queries=[{&quot;type&quot;: &quot;TEXT&quot;, &quot;textQuery&quot;: {&quot;text&quot;: q}}],
+        sources=[{&quot;type&quot;: &quot;INLINE&quot;, &quot;inlineDocumentSource&quot;:
+                  {&quot;type&quot;: &quot;TEXT&quot;, &quot;textDocument&quot;: {&quot;text&quot;: d[&quot;body&quot;]}}} for d in fused],
+        rerankingConfiguration={&quot;type&quot;: &quot;BEDROCK_RERANKING_MODEL&quot;,
+            &quot;bedrockRerankingConfiguration&quot;: {&quot;numberOfResults&quot;: 5,
+                &quot;modelConfiguration&quot;: {&quot;modelArn&quot;: RERANK_ARN}}},
+    )
+    return [fused[r[&quot;index&quot;]] | {&quot;score&quot;: r[&quot;relevanceScore&quot;]} for r in out[&quot;results&quot;]]</pre>
+      <pre class="cv-raw" data-file="rag.py"># Query pipeline: Titan embed -&gt; shortlist -&gt; re-rank -&gt; Claude (Bedrock) answer.
 # Auth: AWS_BEARER_TOKEN_BEDROCK (Bedrock API key) -- no IAM credentials.
 import boto3
 
@@ -467,8 +533,34 @@ def answer(question: str) -&gt; dict:
         messages=[{&quot;role&quot;: &quot;user&quot;,
                    &quot;content&quot;: [{&quot;text&quot;: f&quot;{context}\n\nQ: {question}&quot;}]}],
     )
-    return {&quot;answer&quot;: resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;], &quot;sources&quot;: hits}</pre></div>
-    <p class="cv-foot">The system prompt forces grounding: answer only from the retrieved context. That single instruction is what makes faithfulness measurable instead of hoped-for. Model IDs are region/version-specific (use an inference-profile ID where required).</p>
+    return {&quot;answer&quot;: resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;], &quot;sources&quot;: hits}</pre>
+      <pre class="cv-raw" data-file="evaluate.py"># Offline eval with Ragas -- judged by Claude on Bedrock + Titan embeddings.
+from ragas import evaluate
+from ragas.metrics import (
+    context_recall, context_precision,   # retrieval quality
+    faithfulness, answer_relevancy,       # generation quality
+)
+from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from langchain_aws import ChatBedrockConverse, BedrockEmbeddings
+from datasets import Dataset
+
+# bedrock_api_key sets AWS_BEARER_TOKEN_BEDROCK under the hood -- no IAM creds.
+# The judge is where we deliberately SIZE UP to Sonnet 4.6: eval quality is worth
+# the extra cost. Everywhere else in the pipeline we default to Haiku 4.5.
+judge = LangchainLLMWrapper(ChatBedrockConverse(
+    model=&quot;us.anthropic.claude-sonnet-4-6-v1&quot;, region_name=&quot;us-east-1&quot;))
+emb = LangchainEmbeddingsWrapper(BedrockEmbeddings(
+    model_id=&quot;amazon.titan-embed-text-v2:0&quot;, region_name=&quot;us-east-1&quot;))
+
+def run_eval(samples: list[dict]):
+    # each sample: {question, answer, contexts, ground_truth}
+    ds = Dataset.from_list(samples)
+    return evaluate(ds, llm=judge, embeddings=emb, metrics=[
+        context_recall, context_precision, faithfulness, answer_relevancy,
+    ])</pre>
+    </div>
+    <p class="cv-foot">Build-time (ingest, embed) and query-time (retrieve, rag) code end to end. On these pages the live demo runs retrieval on free Workers AI + Chroma; production swaps in Titan on Bedrock — identical shape, different model.</p>
   </div>
 </div>
 
@@ -482,6 +574,6 @@ def answer(question: str) -&gt; dict:
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
 <script src="../../assets/js/interactive-rag.js?v=20260706"></script>
-<script src="../../assets/js/codeviewer.js?v=20260706"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-2"></script>
 </body>
 </html>
