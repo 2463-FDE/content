@@ -849,4 +849,84 @@ html[data-theme="dark"] .ds-check-row.done .ds-check-mark { color: #0c1f12; }
 /* ---- weekly-view additional-task markers: dark-mode legibility ---- */
 html[data-theme="dark"] .cal-cell .mk.star { color:#ffc04d; border-color:rgba(245,159,0,.40); background:rgba(245,159,0,.12); }
 html[data-theme="dark"] .ritual.cr { color:#5fe3c0; border-color:rgba(56,217,169,.40); background:rgba(56,217,169,.12); }
+
+/* ===================== Glossary (centralized technical terms) ===================== */
+/* Inline term: plain neutral underline in the reading; hover → tooltip, click → modal. */
+.gloss-term {
+  cursor: help;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--dim);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  transition: text-decoration-color .12s, background-color .12s;
+}
+.gloss-term:hover, .gloss-term:focus-visible {
+  text-decoration-color: var(--ink);
+  background-color: var(--surface-2);
+  border-radius: 3px;
+  outline: none;
+}
+
+/* Hover tooltip */
+.gloss-tip {
+  position: absolute; z-index: 300; max-width: 320px;
+  padding: 10px 13px; border-radius: 10px;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 30px var(--shadow);
+  font-size: 14.5px; line-height: 1.5;
+  opacity: 0; transform: translateY(3px); pointer-events: none;
+  transition: opacity .12s, transform .12s;
+}
+.gloss-tip.show { opacity: 1; transform: translateY(0); }
+.gloss-tip b { display: block; color: var(--accent); font-weight: 700;
+  font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
+
+/* The "Key terms" block (left rail, under the TOC) — opens the glossary modal */
+.gloss-block {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  margin-top: 26px; padding: 12px 13px;
+  border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: 10px; background: var(--surface);
+  font: inherit; color: var(--ink);
+  transition: transform .1s, box-shadow .1s, border-color .1s;
+}
+.gloss-block:hover { transform: translateY(-1px); box-shadow: 0 6px 18px var(--shadow); border-color: var(--accent); }
+.gloss-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.gloss-block .gb-k { display: block; font-size: 10.5px; text-transform: uppercase;
+  letter-spacing: .12em; font-weight: 700; color: var(--accent); }
+.gloss-block .gb-t { display: block; font-size: 14px; font-weight: 650; margin: 3px 0 2px; line-height: 1.25; }
+.gloss-block .gb-n { display: block; font-size: 11.5px; color: var(--ink-soft); }
+.gloss-block-inline { max-width: var(--maxprose); margin: 34px 0 0; }
+
+/* Glossary modal */
+.gloss-modal-overlay {
+  position: fixed; inset: 0; z-index: 400;
+  display: none; align-items: center; justify-content: center;
+  padding: 24px; background: rgba(20,16,8,.5); backdrop-filter: blur(3px);
+}
+.gloss-modal-overlay.show { display: flex; }
+.gloss-modal {
+  position: relative; width: 100%; max-width: 620px; max-height: 82vh; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+  padding: 26px 28px 30px; box-shadow: 0 24px 70px rgba(0,0,0,.35);
+}
+.gloss-modal-x {
+  position: absolute; top: 14px; right: 14px; width: 32px; height: 32px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+  color: var(--ink-soft); font-size: 15px; cursor: pointer; line-height: 1;
+}
+.gloss-modal-x:hover { color: var(--accent); border-color: var(--accent); }
+.gloss-modal .gm-k { font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
+  font-weight: 700; color: var(--accent); }
+.gloss-modal .gm-h { font-size: 25px; line-height: 1.15; margin: 5px 0 4px; }
+.gloss-modal .gm-sub { font-size: 14px; color: var(--ink-soft); margin: 0 0 16px; }
+.gloss-modal .gm-list { margin: 0; }
+.gloss-modal .gm-row { padding: 12px 0; border-top: 1px solid var(--line); border-radius: 8px; }
+.gloss-modal .gm-row:first-child { border-top: none; }
+.gloss-modal .gm-row.on { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); padding-left: 10px; }
+.gloss-modal .gm-term { font-size: 16.5px; font-weight: 700; color: var(--ink); margin: 0; }
+.gloss-modal .gm-def { font-size: 15px; line-height: 1.55; color: var(--ink-soft); margin: 3px 0 0; }
+@media (max-width: 700px) { .gloss-modal { padding: 22px 18px 24px; } }
 html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247,.45); background:rgba(132,94,247,.14); }
