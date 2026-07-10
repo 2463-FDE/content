@@ -928,5 +928,31 @@ html[data-theme="dark"] .ritual.cr { color:#5fe3c0; border-color:rgba(56,217,169
 .gloss-modal .gm-row.on { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); padding-left: 10px; }
 .gloss-modal .gm-term { font-size: 16.5px; font-weight: 700; color: var(--ink); margin: 0; }
 .gloss-modal .gm-def { font-size: 15px; line-height: 1.55; color: var(--ink-soft); margin: 3px 0 0; }
+
+/* Suggest-a-term form (modal footer) */
+.gm-suggest { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.gm-suggest .gm-sug-k { font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
+  font-weight: 700; color: var(--accent); }
+.gm-suggest .gm-sug-sub { font-size: 13.5px; color: var(--ink-soft); margin: 4px 0 12px; }
+.gm-sug-form { display: flex; flex-direction: column; gap: 9px; }
+.gm-sug-term, .gm-sug-def {
+  width: 100%; font: inherit; font-size: 15px; color: var(--ink);
+  padding: 9px 11px; border: 1.5px solid var(--line); border-radius: 9px;
+  background: var(--surface-2); resize: vertical;
+}
+.gm-sug-term:focus, .gm-sug-def:focus { outline: none; border-color: var(--accent); }
+.gm-sug-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.gm-sug-btn {
+  font: inherit; font-size: 14px; font-weight: 650; cursor: pointer;
+  padding: 9px 18px; border-radius: 9px; border: none;
+  background: var(--accent); color: #fff;
+  box-shadow: 0 2px 8px -2px rgba(232,89,12,.5);
+  transition: filter .1s, transform .1s;
+}
+.gm-sug-btn:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+.gm-sug-btn:disabled { opacity: .55; cursor: default; box-shadow: none; }
+.gm-sug-msg { font-size: 13.5px; color: var(--ink-soft); }
+.gm-sug-msg.ok { color: var(--good-ink); }
+.gm-sug-msg.err { color: var(--bad-ink); }
 @media (max-width: 700px) { .gloss-modal { padding: 22px 18px 24px; } }
 html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247,.45); background:rgba(132,94,247,.14); }

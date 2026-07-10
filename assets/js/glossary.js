@@ -201,12 +201,75 @@
         '<p class="gm-sub">' + order.length + ' term' + (order.length === 1 ? '' : 's') +
           ' · plain-language definitions, shared across every reading.</p>' +
         '<dl class="gm-list">' + rows + '</dl>' +
+        '<div class="gm-suggest">' +
+          '<div class="gm-sug-k">Missing a term?</div>' +
+          '<p class="gm-sug-sub">Suggest one for the glossary. Leave the definition blank and we’ll draft a simple one for you.</p>' +
+          '<form class="gm-sug-form" novalidate>' +
+            '<input class="gm-sug-term" type="text" autocomplete="off" maxlength="60" placeholder="Term (e.g. idempotent)" aria-label="Term to suggest">' +
+            '<textarea class="gm-sug-def" rows="2" maxlength="300" placeholder="Definition (optional)" aria-label="Definition (optional)"></textarea>' +
+            '<div class="gm-sug-row">' +
+              '<button type="submit" class="gm-sug-btn">Suggest term</button>' +
+              '<span class="gm-sug-msg" role="status" aria-live="polite"></span>' +
+            '</div>' +
+          '</form>' +
+        '</div>' +
       '</div>';
     document.body.appendChild(modal);
     modal.addEventListener("click", function (e) {
       if (e.target === modal || e.target.classList.contains("gloss-modal-x")) closeModal();
     });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
+    wireSuggest(modal);
+  }
+
+  // ---- suggest-a-term form → POST to the backend, optional Haiku draft --------
+  function backendBase() {
+    var u = window.FDE_RUN_URL || "https://fde-backend.jestercharles.workers.dev";
+    return String(u).replace(/\/$/, "");
+  }
+  function traineeCode() {
+    try { var id = JSON.parse(localStorage.getItem("fde_identity") || "null"); return (id && (id.code || id.name)) || "anon"; }
+    catch (e) { return "anon"; }
+  }
+  function wireSuggest(root) {
+    var form = root.querySelector(".gm-sug-form");
+    if (!form) return;
+    var termEl = form.querySelector(".gm-sug-term");
+    var defEl = form.querySelector(".gm-sug-def");
+    var btn = form.querySelector(".gm-sug-btn");
+    var msg = form.querySelector(".gm-sug-msg");
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var term = (termEl.value || "").trim();
+      msg.className = "gm-sug-msg";
+      if (term.length < 2) { msg.textContent = "Enter a term first."; msg.classList.add("err"); termEl.focus(); return; }
+      btn.disabled = true;
+      msg.textContent = "Sending…";
+      fetch(backendBase() + "/glossary-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ term: term, definition: (defEl.value || "").trim(), trainee: traineeCode() })
+      }).then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (d) {
+          if (d && d.ok) {
+            msg.classList.add("ok");
+            if (d.generated && d.definition) {
+              msg.textContent = "Thanks! Added for review with a draft: “" + d.definition + "”";
+            } else {
+              msg.textContent = "Thanks! “" + (d.term || term) + "” was sent for review.";
+            }
+            termEl.value = ""; defEl.value = "";
+          } else {
+            msg.classList.add("err");
+            msg.textContent = "Couldn’t send that—try again in a moment.";
+          }
+        })
+        .catch(function () {
+          msg.classList.add("err");
+          msg.textContent = "Couldn’t send that—try again in a moment.";
+        })
+        .then(function () { btn.disabled = false; });
+    });
   }
   function openModal(highlight) {
     if (!modal) return;
