@@ -277,18 +277,25 @@
           (steerSystem ? `<label class="ag-sys-l">system prompt<textarea class="ix-ta ag-sys" rows="2"></textarea></label>` : "") +
           `<label class="ag-tc-l">tool_choice <select class="ag-tc">${TC_OPTS.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select></label></div>` +
         `<button type="button" class="btn ag-go">Run loop ▸</button>` +
-        `<div class="ag-view" hidden><button type="button" class="ag-vbtn on" data-v="traj">Trajectory</button><button type="button" class="ag-vbtn" data-v="trace">🔎 Trace</button></div>` +
-        `<div class="ag-hud" hidden><span class="ag-iter">iteration 0</span><span class="ag-tok">0 tokens</span><span class="ag-stop"></span></div>` +
-        `<div class="ag-trajview"><div class="ag-trace"></div><div class="ag-final"></div></div>` +
-        `<div class="ag-lfpanel" hidden></div>` +
-        `<a class="ag-tracelink" target="_blank" rel="noopener" hidden>🔎 Open this run's trace in Langfuse ↗</a>`;
+        `<div class="ag-result" hidden>` +
+          `<div class="ag-view" role="tablist">` +
+            `<button type="button" class="ag-vbtn on" data-v="traj" role="tab">Trajectory</button>` +
+            `<button type="button" class="ag-vbtn" data-v="trace" role="tab">Trace</button>` +
+            `<div class="ag-hud"><span class="ag-iter">iteration 0</span><span class="ag-tok">0 tok</span><span class="ag-stop"></span></div>` +
+          `</div>` +
+          `<div class="ag-panel">` +
+            `<div class="ag-trajview"><div class="ag-trace"></div><div class="ag-final"></div></div>` +
+            `<div class="ag-lfpanel" hidden></div>` +
+          `</div>` +
+        `</div>` +
+        `<a class="ag-tracelink" target="_blank" rel="noopener" hidden>View this run's trace in Langfuse ↗</a>`;
 
       const goalEl = el.querySelector(".ag-goal"), goalL = el.querySelector(".ag-goal-l");
       const steerBox = el.querySelector(".ag-steer"), tcEl = el.querySelector(".ag-tc"), sysEl = el.querySelector(".ag-sys");
       const go = el.querySelector(".ag-go"), left = el.querySelector(".ag-left");
       const hud = el.querySelector(".ag-hud"), iterEl = el.querySelector(".ag-iter"), tokEl = el.querySelector(".ag-tok"), stopEl = el.querySelector(".ag-stop");
       const trace = el.querySelector(".ag-trace"), finalEl = el.querySelector(".ag-final"), traceLink = el.querySelector(".ag-tracelink");
-      const viewEl = el.querySelector(".ag-view"), trajView = el.querySelector(".ag-trajview"), lfpanel = el.querySelector(".ag-lfpanel");
+      const resultEl = el.querySelector(".ag-result"), trajView = el.querySelector(".ag-trajview"), lfpanel = el.querySelector(".ag-lfpanel");
       const vbtns = Array.from(el.querySelectorAll(".ag-vbtn"));
       const tabEls = Array.from(el.querySelectorAll(".run-tab"));
       const cache = {}; let cur = 0, view = "traj";
@@ -341,30 +348,30 @@
         const t = tabs[i]; goalEl.value = t.goal; goalEl.readOnly = !t.edit;
         el.classList.toggle("is-locked", !t.edit);
         steerBox.hidden = !t.edit; if (t.edit) { tcEl.value = t.tc; if (sysEl) sysEl.value = t.system || ""; }
-        trace.innerHTML = ""; finalEl.innerHTML = ""; finalEl.classList.remove("show"); hud.hidden = true; showTraceLink(null);
-        lfpanel.innerHTML = ""; viewEl.hidden = true; setView("traj");
+        trace.innerHTML = ""; finalEl.innerHTML = ""; finalEl.classList.remove("show"); showTraceLink(null);
+        lfpanel.innerHTML = ""; resultEl.hidden = true; setView("traj");
         if (cache[t.variant]) render(cache[t.variant], false);
       }
       tabEls.forEach((t, i) => t.addEventListener("click", () => pick(i)));
 
       const esc2 = (s) => esc(typeof s === "string" ? s : JSON.stringify(s));
       function stepNode(s) {
-        if (s.type === "thought") return `<div class="ag-step ag-thought"><span class="ag-tag">💭 Thought · iter ${s.iter}</span><div class="ag-body">${esc(s.text)}</div></div>`;
-        if (s.type === "action") return `<div class="ag-step ag-action"><span class="ag-tag">▸ Action · iter ${s.iter}</span><div class="ag-body"><code>${esc(s.tool)}(${esc2(s.input)})</code></div></div>`;
-        if (s.type === "observation") return `<div class="ag-step ag-obs"><span class="ag-tag">◂ Observation</span><div class="ag-body"><code>${esc(s.output)}</code></div></div>`;
-        if (s.type === "capped") return `<div class="ag-step ag-warn"><span class="ag-tag">⛔ Guardrail</span><div class="ag-body">${esc(s.text)}</div></div>`;
-        if (s.type === "error") return `<div class="ag-step ag-warn"><span class="ag-tag">⚠ Error</span><div class="ag-body">${esc(s.text)}</div></div>`;
+        if (s.type === "thought") return `<div class="ag-step ag-thought"><span class="ag-tag">Thought<span class="ag-it">iter ${s.iter}</span></span><div class="ag-body">${esc(s.text)}</div></div>`;
+        if (s.type === "action") return `<div class="ag-step ag-action"><span class="ag-tag">Action<span class="ag-it">iter ${s.iter}</span></span><div class="ag-body"><code>${esc(s.tool)}(${esc2(s.input)})</code></div></div>`;
+        if (s.type === "observation") return `<div class="ag-step ag-obs"><span class="ag-tag">Observation</span><div class="ag-body"><code>${esc(s.output)}</code></div></div>`;
+        if (s.type === "capped") return `<div class="ag-step ag-warn"><span class="ag-tag">Guardrail</span><div class="ag-body">${esc(s.text)}</div></div>`;
+        if (s.type === "error") return `<div class="ag-step ag-warn"><span class="ag-tag">Error</span><div class="ag-body">${esc(s.text)}</div></div>`;
         return "";
       }
       function render(d, animate) {
-        hud.hidden = false;
+        resultEl.hidden = false;
         const steps = d.steps || [];
         const nodes = steps.map(stepNode).filter(Boolean);
-        tokEl.textContent = ((d.usage && (d.usage.input + d.usage.output)) || 0) + " tokens";
-        stopEl.textContent = "stop_reason: " + (d.stopReason || "—");
+        tokEl.textContent = ((d.usage && (d.usage.input + d.usage.output)) || 0) + " tok";
+        stopEl.textContent = "stop: " + (d.stopReason || "—");
         stopEl.className = "ag-stop " + (d.stopReason === "end_turn" ? "ok" : d.stopReason === "tool_use" || d.stopReason === "error" ? "warn" : "");
-        finalEl.innerHTML = d.final ? `<span class="ag-tag">✓ Answer</span><div class="ag-body">${esc(d.final)}</div>` : "";
-        renderLf(d); viewEl.hidden = !(d.trace && d.trace.length);
+        finalEl.innerHTML = d.final ? `<span class="ag-tag ag-ans">Answer</span><div class="ag-body">${esc(d.final)}</div>` : "";
+        renderLf(d);
         if (!animate) {
           trace.innerHTML = nodes.join("");
           iterEl.textContent = "iteration " + (d.iterations || 0);
@@ -395,7 +402,9 @@
         const trainee = idt ? idt.code : "anon";
         const tc = t.edit ? tcEl.value : t.tc;
         const sys = t.edit && sysEl ? sysEl.value.trim() : (t.system || "");
-        go.disabled = true; trace.innerHTML = `<div class="ag-running">running the loop…</div>`; finalEl.innerHTML = ""; hud.hidden = true;
+        go.disabled = true; resultEl.hidden = false; setView("traj");
+        iterEl.textContent = "running…"; tokEl.textContent = ""; stopEl.textContent = ""; stopEl.className = "ag-stop";
+        trace.innerHTML = `<div class="ag-running">running the loop…</div>`; finalEl.innerHTML = ""; finalEl.classList.remove("show"); showTraceLink(null);
         try {
           const r = await fetch(url + "/agent", {
             method: "POST", headers: { "Content-Type": "application/json" },
