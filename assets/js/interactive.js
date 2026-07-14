@@ -251,6 +251,31 @@
     ["tool:lookup_order", "tool — force lookup_order"],
     ["none", "none — no tools (answer from memory)"],
   ];
+  // Compact tool_choice options for the inline code editor (value shown as-is).
+  const TC_CODE = [["auto", "auto"], ["any", "any"], ["tool:lookup_order", "tool:lookup_order"], ["none", "none"]];
+  // The safe, server-defined tool allowlist the learner may toggle (never extend).
+  const AGENT_TOOLS_UI = [
+    { name: "lookup_order", desc: "fetch an order" },
+    { name: "lookup_customer", desc: "fetch a customer" },
+    { name: "calculator", desc: "arithmetic" },
+  ];
+  // Read-only view of the real loop mechanics — shown locked under the editable
+  // config so learners SEE what executes but can't touch it (the prod safety lesson).
+  const LOCKED_CODE =
+    'messages = [{"role": "user", "content": user_message}]\n' +
+    'while True:\n' +
+    '    resp = client.messages.create(          # the model call\n' +
+    '        model=model, tools=tools,\n' +
+    '        tool_choice=tool_choice, messages=messages,\n' +
+    '        max_tokens=500,\n' +
+    '    )\n' +
+    '    if resp.stop_reason != "tool_use":       # exit: model is done\n' +
+    '        break\n' +
+    '    for call in resp.tool_use_blocks:\n' +
+    '        result = TOOLS[call.name](**call.input)   # allowlisted dispatch\n' +
+    '        messages.append(tool_result(call, result))\n' +
+    '    if iterations >= 6:                      # guardrail: hard iteration cap\n' +
+    '        break';
   function agentWidget(elist) {
     elist.forEach(el => {
       const id = el.dataset.id || "agent";
@@ -274,8 +299,24 @@
         `<div class="run-tabs">${tabs.map((t, i) => `<button type="button" class="run-tab${i === 0 ? " on" : ""}" data-i="${i}">${t.label}</button>`).join("")}</div>` +
         `<label class="ag-goal-l">Goal<textarea class="ix-ta ag-goal" rows="2"></textarea></label>` +
         `<div class="ag-steer" hidden>` +
-          (steerSystem ? `<label class="ag-sys-l">system prompt<textarea class="ix-ta ag-sys" rows="2"></textarea></label>` : "") +
-          `<label class="ag-tc-l">tool_choice <select class="ag-tc">${TC_OPTS.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select></label></div>` +
+          `<div class="ce">` +
+            `<div class="ce-bar"><span class="ce-dots"><i></i><i></i><i></i></span><span class="ce-file">configure_agent.py</span><span class="ce-badge">✎ edit the highlighted values</span></div>` +
+            `<div class="ce-code">` +
+              `<div class="ce-ln"><span class="cek">from</span> langchain.agents <span class="cek">import</span> create_agent</div>` +
+              `<div class="ce-ln"> </div>` +
+              `<div class="ce-ln">agent = create_agent(</div>` +
+              `<div class="ce-ln ce-i">model=<span class="ces">"claude-haiku-4-5"</span>,</div>` +
+              `<div class="ce-ln ce-i">system_prompt=<span class="ces">"</span><textarea class="ag-sys ce-ed" rows="1" spellcheck="false"></textarea><span class="ces">"</span>,</div>` +
+              `<div class="ce-ln ce-i">tools=[<span class="ce-tools">${AGENT_TOOLS_UI.map(t => `<label class="ce-tool" title="${t.desc}"><input type="checkbox" class="ce-toolbox" value="${t.name}" checked><span>${t.name}</span></label>`).join('<span class="cep">, </span>')}</span>],</div>` +
+              `<div class="ce-ln ce-i">tool_choice=<span class="ces">"</span><select class="ag-tc ce-ed ce-sel">${TC_CODE.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select><span class="ces">"</span>,</div>` +
+              `<div class="ce-ln">)</div>` +
+              `<div class="ce-ln">result = agent.run(user_message)  <span class="cec"># ← the goal you typed above</span></div>` +
+            `</div>` +
+          `</div>` +
+          `<details class="ce-lock"><summary><span class="ce-lockic">🔒</span> what actually runs this — fixed on the server</summary>` +
+            `<pre class="ce-locked">${esc(LOCKED_CODE)}</pre>` +
+            `<p class="ce-lock-note"><b>Why you can't edit this:</b> the loop, the tools' code, and the guardrails run on the server — you only change validated <em>inputs</em> (message, system prompt, which tools, tool_choice). That's how you safely expose an agent in production: a bounded, checked surface — <b>never</b> raw code execution.</p>` +
+          `</details></div>` +
         `<button type="button" class="btn ag-go">Run loop ▸</button>` +
         `<div class="ag-result" hidden>` +
           `<div class="ag-view" role="tablist">` +
@@ -292,6 +333,7 @@
 
       const goalEl = el.querySelector(".ag-goal"), goalL = el.querySelector(".ag-goal-l");
       const steerBox = el.querySelector(".ag-steer"), tcEl = el.querySelector(".ag-tc"), sysEl = el.querySelector(".ag-sys");
+      const toolboxEls = Array.from(el.querySelectorAll(".ce-toolbox"));
       const go = el.querySelector(".ag-go"), left = el.querySelector(".ag-left");
       const hud = el.querySelector(".ag-hud"), iterEl = el.querySelector(".ag-iter"), tokEl = el.querySelector(".ag-tok"), stopEl = el.querySelector(".ag-stop");
       const trace = el.querySelector(".ag-trace"), finalEl = el.querySelector(".ag-final"), traceLink = el.querySelector(".ag-tracelink");
@@ -305,6 +347,9 @@
         trajView.hidden = v !== "traj"; lfpanel.hidden = v !== "trace";
       }
       vbtns.forEach(b => b.addEventListener("click", () => setView(b.dataset.v)));
+
+      function autoGrow(ta) { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 130) + "px"; }
+      if (sysEl) sysEl.addEventListener("input", () => autoGrow(sysEl));
 
       function showTraceLink(d) {
         if (d && d.traceUrl) { traceLink.href = d.traceUrl; traceLink.hidden = false; }
@@ -347,7 +392,13 @@
         cur = i; tabEls.forEach((t, j) => t.classList.toggle("on", j === i));
         const t = tabs[i]; goalEl.value = t.goal; goalEl.readOnly = !t.edit;
         el.classList.toggle("is-locked", !t.edit);
-        steerBox.hidden = !t.edit; if (t.edit) { tcEl.value = t.tc; if (sysEl) sysEl.value = t.system || ""; }
+        steerBox.hidden = !t.edit;
+        goalL.hidden = false;
+        if (t.edit) {
+          tcEl.value = t.tc;
+          if (sysEl) { sysEl.value = t.system || sysDefault || "You are a support agent. Use the tools to ground every fact; never guess an order, customer, or number you can look up."; autoGrow(sysEl); }
+          toolboxEls.forEach(b => { b.checked = true; });
+        }
         trace.innerHTML = ""; finalEl.innerHTML = ""; finalEl.classList.remove("show"); showTraceLink(null);
         lfpanel.innerHTML = ""; resultEl.hidden = true; setView("traj");
         if (cache[t.variant]) render(cache[t.variant], false);
@@ -402,13 +453,15 @@
         const trainee = idt ? idt.code : "anon";
         const tc = t.edit ? tcEl.value : t.tc;
         const sys = t.edit && sysEl ? sysEl.value.trim() : (t.system || "");
+        const body = { trainee, id, goal, tool_choice: tc, system: sys, variant: t.variant };
+        if (t.edit) body.tools = toolboxEls.filter(b => b.checked).map(b => b.value);   // safe allowlist subset
         go.disabled = true; resultEl.hidden = false; setView("traj");
         iterEl.textContent = "running…"; tokEl.textContent = ""; stopEl.textContent = ""; stopEl.className = "ag-stop";
         trace.innerHTML = `<div class="ag-running">running the loop…</div>`; finalEl.innerHTML = ""; finalEl.classList.remove("show"); showTraceLink(null);
         try {
           const r = await fetch(url + "/agent", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ trainee, id, goal, tool_choice: tc, system: sys, variant: t.variant }),
+            body: JSON.stringify(body),
           });
           const d = await r.json();
           if (r.status === 429) {

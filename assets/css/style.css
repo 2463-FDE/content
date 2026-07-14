@@ -786,6 +786,38 @@ html[data-theme="dark"] .cd-repo { background:#2b313a; }
 .ix-agent .ag-final .ag-body { font-size:15px; }
 .ix-agent .ag-tracelink { display:inline-block; margin-top:12px; font-size:12.5px; color:var(--accent-ink); text-decoration:none; border-bottom:1px solid var(--accent-line); padding-bottom:1px; }
 .ix-agent .ag-tracelink:hover { border-bottom-color:var(--accent-ink); }
+
+/* "Steer it" = an editable create_agent() code surface (matches the RAG code
+   popups). Only the highlighted inputs are editable; the loop + tools + guardrails
+   are shown LOCKED below — the learner changes a validated surface, never raw code. */
+.ix-agent .ce { border-radius:10px; overflow:hidden; border:1px solid #10131a; margin-top:4px; box-shadow:0 1px 3px var(--shadow); }
+.ix-agent .ce-bar { display:flex; align-items:center; gap:9px; background:#161a21; padding:8px 12px; }
+.ix-agent .ce-dots { display:flex; gap:5px; } .ix-agent .ce-dots i { width:10px; height:10px; border-radius:50%; background:#39404b; }
+.ix-agent .ce-file { font-family:var(--mono); font-size:12px; color:#8b93a0; }
+.ix-agent .ce-badge { margin-left:auto; font-size:11px; color:#ffb27a; background:rgba(255,138,60,.13); border:1px solid rgba(255,138,60,.3); border-radius:6px; padding:2px 8px; }
+.ix-agent .ce-code { background:#1b1f27; padding:12px 14px; font-family:var(--mono); font-size:12.5px; line-height:1.7; color:#c8cede; overflow-x:auto; }
+.ix-agent .ce-ln { white-space:pre; } .ix-agent .ce-i { padding-left:2ch; }
+.ix-agent .cek { color:#c792ea; } .ix-agent .ces { color:#95d68b; } .ix-agent .cec { color:#5f6773; font-style:italic; } .ix-agent .cep { color:#5f6773; }
+/* inline editable fields — highlighted so they read as "edit me" on the dark code */
+.ix-agent .ce-ed { font:inherit; font-family:var(--mono); font-size:12.5px; color:#ffe1c4; background:rgba(255,138,60,.10); border:0; border-bottom:1px dashed rgba(255,178,122,.6); border-radius:4px 4px 0 0; padding:1px 5px; }
+.ix-agent .ce-ed:focus { outline:none; background:rgba(255,138,60,.18); border-bottom-color:#ffb27a; }
+.ix-agent textarea.ce-ed { vertical-align:top; width:min(62ch,100%); resize:none; overflow:hidden; line-height:1.5; }
+.ix-agent .ce-sel { -webkit-appearance:none; appearance:none; cursor:pointer; padding-right:18px; background-image:linear-gradient(45deg,transparent 50%,#ffb27a 50%),linear-gradient(135deg,#ffb27a 50%,transparent 50%); background-position:calc(100% - 9px) 7px,calc(100% - 5px) 7px; background-size:4px 4px,4px 4px; background-repeat:no-repeat; }
+.ix-agent .ce-sel option { background:#1b1f27; color:#e9e7e2; }
+.ix-agent .ce-tools { display:inline-flex; flex-wrap:wrap; align-items:center; gap:0; }
+.ix-agent .ce-tool { display:inline-flex; align-items:center; gap:5px; cursor:pointer; color:#95d68b; background:rgba(149,214,139,.08); border:1px solid rgba(149,214,139,.25); border-radius:5px; padding:1px 7px 1px 5px; }
+.ix-agent .ce-tool input { accent-color:#7bc96f; width:12px; height:12px; margin:0; cursor:pointer; }
+.ix-agent .ce-tool:has(input:not(:checked)) { color:#5f6773; background:none; border-color:#333a45; text-decoration:line-through; }
+/* locked, read-only loop — what actually executes */
+.ix-agent .ce-lock { margin-top:10px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); overflow:hidden; }
+.ix-agent .ce-lock > summary { list-style:none; cursor:pointer; font-size:12.5px; font-weight:600; color:var(--ink-soft); padding:9px 12px; display:flex; align-items:center; gap:7px; }
+.ix-agent .ce-lock > summary::-webkit-details-marker { display:none; }
+.ix-agent .ce-lock > summary::after { content:"▸"; margin-left:auto; color:var(--dim); }
+.ix-agent .ce-lock[open] > summary::after { content:"▾"; }
+.ix-agent .ce-lockic { filter:grayscale(.2); }
+.ix-agent .ce-locked { font-family:var(--mono); font-size:11.5px; line-height:1.6; color:#8b93a0; background:#1b1f27; padding:11px 14px; margin:0; overflow-x:auto; white-space:pre; border-top:1px solid var(--line); }
+.ix-agent .ce-lock-note { font-size:12.5px; line-height:1.55; color:var(--ink-soft); padding:11px 13px; margin:0; } .ix-agent .ce-lock-note b { color:var(--ink); } .ix-agent .ce-lock-note em { color:var(--accent-ink); font-style:normal; }
+
 /* Trace tab — observability view; sits inside .ag-panel (no double border) */
 .ix-agent .lf-head { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; padding-bottom:9px; margin-bottom:10px; border-bottom:1px solid var(--line); }
 .ix-agent .lf-h-name { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--ink); }
