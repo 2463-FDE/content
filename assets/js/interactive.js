@@ -239,6 +239,184 @@
     });
   }
 
+  // LIVE agent loop — runs a REAL bounded ReAct loop server-side (POST /agent)
+  // and renders the full trajectory as a LangSmith-style trace tree: each Thought,
+  // the Action (tool + input), the Observation (tool_result), a live iteration +
+  // token HUD, and the terminating stop_reason. Presets are run-only and cached;
+  // the "Steer it" tab lets the learner edit the goal + flip tool_choice and re-run
+  // the real loop (3 tries). Degrades to an info note until FDE_RUN_URL is set.
+  const TC_OPTS = [
+    ["auto", "auto — model decides each turn"],
+    ["any", "any — must call some tool"],
+    ["tool:lookup_order", "tool — force lookup_order"],
+    ["none", "none — no tools (answer from memory)"],
+  ];
+  function agentWidget(elist) {
+    elist.forEach(el => {
+      const id = el.dataset.id || "agent";
+      let presets = []; try { presets = JSON.parse(el.dataset.presets || "[]"); } catch (e) {}
+      const steer = el.dataset.steer === "1" || el.dataset.steer === "true";
+      const steerSystem = el.dataset.steerSystem === "1"; // expose an editable system-prompt field on the steer tab
+      const toolsLine = el.dataset.tools || "lookup_order · lookup_customer · calculator";
+      const sysDefault = el.dataset.system || "";
+      const url = window.FDE_RUN_URL;
+
+      const tabs = presets.map((p, i) => ({
+        label: p.label || ("Run " + (i + 1)), goal: p.goal || "", tc: p.tool_choice || "auto",
+        system: p.system || "", edit: false, variant: "e" + i,
+      }));
+      if (steer) tabs.push({ label: "✎ Steer it", goal: (presets[0] && presets[0].goal) || "", tc: "auto", system: sysDefault, edit: true, variant: "steer" });
+
+      el.innerHTML =
+        `<div class="ix-k">▶ Try it · live agent <span class="ix-sub">real ReAct loop · <b class="ag-left">3</b> steer-tries</span></div>` +
+        `<p class="run-guide">Run the loop and watch the <b>Thought → Action → Observation</b> trajectory unfold — the same loop the reading describes, executed for real against safe demo tools.</p>` +
+        `<div class="ag-tools">tools available: <code>${toolsLine}</code></div>` +
+        `<div class="run-tabs">${tabs.map((t, i) => `<button type="button" class="run-tab${i === 0 ? " on" : ""}" data-i="${i}">${t.label}</button>`).join("")}</div>` +
+        `<label class="ag-goal-l">Goal<textarea class="ix-ta ag-goal" rows="2"></textarea></label>` +
+        `<div class="ag-steer" hidden>` +
+          (steerSystem ? `<label class="ag-sys-l">system prompt<textarea class="ix-ta ag-sys" rows="2"></textarea></label>` : "") +
+          `<label class="ag-tc-l">tool_choice <select class="ag-tc">${TC_OPTS.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select></label></div>` +
+        `<button type="button" class="btn ag-go">Run loop ▸</button>` +
+        `<div class="ag-view" hidden><button type="button" class="ag-vbtn on" data-v="traj">Trajectory</button><button type="button" class="ag-vbtn" data-v="trace">🔎 Trace</button></div>` +
+        `<div class="ag-hud" hidden><span class="ag-iter">iteration 0</span><span class="ag-tok">0 tokens</span><span class="ag-stop"></span></div>` +
+        `<div class="ag-trajview"><div class="ag-trace"></div><div class="ag-final"></div></div>` +
+        `<div class="ag-lfpanel" hidden></div>` +
+        `<a class="ag-tracelink" target="_blank" rel="noopener" hidden>🔎 Open this run's trace in Langfuse ↗</a>`;
+
+      const goalEl = el.querySelector(".ag-goal"), goalL = el.querySelector(".ag-goal-l");
+      const steerBox = el.querySelector(".ag-steer"), tcEl = el.querySelector(".ag-tc"), sysEl = el.querySelector(".ag-sys");
+      const go = el.querySelector(".ag-go"), left = el.querySelector(".ag-left");
+      const hud = el.querySelector(".ag-hud"), iterEl = el.querySelector(".ag-iter"), tokEl = el.querySelector(".ag-tok"), stopEl = el.querySelector(".ag-stop");
+      const trace = el.querySelector(".ag-trace"), finalEl = el.querySelector(".ag-final"), traceLink = el.querySelector(".ag-tracelink");
+      const viewEl = el.querySelector(".ag-view"), trajView = el.querySelector(".ag-trajview"), lfpanel = el.querySelector(".ag-lfpanel");
+      const vbtns = Array.from(el.querySelectorAll(".ag-vbtn"));
+      const tabEls = Array.from(el.querySelectorAll(".run-tab"));
+      const cache = {}; let cur = 0, view = "traj";
+
+      function setView(v) {
+        view = v; vbtns.forEach(b => b.classList.toggle("on", b.dataset.v === v));
+        trajView.hidden = v !== "traj"; lfpanel.hidden = v !== "trace";
+      }
+      vbtns.forEach(b => b.addEventListener("click", () => setView(b.dataset.v)));
+
+      function showTraceLink(d) {
+        if (d && d.traceUrl) { traceLink.href = d.traceUrl; traceLink.hidden = false; }
+        else { traceLink.hidden = true; traceLink.removeAttribute("href"); }
+      }
+      const dur = (a, b) => { const ms = new Date(b) - new Date(a); return ms >= 0 && ms < 1 ? "<1ms" : (ms >= 1000 ? (ms / 1000).toFixed(2) + "s" : ms + "ms"); };
+      const pj = (x) => esc(JSON.stringify(x, null, 2));
+      // A Langfuse-style trace panel rendered inline from the SAME record we log to
+      // Langfuse (Langfuse's app can't be iframed — it sends frame-ancestors 'none').
+      function renderLf(d) {
+        const spans = d.trace || [];
+        if (!spans.length) { lfpanel.innerHTML = `<div class="lf-empty">No trace spans for this run.</div>`; return; }
+        const totalTok = (d.usage && (d.usage.input + d.usage.output)) || 0;
+        const t0 = spans[0].start, t1 = spans[spans.length - 1].end;
+        const rows = spans.map(s => {
+          if (s.kind === "llm") {
+            return `<div class="lf-span lf-llm"><div class="lf-hd"><span class="lf-ic">◆</span>` +
+              `<span class="lf-name">GENERATION · llm · iter ${s.iter}</span>` +
+              `<span class="lf-badge">${dur(s.start, s.end)}</span>` +
+              `<span class="lf-badge tok">${(s.usage && s.usage.input) || 0}→${(s.usage && s.usage.output) || 0} tok</span>` +
+              `<span class="lf-model">${esc(s.model || "")}</span></div>` +
+              `<details class="lf-io"><summary>input · output${s.stop_reason ? " · stop: " + esc(s.stop_reason) : ""}</summary>` +
+              `<div class="lf-iolab">input (messages sent)</div><pre>${pj(s.input)}</pre>` +
+              `<div class="lf-iolab">output (assistant blocks)</div><pre>${pj(s.output)}</pre></details></div>`;
+          }
+          return `<div class="lf-span lf-tool"><div class="lf-hd"><span class="lf-ic tool">▸</span>` +
+            `<span class="lf-name">SPAN · tool · ${esc(s.tool)}</span>` +
+            `<span class="lf-badge">${dur(s.start, s.end)}</span></div>` +
+            `<details class="lf-io"><summary>input · output</summary>` +
+            `<div class="lf-iolab">input</div><pre>${pj(s.toolInput)}</pre>` +
+            `<div class="lf-iolab">output</div><pre>${esc(typeof s.output === "string" ? s.output : JSON.stringify(s.output, null, 2))}</pre></details></div>`;
+        }).join("");
+        lfpanel.innerHTML =
+          `<div class="lf-head"><span class="lf-h-name">TRACE · content.agent</span>` +
+          `<span class="lf-h-meta">${dur(t0, t1)} · ${totalTok} tokens · ${spans.filter(s => s.kind === "llm").length} generations · ${spans.filter(s => s.kind === "tool").length} tool spans</span></div>` +
+          `<div class="lf-note">The observability record for this run — the same trace stored in Langfuse (open the full tool below).</div>` +
+          `<div class="lf-tree">${rows}</div>`;
+      }
+      function pick(i) {
+        cur = i; tabEls.forEach((t, j) => t.classList.toggle("on", j === i));
+        const t = tabs[i]; goalEl.value = t.goal; goalEl.readOnly = !t.edit;
+        el.classList.toggle("is-locked", !t.edit);
+        steerBox.hidden = !t.edit; if (t.edit) { tcEl.value = t.tc; if (sysEl) sysEl.value = t.system || ""; }
+        trace.innerHTML = ""; finalEl.innerHTML = ""; finalEl.classList.remove("show"); hud.hidden = true; showTraceLink(null);
+        lfpanel.innerHTML = ""; viewEl.hidden = true; setView("traj");
+        if (cache[t.variant]) render(cache[t.variant], false);
+      }
+      tabEls.forEach((t, i) => t.addEventListener("click", () => pick(i)));
+
+      const esc2 = (s) => esc(typeof s === "string" ? s : JSON.stringify(s));
+      function stepNode(s) {
+        if (s.type === "thought") return `<div class="ag-step ag-thought"><span class="ag-tag">💭 Thought · iter ${s.iter}</span><div class="ag-body">${esc(s.text)}</div></div>`;
+        if (s.type === "action") return `<div class="ag-step ag-action"><span class="ag-tag">▸ Action · iter ${s.iter}</span><div class="ag-body"><code>${esc(s.tool)}(${esc2(s.input)})</code></div></div>`;
+        if (s.type === "observation") return `<div class="ag-step ag-obs"><span class="ag-tag">◂ Observation</span><div class="ag-body"><code>${esc(s.output)}</code></div></div>`;
+        if (s.type === "capped") return `<div class="ag-step ag-warn"><span class="ag-tag">⛔ Guardrail</span><div class="ag-body">${esc(s.text)}</div></div>`;
+        if (s.type === "error") return `<div class="ag-step ag-warn"><span class="ag-tag">⚠ Error</span><div class="ag-body">${esc(s.text)}</div></div>`;
+        return "";
+      }
+      function render(d, animate) {
+        hud.hidden = false;
+        const steps = d.steps || [];
+        const nodes = steps.map(stepNode).filter(Boolean);
+        tokEl.textContent = ((d.usage && (d.usage.input + d.usage.output)) || 0) + " tokens";
+        stopEl.textContent = "stop_reason: " + (d.stopReason || "—");
+        stopEl.className = "ag-stop " + (d.stopReason === "end_turn" ? "ok" : d.stopReason === "tool_use" || d.stopReason === "error" ? "warn" : "");
+        finalEl.innerHTML = d.final ? `<span class="ag-tag">✓ Answer</span><div class="ag-body">${esc(d.final)}</div>` : "";
+        renderLf(d); viewEl.hidden = !(d.trace && d.trace.length);
+        if (!animate) {
+          trace.innerHTML = nodes.join("");
+          iterEl.textContent = "iteration " + (d.iterations || 0);
+          finalEl.classList.toggle("show", !!d.final);
+          showTraceLink(d);
+          return;
+        }
+        trace.innerHTML = ""; finalEl.classList.remove("show"); showTraceLink(null);
+        let k = 0;
+        (function reveal() {
+          if (k >= nodes.length) {
+            iterEl.textContent = "iteration " + (d.iterations || 0);
+            finalEl.classList.add("show"); showTraceLink(d); return;
+          }
+          trace.insertAdjacentHTML("beforeend", nodes[k]);
+          const s = steps[k]; if (s && s.iter) iterEl.textContent = "iteration " + s.iter;
+          k++; setTimeout(reveal, 420);
+        })();
+      }
+
+      if (steer && tabs.length) { /* steer default off — start on first preset */ }
+      if (tabs.length) pick(0);
+      if (!url) { go.disabled = true; finalEl.innerHTML = `<div class="run-out info">Live agent loop not enabled yet — backend pending.</div>`; return; }
+
+      go.addEventListener("click", async () => {
+        const t = tabs[cur]; const goal = goalEl.value.trim(); if (!goal) return;
+        const idt = window.FDE_getIdentity ? window.FDE_getIdentity() : null;
+        const trainee = idt ? idt.code : "anon";
+        const tc = t.edit ? tcEl.value : t.tc;
+        const sys = t.edit && sysEl ? sysEl.value.trim() : (t.system || "");
+        go.disabled = true; trace.innerHTML = `<div class="ag-running">running the loop…</div>`; finalEl.innerHTML = ""; hud.hidden = true;
+        try {
+          const r = await fetch(url + "/agent", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ trainee, id, goal, tool_choice: tc, system: sys, variant: t.variant }),
+          });
+          const d = await r.json();
+          if (r.status === 429) {
+            left.textContent = "0";
+            if (d.steps) { cache[t.variant] = d; render(d, false); } else { trace.innerHTML = `<div class="run-out info">You've used all 3 steer-tries for this demo.</div>`; }
+            go.disabled = false; return;
+          }
+          if (!r.ok || !d.ok) { trace.innerHTML = `<div class="run-out err">${esc(d.error || "error")}</div>`; go.disabled = false; return; }
+          cache[t.variant] = d;
+          render(d, true);
+          if (typeof d.remaining === "number") left.textContent = d.remaining;
+          go.disabled = false;
+        } catch (e) { trace.innerHTML = `<div class="run-out err">network error</div>`; go.disabled = false; }
+      });
+    });
+  }
+
   // consistent interaction key — the same vocabulary on every reading
   function legend(elist) {
     elist.forEach(el => {
@@ -261,5 +439,6 @@
     costCalc(document.querySelectorAll(".ix-cost"));
     retrySim(document.querySelectorAll(".ix-retry"));
     runWidget(document.querySelectorAll(".ix-run"));
+    agentWidget(document.querySelectorAll(".ix-agent"));
   });
 })();

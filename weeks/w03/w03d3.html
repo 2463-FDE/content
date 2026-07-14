@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w03d3">
 <meta name="fde-concepts" content="agent-orchestration-framework,langchain-langgraph-v1,openai-agents-sdk-handoffs,crewai-crews-vs-flows,microsoft-agent-framework,agent-framework-selection-tradeoffs">
 <title>W3·D3 — The Agent Framework Landscape: LangChain, OpenAI, CrewAI &amp; Microsoft | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260710-g3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260714-w3d">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -138,10 +138,7 @@
         engine deciding who handles what: the orchestrating LLM makes the routing decision as one more tool selection.
         Once you see it this way, a triage-plus-specialists system stops being intimidating — it's a handful of agents,
         each exposed to the others as a transfer tool.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live handoff visualizer —
-        type a customer message ("I want my money back for order 412"), watch a triage agent emit the
-        <code>transfer_to_refund_agent</code> tool call, and see control route to the specialist with the tool name and
-        arguments shown inline. Needs backend standup.</p></div>
+        <div class="ix-handoff"></div>
         <p>This is also the mental bridge to the other frameworks. Every multi-agent system on today's board is, under
         the hood, answering the same question — <em>how does one agent decide to hand work to another?</em> — and the
         OpenAI SDK gives the cleanest answer: it's a tool call, so it's governed by everything you already know about
@@ -228,10 +225,7 @@
         maturity</strong>: LangChain/LangGraph's year-plus of production adoption before 1.0 versus newer entrants.
         Score the client against these axes, and the "which framework" argument stops being a taste debate and becomes a
         short, defensible mapping from their constraints to a choice.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a framework-selector wizard —
-        answer four questions (autonomous loop vs explicit graph, provider-agnostic vs OpenAI-first, enterprise
-        state/type-safety needs, ecosystem-maturity appetite) and get a ranked recommendation across the four frameworks
-        with the reasoning shown for each axis. Needs backend standup.</p></div>
+        <div class="ix-frameworks"></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -495,7 +489,8 @@ window.QUIZ = {
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
-<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive.js?v=20260714-w3d"></script>
+<script src="../../assets/js/interactive-agents.js?v=20260714-w3d"></script>
 <script src="../../assets/js/glossary.js?v=20260710-g3"></script>
 </body>
 </html>

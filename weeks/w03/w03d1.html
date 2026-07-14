@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w03d1">
 <meta name="fde-concepts" content="react-loop,augmented-llm,agent-complexity,tool-calling-loop,tool-use-contract,tool-choice">
 <title>W3·D1 — Agent Architectures & the ReAct Loop | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260710-g3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260714-w3d">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -111,10 +111,9 @@
         families — knowledge-intensive reasoning (HotpotQA multi-hop questions, FEVER fact verification) and interactive
         decision-making (ALFWorld, WebShop) — which is what established "reason + act" as a general pattern rather than a
         narrow trick. The loop is the point, not the domain.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: pose a multi-hop question and
-        watch a real Thought → Action → Observation trajectory unfold step by step against a live search tool — pausing
-        at each observation to see how it reshapes the next thought, and how a wrong turn gets caught and corrected.
-        Needs backend standup.</p></div>
+        <div class="ix-agent" data-id="w03d1-react" data-steer="1"
+          data-tools="lookup_order · lookup_customer · calculator"
+          data-presets='[{"label":"Multi-hop question","goal":"What support tier is the customer who placed order A1002, and what did they order?","tool_choice":"auto"}]'></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -195,10 +194,9 @@
         a maximum iteration count so a confused agent can't spin forever, and a running token budget so a long trajectory
         doesn't quietly blow the context window you spent all of Week 1 learning to respect. The loop is trivial to write
         and easy to write <em>unsafely</em>; that gap is exactly where an FDE earns their fee.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: single-step a live agentic loop
-        — fire a request, inspect the returned <code>stop_reason</code> and <code>tool_use</code> block, run the tool,
-        watch the <code>tool_result</code> get appended, and re-invoke — with the iteration counter and running token cost
-        visible so you feel where the guardrails need to sit. Needs backend standup.</p></div>
+        <div class="ix-agent" data-id="w03d1-loop"
+          data-tools="lookup_order · lookup_customer · calculator"
+          data-presets='[{"label":"Watch the loop iterate","goal":"Order A1003 was returned. The customer gets their enterprise discount off the order amount — what refund do they receive after the discount?","tool_choice":"auto"}]'></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="6">
@@ -246,10 +244,9 @@
         a smarter-model problem — it's <code>tool_choice: auto</code> where the task needed <code>any</code>. Set the
         knob to match the task's tolerance for the model improvising, and a surprising amount of "flaky agent" behavior
         simply disappears.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: send the same prompt four
-        times against a defined tool, flipping <code>tool_choice</code> between <code>auto</code>, <code>any</code>,
-        a named <code>tool</code>, and <code>none</code> — and watch the model swing from answering straight from memory
-        to being forced to call the tool every time. Needs backend standup.</p></div>
+        <div class="ix-agent" data-id="w03d1-toolchoice"
+          data-tools="lookup_order · lookup_customer · calculator"
+          data-presets='[{"label":"auto","goal":"What did the customer who placed order A1002 order, and what tier are they?","tool_choice":"auto"},{"label":"any","goal":"What did the customer who placed order A1002 order, and what tier are they?","tool_choice":"any"},{"label":"tool (named)","goal":"What did the customer who placed order A1002 order, and what tier are they?","tool_choice":"tool:lookup_order"},{"label":"none","goal":"What did the customer who placed order A1002 order, and what tier are they?","tool_choice":"none"}]'></div>
 
         <div class="callout mindset">
           <div class="k">FDE mindset</div>
@@ -496,7 +493,7 @@ window.QUIZ = {
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
-<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive.js?v=20260714-w3d"></script>
 <script src="../../assets/js/glossary.js?v=20260710-g3"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w03d5">
 <meta name="fde-concepts" content="create-agent-loop,agent-middleware-hooks,response-format-structured-output,builtin-production-middleware,mcp-multiserver-client">
 <title>W3·D5 — Building a Production Single Agent | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260710-g3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260714-w3d">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -91,9 +91,10 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         <p>This is the FDE value in one factory call. A junior engineer wires a raw model-plus-tools loop by hand and
         reinvents retries, limits, and logging badly. You reach for the factory that already has the extension points and
         spend your time on the client's actual policy — what's allowed, what needs a human, what must be redacted.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live <code>create_agent</code>
-        playground — type a system prompt, toggle a couple of demo tools, send a message, and watch the raw loop trace
-        (model → tool call → result → model) stream back. Needs backend standup.</p></div>
+        <div class="ix-agent" data-id="w03d5-createagent" data-steer="1" data-steer-system="1"
+          data-tools="lookup_order · lookup_customer · calculator"
+          data-system="You are a support agent. Use the tools to ground every fact — never guess an order, customer, or number you can look up. Answer in one or two short sentences."
+          data-presets='[{"label":"create_agent, one message","goal":"A customer is asking about order A1002 — what did they buy and what tier of support are they entitled to?","tool_choice":"auto","system":"You are a support agent. Use the tools to ground every fact — never guess an order, customer, or number you can look up. Answer in one or two short sentences."}]'></div>
       </section>
 
       <section class="step" data-diagram="2" data-step="2">
@@ -185,9 +186,9 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         with no brittle string-parsing in between. Free text impresses in a demo; a typed contract is what lets the agent
         become a step in an actual business process. Getting the structure for free inside the loop, rather than paying
         for a second call to bolt it on, is the kind of quiet efficiency a client notices on the invoice.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: define a Pydantic schema in the
-        browser, run the agent with and without <code>response_format</code>, and compare the two traces side by side —
-        one loop that returns a typed object vs. one that makes a second call to reformat. Needs backend standup.</p></div>
+        <div class="ix-agent" data-id="w03d5-structured"
+          data-tools="lookup_order · lookup_customer · record_ticket"
+          data-presets='[{"label":"With response_format (typed object)","goal":"Resolve this ticket: the customer is asking about the status of order A1002. Look up what you need, then record the resolved ticket.","tool_choice":"auto","system":"You are a support agent with a lookup_order tool and a record_ticket tool. First look up any facts you need. You MUST finish by emitting the resolved ticket as a structured record_ticket call — never a prose reply."},{"label":"Without (free text you must parse)","goal":"Resolve this ticket: the customer is asking about the status of order A1002. Look up what you need, then tell me the resolution.","tool_choice":"auto","system":"You are a support agent. Look up any facts you need, then reply in prose. Do not call record_ticket."}]'></div>
       </section>
 
       <section class="step" data-diagram="6" data-step="6">
@@ -506,7 +507,7 @@ window.QUIZ = {
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
-<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive.js?v=20260714-w3d"></script>
 <script src="../../assets/js/glossary.js?v=20260710-g3"></script>
 </body>
 </html>

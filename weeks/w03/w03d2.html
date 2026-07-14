@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w03d2">
 <meta name="fde-concepts" content="mcp-host-client-server,mcp-server-primitives,mcp-tool-invocation,mcp-transports,mcp-capability-negotiation,mcp-tool-safety-hitl">
 <title>W3·D2 — Tools &amp; MCP | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260710-g3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260714-w3d">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -133,9 +133,7 @@
         allows, and a client can validate the arguments before anything executes. The description and schema together
         are your primary lever on tool <em>quality</em>: a vague description gets a tool called at the wrong moment; a
         loose schema gets it called with garbage. Both are FDE tuning surface.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live tool inspector — connect
-        to a demo MCP server, fire a real <code>tools/list</code>, browse each Tool object's schema and annotations, then
-        build a <code>tools/call</code> from a form and watch the round-trip. Needs backend standup.</p></div>
+        <div class="ix-mcp"></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -183,10 +181,7 @@
         endpoints (one POST, one long-lived SSE), it's teaching the old two-endpoint design. The current model is a
         single endpoint that <em>optionally</em> streams. Pin your reading to a dated revision — MCP moves fast enough
         that undated blog posts are a real trap.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a wire viewer — pick stdio or
-        Streamable HTTP and watch the same <code>initialize</code> → <code>tools/call</code> exchange as raw JSON-RPC
-        frames, with the SSE upgrade and the <code>MCP-Protocol-Version</code> / <code>MCP-Session-Id</code> headers
-        highlighted. Needs backend standup.</p></div>
+        <div class="ix-transport"></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="6">
@@ -232,10 +227,7 @@
         model call tools" — that's easy — but "make sure it can't call the wrong tool, without consent, against a
         server that lied about being safe, reachable from the open internet." Diagnose the consent path before you
         celebrate the capability.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a consent-gate simulator — the
-        model proposes a <code>tools/call</code>, you see the approve/deny prompt, toggle a server between "trusted" and
-        "untrusted" to watch how annotations are (dis)trusted, and try an <code>Origin</code>-header attack against a
-        server bound to localhost vs <code>0.0.0.0</code>. Needs backend standup.</p></div>
+        <div class="ix-consent"></div>
       </section>
 
       <section class="step extra" data-diagram="0" data-step="8">
@@ -519,7 +511,8 @@ window.QUIZ = {
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
-<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive.js?v=20260714-w3d"></script>
+<script src="../../assets/js/interactive-agents.js?v=20260714-w3d"></script>
 <script src="../../assets/js/glossary.js?v=20260710-g3"></script>
 </body>
 </html>

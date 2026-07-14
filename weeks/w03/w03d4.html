@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w03d4">
 <meta name="fde-concepts" content="short-term-memory,long-term-memory,memory-store,memory-type-taxonomy,virtual-context-management">
 <title>W3·D4 — Agent Memory: Working vs Long-Term Stores | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260710-g3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260714-w3d">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -104,12 +104,7 @@
         <em>deliberate forgetting</em> — you choose what stale information to let go of to manage token usage and keep the
         agent fast. This is the same discipline you met in Week 1 as history eviction, but now you're the one doing it on
         purpose, with a strategy, rather than letting the front of the window silently drop off.</p>
-        <div class="ix-future">
-          <div class="k">Interactive — future goal</div>
-          <p>Planned: a live "watch it compress" panel — run a long tool-heavy conversation, then hit a token ceiling and
-          see the middle turns collapse into a one-line summary while the running total drops. You'd toggle
-          <em>trim</em> vs <em>summarize</em> and compare what each strategy loses. Needs backend standup.</p>
-        </div>
+        <div class="ix-compress"></div>
         <p>The FDE reflex to build here: when an agent "loses the plot" partway through a long task, don't reach for a
         bigger model. Ask whether its working memory blew past the window and got crudely truncated. The fix is a
         <strong>memory-management strategy</strong> — trim, summarize, or offload — not more parameters. And notice the
@@ -202,12 +197,7 @@
         <strong>archival storage</strong> (a read/write database of arbitrary-length text). Map that back onto today: main
         context is your short-term tier, external context is your long-term tier, and the sections are just the anatomy of
         each.</p>
-        <div class="ix-future">
-          <div class="k">Interactive — future goal</div>
-          <p>Planned: a MemGPT-style paging visualizer — the agent hits a full window, issues a function call to evict old
-          turns to recall storage, then later issues another call to page a relevant memory back from archival storage into
-          main context. You'd step through the calls and watch data move between RAM and disk. Needs backend standup.</p>
-        </div>
+        <div class="ix-paging"></div>
         <p>The genius stroke is <em>who drives the paging</em>. In MemGPT, "memory edits and retrieval are entirely
         self-directed": the LLM autonomously issues the function calls to move data between main and external context. The
         model manages its own memory the way a program requests pages — except the program is doing the requesting via tool
@@ -460,7 +450,8 @@ window.QUIZ = {
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
-<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive.js?v=20260714-w3d"></script>
+<script src="../../assets/js/interactive-agents.js?v=20260714-w3d"></script>
 <script src="../../assets/js/glossary.js?v=20260710-g3"></script>
 </body>
 </html>
