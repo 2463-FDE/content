@@ -72,8 +72,38 @@
         banner +
         rows +
         (stale ? '<div class="cu-foot">shared across the cohort · updated ' + stale + '</div>' : '') +
-      '</div>';
+      '</div>' +
+      metricsHTML(usage.metrics);
     host.style.display = "";
+  }
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // Compact, positive cohort-usage block. Counts only — no quality scores.
+  // Highlights the most-active devs rather than ranking everyone.
+  function metricsHTML(m) {
+    if (!m || !Array.isArray(m.top) || !m.top.length) return "";
+    var max = m.top.reduce(function (a, t) { return Math.max(a, t.reviews || 0); }, 1);
+    var medal = ["🥇", "🥈", "🥉"]; // 🥇🥈🥉
+    var rows = m.top.map(function (t, i) {
+      var w = Math.max(6, Math.round((t.reviews || 0) / max * 100));
+      return '<div class="cu-top-row">' +
+          '<span class="cu-top-name">' + (medal[i] || "") + " " + esc(t.name) + '</span>' +
+          '<span class="cu-top-bar"><span style="width:' + w + '%"></span></span>' +
+          '<span class="cu-top-n">' + (t.reviews || 0) + '</span>' +
+        '</div>';
+    }).join("");
+    var wk = (typeof m.reviews_7d === "number" && m.reviews_7d > 0)
+      ? ' · <b>' + m.reviews_7d + '</b> this week' : "";
+    var stat = (m.total_reviews || 0) + ' reviews · ' + (m.active_devs || m.top.length) + ' devs' + wk;
+    return (
+      '<div class="cu-card cu-metrics">' +
+        '<div class="cu-head"><span class="cu-title">📈 Most Active</span></div>' +
+        '<div class="cu-mstat">' + stat + '</div>' +
+        '<div class="cu-top">' + rows + '</div>' +
+      '</div>'
+    );
   }
 
   function mount() {
