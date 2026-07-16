@@ -1126,3 +1126,25 @@ html[data-theme="dark"] .ritual.cr { color:#5fe3c0; border-color:rgba(56,217,169
 .gm-sug-msg.err { color: var(--bad-ink); }
 @media (max-width: 700px) { .gloss-modal { padding: 22px 18px 24px; } }
 html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247,.45); background:rgba(132,94,247,.14); }
+
+/* ---- Codex review-agent quota window (index sidebar, under Resources) ---- */
+#codex-usage { margin-top: 14px; width: 232px; max-width: 100%; }
+.cu-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 12px 13px 11px; box-shadow: 0 1px 3px rgba(0,0,0,.04); text-align: left; }
+.cu-card.is-limit { border-color: var(--bad-line, #ffc9c9); background: var(--bad-soft, #fff5f5); }
+.cu-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+.cu-title { font-size: 12.5px; font-weight: 700; color: var(--ink); letter-spacing: .01em; }
+.cu-plan { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent-ink, var(--accent)); background: var(--accent-soft); border: 1px solid var(--accent-line, var(--line)); border-radius: 999px; padding: 2px 7px; }
+.cu-limit { font-size: 11.5px; font-weight: 600; color: var(--bad-ink, #c92a2a); margin-bottom: 9px; line-height: 1.35; }
+.cu-row { margin-bottom: 10px; }
+.cu-row:last-of-type { margin-bottom: 6px; }
+.cu-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+.cu-row-label { font-size: 11px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .05em; }
+.cu-pct { font-size: 12px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.cu-bar { height: 7px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
+.cu-fill { height: 100%; border-radius: 5px 0 0 5px; transition: width .3s ease; }
+.cu-fill.ok { background: var(--good, #2f9e44); }
+.cu-fill.warn { background: #e8871e; }
+.cu-fill.crit { background: var(--bad, #e03131); }
+.cu-sub { font-size: 10.5px; color: var(--ink-soft); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.cu-foot { font-size: 10px; color: var(--ink-soft); opacity: .8; border-top: 1px dashed var(--line); padding-top: 7px; margin-top: 8px; line-height: 1.3; }
+@media (max-width: 700px) { #codex-usage { width: 100%; margin-left: auto; margin-right: auto; } }
