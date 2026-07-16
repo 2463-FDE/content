@@ -77,15 +77,17 @@
   }
 
   function mount() {
-    var right = document.querySelector(".hero-right");
-    if (!right) return;
     var host = document.getElementById("codex-usage");
     if (!host) {
+      // Fallback: append to the sidebar rail (or legacy hero-right) if the
+      // placeholder div isn't in the page.
+      var rail = document.querySelector(".cal-rail") || document.querySelector(".hero-right");
+      if (!rail) return;
       host = document.createElement("div");
       host.id = "codex-usage";
-      host.style.display = "none";
-      right.appendChild(host);
+      rail.appendChild(host);
     }
+    host.style.display = "none";
     var t = token();
     if (!t) return; // not logged in — auth.js overlay will handle it
     fetch(RUN + "/codex-usage", { headers: { authorization: "Bearer " + t } })
