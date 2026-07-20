@@ -76,6 +76,12 @@
     var h = Math.floor(mins / 60), m = mins % 60;
     return "about " + h + " hr" + (m ? " " + m + " min" : "");
   }
+  // Compact form for the badge: "45 min" / "1 hr 15 min".
+  function fmtDurationShort(mins) {
+    if (mins < 60) return mins + " min";
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return h + " hr" + (m ? " " + m + " min" : "");
+  }
 
   // ---- State --------------------------------------------------------------
   var state = {
@@ -520,7 +526,7 @@
     if (!Array.isArray(state.selDays)) state.selDays = [];
     if (typeof state.cumulative !== "boolean") state.cumulative = false;
 
-    // scope floor: exactly one day → 2; whole week / multiple days → 10.
+    // Scope floor: exactly ONE day selected → 2; whole week / multiple days → 10.
     function scopeMin() { return state.selDays.length === 1 ? COUNT_MIN : COUNT_WEEK_MIN; }
     if (typeof state.count !== "number") state.count = COUNT_WEEK_MIN;
 
@@ -530,27 +536,43 @@
 
     var dayChips = el("div", { class: "iv-daychips", id: "ivDayChips" });
     var scopeHint = el("p", { class: "iv-scope-hint", id: "ivScopeHint" });
+    // The slider ALWAYS spans 2–20 (a stable track). The scope floor is enforced by
+    // snapping the value up — not by moving the track — so switching week↔day never
+    // makes the same count jump to a different thumb position.
     var slider = el("input", { class: "iv-slider", id: "ivCount", type: "range", min: String(COUNT_MIN), max: String(COUNT_MAX), step: "1" });
     var countLabel = el("span", { class: "iv-count-val", id: "ivCountVal" });
-    var timeEst = el("p", { class: "iv-time-est", id: "ivTimeEst" });
+    // Estimated-time badge (colored block, top-right of the section).
+    var timeBig = el("span", { class: "iv-time-badge-big" });
+    var timeBadge = el("div", { class: "iv-time-badge", id: "ivTimeBadge" }, [
+      el("span", { class: "iv-time-badge-cap", text: "Est. time" }),
+      timeBig
+    ]);
+    var timeDetail = el("p", { class: "iv-time-est", id: "ivTimeEst" });
     var cumBox = el("input", { type: "checkbox", id: "ivCumulative" });
     if (state.cumulative) cumBox.checked = true;
 
-    function syncCountUI() {
-      var min = scopeMin();
-      slider.min = String(min);
-      if (state.count < min) state.count = min;
-      if (state.count > COUNT_MAX) state.count = COUNT_MAX;
-      slider.value = String(state.count);
-      countLabel.textContent = state.count + " question" + (state.count === 1 ? "" : "s");
-      timeEst.textContent = "Estimated time: " + fmtDuration(estimateMins(state.count)) +
-        " (~" + MINS_PER_Q + " min/question + " + FEEDBACK_REVIEW_MINS + " min to review feedback).";
-      var floorNote = min === COUNT_WEEK_MIN
-        ? "A full week needs at least " + COUNT_WEEK_MIN + " questions."
-        : "A single day needs at least " + COUNT_MIN + " questions.";
+    // Single source of truth = state.count. Every path funnels through applyCount,
+    // which clamps to [floor, MAX] and re-syncs the slider + all labels together —
+    // no value/min desync, so nothing "jumps" unexpectedly.
+    function applyCount(n) {
+      var floor = scopeMin();
+      var c = parseInt(n, 10);
+      if (isNaN(c)) c = floor;
+      c = Math.max(floor, Math.min(COUNT_MAX, c));
+      state.count = c;
+      slider.value = String(c);
+      countLabel.textContent = c + " question" + (c === 1 ? "" : "s");
+      var mins = estimateMins(c);
+      timeBig.textContent = fmtDurationShort(mins);
+      timeDetail.textContent = "~" + MINS_PER_Q + " min/question + " + FEEDBACK_REVIEW_MINS + " min to review feedback.";
+    }
+
+    function syncScope() {
+      var floor = scopeMin();
       scopeHint.textContent = state.selDays.length
-        ? (state.selDays.length + " day" + (state.selDays.length === 1 ? "" : "s") + " selected. " + floorNote)
-        : ("All days of this week (default). " + floorNote);
+        ? (state.selDays.length + " day" + (state.selDays.length === 1 ? "" : "s") + " selected — min " + floor + " questions.")
+        : ("Whole week (default) — min " + COUNT_WEEK_MIN + " questions. Select days to narrow it.");
+      applyCount(state.count); // re-clamp to the new floor
     }
 
     function rebuildDayChips() {
@@ -567,7 +589,7 @@
           var i = state.selDays.indexOf(d.v);
           if (i >= 0) state.selDays.splice(i, 1); else state.selDays.push(d.v);
           rebuildDayChips();
-          syncCountUI();
+          syncScope();
         });
         dayChips.appendChild(chip);
       });
@@ -577,23 +599,21 @@
       state.selWeek = weekSel.value;
       state.selDays = []; // switching week resets to whole-week default
       rebuildDayChips();
-      syncCountUI();
+      syncScope();
     });
-    slider.addEventListener("input", function () {
-      var v = parseInt(slider.value, 10);
-      state.count = isNaN(v) ? scopeMin() : v;
-      // don't fight the user mid-drag on the floor; clamp on next sync
-      countLabel.textContent = state.count + " question" + (state.count === 1 ? "" : "s");
-      timeEst.textContent = "Estimated time: " + fmtDuration(estimateMins(state.count)) +
-        " (~" + MINS_PER_Q + " min/question + " + FEEDBACK_REVIEW_MINS + " min to review feedback).";
-    });
-    slider.addEventListener("change", syncCountUI);
+    // Live while dragging: snap the value up to the floor if the user tries to go
+    // below it (the thumb visibly springs back), keeping the track stable.
+    slider.addEventListener("input", function () { applyCount(slider.value); });
     cumBox.addEventListener("change", function () { state.cumulative = cumBox.checked; });
 
     rebuildDayChips();
-    syncCountUI();
+    syncScope();
 
     var node = el("div", { class: "iv-config" }, [
+      el("div", { class: "iv-config-header" }, [
+        el("h3", { class: "iv-config-title", text: "Customize your interview" }),
+        timeBadge
+      ]),
       el("div", { class: "iv-config-row" }, [
         el("label", { class: "field-label", for: "ivWeek", text: "Week" }),
         weekSel
@@ -613,13 +633,12 @@
           countLabel
         ]),
         slider,
-        timeEst
+        timeDetail
       ])
     ]);
 
     function getConfig() {
-      var min = scopeMin();
-      var count = Math.max(min, Math.min(COUNT_MAX, state.count || min));
+      var count = Math.max(scopeMin(), Math.min(COUNT_MAX, state.count || scopeMin()));
       var days = state.selDays.length
         ? state.selDays.slice()
         : daysOfWeek(state.selWeek).map(function (d) { return d.v; });
@@ -698,7 +717,6 @@
     var ivConfig = interviewConfigPanel();
     state.getIvConfig = ivConfig.getConfig;
     var focusRow = el("div", { class: "lobby-focus lobby-focus--config" }, [
-      el("h3", { class: "iv-config-title", text: "Customize your interview" }),
       ivConfig.node
     ]);
 

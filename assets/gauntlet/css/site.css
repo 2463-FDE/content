@@ -701,7 +701,18 @@ html[data-theme="dark"] .fb-delivery__label { color: #b9a3ff; }
 
 /* ===================== Interview customization (Feature 1) ===================== */
 .lobby-focus--config { display: block; }
-.iv-config-title { margin: 6px 0 10px; font-size: 1.05rem; }
+.iv-config-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin: 6px 0 12px; }
+.iv-config-title { margin: 0; font-size: 1.05rem; align-self: center; }
+/* Estimated-time badge — colored block, top-right of the section */
+.iv-time-badge {
+  flex: 0 0 auto; text-align: right; line-height: 1.1;
+  background: linear-gradient(135deg, rgba(232,89,12,.14), rgba(232,89,12,.06));
+  border: 1px solid rgba(232,89,12,.32);
+  border-radius: var(--radius-sm); padding: 8px 14px; min-width: 108px;
+}
+.iv-time-badge-cap { display: block; font-size: .62rem; text-transform: uppercase; letter-spacing: .07em; color: var(--accent); font-weight: 700; margin-bottom: 2px; }
+.iv-time-badge-big { display: block; font-size: 1.15rem; font-weight: 800; color: var(--accent); white-space: nowrap; }
+html[data-theme="dark"] .iv-time-badge { background: linear-gradient(135deg, rgba(255,122,51,.2), rgba(255,122,51,.07)); border-color: rgba(255,122,51,.4); }
 .iv-config { display: flex; flex-direction: column; gap: 14px; }
 .iv-config-row { display: flex; flex-direction: column; gap: 6px; }
 .iv-daychips { display: flex; flex-wrap: wrap; gap: 8px; }
