@@ -109,19 +109,61 @@
     ]);
   }
 
+  // ---- material selector (mirrors the AI-interview week/day picker) --------
+  function weekList() {
+    var seen = {}, out = [];
+    (window.FDE_CURRICULUM_DAYS || []).forEach(function (d) {
+      var w = d.v.slice(0, 3);
+      if (!seen[w]) { seen[w] = true; out.push({ w: w, label: "Week " + parseInt(w.slice(1), 10) }); }
+    });
+    return out;
+  }
+  function daysOfWeek(w) {
+    return (window.FDE_CURRICULUM_DAYS || []).filter(function (d) { return d.v.slice(0, 3) === w; });
+  }
+
   // ---- intro (pick material) ----------------------------------------------
   function renderIntro() {
     window.STT && window.STT.tts && window.STT.tts.cancel && window.STT.tts.cancel();
     var root = app();
     clear(root);
 
-    var days = window.FDE_CURRICULUM_DAYS || [];
-    var daySel = el("select", { class: "field", id: "collabDay" });
-    daySel.appendChild(el("option", { value: "", text: "Latest available (recommended)" }));
-    days.forEach(function (d) { daySel.appendChild(el("option", { value: d.v, text: d.t })); });
+    if (!S.selWeek) S.selWeek = (window.FDE_DEFAULT_DAY || "w01d5").slice(0, 3);
+    if (!Array.isArray(S.selDays)) S.selDays = [];
+
+    var weekSel = el("select", { class: "field", id: "collabWeek" });
+    weekList().forEach(function (wk) { weekSel.appendChild(el("option", { value: wk.w, text: wk.label })); });
+    weekSel.value = S.selWeek;
+
+    var dayChips = el("div", { class: "iv-daychips", id: "collabDayChips" });
+    var scopeHint = el("p", { class: "iv-scope-hint", id: "collabScopeHint" });
+
+    function syncHint() {
+      scopeHint.textContent = S.selDays.length
+        ? (S.selDays.length + " day" + (S.selDays.length === 1 ? "" : "s") + " selected — your teammate's issue comes from this material.")
+        : "Whole week (default) — a teammate scenario drawn from anywhere this week.";
+    }
+    function rebuildChips() {
+      clear(dayChips);
+      daysOfWeek(S.selWeek).forEach(function (d) {
+        var on = S.selDays.indexOf(d.v) >= 0;
+        var chip = el("button", { class: "iv-chip" + (on ? " is-on" : ""), type: "button", "aria-pressed": on ? "true" : "false", text: "Day " + d.v.slice(4).replace(/^d/, "") });
+        chip.addEventListener("click", function () {
+          var i = S.selDays.indexOf(d.v);
+          if (i >= 0) S.selDays.splice(i, 1); else S.selDays.push(d.v);
+          rebuildChips(); syncHint();
+        });
+        dayChips.appendChild(chip);
+      });
+    }
+    weekSel.addEventListener("change", function () { S.selWeek = weekSel.value; S.selDays = []; rebuildChips(); syncHint(); });
+    rebuildChips(); syncHint();
 
     var startBtn = el("button", { class: "btn btn--primary btn--lg", type: "button", text: "Start the chat" });
-    startBtn.addEventListener("click", function () { startSession(daySel.value || null); });
+    startBtn.addEventListener("click", function () {
+      var days = S.selDays.length ? S.selDays.slice() : daysOfWeek(S.selWeek).map(function (d) { return d.v; });
+      startSession({ days: days });
+    });
 
     var card = el("div", { class: "card screen-in" }, [
       el("h2", { class: "panel-title", text: "How this works" }),
@@ -131,23 +173,32 @@
         el("li", { text: "You're scored on the QUALITY of the collaboration — clarity, curiosity, resourcefulness, sincerity — not how fast you “win.”" }),
         el("li", { text: "Keep it under ~20 messages. Wrap up when it feels resolved, then hit Finish for feedback." })
       ]),
-      el("div", { class: "iv-config-row" }, [
-        el("label", { class: "field-label", for: "collabDay", text: "Material focus" }),
-        daySel
+      el("div", { class: "iv-config" }, [
+        el("div", { class: "iv-config-cols" }, [
+          el("div", { class: "iv-config-row iv-config-col--week" }, [
+            el("label", { class: "field-label", for: "collabWeek", text: "Week" }),
+            weekSel
+          ]),
+          el("div", { class: "iv-config-row iv-config-col--days" }, [
+            el("label", { class: "field-label", text: "Days (optional — leave empty for the whole week)" }),
+            dayChips,
+            scopeHint
+          ])
+        ])
       ]),
       el("div", { class: "lobby-actions" }, [startBtn])
     ]);
     root.appendChild(el("div", { class: "screen" }, [topbar("Collaborator Chat", "Coach a teammate through the week's material."), card]));
   }
 
-  function startSession(day) {
+  function startSession(sel) {
     var root = app();
     clear(root);
     root.appendChild(el("div", { class: "screen" }, [
       topbar("Collaborator Chat", null),
       el("div", { class: "card screen-in" }, [el("p", { class: "sd-sub", text: "Your teammate is typing…" })])
     ]));
-    window.API.collabStart(S.name, S.passcode, day)
+    window.API.collabStart(S.name, S.passcode, sel)
       .then(function (data) {
         if (data && data.ok) { S.sessionId = data.sessionId; renderChat(data); }
         else if (data && data.error === "cap_reached") { toast("You've hit today's Collaborator Chat limit. Come back tomorrow.", "warn"); renderIntro(); }

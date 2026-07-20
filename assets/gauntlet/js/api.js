@@ -212,8 +212,15 @@
   }
 
   // ---- Collaborator Chat wrappers (Feature 2) ----------------------------
-  function collabStart(name, passcode, day) {
-    return post("/collab/start", { name: name, passcode: passcode, day: day || null }).catch(function (e) {
+  // `sel` may be a day string (legacy) or { day, days:[…] } to scope the scenario.
+  function collabStart(name, passcode, sel) {
+    var body = { name: name, passcode: passcode };
+    if (typeof sel === "string") body.day = sel || null;
+    else if (sel && typeof sel === "object") {
+      if (sel.day) body.day = sel.day;
+      if (Array.isArray(sel.days) && sel.days.length) body.days = sel.days;
+    }
+    return post("/collab/start", body).catch(function (e) {
       toast(e.message || "Could not start the collaborator chat.");
       throw e;
     });
