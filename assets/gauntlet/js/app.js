@@ -526,8 +526,8 @@
     if (!Array.isArray(state.selDays)) state.selDays = [];
     if (typeof state.cumulative !== "boolean") state.cumulative = false;
 
-    // Scope floor: exactly ONE day selected → 2; whole week / multiple days → 10.
-    function scopeMin() { return state.selDays.length === 1 ? COUNT_MIN : COUNT_WEEK_MIN; }
+    // Scope floor: ANY specific-day selection → 2; whole week (no days) → 10.
+    function scopeMin() { return state.selDays.length >= 1 ? COUNT_MIN : COUNT_WEEK_MIN; }
     if (typeof state.count !== "number") state.count = COUNT_WEEK_MIN;
 
     var weekSel = el("select", { class: "field", id: "ivWeek" });
@@ -570,7 +570,7 @@
     function syncScope() {
       var floor = scopeMin();
       scopeHint.textContent = state.selDays.length
-        ? (state.selDays.length + " day" + (state.selDays.length === 1 ? "" : "s") + " selected — min " + floor + " questions.")
+        ? (state.selDays.length + " day" + (state.selDays.length === 1 ? "" : "s") + " selected (2 questions per day; adjust below, min " + COUNT_MIN + ").")
         : ("Whole week (default) — min " + COUNT_WEEK_MIN + " questions. Select days to narrow it.");
       applyCount(state.count); // re-clamp to the new floor
     }
@@ -586,8 +586,15 @@
           text: "Day " + d.v.slice(4).replace(/^d/, "")
         });
         chip.addEventListener("click", function () {
+          var prevN = state.selDays.length;
           var i = state.selDays.indexOf(d.v);
           if (i >= 0) state.selDays.splice(i, 1); else state.selDays.push(d.v);
+          var newN = state.selDays.length;
+          // Day selection drives the count: first day → 2, +2 per additional day,
+          // −2 when a day is removed, and back to the whole-week default when none
+          // remain. applyCount (via syncScope) clamps to [floor, MAX] afterward.
+          if (newN > prevN) state.count = (prevN === 0) ? COUNT_MIN : state.count + 2;
+          else if (newN < prevN) state.count = (newN === 0) ? COUNT_WEEK_MIN : state.count - 2;
           rebuildDayChips();
           syncScope();
         });
@@ -597,7 +604,8 @@
 
     weekSel.addEventListener("change", function () {
       state.selWeek = weekSel.value;
-      state.selDays = []; // switching week resets to whole-week default
+      state.selDays = [];              // switching week resets to whole-week default
+      state.count = COUNT_WEEK_MIN;    // …and the count back to the week default (10)
       rebuildDayChips();
       syncScope();
     });
@@ -614,14 +622,16 @@
         el("h3", { class: "iv-config-title", text: "Customize your interview" }),
         timeBadge
       ]),
-      el("div", { class: "iv-config-row" }, [
-        el("label", { class: "field-label", for: "ivWeek", text: "Week" }),
-        weekSel
-      ]),
-      el("div", { class: "iv-config-row" }, [
-        el("label", { class: "field-label", text: "Days (optional — leave empty for the whole week)" }),
-        dayChips,
-        scopeHint
+      el("div", { class: "iv-config-cols" }, [
+        el("div", { class: "iv-config-row iv-config-col--week" }, [
+          el("label", { class: "field-label", for: "ivWeek", text: "Week" }),
+          weekSel
+        ]),
+        el("div", { class: "iv-config-row iv-config-col--days" }, [
+          el("label", { class: "field-label", text: "Days (optional — leave empty for the whole week)" }),
+          dayChips,
+          scopeHint
+        ])
       ]),
       el("label", { class: "iv-cumulative" }, [
         cumBox,

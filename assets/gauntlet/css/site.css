@@ -715,6 +715,11 @@ html[data-theme="dark"] .fb-delivery__label { color: #b9a3ff; }
 html[data-theme="dark"] .iv-time-badge { background: linear-gradient(135deg, rgba(255,122,51,.2), rgba(255,122,51,.07)); border-color: rgba(255,122,51,.4); }
 .iv-config { display: flex; flex-direction: column; gap: 14px; }
 .iv-config-row { display: flex; flex-direction: column; gap: 6px; }
+/* Week + Days side by side (stacks on narrow screens) */
+.iv-config-cols { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+.iv-config-col--week { flex: 0 0 160px; }
+.iv-config-col--days { flex: 1 1 260px; min-width: 240px; }
+@media (max-width: 560px) { .iv-config-col--week, .iv-config-col--days { flex: 1 1 100%; } }
 .iv-daychips { display: flex; flex-wrap: wrap; gap: 8px; }
 .iv-chip {
   background: var(--panel-2); color: var(--muted);
