@@ -94,8 +94,19 @@
     });
   }
 
-  function startInterview(name, passcode, day) {
-    return post("/interview/start", { name: name, passcode: passcode, day: day || null }).catch(function (e) {
+  // `opts` may be a plain day string (legacy) or a customization object
+  // { day, days:[…], cumulative:bool, count:N } for a customized interview.
+  function startInterview(name, passcode, opts) {
+    var body = { name: name, passcode: passcode };
+    if (typeof opts === "string") {
+      body.day = opts || null;
+    } else if (opts && typeof opts === "object") {
+      if (opts.day) body.day = opts.day;
+      if (Array.isArray(opts.days) && opts.days.length) body.days = opts.days;
+      if (opts.cumulative) body.cumulative = true;
+      if (opts.count) body.count = opts.count;
+    }
+    return post("/interview/start", body).catch(function (e) {
       toast(e.message || "Could not start the interview.");
       throw e;
     });
@@ -200,6 +211,32 @@
     });
   }
 
+  // ---- Collaborator Chat wrappers (Feature 2) ----------------------------
+  function collabStart(name, passcode, day) {
+    return post("/collab/start", { name: name, passcode: passcode, day: day || null }).catch(function (e) {
+      toast(e.message || "Could not start the collaborator chat.");
+      throw e;
+    });
+  }
+  function collabMessage(sessionId, text) {
+    return post("/collab/message", { sessionId: sessionId, text: text }).catch(function (e) {
+      toast(e.message || "Your colleague didn't respond. Try again.");
+      throw e;
+    });
+  }
+  function collabFinish(sessionId) {
+    return post("/collab/finish", { sessionId: sessionId }).catch(function (e) {
+      toast(e.message || "Could not wrap up the chat.");
+      throw e;
+    });
+  }
+  function collabHistory(name, passcode) {
+    return post("/collab/history", { name: name, passcode: passcode }).catch(function (e) {
+      toast(e.message || "Could not load your past chats.");
+      throw e;
+    });
+  }
+
   window.API = {
     session: session,
     startInterview: startInterview,
@@ -218,6 +255,11 @@
     trainerReport: trainerReport,
     designHistory: designHistory,
     designReport: designReport,
-    trainerSession: trainerSession
+    trainerSession: trainerSession,
+    // Collaborator Chat
+    collabStart: collabStart,
+    collabMessage: collabMessage,
+    collabFinish: collabFinish,
+    collabHistory: collabHistory
   };
 })();

@@ -158,7 +158,7 @@
             '<div id="ov-msg" class="tr-msg">Loading…</div>' +
             '<div style="overflow-x:auto">' +
               '<table class="tr-ov" id="ov-tbl" style="display:none"><thead><tr>' +
-                '<th>Name</th><th>Cohort</th><th>Role</th><th>Days done</th><th>Interview best</th><th>SD best</th><th>Mastery</th><th>Top weak concepts</th>' +
+                '<th>Name</th><th>Cohort</th><th>Role</th><th>Days done</th><th>Interview best</th><th>Weekly</th><th>Collab best</th><th>SD best</th><th>Mastery</th><th>Top weak concepts</th>' +
               '</tr></thead><tbody id="ov-body"></tbody></table>' +
             '</div>' +
           '</div>' +
@@ -352,11 +352,20 @@
         ? '<span class="ov-weak">' + l.weakConcepts.slice(0, 4).map(esc).join(" · ") + '</span>'
         : '<span class="ov-na">none open</span>';
       const days = l.daysCompleted == null ? '<span class="ov-na" title="Login code not recoverable for this account">n/a</span>' : esc(String(l.daysCompleted));
+      // Weekly interview cadence (Feature 1): ✓ done / — not yet this ISO week.
+      // Practice identities are never nagged, so show n/a for them.
+      const weekly = l.role === "practice"
+        ? '<span class="ov-na">—</span>'
+        : (l.weeklyInterviewDone
+            ? '<span class="tr-pill mastered">✓</span>'
+            : '<span class="tr-pill notmastered">due</span>');
       return '<tr><td class="who">' + esc(l.name) + '</td>' +
         '<td>' + cohortPill(l.cohort) + '</td>' +
         '<td><span class="tr-pill role">' + esc(l.role) + '</span></td>' +
         '<td class="num">' + days + '</td>' +
         '<td class="num">' + fmtNum(l.interviewBest) + '</td>' +
+        '<td>' + weekly + '</td>' +
+        '<td class="num">' + fmtNum(l.collabBest) + '</td>' +
         '<td class="num">' + fmtNum(l.sdBest) + '</td>' +
         '<td>' + mastery + '</td>' +
         '<td>' + weak + '</td></tr>';

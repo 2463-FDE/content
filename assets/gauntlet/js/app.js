@@ -43,6 +43,39 @@
     { v: "w06d5", t: "Week 6 · Day 5" }
   ];
   var DEFAULT_DAY = "w01d5";
+  // Shared with the Collaborator Chat module (collab.js) so the day list never drifts.
+  window.FDE_CURRICULUM_DAYS = CURRICULUM_DAYS;
+  window.FDE_DEFAULT_DAY = DEFAULT_DAY;
+
+  // ---- Interview customization (Feature 1) --------------------------------
+  // Time model shown to the learner: ~3 min per question (2 to answer, 1 to
+  // review the STT transcript) + a flat 15-min feedback-review pass at the end.
+  var MINS_PER_Q = 3;
+  var FEEDBACK_REVIEW_MINS = 15;
+  var COUNT_MIN = 2;   // single-day floor
+  var COUNT_WEEK_MIN = 10; // whole-week / multi-day floor
+  var COUNT_MAX = 20;
+
+  // Distinct week prefixes ("w01"…"w06") with display labels, derived from
+  // CURRICULUM_DAYS so the two never drift.
+  function weekList() {
+    var seen = {}, out = [];
+    CURRICULUM_DAYS.forEach(function (d) {
+      var w = d.v.slice(0, 3);
+      if (!seen[w]) { seen[w] = true; out.push({ w: w, label: "Week " + parseInt(w.slice(1), 10) }); }
+    });
+    return out;
+  }
+  function daysOfWeek(wPrefix) {
+    return CURRICULUM_DAYS.filter(function (d) { return d.v.slice(0, 3) === wPrefix; });
+  }
+  // Human time estimate from a question count.
+  function estimateMins(count) { return count * MINS_PER_Q + FEEDBACK_REVIEW_MINS; }
+  function fmtDuration(mins) {
+    if (mins < 60) return "about " + mins + " min";
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return "about " + h + " hr" + (m ? " " + m + " min" : "");
+  }
 
   // ---- State --------------------------------------------------------------
   var state = {
@@ -390,8 +423,8 @@
     }
 
     var interviewCard = modeCard(
-      "Daily AI Interview",
-      "10 spoken interview questions, scoped to your cohort's current day. An AI judge scores substance, mindset, and delivery.",
+      "AI Interview",
+      "Customizable spoken interview — pick your week, days, and how many questions (2–20). An AI judge scores substance, mindset, and delivery. A weekly practice.",
       "behavioral · scenario · technical",
       function () { renderLobby(); }
     );
@@ -400,6 +433,12 @@
       "Scope a loose client brief, design it on a live canvas, defend the WHY, then adapt when constraints change. Two AI critics score it.",
       "full-stack · AI / agentic · ~20-min sessions",
       function () { openTrackModal(); }
+    );
+    var collabCard = modeCard(
+      "Collaborator Chat",
+      "A teammate messages you about the week's material — but they've got something wrong. Coach them through it. Scored on how you collaborate, not how fast you fix it.",
+      "coaching · communication · code review",
+      function () { window.COLLAB.open(creds(), renderModeSelect); }
     );
 
     var boardsBtn = el("button", { class: "btn btn--primary", type: "button", text: "🏆 Leaderboards" });
@@ -420,7 +459,13 @@
         ])
       ]),
       el("p", { class: "sd-sub", text: "Pick your arena." }),
-      el("div", { class: "sd-track-grid" }, [interviewCard, designCard]),
+      (state.session && state.session.practice === false && state.session.weeklyInterviewDone === false)
+        ? el("div", { class: "iv-week-reminder iv-week-reminder--hub" }, [
+            el("strong", { text: "📌 Weekly interview due — " }),
+            "you haven't done one this week. Jump into AI Interview."
+          ])
+        : null,
+      el("div", { class: "sd-track-grid" }, [interviewCard, designCard, collabCard]),
       el("div", { class: "mode-actions" }, [boardsBtn, guideBtn, historyBtn, trainerBtn])
     ]));
   }
@@ -465,6 +510,125 @@
   // ===========================================================================
   // SCREEN: Lobby
   // ===========================================================================
+  // Build the interview customization panel (Feature 1): week picker, optional
+  // per-day chips (none selected = the whole week), a cumulative toggle, a
+  // question-count slider (2–20, floor 10 for a week / 2 for a single day), and a
+  // live time estimate. Returns { node, getConfig } — getConfig() yields the
+  // { days, cumulative, count } payload for /interview/start.
+  function interviewConfigPanel() {
+    if (!state.selWeek) state.selWeek = (state.day || DEFAULT_DAY).slice(0, 3);
+    if (!Array.isArray(state.selDays)) state.selDays = [];
+    if (typeof state.cumulative !== "boolean") state.cumulative = false;
+
+    // scope floor: exactly one day → 2; whole week / multiple days → 10.
+    function scopeMin() { return state.selDays.length === 1 ? COUNT_MIN : COUNT_WEEK_MIN; }
+    if (typeof state.count !== "number") state.count = COUNT_WEEK_MIN;
+
+    var weekSel = el("select", { class: "field", id: "ivWeek" });
+    weekList().forEach(function (wk) { weekSel.appendChild(el("option", { value: wk.w, text: wk.label })); });
+    weekSel.value = state.selWeek;
+
+    var dayChips = el("div", { class: "iv-daychips", id: "ivDayChips" });
+    var scopeHint = el("p", { class: "iv-scope-hint", id: "ivScopeHint" });
+    var slider = el("input", { class: "iv-slider", id: "ivCount", type: "range", min: String(COUNT_MIN), max: String(COUNT_MAX), step: "1" });
+    var countLabel = el("span", { class: "iv-count-val", id: "ivCountVal" });
+    var timeEst = el("p", { class: "iv-time-est", id: "ivTimeEst" });
+    var cumBox = el("input", { type: "checkbox", id: "ivCumulative" });
+    if (state.cumulative) cumBox.checked = true;
+
+    function syncCountUI() {
+      var min = scopeMin();
+      slider.min = String(min);
+      if (state.count < min) state.count = min;
+      if (state.count > COUNT_MAX) state.count = COUNT_MAX;
+      slider.value = String(state.count);
+      countLabel.textContent = state.count + " question" + (state.count === 1 ? "" : "s");
+      timeEst.textContent = "Estimated time: " + fmtDuration(estimateMins(state.count)) +
+        " (~" + MINS_PER_Q + " min/question + " + FEEDBACK_REVIEW_MINS + " min to review feedback).";
+      var floorNote = min === COUNT_WEEK_MIN
+        ? "A full week needs at least " + COUNT_WEEK_MIN + " questions."
+        : "A single day needs at least " + COUNT_MIN + " questions.";
+      scopeHint.textContent = state.selDays.length
+        ? (state.selDays.length + " day" + (state.selDays.length === 1 ? "" : "s") + " selected. " + floorNote)
+        : ("All days of this week (default). " + floorNote);
+    }
+
+    function rebuildDayChips() {
+      clear(dayChips);
+      daysOfWeek(state.selWeek).forEach(function (d) {
+        var on = state.selDays.indexOf(d.v) >= 0;
+        var chip = el("button", {
+          class: "iv-chip" + (on ? " is-on" : ""),
+          type: "button",
+          "aria-pressed": on ? "true" : "false",
+          text: "Day " + d.v.slice(4).replace(/^d/, "")
+        });
+        chip.addEventListener("click", function () {
+          var i = state.selDays.indexOf(d.v);
+          if (i >= 0) state.selDays.splice(i, 1); else state.selDays.push(d.v);
+          rebuildDayChips();
+          syncCountUI();
+        });
+        dayChips.appendChild(chip);
+      });
+    }
+
+    weekSel.addEventListener("change", function () {
+      state.selWeek = weekSel.value;
+      state.selDays = []; // switching week resets to whole-week default
+      rebuildDayChips();
+      syncCountUI();
+    });
+    slider.addEventListener("input", function () {
+      var v = parseInt(slider.value, 10);
+      state.count = isNaN(v) ? scopeMin() : v;
+      // don't fight the user mid-drag on the floor; clamp on next sync
+      countLabel.textContent = state.count + " question" + (state.count === 1 ? "" : "s");
+      timeEst.textContent = "Estimated time: " + fmtDuration(estimateMins(state.count)) +
+        " (~" + MINS_PER_Q + " min/question + " + FEEDBACK_REVIEW_MINS + " min to review feedback).";
+    });
+    slider.addEventListener("change", syncCountUI);
+    cumBox.addEventListener("change", function () { state.cumulative = cumBox.checked; });
+
+    rebuildDayChips();
+    syncCountUI();
+
+    var node = el("div", { class: "iv-config" }, [
+      el("div", { class: "iv-config-row" }, [
+        el("label", { class: "field-label", for: "ivWeek", text: "Week" }),
+        weekSel
+      ]),
+      el("div", { class: "iv-config-row" }, [
+        el("label", { class: "field-label", text: "Days (optional — leave empty for the whole week)" }),
+        dayChips,
+        scopeHint
+      ]),
+      el("label", { class: "iv-cumulative" }, [
+        cumBox,
+        el("span", { text: " Cumulative — also draw from prior weeks' material" })
+      ]),
+      el("div", { class: "iv-config-row" }, [
+        el("div", { class: "iv-slider-head" }, [
+          el("label", { class: "field-label", for: "ivCount", text: "Number of questions" }),
+          countLabel
+        ]),
+        slider,
+        timeEst
+      ])
+    ]);
+
+    function getConfig() {
+      var min = scopeMin();
+      var count = Math.max(min, Math.min(COUNT_MAX, state.count || min));
+      var days = state.selDays.length
+        ? state.selDays.slice()
+        : daysOfWeek(state.selWeek).map(function (d) { return d.v; });
+      return { days: days, cumulative: !!state.cumulative, count: count };
+    }
+
+    return { node: node, getConfig: getConfig };
+  }
+
   function renderLobby() {
     window.STT.tts.cancel();
     renderHeader();
@@ -519,27 +683,38 @@
     var how = el("div", { class: "how" }, [
       el("h3", { text: "How it works" }),
       el("ol", { class: "how-list" }, [
-        el("li", { text: "10 questions, one interview. Each is read aloud." }),
+        el("li", { text: "Your chosen number of questions (2–20), one interview. Each is read aloud." }),
         el("li", { text: "Press Record and speak — you get up to 2 minutes. The countdown shows the time left." }),
         el("li", { text: "On stop or time-out, your full transcript appears for you to edit — no rush, editing isn't timed." }),
         el("li", { text: "Submit each answer — it's scored privately. No feedback shown mid-interview." }),
-        el("li", { text: "After all 10, you'll see your full score + feedback. Finish to post your best to today's leaderboard." })
+        el("li", { text: "When you're done, you'll see your full score + feedback. Finish to post your best to the leaderboard." })
       ])
     ]);
 
-    // Day-focus selector — the interview tests material taught through the
-    // chosen day, cumulatively. Defaults to the cohort's latest day.
+    // Interview customization (Feature 1): pick a week, optionally specific days,
+    // a cumulative toggle, and how many questions (2–20). The panel stores its
+    // config getter on state so beginInterview can read it.
     if (!state.day) state.day = DEFAULT_DAY;
-    var daySelect = el("select", { class: "field", id: "daySelect" });
-    CURRICULUM_DAYS.forEach(function (d) {
-      daySelect.appendChild(el("option", { value: d.v, text: d.t }));
-    });
-    daySelect.value = state.day;
-    daySelect.addEventListener("change", function () { state.day = daySelect.value; });
-    var focusRow = el("div", { class: "lobby-focus" }, [
-      el("label", { class: "field-label", for: "daySelect", text: "Interview focus (through this day, cumulative)" }),
-      daySelect
+    var ivConfig = interviewConfigPanel();
+    state.getIvConfig = ivConfig.getConfig;
+    var focusRow = el("div", { class: "lobby-focus lobby-focus--config" }, [
+      el("h3", { class: "iv-config-title", text: "Customize your interview" }),
+      ivConfig.node
     ]);
+
+    // Weekly cadence reminder — the interview is a WEEKLY practice now. Nudge
+    // learners who haven't done one this ISO week (never practice identities).
+    var weeklyReminder = (!practice && s.weeklyInterviewDone === false)
+      ? el("div", { class: "iv-week-reminder" }, [
+          el("strong", { text: "📌 Weekly practice due — " }),
+          "you haven't completed an interview this week yet. Aim for at least one."
+        ])
+      : (!practice && s.weeklyInterviewDone === true)
+        ? el("div", { class: "iv-week-reminder iv-week-reminder--done" }, [
+            el("strong", { text: "✓ Weekly practice done — " }),
+            "nice. Extra runs this week are all upside."
+          ])
+        : null;
 
     var lobbyCard = el("div", { class: "card lobby-card screen-in" }, [
       el("h1", { class: "lobby-greet" }, [
@@ -547,6 +722,7 @@
         el("span", { class: "accent", text: (state.name || "").split(" ")[0] }),
         state.tier ? el("span", { class: "tier-pill tier-pill--inline", text: state.tier }) : null
       ]),
+      weeklyReminder,
       attemptsLine,
       capNote,
       focusRow,
@@ -580,7 +756,10 @@
   function beginInterview() {
     var btn = $("#startBtn");
     if (btn) { btn.disabled = true; btn.textContent = "Starting…"; }
-    window.API.startInterview(state.name, state.passcode, state.day || DEFAULT_DAY)
+    var cfg = (typeof state.getIvConfig === "function")
+      ? state.getIvConfig()
+      : { day: state.day || DEFAULT_DAY };
+    window.API.startInterview(state.name, state.passcode, cfg)
       .then(function (data) {
         if (data && data.ok) {
           state.interviewId = data.interviewId;
