@@ -102,7 +102,8 @@
     <span class="em">🗓️</span>
     <span class="tx">Each week has <b>4 alternatives</b> and there are <b>4 of you</b> — log in and you'll be assigned <b>one</b>.
     <b>Research your assigned alternative this week, then present it to the group for ~10 minutes on Friday.</b>
-    Across four weeks the rotation puts everyone in every slot.</span>
+    Across four weeks the rotation puts everyone in every slot.
+    <b>Exception — Week 4 runs as a collective:</b> no individual assignments; the group researches all options together and presents one shared comparison.</span>
     <a class="ritual ar" style="margin-top:10px;display:inline-block" href="alt-research-example.html">📄 See an example submission (Next.js vs Vue vs Angular)</a>
   </div>
 
@@ -211,7 +212,8 @@ window.ALT = {
 
   4: {
     title: "Multi-Agent & Knowledge Graphs",
-    space: "Content space: coordinated multi-agent workflows + a knowledge graph. Alternatives across orchestration frameworks and graph/KG stores.",
+    collective: true,
+    space: "Content space: coordinated multi-agent workflows + a knowledge graph. Alternatives across orchestration frameworks and graph/KG stores. <b>This week the ritual runs as a collective</b> — no individual assignments; the group researches the whole option space together.",
     alts: [
       { name: "Orchestration — LangGraph (graph-based, max control)",
         body: "LangGraph gives maximum control over execution order, state, and checkpointing — regulated clients like the deterministic, inspectable audit trail, since you can show a reviewer exactly which node ran, what state it held, and where the human-approval gate sits. OSS + token cost, low framework-level lock-in. The cost is steepness: you author the graph yourself, so it's the hardest of the four for a 40hr/wk trainee — and arguably the most worth learning, because the mental model (a state machine of agents) transfers everywhere." },
@@ -222,8 +224,9 @@ window.ALT = {
       { name: "Graph store — Apache AGE (Postgres-native) / Memgraph",
         body: "<b>Apache AGE</b> is a Postgres extension (Apache-2.0) that adds Cypher-style graph queries inside an existing relational DB, alongside SQL and transactions — lowest lock-in and <b>zero new infrastructure</b>, huge for a finance/health client already standardized on Postgres, and free for a trainee; the tradeoff is fewer graph-native features and a smaller community than Neo4j. <b>Memgraph</b> is the in-memory, Cypher-compatible alternative positioned as 'the graph engine for AI context' for low-latency multi-hop reasoning — Cypher skills transfer from Neo4j, but plan for the memory-cost/operational profile of an in-memory store." }
     ],
-    task: "Evaluate Neo4j vs Apache AGE as the knowledge-graph store for your client and recommend one, with a one-paragraph rationale (finance: loan data already lives in PostgreSQL; healthcare: PHI residency + mature RBAC). In one sentence, name whether you'd orchestrate the agents over that graph with LangGraph or CrewAI, and why that fits the client's audit needs.",
-    trainer: "Two senior tells. On orchestration, the real axis isn't 'easy vs powerful' but <b>how much of the control flow is inspectable for audit</b> — CrewAI/OpenAI handoffs hide the decision graph; LangGraph and MS Agent Framework make execution order, checkpoints, and HITL gates explicit, which is what a reviewer signs off on. On the graph store, <b>Apache AGE collapses the 'do we add a new database?' question</b> — for a Postgres-native client, keeping the KG inside the already-audited, backed-up, access-controlled Postgres can outweigh Neo4j's superior features. The senior line: 'the cheapest graph is the one you don't have to separately certify.'",
+    task: "This week you work as <b>one research team, not four assignees</b>. Together, map the full option space — orchestration (LangGraph, CrewAI, Microsoft Agent Framework / AG2) and graph store (Neo4j, Apache AGE, Memgraph) — and for every option answer four questions as a group: <b>where does it provide the most benefit</b>, <b>what are its honest tradeoffs</b>, <b>what does rolling ON cost</b> (adoption effort, learning curve, new infra, licensing), and <b>what does rolling OFF cost</b> (lock-in, migration/exit path, what survives the switch). Close with a group recommendation per client (finance: loan data already lives in PostgreSQL; healthcare: PHI residency + mature RBAC) that any one of you can defend alone.",
+    deliverable: "📅 Deliverable: <b>one shared comparison matrix</b> built by the whole group — options × benefit / tradeoffs / roll-on cost / roll-off path — plus a collectively-presented ~20-minute session this <b>Friday</b>. Split the research however you like, but every learner presents at least one section and <b>any of you can be asked to defend any cell</b>.",
+    trainer: "Two senior tells. On orchestration, the real axis isn't 'easy vs powerful' but <b>how much of the control flow is inspectable for audit</b> — CrewAI/OpenAI handoffs hide the decision graph; LangGraph and MS Agent Framework make execution order, checkpoints, and HITL gates explicit, which is what a reviewer signs off on. On the graph store, <b>Apache AGE collapses the 'do we add a new database?' question</b> — for a Postgres-native client, keeping the KG inside the already-audited, backed-up, access-controlled Postgres can outweigh Neo4j's superior features. The senior line: 'the cheapest graph is the one you don't have to separately certify.' <b>Collective-week facilitation:</b> the matrix is shared, so the failure mode is silent division back into silos — spot-check by asking learners to defend cells they did NOT research, and push the group to argue roll-off (exit) costs as hard as roll-on features.",
     sources: [
       { label: "LangGraph — product page (control vs agency)", url: "https://www.langchain.com/langgraph", date: "2026-06-28" },
       { label: "CrewAI — homepage (open platform, role-based crews)", url: "https://www.crewai.com/", date: "2026-06-28" },
@@ -379,7 +382,14 @@ window.ALT = {
   // Which alternative index a given learner (by list index) owns this week.
   function myAltIndex(week, li, n) { return ((li - (week - 1)) % n + n) % n; }
 
-  function alts(items, week) {
+  function alts(items, week, collective) {
+    // Collective weeks: no rotation, no presenter chips, no "your assignment" badge —
+    // the whole group owns every alternative.
+    if (collective) {
+      return items.map(a =>
+        `<div class="ar-alt"><div class="ar-assignline"><span class="ar-presenter">🤝 Whole group</span></div><div class="ar-name">${a.name}</div><p>${a.body}</p></div>`
+      ).join("");
+    }
     const ls = learners();
     const n = ls.length;
     const idt = getIdentity();
@@ -441,15 +451,17 @@ window.ALT = {
       `<h2>${wk.title}</h2>` +
       `<p class="ar-space">${wk.space}</p>`;
 
-    // Alternatives to weigh (everyone); the logged-in learner's is badged
+    // Alternatives to weigh (everyone); the logged-in learner's is badged.
+    // Collective weeks drop the rotation — the whole group owns every alternative.
     html +=
       `<div class="ar-sec">` +
-        `<div class="ar-h">Alternatives to weigh — one per learner</div>` +
-        alts(wk.alts, state.week) +
+        `<div class="ar-h">${wk.collective ? "Alternatives to weigh — researched together, as one group" : "Alternatives to weigh — one per learner"}</div>` +
+        alts(wk.alts, state.week, wk.collective) +
       `</div>`;
 
-    // Trainer-only assignment table (rendered openly when role==='trainer')
-    if (idt && idt.role === "trainer") {
+    // Trainer-only assignment table (rendered openly when role==='trainer');
+    // collective weeks have no per-learner assignments to tabulate.
+    if (idt && idt.role === "trainer" && !wk.collective) {
       html +=
         `<div class="ar-sec">` +
           `<div class="ar-h" style="color:#c2410c">🔑 Assignment table (trainer)</div>` +
@@ -457,12 +469,14 @@ window.ALT = {
         `</div>`;
     }
 
-    // Your task (everyone) + Friday deliverable
+    // Your task (everyone) + Friday deliverable (per-week override for collective weeks)
+    const deliverable = wk.deliverable ||
+      `📅 Deliverable: a short written comparison of <b>your assigned alternative</b> (vs the group's options) and a ~10-minute talk to the group this <b>Friday</b>. Recommend one; defend it in a one-paragraph rationale tied to your assigned client.`;
     html +=
       `<div class="ar-sec">` +
-        `<div class="ar-h">Your task this Wednesday</div>` +
+        `<div class="ar-h">${wk.collective ? "The group's task this Wednesday" : "Your task this Wednesday"}</div>` +
         `<div class="ar-task">${wk.task}` +
-          `<span class="who">📅 Deliverable: a short written comparison of <b>your assigned alternative</b> (vs the group's options) and a ~10-minute talk to the group this <b>Friday</b>. Recommend one; defend it in a one-paragraph rationale tied to your assigned client.</span>` +
+          `<span class="who">${deliverable}</span>` +
         `</div>` +
       `</div>`;
 
