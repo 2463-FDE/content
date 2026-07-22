@@ -68,6 +68,12 @@
   .ar-presenter { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; color:var(--ink-soft); background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:2px 10px; }
   .ar-alt.mine .ar-presenter { color:var(--info); border-color:var(--info-line); background:var(--info-soft); }
 
+  /* collective-week grouped sections */
+  .ar-group { margin:18px 0 0; }
+  .ar-group:first-of-type { margin-top:0; }
+  .ar-group .ar-gh { font-size:15px; font-weight:750; color:var(--ink); margin:0 0 4px; }
+  .ar-group .ar-gnote { font-size:13.5px; line-height:1.55; color:var(--ink-soft); margin:0 0 10px; border-left:3px solid var(--accent-line); padding-left:10px; }
+
   /* trainer assignment table */
   .ar-assign { width:100%; border-collapse:collapse; margin:8px 0 0; font-size:14px; }
   .ar-assign th, .ar-assign td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); }
@@ -214,17 +220,29 @@ window.ALT = {
     title: "Multi-Agent & Knowledge Graphs",
     collective: true,
     space: "Content space: coordinated multi-agent workflows + a knowledge graph. Alternatives across orchestration frameworks and graph/KG stores. <b>This week the ritual runs as a collective</b> — no individual assignments; the group researches the whole option space together.",
-    alts: [
-      { name: "Orchestration — LangGraph (graph-based, max control)",
-        body: "LangGraph gives maximum control over execution order, state, and checkpointing — regulated clients like the deterministic, inspectable audit trail, since you can show a reviewer exactly which node ran, what state it held, and where the human-approval gate sits. OSS + token cost, low framework-level lock-in. The cost is steepness: you author the graph yourself, so it's the hardest of the four for a 40hr/wk trainee — and arguably the most worth learning, because the mental model (a state machine of agents) transfers everywhere." },
-      { name: "Orchestration — CrewAI (role-based crews) / MS Agent Framework / AG2",
-        body: "<b>CrewAI</b> is fastest to a believable multi-agent demo: define roles ('underwriter', 'reviewer', 'drafter') and let a crew collaborate — maps cleanly onto loan-underwriting or intake-triage. The tradeoff is that the higher-level abstraction hides the orchestration detail an auditor may want, and the managed platform is the upsell. <b>Microsoft Agent Framework</b> is the converged successor to AutoGen + Semantic Kernel (C#/Python, graph Workflows with checkpointing + HITL) — best if the client is an Azure/.NET shop; <b>AG2</b> is the separate community AutoGen fork (note the naming split so a trainee doesn't cite a dead 'AutoGen' repo). For a trainee, CrewAI is the quickest path to a working crew; the lock-in to weigh is platform pull (CrewAI) vs Azure ecosystem (MS)." },
-      { name: "Graph store — Neo4j (mature property-graph)",
-        body: "Neo4j is the most mature property-graph database (Cypher query language, managed AuraDB or self-host, granular RBAC and schema-based security) — the safest enterprise pick and the best-documented for a trainee to learn on. The catch is licensing: the powerful enterprise security/scale features are commercial, and Cypher, while widely adopted, is a Neo4j dialect. For a regulated client it's the low-risk default; for a $20-Pro trainee the free Community edition or AuraDB free tier is enough to learn Cypher." },
-      { name: "Graph store — Apache AGE (Postgres-native) / Memgraph",
-        body: "<b>Apache AGE</b> is a Postgres extension (Apache-2.0) that adds Cypher-style graph queries inside an existing relational DB, alongside SQL and transactions — lowest lock-in and <b>zero new infrastructure</b>, huge for a finance/health client already standardized on Postgres, and free for a trainee; the tradeoff is fewer graph-native features and a smaller community than Neo4j. <b>Memgraph</b> is the in-memory, Cypher-compatible alternative positioned as 'the graph engine for AI context' for low-latency multi-hop reasoning — Cypher skills transfer from Neo4j, but plan for the memory-cost/operational profile of an in-memory store." }
+    groups: [
+      { name: "Orchestration — go past the mechanism comparison",
+        note: "The mechanism-by-mechanism comparison (Command handoffs vs manager routing vs prebuilt orchestrations) is <b>already in the Day 3 reading</b> — don't re-research or re-present it. The group's job here is the <b>adoption story</b> the reading doesn't cover: what rolling onto each costs a real engagement, and what rolling off looks like when the engagement outlives the framework.",
+        alts: [
+          { name: "LangGraph",
+            body: "<b>Most benefit:</b> regulated engagements needing inspectable control flow, durable state, and audit/replay — the routing is code a reviewer can read. <b>Tradeoffs:</b> steepest authoring burden; you build the supervisor yourself (the maintainers say to skip their own prebuilt libraries). <b>Roll on:</b> OSS + token cost, no platform to buy — but the team must learn state machines, checkpointers, and the <code>Command</code> machinery. <b>Roll off:</b> the patterns (supervisor, swarm) transfer everywhere and your graph is plain Python, but <code>Command</code>/subgraph code is LangGraph-shaped — research what a checkpointed-state migration actually looks like." },
+          { name: "CrewAI",
+            body: "<b>Most benefit:</b> fastest path from zero to a believable role-based crew — 'underwriter / reviewer / drafter' maps straight onto loan-underwriting or intake-triage. <b>Tradeoffs:</b> routing is LLM judgment with no graph to inspect — thin surface when an auditor asks why a task went where it did. <b>Roll on:</b> minimal — a <code>Process</code> enum and role definitions; standalone, no LangChain dependency. <b>Roll off:</b> little code to port, but the managed-platform upsell is the pull to price, and the routing behavior isn't specified anywhere you can hand to a successor — research what of a crew survives a framework switch." },
+          { name: "Microsoft Agent Framework / AG2",
+            body: "<b>Most benefit:</b> Azure/.NET shops wanting supported, named orchestrations with HITL wired through — and Magentic's ledger-and-limits is the most instrumented LLM coordinator on the market. <b>Tradeoffs:</b> pattern selection over pattern construction; ecosystem gravity pulls toward Azure. <b>Roll on:</b> configure one of five orchestrations rather than author a graph — but the AutoGen migration map is still incomplete (Swarm, SelectorGroupChat on roadmap). <b>Roll off:</b> AutoGen itself is the cautionary tale — Microsoft already retired one agent framework and published the exit path; research what that precedent means for a multi-year engagement (and don't cite the dead AutoGen repo — AG2 is the separate community fork)." }
+        ] },
+      { name: "Graph store — the fresh decision space",
+        note: "This is the half the readings haven't settled yet (Day 4 covers Neo4j + Cypher; the store <i>choice</i> is open). Go deepest here — this is where the group's research adds the most.",
+        alts: [
+          { name: "Neo4j",
+            body: "<b>Most benefit:</b> the mature enterprise pick — richest graph-native features, granular RBAC and schema-based security, best docs to learn on, managed AuraDB or self-host. <b>Tradeoffs:</b> the enterprise security/scale features are commercial licensing, and it's a whole new database on the client's compliance books. <b>Roll on:</b> free Community/AuraDB tier to learn Cypher, but production means certifying, backing up, and access-controlling a new store. <b>Roll off:</b> Cypher is widely adopted (skills and much of the query surface transfer), data exports cleanly — but the enterprise security configuration doesn't port; research the real export path." },
+          { name: "Apache AGE",
+            body: "<b>Most benefit:</b> Postgres-native clients — Cypher-style graph queries inside the relational DB they already run, next to SQL, transactions, and the audit tables. Zero new infrastructure. <b>Tradeoffs:</b> fewer graph-native features and a smaller community than Neo4j; you're betting on an extension, not a dedicated engine. <b>Roll on:</b> lowest of the three — Apache-2.0, an extension install, no new vendor or certification. <b>Roll off:</b> lowest too — it's still Postgres; the graph data lives beside the relational data it came from. Research where the feature ceiling actually bites." },
+          { name: "Memgraph",
+            body: "<b>Most benefit:</b> low-latency, in-memory multi-hop reasoning — positioned as 'the graph engine for AI context' when the KG sits on an agent's hot path. <b>Tradeoffs:</b> the in-memory profile is the bill — plan memory cost and the ops story for durability. <b>Roll on:</b> Cypher-compatible, so Neo4j-trained skills transfer straight in. <b>Roll off:</b> the same Cypher compatibility eases the exit, but research what the persistence/snapshot model means for taking your data with you." }
+        ] }
     ],
-    task: "This week you work as <b>one research team, not four assignees</b>. Together, map the full option space — orchestration (LangGraph, CrewAI, Microsoft Agent Framework / AG2) and graph store (Neo4j, Apache AGE, Memgraph) — and for every option answer four questions as a group: <b>where does it provide the most benefit</b>, <b>what are its honest tradeoffs</b>, <b>what does rolling ON cost</b> (adoption effort, learning curve, new infra, licensing), and <b>what does rolling OFF cost</b> (lock-in, migration/exit path, what survives the switch). Close with a group recommendation per client (finance: loan data already lives in PostgreSQL; healthcare: PHI residency + mature RBAC) that any one of you can defend alone.",
+    task: "This week you work as <b>one research team, not four assignees</b>, across the two decision spaces above. For every option, answer four questions as a group: <b>where does it provide the most benefit</b>, <b>what are its honest tradeoffs</b>, <b>what does rolling ON cost</b> (adoption effort, learning curve, new infra, licensing), and <b>what does rolling OFF cost</b> (lock-in, migration/exit path, what survives the switch). On orchestration, the Day 3 reading already settled the mechanism comparison — your research starts <i>past</i> it, at the adoption story. On the graph store, go deepest — that decision is still open. Close with a group recommendation per client (finance: loan data already lives in PostgreSQL; healthcare: PHI residency + mature RBAC) that any one of you can defend alone.",
     deliverable: "📅 Deliverable: <b>one shared comparison matrix</b> built by the whole group — options × benefit / tradeoffs / roll-on cost / roll-off path — plus a collectively-presented ~20-minute session this <b>Friday</b>. Split the research however you like, but every learner presents at least one section and <b>any of you can be asked to defend any cell</b>.",
     trainer: "Two senior tells. On orchestration, the real axis isn't 'easy vs powerful' but <b>how much of the control flow is inspectable for audit</b> — CrewAI/OpenAI handoffs hide the decision graph; LangGraph and MS Agent Framework make execution order, checkpoints, and HITL gates explicit, which is what a reviewer signs off on. On the graph store, <b>Apache AGE collapses the 'do we add a new database?' question</b> — for a Postgres-native client, keeping the KG inside the already-audited, backed-up, access-controlled Postgres can outweigh Neo4j's superior features. The senior line: 'the cheapest graph is the one you don't have to separately certify.' <b>Collective-week facilitation:</b> the matrix is shared, so the failure mode is silent division back into silos — spot-check by asking learners to defend cells they did NOT research, and push the group to argue roll-off (exit) costs as hard as roll-on features.",
     sources: [
@@ -382,9 +400,19 @@ window.ALT = {
   // Which alternative index a given learner (by list index) owns this week.
   function myAltIndex(week, li, n) { return ((li - (week - 1)) % n + n) % n; }
 
+  // Collective weeks: grouped sections (e.g. Orchestration / Graph store), no rotation,
+  // no presenter chips — the whole group owns every alternative.
+  function groupedAlts(groups) {
+    return groups.map(g =>
+      `<div class="ar-group">` +
+        `<div class="ar-gh">${g.name}</div>` +
+        (g.note ? `<div class="ar-gnote">${g.note}</div>` : "") +
+        g.alts.map(a => `<div class="ar-alt"><div class="ar-name">${a.name}</div><p>${a.body}</p></div>`).join("") +
+      `</div>`
+    ).join("");
+  }
+
   function alts(items, week, collective) {
-    // Collective weeks: no rotation, no presenter chips, no "your assignment" badge —
-    // the whole group owns every alternative.
     if (collective) {
       return items.map(a =>
         `<div class="ar-alt"><div class="ar-assignline"><span class="ar-presenter">🤝 Whole group</span></div><div class="ar-name">${a.name}</div><p>${a.body}</p></div>`
@@ -456,7 +484,7 @@ window.ALT = {
     html +=
       `<div class="ar-sec">` +
         `<div class="ar-h">${wk.collective ? "Alternatives to weigh — researched together, as one group" : "Alternatives to weigh — one per learner"}</div>` +
-        alts(wk.alts, state.week, wk.collective) +
+        (wk.groups ? groupedAlts(wk.groups) : alts(wk.alts, state.week, wk.collective)) +
       `</div>`;
 
     // Trainer-only assignment table (rendered openly when role==='trainer');
