@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coding Challenge Prep | 2463-FDE</title>
+<link rel="stylesheet" href="assets/css/style.css?v=20260714-w3f">
+<script src="assets/js/theme.js"></script>
+<style>
+  /* ---- coding-prep page-specific layout (reuses site design language) ---- */
+  .cp-wrap { width: 100%; margin: 0; padding: 0 32px 70px; box-sizing: border-box; }
+  .cp-hero { padding: 34px 0 10px; }
+  .cp-hero h1 { font-size: 40px; margin: 0 0 8px; letter-spacing: -.5px; }
+  .cp-hero h1 b { color: var(--accent); }
+  .cp-hero p { color: var(--ink-soft); font-size: 17px; max-width: 1050px; margin: 0; }
+
+  /* two-column layout: main content + sticky reference rail */
+  .cp-cols { display:grid; grid-template-columns:minmax(0,1fr) 300px; grid-template-areas:"main rail"; gap:24px; align-items:start; margin-top:24px; }
+  .cp-main { grid-area:main; min-width:0; }
+  .cp-rail { grid-area:rail; position:sticky; top:76px; display:grid; gap:12px; }
+  @media (max-width:1000px){
+    .cp-cols { grid-template-columns:1fr; grid-template-areas:"rail" "main"; }
+    .cp-rail { position:static; grid-template-columns:repeat(3,1fr); }
+  }
+  @media (max-width:860px){ .cp-rail { grid-template-columns:1fr; } }
+  .cp-rail .cp-card { padding:14px 16px; }
+  .cp-rail .cp-card p { font-size:13px; line-height:1.5; }
+  .cp-card { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+  .cp-card .k { font-size:12px; text-transform:uppercase; letter-spacing:.12em; font-weight:700; color:var(--accent); margin-bottom:6px; }
+  .cp-card p { margin:0; font-size:14.5px; color:var(--ink-soft); line-height:1.55; }
+  .cp-card p b { color:var(--ink); }
+  .cp-card.bar { background:var(--accent-soft); border-color:var(--accent-line); }
+  .cp-card .umpire { display:flex; gap:5px; flex-wrap:wrap; margin-top:10px; }
+  .cp-card .umpire span { font-size:12px; font-weight:700; border:1px solid var(--line); background:var(--surface); border-radius:999px; padding:3px 9px; color:var(--ink); }
+  .cp-card .umpire span b { color:var(--accent); }
+  .cp-card a { color:var(--accent); font-weight:600; text-decoration:none; }
+  .cp-card a:hover { text-decoration:underline; }
+
+  /* tier tabs */
+  .cp-tabs { display:flex; gap:10px; margin:0 0 20px; flex-wrap:wrap; }
+  .cp-tab { cursor:pointer; border:1.5px solid var(--line); background:var(--surface); border-radius:12px; padding:14px 18px; font:inherit; color:var(--ink); text-align:left; flex:1; min-width:200px; transition:border-color .12s, box-shadow .12s, transform .12s; }
+  .cp-tab:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 20px var(--shadow); }
+  .cp-tab.on { border-color:var(--accent); background:var(--accent-soft); }
+  .cp-tab .t-k { font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--accent); }
+  .cp-tab .t-t { font-size:18px; font-weight:650; margin:3px 0 2px; }
+  .cp-tab .t-s { font-size:13px; color:var(--ink-soft); }
+  .cp-tab .t-prog { margin-top:8px; height:4px; border-radius:2px; background:var(--line); overflow:hidden; }
+  .cp-tab .t-prog i { display:block; height:100%; width:0; background:var(--accent); transition:width .2s; }
+
+  /* panel */
+  .cp-panel { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:26px 28px; box-shadow:0 6px 24px var(--shadow); display:none; }
+  .cp-panel.on { display:block; }
+  .cp-panel h2 { font-size:26px; margin:0 0 4px; }
+  .cp-panel .lede2 { color:var(--ink-soft); font-size:15px; margin:0 0 6px; max-width:820px; }
+  .cp-bench { background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:12px; padding:14px 18px; margin:14px 0 4px; font-size:15px; color:var(--ink); line-height:1.5; }
+  .cp-bench b { color:var(--accent-ink); }
+
+  /* modules (collapsible) */
+  .cp-mod { border:1px solid var(--line); border-radius:14px; margin:22px 0 0; padding:0; background:var(--surface-2); overflow:hidden; }
+  .cp-mod > summary { cursor:pointer; list-style:none; padding:17px 22px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .cp-mod > summary::-webkit-details-marker { display:none; }
+  .cp-mod > summary:hover { background:var(--surface); }
+  .cp-mod .mnum { font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:800; color:var(--accent); }
+  .cp-mod .mt { font-size:19px; font-weight:700; }
+  .cp-mod .mst { margin-left:auto; font-size:12px; font-weight:700; border-radius:999px; padding:3px 11px; border:1px solid; white-space:nowrap; }
+  .cp-mod .mst.todo { background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent-line); }
+  .cp-mod .mst.reps { background:var(--warn-soft); color:var(--warn-ink); border-color:var(--warn-line); }
+  .cp-mod .mst.done { background:var(--good-soft); color:var(--good-ink); border-color:var(--good-line); }
+  .cp-mod .chev { color:var(--ink-soft); font-size:13px; transition:transform .15s; }
+  .cp-mod:not([open]) .chev { transform:rotate(-90deg); }
+  .cp-mod .mbody { padding:0 22px 20px; }
+  .cp-mod .sh { font-size:11.5px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--ink-soft); margin:16px 0 8px; }
+  .cp-mod .sh:first-child { margin-top:4px; }
+
+  /* readings */
+  .cp-read { border:1px solid var(--line); border-radius:12px; margin:0 0 8px; overflow:hidden; background:var(--surface); }
+  .cp-read summary { cursor:pointer; list-style:none; padding:12px 15px; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+  .cp-read summary::-webkit-details-marker { display:none; }
+  .cp-read summary:hover { background:var(--surface-2); }
+  .cp-read .rt { font-weight:650; font-size:15px; }
+  .cp-read .rs { font-size:12.5px; color:var(--ink-soft); }
+  .cp-read .rm { margin-left:auto; font-size:12px; font-weight:700; color:var(--accent); white-space:nowrap; }
+  .cp-read .rwhy { padding:0 15px 4px; font-size:13.5px; color:var(--ink-soft); }
+  .cp-read ul { margin:8px 15px 12px; padding-left:20px; }
+  .cp-read li { font-size:13.5px; color:var(--ink-soft); margin:6px 0; line-height:1.5; }
+  .cp-read .rlink { display:inline-block; margin:0 15px 13px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; }
+  .cp-read .rlink:hover { text-decoration:underline; }
+  .cp-opt { font-size:13px; color:var(--ink-soft); margin-top:8px; }
+  .cp-opt a { color:var(--accent); font-weight:600; text-decoration:none; }
+
+  /* videos */
+  .cp-vids { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+  .cp-vid { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface); }
+  .cp-vid .vf { aspect-ratio:16/9; width:100%; border:0; display:block; }
+  .cp-vid .vc { padding:9px 13px 11px; }
+  .cp-vid .vt { font-weight:650; font-size:14px; }
+  .cp-vid .vm { font-size:12px; color:var(--ink-soft); margin-top:2px; }
+
+  /* challenges */
+  .cp-probs { display:grid; gap:7px; }
+  .cp-prob { display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:10px; padding:9px 14px; background:var(--surface); cursor:pointer; }
+  .cp-prob:hover { border-color:var(--accent); box-shadow:0 4px 12px var(--shadow); }
+  .cp-prob.done .pn { color:var(--ink-soft); text-decoration:line-through; }
+  .cp-prob .wx { color:var(--accent); font-weight:700; }
+  .cp-prob input { width:17px; height:17px; accent-color:var(--accent); cursor:pointer; flex-shrink:0; }
+  .cp-prob .pn { font-weight:650; font-size:14.5px; }
+  .cp-prob .pn a { color:var(--ink); text-decoration:none; }
+  .cp-prob .pn a:hover { color:var(--accent); }
+  .cp-prob.done .pn a { color:var(--ink-soft); text-decoration:line-through; }
+  .cp-prob .pp { font-size:12px; color:var(--ink-soft); }
+  .cp-prob .right { margin-left:auto; display:flex; gap:6px; align-items:center; flex-shrink:0; }
+  .cp-diff { font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; border-radius:999px; padding:3px 10px; border:1px solid; }
+  .cp-diff.e { background:var(--good-soft); color:var(--good-ink); border-color:var(--good-line); }
+  .cp-diff.m { background:var(--warn-soft); color:var(--warn-ink); border-color:var(--warn-line); }
+  .cp-diff.h { background:var(--bad-soft); color:var(--bad-ink); border-color:var(--bad-line); }
+  a.cp-nc { font-size:11px; font-weight:700; color:var(--ink-soft); border:1px dashed var(--line); border-radius:999px; padding:3px 9px; white-space:nowrap; text-decoration:none; }
+  a.cp-nc:hover { color:var(--accent); border-color:var(--accent); }
+  @media (max-width:640px){ .cp-prob { flex-wrap:wrap; } .cp-prob .right { margin-left:29px; } }
+
+  /* breakpoint gate */
+  .cp-gate { display:flex; gap:10px; align-items:flex-start; border:1px dashed var(--accent-line); background:var(--accent-soft); border-radius:10px; padding:11px 14px; margin-top:14px; font-size:13.5px; color:var(--ink); line-height:1.5; }
+  .cp-gate .gi { flex-shrink:0; }
+  .cp-gate b { color:var(--accent-ink); }
+
+  /* additional reps */
+  .cp-add { border:1px solid var(--line); border-radius:10px; margin-top:12px; background:var(--surface); overflow:hidden; }
+  .cp-add > summary { cursor:pointer; list-style:none; padding:10px 14px; font-size:13px; font-weight:700; color:var(--ink-soft); display:flex; gap:8px; align-items:baseline; }
+  .cp-add > summary::-webkit-details-marker { display:none; }
+  .cp-add > summary:hover { background:var(--surface-2); }
+  .cp-add > summary .an { color:var(--accent); }
+  .cp-add > summary .arep { margin-left:auto; font-weight:600; }
+  .cp-add .cp-probs { padding:2px 12px 12px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right"></div>
+</div>
+
+<div class="cp-wrap">
+  <div class="cp-hero">
+    <h1>Coding Challenge <b>Prep</b></h1>
+    <p><b>Why this exists:</b> clients increasingly gate interviews behind coding challenges — some live, some as take-home screens before any interview happens, even for proven engineers. This page is how we clear that bar: work each tier's short modules in order — read the pattern, watch it solved, solve it yourself, clear the breakpoint. <b>Essentials</b> are the bar; <b>additional reps</b> are extra swings.</p>
+  </div>
+
+  <div class="cp-cols">
+    <div class="cp-main">
+      <div class="cp-tabs" id="cpTabs"></div>
+      <div id="cpPanels"></div>
+    </div>
+
+    <aside class="cp-rail">
+      <div class="cp-card bar">
+        <div class="k">🎯 The bar</div>
+        <p>Revature's FDE benchmark is <b>a partially solved Intermediate with at least 70% of test cases passing</b>. You are not being asked to be a competitive programmer — clean, talked-through Entry-Level solves plus honest progress on Intermediates clears the bar.</p>
+      </div>
+      <div class="cp-card">
+        <div class="k">🗣️ The method</div>
+        <p>Solve out loud with <a href="https://guides.codepath.com/compsci/UMPIRE-Interview-Strategy" target="_blank" rel="noopener">UMPIRE</a> — it's how you <b>solve correctly</b>: Understand &amp; Match find the right pattern instead of a guess, and Review &amp; Evaluate catch the failing test cases before you submit. That's what gets you to ≥70% and beyond. Bonus: it's the exact muscle live interviews and the <a href="gauntlet.html">AI Interview</a> grade.</p>
+        <div class="umpire">
+          <span><b>U</b>nderstand</span><span><b>M</b>atch</span><span><b>P</b>lan</span><span><b>I</b>mplement</span><span><b>R</b>eview</span><span><b>E</b>valuate</span>
+        </div>
+      </div>
+      <div class="cp-card">
+        <div class="k">🧰 The platform</div>
+        <p>Curriculum: <a href="https://neetcode.io/roadmap" target="_blank" rel="noopener">NeetCode</a> free — skip Pro. Runner: <a href="https://leetcode.com" target="_blank" rel="noopener">LeetCode free</a> — every problem here is verified free. <a href="https://www.hackerrank.com/interview/interview-preparation-kit" target="_blank" rel="noopener">HackerRank</a> optional: gentler warm-up, and many companies send take-homes on it.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program</footer>
+
+<script>
+const READS = {
+ bigo:{t:"Big-O Cheat Sheet — Time Complexity Chart", s:"freeCodeCamp", m:12, url:"https://www.freecodecamp.org/news/big-o-cheat-sheet-time-complexity-chart/",
+  why:"Rebuilds Big-O instinct in one sitting — a ranked complexity chart with one recognizable code example per class.",
+  d:["Six classes matter: O(1), O(log n), O(n), O(n log n), O(n²), O(2ⁿ)/O(n!). Big-O is worst-case growth vs input size, independent of hardware.",
+     "Quick recognition: no input dependence = O(1) · halving each step = O(log n) · one loop = O(n) · nested loops = O(n²) · doubling work per unit = O(2ⁿ).",
+     "Worked examples: array index O(1), factorial loop O(n), binary search O(log n), pairwise match O(n²), naive Fibonacci O(2ⁿ).",
+     "Complexity comes from your approach, not the problem — an unnecessary loop turns O(1) into O(n)."]},
+ array:{t:"Array Cheatsheet", s:"Tech Interview Handbook", m:10, url:"https://www.techinterviewhandbook.org/algorithms/array/",
+  why:"One page reactivates the arrays-and-strings toolkit — operation costs, corner cases, and the six techniques interviews actually probe.",
+  d:["Costs to re-memorize: access O(1) · search O(n), O(log n) if sorted · insert/remove O(n) mid-array, O(1) at the end.",
+     "Vocabulary trap: subarray = contiguous; subsequence = keeps order but can skip.",
+     "Six techniques cover most problems: sliding window, two pointers, traverse-from-right, sort-first, prefix sums, index-as-hash-key.",
+     "Always voice the corner cases: empty input, 1–2 elements, duplicates — and watch hidden O(n) costs in slicing/concatenation."]},
+ twoptr:{t:"Two Pointers", s:"USACO Guide", m:15, url:"https://usaco.guide/silver/two-pointers",
+  why:"Teaches the two-pointer invariant properly — why monotonic pointers make a nested-looking loop O(n) — instead of as a memorized trick. (Toggle code samples to Python.)",
+  d:["Core idea: two monotonic pointers that only move forward find a qualifying pair in linear time.",
+     "Sorted pair-sum: move left up when the sum is too small, right down when too big — O(n log n) vs O(n²) brute force.",
+     "Each pointer moves at most n times total, so the whole thing is amortized O(n).",
+     "The grow-right / shrink-left variant is the bridge into sliding window (next tier)."]},
+ stack:{t:"Stack Cheatsheet", s:"Tech Interview Handbook", m:5, url:"https://www.techinterviewhandbook.org/algorithms/stack/",
+  why:"Five-minute refresher connecting stacks to recursion and DFS, plus a graded problem ladder.",
+  d:["Stack = LIFO with O(1) push/pop/peek; in Python it's just a list.",
+     "Stacks are the machinery behind nested calls and DFS — recursion is an implicit stack.",
+     "Corner cases to voice: popping empty, one-item, two-item stacks.",
+     "The ladder runs Valid Parentheses up to monotonic-stack classics like Daily Temperatures."]},
+ llist:{t:"Linked List Cheatsheet", s:"Tech Interview Handbook", m:10, url:"https://www.techinterviewhandbook.org/algorithms/linked-list/",
+  why:"Every linked-list trick — dummy nodes, fast/slow pointers, in-place reversal — as one page of muscle-memory routines.",
+  d:["Tradeoff to state up front: O(1) insert/delete at a known node, O(n) access/search.",
+     "Four routines cover most problems: count, reverse in place, fast/slow middle, merge two lists.",
+     "A sentinel/dummy head removes nearly all null-pointer edge-case code.",
+     "Expect to be asked for in-place O(1)-space versions — 'build a new list' is usually banned. Corner cases: empty, one node, two nodes, cycle."]},
+ slidewin:{t:"Sliding Window — Code Template", s:"labuladong", m:25, url:"https://labuladong.online/algo/en/essential-technique/sliding-window-framework/",
+  why:"One fill-in-the-blanks expand/shrink template plus a 3-question checklist that turns every substring/subarray problem into the same solve.",
+  d:["Sliding window prunes the O(n²) all-subarrays search to O(n): left and right pointers never move backward, so each element enters and leaves the window once.",
+     "Template: outer loop expands right and updates window state; inner while shrinks left when the constraint breaks; the answer updates at a defined spot.",
+     "Three questions to apply it: when to expand (and what to update on entry) · when to shrink (and what to update on exit) · when to record the answer.",
+     "Bugs come from asymmetric bookkeeping between the expand/shrink sites, not the algorithm. Python code tabs included."]},
+ binsearch:{t:"Binary Search (on the answer)", s:"USACO Guide", m:20, url:"https://usaco.guide/silver/binary-search",
+  why:"Levels binary search up from 'find x in a sorted array' to binary-searching any monotonic condition — the version interviews actually test. (Toggle code to Python.)",
+  d:["Binary search works on any monotonic boolean f(x), not just sorted arrays — find the last x where f(x) is true, or the first where it flips.",
+     "Reusable lastTrue/firstTrue implementations with loop-invariant reasoning that kills off-by-one bugs.",
+     "Maps directly to Python's bisect (lower/upper bound).",
+     "This is the frame for Rotated Sorted Array and Search a 2D Matrix below."]},
+ recursion:{t:"Recursion from a Binary-Tree Perspective", s:"labuladong", m:30, url:"https://labuladong.online/algo/en/essential-technique/binary-tree-summary/",
+  why:"Rebuilds recursion intuition around two mental models — traverse vs decompose — that make every tree problem feel like the same problem.",
+  d:["Every tree problem yields to one of two mindsets: traverse the tree once with external state, or decompose — build the answer from subtree return values.",
+     "The universal question per node: what does this one node do, and in which position (pre/in/post-order)? Recursion handles the rest.",
+     "Preorder code runs on the way down; postorder runs on the way up with subtree results in hand.",
+     "BFS is level-order with a queue; DFS is the recursive skeleton — both carry straight into graphs (next tier)."]},
+ heap:{t:"Heap Cheatsheet", s:"Tech Interview Handbook", m:5, url:"https://www.techinterviewhandbook.org/algorithms/heap/",
+  why:"Five minutes on the one structure framework work never touches — when a heap beats sorting and how heapq thinks.",
+  d:["Heap = complete binary tree where every parent beats its children; Python's heapq is a min-heap (negate values for max).",
+     "Push/pop are O(log n), peek is O(1), heapify an array is O(n).",
+     "The interview trigger: 'k-th largest / smallest / closest / most frequent' → keep a heap of size k for O(n log k).",
+     "Corner cases: k equal to array length, duplicates, ties."]},
+ graph:{t:"Graph Cheatsheet", s:"Tech Interview Handbook", m:12, url:"https://www.techinterviewhandbook.org/algorithms/graph/",
+  why:"Copy-ready Python BFS/DFS matrix templates plus a blunt triage of which graph algorithms are actually asked (and which to skip).",
+  d:["Interview graphs usually arrive as 2D matrices (cells = nodes, 4-directional moves) or edge lists you convert to a hash adjacency map.",
+     "BFS and DFS are both O(V+E); use collections.deque for BFS — list dequeue is O(n).",
+     "Triage: BFS/DFS common · topo sort and Dijkstra uncommon · Bellman-Ford/Floyd-Warshall/Prim/Kruskal almost never asked.",
+     "Top failure modes: forgetting the visited set (infinite loop) and skipping corner cases — empty graph, 1–2 nodes, disconnected components, cycles."]},
+ umpire:{t:"UMPIRE Interview Strategy (full write-up)", s:"CodePath Guides", m:15, url:"https://guides.codepath.com/compsci/UMPIRE-Interview-Strategy",
+  why:"The talk-through method end-to-end on a real problem — turns solving out loud from a performance into a repeatable procedure.",
+  d:["Understand by generating test cases aloud (one happy path + edges) and asking clarifying questions ('in place?', 'does ordering matter?').",
+     "Match the problem to known categories and rate candidate patterns Likely / Neutral / Unlikely before writing anything.",
+     "Implement in layers: skeleton with numbered plan comments first, fill in each part second.",
+     "Review by tracing a concrete example with a variable watchlist, then Evaluate time/space and name the tradeoffs."]}
+};
+
+const P=(n,p,d,u,note,wx)=>({n,p,d,u,note,wx});
+const CP = [
+{
+  id:"entry", key:"Tier 1", title:"Entry-Level", sub:"Reboot the flow: Big-O, arrays & strings, hashmaps, two pointers, stacks, binary search, lists, trees",
+  lede:"Goal here is fluency, not difficulty — every essential should become a clean, narrated 15–25 minute solve. Work the modules in order: read, watch, solve the essentials, clear the breakpoint, then move on (come back for the reps any time).",
+  bench:"",
+  mods:[
+   {t:"Big-O + Arrays & Hashing",
+    reads:[READS.bigo, READS.array],
+    opt:'Optional 5-min add-on: <a href="https://www.techinterviewhandbook.org/algorithms/hash-table/" target="_blank" rel="noopener">Hash Table cheatsheet ↗</a> if dict/set mechanics feel rusty.',
+    vids:[{t:"Big O Notation", c:"HackerRank · Gayle Laakmann McDowell", id:"v4cd1O4zkGw", m:9},
+          {t:"Two Sum — hashmap pattern", c:"NeetCode", id:"KLlXCFG5TnA", m:8}],
+    ess:[P("Two Sum","arrays + hashmap","e","https://leetcode.com/problems/two-sum/",null,1),
+         P("Contains Duplicate","hashset","e","https://leetcode.com/problems/contains-duplicate/"),
+         P("Valid Anagram","hashmap / strings","e","https://leetcode.com/problems/valid-anagram/")],
+    add:[P("Ransom Note","hashmap","e","https://leetcode.com/problems/ransom-note/"),
+         P("Majority Element","hashmap / voting","e","https://leetcode.com/problems/majority-element/"),
+         P("Single Number","set / XOR","e","https://leetcode.com/problems/single-number/")],
+    gate:"<b>Breakpoint</b> — move on when you can state the time & space of each solve unprompted, and explain in one sentence why the hashmap beats the nested loop."},
+   {t:"Two Pointers",
+    reads:[READS.twoptr],
+    vids:[{t:"Valid Palindrome — two pointers", c:"NeetCode", id:"jJXJ16kPFWg", m:15}],
+    ess:[P("Valid Palindrome","two pointers","e","https://leetcode.com/problems/valid-palindrome/",null,1),
+         P("Best Time to Buy and Sell Stock","one-pass window","e","https://leetcode.com/problems/best-time-to-buy-and-sell-stock/")],
+    add:[P("Move Zeroes","two pointers","e","https://leetcode.com/problems/move-zeroes/"),
+         P("Squares of a Sorted Array","two pointers","e","https://leetcode.com/problems/squares-of-a-sorted-array/"),
+         P("Remove Duplicates from Sorted Array","two pointers","e","https://leetcode.com/problems/remove-duplicates-from-sorted-array/")],
+    gate:"<b>Breakpoint</b> — before coding, you can say what each pointer means and why neither ever moves backward."},
+   {t:"Stack",
+    reads:[READS.stack],
+    vids:[{t:"Valid Parentheses — stack", c:"NeetCode", id:"WTzjTskDFMg", m:11}],
+    ess:[P("Valid Parentheses","stack","e","https://leetcode.com/problems/valid-parentheses/",null,1)],
+    add:[P("Implement Queue using Stacks","two stacks","e","https://leetcode.com/problems/implement-queue-using-stacks/")],
+    gate:"<b>Breakpoint</b> — you reflexively voice the empty-stack pop case before anyone asks."},
+   {t:"Binary Search",
+    reads:[],
+    vids:[{t:"Binary Search — mid/boundary mechanics", c:"NeetCode", id:"s4DPM8ct1pI", m:10}],
+    ess:[P("Binary Search","binary search","e","https://leetcode.com/problems/binary-search/",null,1)],
+    add:[P("First Bad Version","binary search","e","https://leetcode.com/problems/first-bad-version/"),
+         P("Search Insert Position","binary search","e","https://leetcode.com/problems/search-insert-position/")],
+    gate:"<b>Breakpoint</b> — you can defend your mid and boundary updates without off-by-one hand-waving. (The deeper 'binary search the answer' reading waits in Intermediate.)"},
+   {t:"Linked Lists",
+    reads:[READS.llist],
+    vids:[{t:"Reverse Linked List — iterative AND recursive", c:"NeetCode", id:"G0_I-ZF0S38", m:11}],
+    ess:[P("Reverse Linked List","linked list","e","https://leetcode.com/problems/reverse-linked-list/",null,1),
+         P("Merge Two Sorted Lists","linked list","e","https://leetcode.com/problems/merge-two-sorted-lists/"),
+         P("Linked List Cycle","fast/slow pointers","e","https://leetcode.com/problems/linked-list-cycle/")],
+    add:[P("Middle of the Linked List","fast/slow pointers","e","https://leetcode.com/problems/middle-of-the-linked-list/"),
+         P("Palindrome Linked List","fast/slow + reverse","e","https://leetcode.com/problems/palindrome-linked-list/")],
+    gate:"<b>Breakpoint</b> — you can reverse a list on a whiteboard with three named pointers, and say when you'd reach for a dummy node."},
+   {t:"Trees & the Recursion Opener",
+    reads:[],
+    vids:[{t:"Maximum Depth of Binary Tree — 3 solutions (rec DFS · iter DFS · BFS)", c:"NeetCode", id:"hTM3phVI6YQ", m:17}],
+    ess:[P("Maximum Depth of Binary Tree","trees / recursion","e","https://leetcode.com/problems/maximum-depth-of-binary-tree/",null,1),
+         P("Invert Binary Tree","trees / recursion","e","https://leetcode.com/problems/invert-binary-tree/"),
+         P("Climbing Stairs","recursion → DP opener","e","https://leetcode.com/problems/climbing-stairs/")],
+    add:[P("Same Tree","trees / recursion","e","https://leetcode.com/problems/same-tree/"),
+         P("Diameter of Binary Tree","trees / recursion","e","https://leetcode.com/problems/diameter-of-binary-tree/"),
+         P("Balanced Binary Tree","trees / recursion","e","https://leetcode.com/problems/balanced-binary-tree/"),
+         P("Min Cost Climbing Stairs","DP","e","https://leetcode.com/problems/min-cost-climbing-stairs/")],
+    gate:"<b>Breakpoint</b> — you can describe the same solve both ways: 'traverse with state' vs 'decompose subtree answers'. (The full recursion framework reading is Intermediate module 5.)"}
+  ]
+},
+{
+  id:"intermediate", key:"Tier 2 · The bar", title:"Intermediate", sub:"Core patterns: sliding window, binary search on answers, stacks II, trees & BSTs, heaps",
+  lede:"This is the tier interviews are decided in. The readings here are templates, not trivia. Attempt each essential for 25 minutes out loud before watching its NeetCode solution, then re-explain the solution aloud — that re-explain is gauntlet rehearsal.",
+  bench:"🎯 <b>This tab is the bar.</b> Revature's FDE benchmark is a <b>partially solved Intermediate with ≥70% of test cases passing</b>. A structured, narrated attempt that passes most tests is a win — going silent or freezing is the only real failure mode.",
+  mods:[
+   {t:"Sliding Window",
+    reads:[READS.slidewin],
+    vids:[{t:"Longest Substring Without Repeating Characters — sliding window", c:"NeetCode", id:"wiGpQwVHdE0", m:7}],
+    ess:[P("Longest Substring Without Repeating Characters","sliding window","m","https://leetcode.com/problems/longest-substring-without-repeating-characters/",null,1)],
+    add:[P("Longest Repeating Character Replacement","sliding window","m","https://leetcode.com/problems/longest-repeating-character-replacement/"),
+         P("Permutation in String","sliding window","m","https://leetcode.com/problems/permutation-in-string/")],
+    gate:"<b>Breakpoint</b> — you answer the template's three questions (when to expand? when to shrink? when to record?) out loud before typing."},
+   {t:"Two Pointers II & Hashing II",
+    reads:[],
+    vids:[{t:"Container With Most Water — two pointers at Medium weight", c:"NeetCode", id:"UuiTKBwPgAo", m:13}],
+    ess:[P("Two Sum II — Sorted Input","two pointers","m","https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/","plays easier than its label"),
+         P("Group Anagrams","hashmap","m","https://leetcode.com/problems/group-anagrams/")],
+    add:[P("Container With Most Water","two pointers","m","https://leetcode.com/problems/container-with-most-water/",null,1),
+         P("3Sum","sort + two pointers","m","https://leetcode.com/problems/3sum/")],
+    gate:"<b>Breakpoint</b> — you choose sort-first or hash-first deliberately, and can say which and why within the first minute."},
+   {t:"Binary Search on Answers",
+    reads:[READS.binsearch],
+    vids:[],
+    ess:[P("Search a 2D Matrix","binary search","m","https://leetcode.com/problems/search-a-2d-matrix/"),
+         P("Find Minimum in Rotated Sorted Array","binary search","m","https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/")],
+    add:[P("Search in Rotated Sorted Array","binary search","m","https://leetcode.com/problems/search-in-rotated-sorted-array/"),
+         P("Koko Eating Bananas","binary search the answer","m","https://leetcode.com/problems/koko-eating-bananas/")],
+    gate:"<b>Breakpoint</b> — you can phrase the problem as a monotonic true/false condition before writing the loop."},
+   {t:"Stacks II",
+    reads:[],
+    vids:[],
+    ess:[P("Min Stack","stack","m","https://leetcode.com/problems/min-stack/","plays easier than its label")],
+    add:[P("Evaluate Reverse Polish Notation","stack","m","https://leetcode.com/problems/evaluate-reverse-polish-notation/"),
+         P("Daily Temperatures","monotonic stack","m","https://leetcode.com/problems/daily-temperatures/")],
+    gate:"<b>Breakpoint</b> — 'next greater / warmer / higher' triggers 'monotonic stack?' in your head before brute force. (Refresher: the Entry stack module.)"},
+   {t:"Trees & BSTs",
+    reads:[READS.recursion],
+    vids:[{t:"Binary Tree Level Order Traversal — BFS", c:"NeetCode", id:"6ZnyEApgFYg", m:10}],
+    ess:[P("Binary Tree Level Order Traversal","trees / BFS","m","https://leetcode.com/problems/binary-tree-level-order-traversal/",null,1),
+         P("Validate Binary Search Tree","trees / DFS","m","https://leetcode.com/problems/validate-binary-search-tree/")],
+    add:[P("Lowest Common Ancestor of a BST","BST invariant","m","https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/"),
+         P("Kth Smallest Element in a BST","inorder traversal","m","https://leetcode.com/problems/kth-smallest-element-in-a-bst/"),
+         P("Subtree of Another Tree","trees / recursion","e","https://leetcode.com/problems/subtree-of-another-tree/")],
+    gate:"<b>Breakpoint</b> — you pick BFS vs DFS out loud with a reason, and you use the BST ordering invariant instead of re-checking whole subtrees."},
+   {t:"Heaps",
+    reads:[READS.heap],
+    vids:[],
+    ess:[P("Kth Largest Element in a Stream","heap warm-up","e","https://leetcode.com/problems/kth-largest-element-in-a-stream/"),
+         P("Last Stone Weight","heap warm-up","e","https://leetcode.com/problems/last-stone-weight/")],
+    add:[P("K Closest Points to Origin","heap of size k","m","https://leetcode.com/problems/k-closest-points-to-origin/"),
+         P("Top K Frequent Elements","hashmap + heap","m","https://leetcode.com/problems/top-k-frequent-elements/")],
+    gate:"<b>Breakpoint</b> — 'k-th largest / smallest / closest / most frequent' triggers 'heap of size k' before you reach for sorting."},
+   {t:"Linked Lists II — reps only",
+    reads:[],
+    vids:[],
+    ess:[],
+    add:[P("Reorder List","fast/slow + reverse + merge","m","https://leetcode.com/problems/reorder-list/"),
+         P("Remove Nth Node From End of List","offset pointers + dummy","m","https://leetcode.com/problems/remove-nth-node-from-end-of-list/")],
+    gate:"<b>Reps module</b> — the Entry linked-list toolkit at Medium weight; both combine two routines you already have. No new material."}
+  ]
+},
+{
+  id:"hard", key:"Tier 3", title:"Hard", sub:"Graphs, intervals, and the full interview flow — beyond the bar",
+  lede:"Everything here is past the benchmark — it's where you build headroom. The graph mediums are the archetypes nearly every grid/graph question derives from. Watch the mock interview for the flow, not the solution: notice how the candidate narrates dead ends and recovers.",
+  bench:"",
+  mods:[
+   {t:"Graphs",
+    reads:[READS.graph],
+    vids:[{t:"Number of Islands — grid graph DFS/BFS", c:"NeetCode", id:"pV2kpPD66nE", m:12}],
+    ess:[P("Number of Islands","graphs / DFS","m","https://leetcode.com/problems/number-of-islands/",null,1),
+         P("Rotting Oranges","graphs / multi-source BFS","m","https://leetcode.com/problems/rotting-oranges/")],
+    add:[P("Clone Graph","graphs / hashmap","m","https://leetcode.com/problems/clone-graph/"),
+         P("Course Schedule","topological sort","m","https://leetcode.com/problems/course-schedule/"),
+         P("Pacific Atlantic Water Flow","multi-source DFS","m","https://leetcode.com/problems/pacific-atlantic-water-flow/"),
+         P("Surrounded Regions","boundary DFS","m","https://leetcode.com/problems/surrounded-regions/")],
+    gate:"<b>Breakpoint</b> — you write the visited-set line before the traversal, not after the infinite loop."},
+   {t:"Intervals",
+    reads:[],
+    vids:[{t:"Merge Intervals", c:"NeetCode", id:"44H3cEC2fFM", m:10}],
+    ess:[P("Merge Intervals","intervals","m","https://leetcode.com/problems/merge-intervals/",null,1),
+         P("Insert Interval","intervals","m","https://leetcode.com/problems/insert-interval/")],
+    add:[P("Non-overlapping Intervals","intervals / greedy","m","https://leetcode.com/problems/non-overlapping-intervals/")],
+    gate:"<b>Breakpoint</b> — you sort by start and can draw the three overlap cases before coding."},
+   {t:"The Full Interview Flow",
+    reads:[READS.umpire],
+    vids:[{t:"Google Coding Interview With A Normal Software Engineer", c:"Clément Mihailescu", id:"rw4s4M3hFfs", m:60, note:"long — watch in two sittings; study the flow, not the answer"}],
+    ess:[P("Minimum Window Substring","sliding-window template, hard mode","h","https://leetcode.com/problems/minimum-window-substring/"),
+         P("Trapping Rain Water","two pointers / monotonic stack","h","https://leetcode.com/problems/trapping-rain-water/")],
+    add:[P("Sliding Window Maximum","monotonic deque","h","https://leetcode.com/problems/sliding-window-maximum/"),
+         P("Merge K Sorted Lists","heap + linked lists","h","https://leetcode.com/problems/merge-k-sorted-lists/"),
+         P("Largest Rectangle in Histogram","monotonic stack","h","https://leetcode.com/problems/largest-rectangle-in-histogram/")],
+    gate:"<b>Breakpoint</b> — you run UMPIRE end-to-end on a timed problem unprompted, including naming the tradeoffs at the end. These two Hards are direct applications of templates you've already read."}
+  ]
+}
+];
+
+/* NeetCode video per LeetCode slug — resolved via YouTube search, channel-verified (NeetCode/NeetCodeIO) 2026-07-24.
+   Problems absent here (ransom-note, first-bad-version) have no NeetCode video; chip falls back to a search link. */
+const YT={"3sum":"jzZsG8n2R9A","balanced-binary-tree":"QfJsau0ItOY","best-time-to-buy-and-sell-stock":"1pkOgXD63yU","binary-search":"s4DPM8ct1pI","binary-tree-level-order-traversal":"6ZnyEApgFYg","climbing-stairs":"Y0lT9Fck7qI","clone-graph":"mQeF6bN8hMk","container-with-most-water":"UuiTKBwPgAo","contains-duplicate":"3OamzN90kPg","course-schedule":"EgI5nU9etnU","daily-temperatures":"cTBiBSnjO3c","diameter-of-binary-tree":"bkxqA8Rfv04","evaluate-reverse-polish-notation":"iu0082c4HDE","find-minimum-in-rotated-sorted-array":"nIVW4P8b1VA","group-anagrams":"vzdNOK2oB2E","implement-queue-using-stacks":"eanwa3ht3YQ","insert-interval":"A8NUOmlwOlM","invert-binary-tree":"OnSn2XEQ4MY","k-closest-points-to-origin":"rI2EBUEMfTk","koko-eating-bananas":"U2SozAs9RzA","kth-largest-element-in-a-stream":"hOjcdrqMoQ8","kth-smallest-element-in-a-bst":"5LUXSvjmGCw","largest-rectangle-in-histogram":"zx5Sw9130L0","last-stone-weight":"B-QCq79-Vfw","linked-list-cycle":"gBTe7lFR3vc","longest-repeating-character-replacement":"gqXU1UyA8pk","longest-substring-without-repeating-characters":"wiGpQwVHdE0","lowest-common-ancestor-of-a-binary-search-tree":"gs2LMfuOR9k","majority-element":"7pnhv842keE","maximum-depth-of-binary-tree":"hTM3phVI6YQ","merge-intervals":"44H3cEC2fFM","merge-k-sorted-lists":"q5a5OiGbT6Q","merge-two-sorted-lists":"XIdigk956u0","middle-of-the-linked-list":"A2_ldqM4QcY","min-cost-climbing-stairs":"ktmzAZWkEZ0","min-stack":"qkLl7nAwDPo","minimum-window-substring":"jSto0O4AJbM","move-zeroes":"aayNRwUN3Do","non-overlapping-intervals":"nONCGxWoUfM","number-of-islands":"pV2kpPD66nE","pacific-atlantic-water-flow":"s-VkcjHqkGI","palindrome-linked-list":"yOzXms1J6Nk","permutation-in-string":"UbyhOgBN834","remove-duplicates-from-sorted-array":"DEJAZBq0FDA","remove-nth-node-from-end-of-list":"XVuQxVej6y8","reorder-list":"S5bfdUTrKLM","reverse-linked-list":"G0_I-ZF0S38","rotting-oranges":"y704fEOx0s0","same-tree":"vRbbcKXCxOw","search-a-2d-matrix":"Ber2pi2C0j0","search-in-rotated-sorted-array":"U8XENwh8Oy8","search-insert-position":"K-RYzDZkzCI","single-number":"qMPX1AOa83k","sliding-window-maximum":"DfljaUwZsOk","squares-of-a-sorted-array":"FPCZsG_AkUg","subtree-of-another-tree":"E36O5SWp-LE","surrounded-regions":"9z2BunfoZ5Y","top-k-frequent-elements":"YPTqKIgVk-k","trapping-rain-water":"ZI2z5pq0TqA","two-sum":"KLlXCFG5TnA","two-sum-ii-input-array-is-sorted":"cQ1Oz4ckceM","valid-anagram":"9UtInBqnCgA","valid-palindrome":"jJXJ16kPFWg","valid-parentheses":"WTzjTskDFMg","validate-binary-search-tree":"s6ATEkipzow"};
+const DIFF={e:"Easy",m:"Medium",h:"Hard"};
+const done=k=>localStorage.getItem("cp-"+k)==="1";
+const slug=u=>u.split("/problems/")[1].replace(/\/$/,"");
+const tabsEl=document.getElementById("cpTabs"),panEl=document.getElementById("cpPanels");
+
+const essOf=t=>t.mods.flatMap(m=>m.ess);
+const addOf=t=>t.mods.flatMap(m=>m.add);
+
+function probRow(p){
+  const s=slug(p.u),dk=done(s);
+  return `<div class="cp-prob${dk?" done":""}" data-slug="${s}" data-url="${p.u}" role="button" tabindex="0" title="Open on LeetCode + mark attempted">
+    <input type="checkbox" ${dk?"checked":""} aria-label="mark ${p.n} done">
+    <div><div class="pn">${p.n} ↗</div>
+    <div class="pp">${p.p}${p.note?" · "+p.note:""}${p.wx?` · <span class="wx">📺 solved in the video above — re-implement it from memory</span>`:""}</div></div>
+    <div class="right">${YT[s]?`<a class="cp-nc" href="https://www.youtube.com/watch?v=${YT[s]}" target="_blank" rel="noopener">▶ NeetCode video ↗</a>`:`<a class="cp-nc" href="https://www.youtube.com/results?search_query=${encodeURIComponent(p.n+" leetcode python")}" target="_blank" rel="noopener">▶ solution videos ↗</a>`}<span class="cp-diff ${p.d}">${DIFF[p.d]}</span></div>
+  </div>`;
+}
+function readBlock(r){
+  return `<details class="cp-read"><summary><span class="rt">${r.t}</span><span class="rs">${r.s}</span><span class="rm">~${r.m} min</span></summary>
+    <div class="rwhy">${r.why}</div><ul>${r.d.map(x=>`<li>${x}</li>`).join("")}</ul>
+    <a class="rlink" href="${r.url}" target="_blank" rel="noopener">Read the full article ↗</a></details>`;
+}
+function vidBlock(v){
+  return `<div class="cp-vid">
+    <iframe class="vf" loading="lazy" src="https://www.youtube-nocookie.com/embed/${v.id}" title="${v.t}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    <div class="vc"><div class="vt">${v.t}</div><div class="vm">${v.c} · ${v.m} min${v.note?" · "+v.note:""}</div></div></div>`;
+}
+function modBlock(m,i,tid){
+  return `<details class="cp-mod" data-mod="${tid}-${i}">
+    <summary><span class="mnum">Module ${i+1}</span><span class="mt">${m.t}</span><span class="mst" data-mst="${tid}-${i}"></span><span class="chev">▾</span></summary>
+    <div class="mbody">
+    ${m.reads.length?`<div class="sh">📖 Read${m.reads.length>1?"ings":""} — gist is right here; link out only if you want the full article</div>${m.reads.map(readBlock).join("")}${m.opt?`<div class="cp-opt">${m.opt}</div>`:""}`:""}
+    ${m.vids.length?`<div class="sh">🎬 Watch — right here, no need to leave</div><div class="cp-vids">${m.vids.map(vidBlock).join("")}</div>`:""}
+    ${m.ess.length?`<div class="sh">🧩 Essentials — click a card to open it on LeetCode (it marks itself) · 25 min out loud → then its solution video → re-explain aloud</div><div class="cp-probs">${m.ess.map(probRow).join("")}</div>`:""}
+    <div class="cp-gate"><span class="gi">🚦</span><div>${m.gate}</div></div>
+    ${m.add.length?`<details class="cp-add"><summary><span class="an">➕ Additional reps · ${m.add.length}</span><span> come back for extra swings at this pattern</span><span class="arep" data-arep="${tid}-${i}"></span></summary><div class="cp-probs">${m.add.map(probRow).join("")}</div></details>`:""}
+    </div>
+  </details>`;
+}
+
+CP.forEach(t=>{
+  const b=document.createElement("button");
+  b.className="cp-tab"; b.dataset.id=t.id;
+  b.innerHTML=`<div class="t-k">${t.key}</div><div class="t-t">${t.title}</div><div class="t-s">${t.sub}</div><div class="t-prog"><i></i></div>`;
+  b.onclick=()=>activate(t.id);
+  tabsEl.appendChild(b);
+
+  const p=document.createElement("section");
+  p.className="cp-panel"; p.id="cp-"+t.id;
+  p.innerHTML=`<h2>${t.title}</h2><p class="lede2">${t.lede}</p>
+  ${t.bench?`<div class="cp-bench">${t.bench}</div>`:""}
+  ${t.mods.map((m,i)=>modBlock(m,i,t.id)).join("")}`;
+  panEl.appendChild(p);
+});
+
+function refresh(){
+  CP.forEach(t=>{
+    const ess=essOf(t),n=ess.filter(p=>done(slug(p.u))).length;
+    document.querySelector(`.cp-tab[data-id="${t.id}"] .t-prog i`).style.width=(ess.length?n/ess.length*100:0)+"%";
+    t.mods.forEach((m,i)=>{
+      const en=m.ess.filter(p=>done(slug(p.u))).length, essLeft=m.ess.length-en;
+      const an=m.add.filter(p=>done(slug(p.u))).length, addLeft=m.add.length-an;
+      const st=document.querySelector(`[data-mst="${t.id}-${i}"]`);
+      if(st){
+        if(m.ess.length&&essLeft>0){ st.className="mst todo"; st.textContent=`● ${essLeft} essential${essLeft>1?"s":""} left`; }
+        else if(addLeft>0){ st.className="mst reps"; st.textContent=`✓ ${m.ess.length?"essentials done":"reps module"} · ${addLeft} rep${addLeft>1?"s":""} open`; }
+        else { st.className="mst done"; st.textContent="✓ module complete"; }
+      }
+      const ae=document.querySelector(`[data-arep="${t.id}-${i}"]`);
+      if(ae)ae.textContent=an?`${an}/${m.add.length} done`:"";
+    });
+  });
+}
+function setDone(row,val){
+  localStorage.setItem("cp-"+row.dataset.slug,val?"1":"0");
+  row.querySelector("input").checked=val;
+  row.classList.toggle("done",val);
+  refresh();
+}
+function launch(row){
+  window.open(row.dataset.url,"_blank","noopener");
+  setDone(row,true);
+  autoCollapse(row);
+}
+function autoCollapse(row){
+  const mod=row.closest("details.cp-mod"); if(!mod)return;
+  const [tid,idx]=mod.dataset.mod.split("-");
+  const t=CP.find(x=>x.id===tid), m=t.mods[+idx];
+  const essDone=m.ess.length&&m.ess.every(p=>done(slug(p.u)));
+  const inEss=m.ess.some(p=>slug(p.u)===row.dataset.slug);
+  if(essDone&&inEss) mod.open=false;   // collapse the moment the last essential is checked
+}
+panEl.addEventListener("click",e=>{
+  const row=e.target.closest(".cp-prob"); if(!row)return;
+  if(e.target.closest("a"))return;                     // NeetCode video chip: just the link
+  if(e.target.matches("input")){ setDone(row,e.target.checked); if(e.target.checked)autoCollapse(row); return; }  // checkbox = toggle only (un-mark without opening)
+  launch(row);                                          // anywhere else: open on LeetCode + mark
+});
+panEl.addEventListener("keydown",e=>{
+  const row=e.target.closest(".cp-prob");
+  if(row&&(e.key==="Enter"||e.key===" ")&&!e.target.matches("input,a")){e.preventDefault();launch(row);}
+});
+function activate(id){
+  document.querySelectorAll(".cp-tab").forEach(b=>b.classList.toggle("on",b.dataset.id===id));
+  document.querySelectorAll(".cp-panel").forEach(p=>p.classList.toggle("on",p.id==="cp-"+id));
+  if(history.replaceState)history.replaceState(null,"","#"+id);
+}
+refresh();
+const h=location.hash.slice(1);
+activate(CP.some(t=>t.id===h)?h:"entry");
+</script>
+<script src="assets/js/roster.js?v=20260706"></script>
+<script src="assets/js/auth.js"></script>
+</body>
+</html>
