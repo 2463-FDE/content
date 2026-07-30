@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FDE Insights · Weekly Self-Assessment | 2463-FDE</title>
+<link rel="stylesheet" href="assets/css/style.css?v=20260714-w3f">
+<script src="assets/js/theme.js"></script>
+<style>
+  /* ---- fde-insights page layout (reuses site design language) ---- */
+  .fi-wrap { width:100%; margin:0; padding:0 32px 70px; box-sizing:border-box; }
+  .fi-hero { padding:34px 0 10px; }
+  .fi-hero h1 { font-size:40px; margin:0 0 8px; letter-spacing:-.5px; }
+  .fi-hero h1 b { color:var(--accent); }
+  .fi-hero p { color:var(--ink-soft); font-size:17px; max-width:1050px; margin:0; }
+
+  .fi-cols { display:grid; grid-template-columns:minmax(0,1fr) 300px;
+             grid-template-areas:"main rail"; gap:24px; align-items:start; margin-top:24px; }
+  .fi-main { grid-area:main; min-width:0; }
+  .fi-rail { grid-area:rail; position:sticky; top:76px; display:grid; gap:12px; }
+  @media (max-width:1000px){
+    .fi-cols { grid-template-columns:1fr; grid-template-areas:"rail" "main"; }
+    .fi-rail { position:static; grid-template-columns:repeat(2,1fr); }
+  }
+  @media (max-width:860px){ .fi-rail { grid-template-columns:1fr; } }
+
+  .fi-card { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+  .fi-card .k { font-size:12px; text-transform:uppercase; letter-spacing:.12em; font-weight:700;
+                color:var(--accent); margin-bottom:6px; }
+  .fi-card p { margin:0; font-size:14.5px; color:var(--ink-soft); line-height:1.55; }
+  .fi-card p b { color:var(--ink); }
+  .fi-card + .fi-card { margin-top:0; }
+  .fi-card.bar { background:var(--accent-soft); border-color:var(--accent-line); }
+  .fi-card a { color:var(--accent); font-weight:600; text-decoration:none; }
+  .fi-card a:hover { text-decoration:underline; }
+
+  .fi-panel { background:var(--surface); border:1px solid var(--line); border-radius:16px;
+              padding:24px 28px; box-shadow:0 6px 24px var(--shadow); margin:0 0 22px; }
+  .fi-panel h2 { font-size:25px; margin:0 0 6px; }
+  .fi-panel > p { color:var(--ink-soft); font-size:15px; margin:0 0 14px; max-width:900px; line-height:1.6; }
+
+  /* numbered steps */
+  .fi-steps { display:grid; gap:12px; margin:16px 0 0; padding:0; list-style:none; counter-reset:s; }
+  .fi-steps li { counter-increment:s; display:grid; grid-template-columns:34px minmax(0,1fr);
+                 gap:12px; align-items:start; }
+  .fi-steps li::before { content:counter(s); display:grid; place-items:center; width:28px; height:28px;
+                         border-radius:50%; background:var(--accent-soft); border:1px solid var(--accent-line);
+                         color:var(--accent-ink,var(--accent)); font-weight:700; font-size:14px; }
+  .fi-steps li div { font-size:15px; color:var(--ink); line-height:1.55; padding-top:3px; }
+  .fi-steps li div small { display:block; color:var(--ink-soft); font-size:13.5px; margin-top:2px; }
+
+  /* copy blocks */
+  .fi-copy { border:1px solid var(--line); border-radius:12px; background:var(--surface-2); overflow:hidden; margin:14px 0 0; }
+  .fi-copy-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+                  padding:11px 14px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .fi-copy-head .t { font-weight:650; font-size:14.5px; color:var(--ink); }
+  .fi-copy-head .s { font-size:12.5px; color:var(--ink-soft); }
+  .fi-copy-head .sp { flex:1; }
+  .fi-btn { cursor:pointer; font:inherit; font-size:13px; font-weight:650; border-radius:9px;
+            padding:7px 13px; border:1.5px solid var(--accent); background:var(--accent-soft);
+            color:var(--accent-ink,var(--accent)); transition:transform .12s, box-shadow .12s; }
+  .fi-btn:hover { transform:translateY(-1px); box-shadow:0 6px 16px var(--shadow); }
+  .fi-btn.ok { border-color:var(--good,#0ca678); background:var(--good-soft,#e6fcf5); color:var(--good,#0ca678); }
+  .fi-copy pre { margin:0; padding:15px 16px; max-height:280px; overflow:auto;
+                 font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,monospace);
+                 font-size:12.5px; line-height:1.55; color:var(--ink); white-space:pre-wrap; word-break:break-word; }
+
+  /* cadence table */
+  .fi-tbl { width:100%; border-collapse:collapse; margin:14px 0 0; font-size:14px; }
+  .fi-tbl th, .fi-tbl td { text-align:left; padding:11px 12px; border-bottom:1px solid var(--line);
+                           vertical-align:top; line-height:1.5; }
+  .fi-tbl th { font-size:11.5px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-soft); font-weight:700; }
+  .fi-tbl td b { color:var(--ink); }
+  .fi-tbl tr:last-child td { border-bottom:none; }
+  .fi-run { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%;
+            background:var(--accent-soft); border:1px solid var(--accent-line);
+            color:var(--accent-ink,var(--accent)); font-weight:700; font-size:13px; }
+  .fi-wk { font-weight:700; color:var(--ink); white-space:nowrap; }
+  .fi-wk small { display:block; font-weight:400; color:var(--ink-soft); font-size:12.5px; white-space:normal; }
+  .fi-lens { color:var(--ink-soft); }
+  .fi-lens b { color:var(--accent-ink,var(--accent)); }
+  @media (max-width:760px){
+    .fi-tbl, .fi-tbl tbody, .fi-tbl tr, .fi-tbl td { display:block; width:100%; }
+    .fi-tbl thead { display:none; }
+    .fi-tbl tr { border:1px solid var(--line); border-radius:12px; padding:6px 4px; margin-bottom:10px; }
+    .fi-tbl td { border-bottom:none; padding:7px 12px; }
+  }
+
+  /* collapsible reference */
+  .fi-mod { border:1px solid var(--line); border-radius:14px; margin:14px 0 0; background:var(--surface-2); overflow:hidden; }
+  .fi-mod > summary { cursor:pointer; list-style:none; padding:15px 20px; display:flex;
+                      align-items:center; gap:10px; font-weight:650; font-size:15.5px; color:var(--ink); }
+  .fi-mod > summary::-webkit-details-marker { display:none; }
+  .fi-mod > summary::before { content:"▸"; color:var(--accent); font-size:13px; transition:transform .15s; }
+  .fi-mod[open] > summary::before { transform:rotate(90deg); }
+  .fi-mod > summary .s { font-weight:400; font-size:13px; color:var(--ink-soft); margin-left:auto; }
+  .fi-mod-body { padding:2px 20px 18px; }
+  .fi-mod-body h4 { font-size:14px; margin:16px 0 6px; color:var(--ink); }
+  .fi-mod-body p, .fi-mod-body li { font-size:14px; color:var(--ink-soft); line-height:1.6; }
+  .fi-mod-body ol, .fi-mod-body ul { margin:6px 0 0; padding-left:20px; }
+  .fi-mod-body li { margin-bottom:5px; }
+  .fi-mod-body li b { color:var(--ink); }
+  .fi-mod-body code { font-family:var(--mono,ui-monospace,monospace); font-size:12.5px;
+                      background:var(--code-bg,var(--surface)); border:1px solid var(--line);
+                      border-radius:5px; padding:1px 5px; color:var(--ink); }
+  .fi-quote { border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 10px 10px 0;
+              padding:12px 16px; margin:14px 0; font-size:14.5px; color:var(--ink); line-height:1.6; }
+  .fi-quote b { color:var(--accent-ink,var(--accent)); }
+  .fi-warn { border-left:3px solid var(--warn,#e8590c); background:var(--warn-soft,#fff4e6);
+             border-radius:0 10px 10px 0; padding:12px 16px; margin:14px 0; font-size:14.5px;
+             color:var(--ink); line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right"></div>
+</div>
+
+<div class="fi-wrap">
+  <div class="fi-hero">
+    <h1>FDE <b>Insights</b></h1>
+    <p><b>Why this exists:</b> Claude Code can read your own session history and tell you how you
+    work. It is honest and it is generic: it scores you as a developer, not as a forward deployed
+    engineer. This page turns that same report into an FDE self-assessment you run once a week for
+    five weeks. Nothing to install. Run one command, paste one prompt.</p>
+  </div>
+
+  <div class="fi-cols">
+    <div class="fi-main">
+
+      <!-- ============ how it works ============ -->
+      <div class="fi-panel">
+        <h2>How to run it</h2>
+        <p>Two minutes, end of the week. The whole point is the trend across five runs, so the
+        habit matters more than any single report.</p>
+
+        <ol class="fi-steps">
+          <li><div>Run <code>/insights</code> in Claude Code and wait for the report.
+            <small>It reads the sessions you have actually run this program, on your own machine.</small></div></li>
+          <li><div>In the <b>same session</b>, hit copy below and paste.
+            <small>Run 1 uses the baseline prompt. Runs 2 through 5 use the delta prompt.</small></div></li>
+          <li><div>Paste the log entry it gives you into <code>fde-progress.md</code>.
+            <small>One file, appended, newest at the bottom. That file is the whole point.</small></div></li>
+        </ol>
+
+        <div class="fi-warn">
+          <b>This does not work:</b> <code>/insights based on @fde-mindset-paradigm.md</code>.
+          <code>/insights</code> is a built-in pipeline, not a prompt. It compresses each session
+          into a fixed set of fields before any model reads them, so the report is already written
+          by the time a file you referenced could be read. You would get an ordinary report and
+          believe the FDE lens had been applied to it. Noticing that failure is itself the skill
+          this page is about.
+        </div>
+      </div>
+
+      <!-- ============ prompts ============ -->
+      <div class="fi-panel">
+        <h2>The prompts</h2>
+        <p>Each button copies the prompt <b>and</b> the full rubric, so one paste is everything
+        Claude needs. You do not need this page open when you paste.</p>
+
+        <div class="fi-copy">
+          <div class="fi-copy-head">
+            <span class="t">Prompt 1 · baseline</span>
+            <span class="s">Run 1 only, end of week 6</span>
+            <span class="sp"></span>
+            <button class="fi-btn" data-copy="p1">Copy prompt + rubric</button>
+          </div>
+          <pre id="pre-p1"></pre>
+        </div>
+
+        <div class="fi-copy">
+          <div class="fi-copy-head">
+            <span class="t">Prompt 2 · delta</span>
+            <span class="s">Runs 2 to 5, compares against your log</span>
+            <span class="sp"></span>
+            <button class="fi-btn" data-copy="p2">Copy prompt + rubric</button>
+          </div>
+          <pre id="pre-p2"></pre>
+        </div>
+      </div>
+
+      <!-- ============ cadence ============ -->
+      <div class="fi-panel">
+        <h2>The five week cadence</h2>
+        <p>One report is a snapshot. Five are a trajectory, and the trajectory is the point. Each
+        run has a lens drawn from what that week actually taught you, so the assessment tracks the
+        curriculum instead of floating beside it.</p>
+
+        <table class="fi-tbl">
+          <thead><tr><th>Run</th><th>End of</th><th>Look hardest at</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="fi-run">1</span></td>
+              <td class="fi-wk">Week 6<small>AI-Augmented SDLC</small></td>
+              <td class="fi-lens"><b>The loop check.</b> You will have just built loops. Do yours
+                have a machine-verifiable stopping condition, or do they stop when the agent says
+                it is finished?</td>
+            </tr>
+            <tr>
+              <td><span class="fi-run">2</span></td>
+              <td class="fi-wk">Week 7<small>Observability, SRE &amp; Guardrails</small></td>
+              <td class="fi-lens"><b>The Measure stage.</b> Observability is Measure wearing an
+                engineering hat. If that bucket is still empty, the week did not transfer into how
+                you work.</td>
+            </tr>
+            <tr>
+              <td><span class="fi-run">3</span></td>
+              <td class="fi-wk">Week 8<small>Security, Governance &amp; Responsible AI</small></td>
+              <td class="fi-lens"><b>Trait 2, calibration.</b> Watch for <code>excessive_changes</code>
+                appearing as you learn to harden. "Precision is the entry fee" is not a licence to
+                gold-plate.</td>
+            </tr>
+            <tr>
+              <td><span class="fi-run">4</span></td>
+              <td class="fi-wk">Week 9<small>Client Specialization Track</small></td>
+              <td class="fi-lens"><b>The Scope stage, and traits 1, 3 and 6.</b> First week the XY
+                problem is genuinely available to you. Did <code>wrong_approach</code> fall?</td>
+            </tr>
+            <tr>
+              <td><span class="fi-run">5</span></td>
+              <td class="fi-wk">Week 10<small>Project Work &amp; Client Showcase</small></td>
+              <td class="fi-lens"><b>The shelfware test.</b> Read your outcome counts. Did anyone
+                adopt the thing, and can you defend the whole arc from Scope to Measure?</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="fi-quote">
+          <b>Two rules that make this a cadence and not five disconnected reports.</b><br>
+          One: every run after the first must answer the previous run's "one change." Did you do
+          it? Did it move anything? That is the only line the report cannot answer for you.<br>
+          Two: do not chase a good score. A run where three traits read "no evidence" is worth more
+          than one where you went hunting for evidence to flatter yourself. You cannot revise the
+          report after the fact, which is exactly what makes it worth reading.
+        </div>
+      </div>
+
+      <!-- ============ reference ============ -->
+      <div class="fi-panel">
+        <h2>What you are being scored against</h2>
+        <p>All of this is copied along with the prompt, so you do not have to read it here first.
+        Read it when a score surprises you.</p>
+
+        <details class="fi-mod">
+          <summary>The operating model and the five stages <span class="s">where your work actually sits</span></summary>
+          <div class="fi-mod-body">
+            <div class="fi-quote"><b>Scope → Sequence → Build → Ship → Measure</b><br>
+              "Turning enterprise AI projects from long-cycle pilots into continuous value loops."</div>
+            <p>Most engineers live in Build and Ship, because those are the stages where the work
+            feels like work. Scope and Measure are the two that get skipped, and they are the two
+            that decide whether the thing you built mattered.</p>
+            <p>Galent's four FDSE phases say the same in verbs: <b>Problem Decomposition &amp;
+            Scoping</b> (note that it is first), Rapid Prototyping &amp; Iteration, Optimization
+            &amp; Hardening, Deployment &amp; Feedback Loop.</p>
+          </div>
+        </details>
+
+        <details class="fi-mod">
+          <summary>The six traits <span class="s">the spine of every defense and retro</span></summary>
+          <div class="fi-mod-body">
+            <ol>
+              <li><b>Relentlessly curious about the customer's world.</b> Surface the problem the
+                customer gave up on or never articulated. Become a user before you become a builder.</li>
+              <li><b>Calibrate engineering to the situation.</b> Both over-engineering and
+                under-engineering leave scars.</li>
+              <li><b>Communicate across audiences.</b> If you cannot explain it in one page without
+                jargon, you do not understand it.</li>
+              <li><b>Stay calm when things break.</b> Crisis composure matters as much as the fix.</li>
+              <li><b>Own outcomes without authority.</b> Get a team that does not report to you to
+                act, by explaining the why.</li>
+              <li><b>Know when to push back.</b> Push back with an alternative, not a no.</li>
+            </ol>
+          </div>
+        </details>
+
+        <details class="fi-mod">
+          <summary>The anti-patterns <span class="s">the wrong instinct that looks right</span></summary>
+          <div class="fi-mod-body">
+            <ul>
+              <li><b>Overengineering.</b> Two weeks on a configurable dedup engine when a one-time
+                SQL query was needed. The customer cared about Friday.</li>
+              <li><b>Solving the wrong problem.</b> Building Y, the literal ask, instead of X, the
+                real need. The most expensive mistake.</li>
+              <li><b>Retreating into code.</b> When a meeting gets tense, hiding behind the laptop.</li>
+              <li><b>Building without seeing the data.</b> Empty date, epoch 1970, 2.3M keyspaces,
+                14TB RAM to boot, OOM. They had never looked at the real data.</li>
+              <li><b>Throwing it over the wall.</b> The old model the FDE role exists to correct.</li>
+              <li><b>Cannot set boundaries.</b> FDE work expands to fill all available time.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="fi-mod">
+          <summary>Loop Engineering <span class="s">the line that matters most</span></summary>
+          <div class="fi-mod-body">
+            <p>Automation runs Step 1, Step 2, Step 3. A loop runs
+            <b>Observe → Decide → Act → Verify → Repeat</b>. Every loop needs exactly two things:
+            a <b>trigger</b>, and a <b>machine-verifiable stopping condition</b>.</p>
+            <div class="fi-quote">"Without a measurable stopping condition, you haven't built a
+              loop. You've built a very confident token furnace."</div>
+            <div class="fi-quote"><b>"Never let the agent decide it's finished simply because it
+              says so."</b></div>
+            <p>Almost everyone running long autonomous sessions builds the trigger half and skips
+            the verification half. That is why <code>buggy_code</code> is the most common friction
+            code in practice: the agent said done, and nobody checked the delivered artifact.</p>
+          </div>
+        </details>
+
+        <details class="fi-mod">
+          <summary>The mapping table <span class="s">report codes to mindset failures</span></summary>
+          <div class="fi-mod-body">
+            <p>This is what makes the score falsifiable instead of a vibe. Each code on the left is
+            a real field value from your own report.</p>
+            <h4>Friction codes</h4>
+            <ul>
+              <li><code>buggy_code</code> · a loop with no verifiable stopping condition. Often
+                also <i>building without seeing the data</i>.</li>
+              <li><code>wrong_approach</code> · the XY problem. Phase 1 scoping was skipped.</li>
+              <li><code>misunderstood_request</code> · scope failure, your side. The telephone game
+                with you as a link in the chain.</li>
+              <li><code>stale_or_incorrect_prior_artifacts</code> · trusting a document over the
+                system. Trust nothing, trace everything.</li>
+              <li><code>resource_limit_hit</code> · Loop Engineering cost control missing. No max
+                iterations, no no-progress detection, no budget.</li>
+              <li><code>excessive_changes</code> · overengineering. Trait 2 in the expensive direction.</li>
+              <li><code>incomplete_task</code> · underpromise and overdeliver, inverted.</li>
+              <li><code>user_rejected_action</code> · direction drift caught late. Your own
+                checkpoint should have fired first.</li>
+              <li><code>blocked_on_external_dependency</code> · trait 5. Who did you need, and did
+                you go get them?</li>
+              <li><code>api_error</code>, <code>tooling_failure</code>, <code>tool_limitation</code> ·
+                machine layer, not driver layer. Do not score yourself down for these.</li>
+            </ul>
+            <h4>Success codes</h4>
+            <ul>
+              <li><code>proactive_help</code> · detect problems, core move 1.</li>
+              <li><code>multi_file_changes</code> · ship fast at production quality, if the outcome held.</li>
+              <li><code>good_debugging</code> · calm is preparation, not personality.</li>
+              <li><code>correct_code_edits</code> · precision is the entry fee.</li>
+              <li><code>good_explanations</code> · communicate across audiences.</li>
+              <li><code>fast_accurate_search</code> · curiosity about the system you are in.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="fi-mod">
+          <summary>The three questions <span class="s">answer these in your own words</span></summary>
+          <div class="fi-mod-body">
+            <ol>
+              <li><b>Where did I start?</b> At the problem, or at the ask? If every session opens
+                at Build, you are being handed Y and building Y.</li>
+              <li><b>How did I know I was done?</b> Name the machine-verifiable condition. If the
+                answer is "Claude said it was finished," you have a token furnace, not a loop.</li>
+              <li><b>Who adopted it?</b> Not "did it merge." Did anyone use it. Shelfware is the enemy.</li>
+            </ol>
+          </div>
+        </details>
+      </div>
+
+    </div>
+
+    <!-- ============ rail ============ -->
+    <aside class="fi-rail">
+      <div class="fi-card bar">
+        <div class="k">🎯 The habit</div>
+        <p>End of <b>weeks 6, 7, 8, 9 and 10</b>. Five runs, one file. The trend is the
+        deliverable, not any single report.</p>
+      </div>
+      <div class="fi-card">
+        <div class="k">📄 Your log</div>
+        <p>Keep <b>fde-progress.md</b> wherever you actually work. The prompt writes each entry
+        for you. Bring it to your week 10 defense.</p>
+      </div>
+      <div class="fi-card">
+        <div class="k">🔒 Your data</div>
+        <p>Everything is read from <b>your own machine</b>. Nothing is pooled, uploaded, or
+        visible to anyone else unless you choose to share it.</p>
+      </div>
+      <div class="fi-card">
+        <div class="k">🧭 Go deeper</div>
+        <p>The full paradigm lives in the <a href="atlas/">FDE Mindset Atlas</a>. This page is the
+        operational half of it.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program</footer>
+
+<script type="text/plain" id="rubric">
+=== THE FDE MINDSET PARADIGM (rubric) ===
+
+THE OPERATING MODEL
+Scope -> Sequence -> Build -> Ship -> Measure.
+Most engineers live in Build and Ship. Scope and Measure are the two that get
+skipped, and they are the two that decide whether the thing you built mattered.
+Galent's four FDSE phases: Problem Decomposition & Scoping (it is first),
+Rapid Prototyping & Iteration, Optimization & Hardening, Deployment & Feedback Loop.
+Bucketing hint: feature_implementation and bug_fixing are Build. deployment is
+Ship. code_review and testing_verification are Measure. An empty Scope bucket is
+itself the finding.
+
+THE SIX TRAITS
+1. Relentlessly curious about the customer's world. Become a user before you
+   become a builder.
+2. Calibrate engineering to the situation. Both over- and under-engineering
+   leave scars.
+3. Communicate across audiences. If you cannot explain it in one page without
+   jargon, you do not understand it.
+4. Stay calm when things break. Crisis composure matters as much as the fix.
+5. Own outcomes without authority.
+6. Know when to push back. Push back with an alternative, not a no.
+
+THE FOUR CORE MOVES
+Detect problems. Demonstrate through action. Control the narrative. Ship fast
+while maintaining production quality.
+
+THE ANTI-PATTERNS
+- Overengineering. Two weeks on a configurable dedup engine when a one-time SQL
+  query was needed. The customer cared about Friday.
+- Solving the wrong problem. Building Y, the literal ask, instead of X, the real
+  need. The most expensive mistake.
+- Retreating into code. When a meeting gets tense, hiding behind the laptop.
+- Building without seeing the data. Empty date, epoch 1970, 2.3M keyspaces, 14TB
+  RAM to boot, OOM. They had never looked at the real data.
+- Throwing it over the wall. The old model the FDE role exists to correct.
+- Cannot set boundaries. FDE work expands to fill all available time.
+
+PRINCIPLES
+- The XY problem. Customers ask for Y when they need a solution to X. The single
+  most important FDE question: what are you trying to accomplish?
+- Shelfware is the enemy. Most enterprise software fails not because it is
+  broken but because it is never adopted.
+- Underpromise, overdeliver.
+- Credibility is points you can spend.
+- Calm is preparation, not personality.
+- The telephone game. Every person a technical message passes through degrades it.
+
+LOOP ENGINEERING
+Automation runs Step 1, Step 2, Step 3. A loop runs Observe -> Decide -> Act ->
+Verify -> Repeat. Every loop needs a TRIGGER and a MACHINE-VERIFIABLE STOPPING
+CONDITION.
+"Without a measurable stopping condition, you haven't built a loop. You've built
+a very confident token furnace."
+"Never let the agent decide it's finished simply because it says so."
+Second named challenge is cost: hard limits on max iterations, no-progress
+detection, daily token budgets. resource_limit_hit means this was skipped.
+
+WHERE THE DISCIPLINE SITS
+Grand Prix framing: Machine (the AI stack), Driver (the FDE), Crew (the team).
+"There is no 'good enough' in AI-native delivery. Precision is not a feature.
+It's the entry fee."
+A flaky API is a machine failure. Choosing to build the wrong thing is a driver
+failure. Do not take credit for the machine or blame it for your scoping.
+
+HITL IS YOUR OWN DIRECTION-CHECK
+What are the finalized deliverables? Am I crossing them off? Where is the
+discrepancy? What is too rigid to survive the customer's real constraints?
+Build that checkpoint into your own cadence rather than waiting for a review.
+
+MAPPING TABLE - FRICTION CODES TO MINDSET FAILURES
+buggy_code -> loop with no verifiable stopping condition; "never let the agent
+  decide it's finished simply because it says so." Often also building without
+  seeing the data.
+wrong_approach -> the XY problem; solving the wrong problem; phase 1 skipped.
+misunderstood_request -> scope failure, your side; the telephone game.
+stale_or_incorrect_prior_artifacts -> trusting a document over the system.
+resource_limit_hit -> Loop Engineering cost control missing.
+excessive_changes -> overengineering; trait 2 in the expensive direction.
+incomplete_task / incomplete_work -> underpromise and overdeliver, inverted.
+user_rejected_action -> direction drift caught late; HITL check should have fired.
+blocked_on_external_dependency -> trait 5, owning outcomes without authority.
+api_error / tooling_failure / tool_limitation -> machine layer, not driver layer.
+  Do not score the learner down for these.
+
+MAPPING TABLE - SUCCESS CODES TO TRAITS
+proactive_help -> detect problems, core move 1.
+multi_file_changes -> ship fast at production quality, if outcome held.
+good_debugging -> calm is preparation, trait 4.
+correct_code_edits -> precision is the entry fee.
+good_explanations -> communicate across audiences, trait 3.
+fast_accurate_search -> curiosity about the system, trait 1 junior form.
+
+SIGNALS THAT NEED INTERPRETATION, NOT SCORING
+- iterative_refinement sessions: healthy if phase 2 prototyping with a user in
+  the loop. Unhealthy if wrong_approach or misunderstood_request appear in the
+  same sessions, because then it is rework paying down scoping debt.
+- dissatisfied counts: rejecting weak work is trait 6 and is good. Rejecting
+  work you scoped badly is a Scope failure wearing a trait 6 costume. The
+  difference is whether it could have been said up front.
+- mostly_achieved vs fully_achieved: a wall of "mostly" is the shelfware
+  warning. Ask what the missing slice was; it is usually the part a user would
+  have touched.
+</script>
+
+<script type="text/plain" id="p1src">
+Score my Claude Code usage against the FDE mindset paradigm.
+
+EVIDENCE, in this order of preference:
+1. If an /insights report was produced in this conversation, use that data directly.
+2. Otherwise, read the newest file matching ~/.claude/usage-data/report-*.html, and
+   every file in ~/.claude/usage-data/facets/*.json.
+If neither exists, stop and tell me to run /insights first. Do not guess.
+
+RUBRIC: the paradigm that follows this prompt.
+
+PRODUCE, in this order:
+
+A. OPERATING-MODEL SPREAD
+   Galent's model is Scope -> Sequence -> Build -> Ship -> Measure.
+   Bucket my goal_categories across those five stages. Name which stages I live in
+   and which two are thin. Quote the counts.
+
+B. TRAIT SCORECARD
+   Score me on each of the six traits: strong / mixed / no evidence.
+   Every score cites specific evidence from my report. If a trait has no evidence in
+   the data, write "no evidence" rather than a guess. Do not pad.
+
+C. ANTI-PATTERN HITS
+   For each friction code in my report, name the FDE anti-pattern or mindset line it
+   maps to, using the mapping table in the rubric. Rank by count. For the top two,
+   quote the specific incident from my report that proves it.
+
+D. LOOP CHECK
+   For my most repeated workflow: does it have a trigger? Does it have a
+   machine-verifiable stopping condition? If the second is missing, say so plainly
+   and name what the stopping condition should be.
+
+E. THE ONE CHANGE
+   A single change, stated as something I would do differently on Monday morning.
+   Not a list. Tie it to the thinnest stage from section A.
+
+RULES:
+- Cite evidence for every claim. No claim without a number, a quote, or an incident.
+- "No evidence" is a valid and expected answer. Prefer it to a flattering guess.
+- Do not soften the friction sections. I am reading this to find what is wrong.
+- Be specific about what I did, not about what FDEs do in general.
+- If a friction or success code in my report is not in the rubric's mapping table,
+  list it under "unmapped" and say what you think it maps to. Never drop a code
+  silently just because the table does not cover it.
+- If I have very few sessions, say so and mark the report thin rather than
+  extrapolating a personality from three data points.
+
+FINALLY, emit a log entry in exactly this format, fenced, for me to paste into
+my progress log:
+
+## Run 1 - <date> - end of week 6
+Spread:       Scope <n> / Sequence <n> / Build <n> / Ship <n> / Measure <n>
+Traits:       1:<strong|mixed|none> 2:<> 3:<> 4:<> 5:<> 6:<>
+Top friction: <code> x<n>, <code> x<n>, <code> x<n>
+Loop:         trigger <yes|no> - stopping condition <yes|no>
+One change:   <one line, something I do differently Monday>
+Carried:      n/a (baseline)
+</script>
+
+<script type="text/plain" id="p2src">
+Score my Claude Code usage against the FDE mindset paradigm, as a DELTA.
+
+EVIDENCE:
+1. My progress log is at ./fde-progress.md (or tell me if you cannot find it).
+   Read every prior run entry.
+2. Fresh data: if an /insights report was produced in this conversation, use it.
+   Otherwise read the newest ~/.claude/usage-data/report-*.html and every
+   ~/.claude/usage-data/facets/*.json.
+If either source is missing, stop and say which. Do not guess.
+
+RUBRIC: the paradigm that follows this prompt.
+
+PRODUCE:
+
+A. CARRIED. Quote the previous run's "One change." Using only evidence from the
+   new sessions, judge it: done / partly done / not done / cannot tell. Cite the
+   evidence. "Cannot tell" is an acceptable and useful answer.
+
+B. MOVEMENT. For each of: the five-stage spread, the six traits, and my top
+   three friction codes, state the direction against the last run. Up, down, or
+   flat, with both numbers. Ignore anything that moved less than the noise in a
+   sample this size, and say when you are ignoring something for that reason.
+
+C. WHAT IS STUCK. Name the one thing that has not moved across every run so far.
+   This is the most valuable section. Be blunt about it.
+
+D. THIS WEEK'S LENS. My focus for this run is: <paste the "look hardest at" cell
+   for this run from the cadence table>. Score that specifically and in more
+   depth than the rest.
+
+E. THE ONE CHANGE. A single change for next week. If the previous run's change
+   was not done, say plainly whether to carry it forward or drop it, and why.
+
+RULES:
+- Cite evidence for every claim. No claim without a number, a quote, or an incident.
+- Do not manufacture improvement. Flat is a finding. Regression is a finding.
+- Never drop a friction or success code that is not in the rubric's mapping table.
+  List it as unmapped and say what you think it maps to.
+- End by emitting my log entry in the same fenced format as the baseline run,
+  incrementing the run number and filling the Carried: line from section A.
+</script>
+
+<script>
+(function(){
+  var rubric = document.getElementById("rubric").textContent.trim();
+  var src = {
+    p1: document.getElementById("p1src").textContent.trim(),
+    p2: document.getElementById("p2src").textContent.trim()
+  };
+  // Show the prompt alone on the page; copy ships prompt + rubric together so a
+  // single paste is everything Claude needs.
+  Object.keys(src).forEach(function(k){
+    var pre = document.getElementById("pre-" + k);
+    if (pre) pre.textContent = src[k];
+  });
+  function payload(k){ return src[k] + "\n\n" + rubric + "\n"; }
+  document.querySelectorAll("[data-copy]").forEach(function(btn){
+    // Captured once. Reading it inside the handler means a second click during
+    // the timeout would save "Copied" as the label and never restore it.
+    var label = btn.textContent;
+    var timer = null;
+    btn.addEventListener("click", function(){
+      var text = payload(btn.dataset.copy);
+      var done = function(){
+        btn.textContent = "Copied";
+        btn.classList.add("ok");
+        clearTimeout(timer);
+        timer = setTimeout(function(){ btn.textContent = label; btn.classList.remove("ok"); }, 1800);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function(){ fallback(text, done); });
+      } else {
+        fallback(text, done);
+      }
+    });
+  });
+  // execCommand path for browsers that block the async clipboard API without
+  // a secure context. Without it the button looks broken on plain http.
+  function fallback(text, done){
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) { ta.remove(); return; }
+    ta.remove();
+  }
+})();
+</script>
+<script src="assets/js/roster.js?v=20260706"></script>
+<script src="assets/js/auth.js"></script>
+</body>
+</html>
