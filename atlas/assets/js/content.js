@@ -34,10 +34,13 @@ const SOURCES = {
   ANTH_AGENTS:{ t: "Anthropic — Building Effective Agents (workflows vs agents; orchestrator-workers; composable patterns)", url: "https://www.anthropic.com/engineering/building-effective-agents", d: "2025" },
   FEATHERS:  { t: "Characterization (golden-master) tests — Michael Feathers, Working Effectively with Legacy Code", url: "https://en.wikipedia.org/wiki/Characterization_test", d: "2004+" },
   // --- video ---
-  YCFDE:     { t: "Y Combinator — The FDE Playbook for AI Startups with Bob McGrew (50 min)", url: "https://www.youtube.com/watch?v=Zyw-YA0k3xo", d: "2025-09-08" }
-};
+  YCFDE:     { t: "Y Combinator — The FDE Playbook for AI Startups with Bob McGrew (50 min)", url: "https://www.youtube.com/watch?v=Zyw-YA0k3xo", d: "2025-09-08" },
+  VIMEO:     { t: "Galent FDE Session 1 &mdash; What is an FDE? (private, instructor copy)", url: "https://vimeo.com/1202201578/3c00b899c5", d: "2026-06-17" },
+  VIMEO2:    { t: "Galent FDE Session 2 &mdash; Stellantis app-mod walkthrough + platform deep-dive (private, instructor copy)", url: "https://vimeo.com/1202558378/f4d9043652", d: "2026-06-18" }};
 
 const VIDEOS = {
+  vimeoSession1:  { kind: "vimeo", id: "1202201578", hash: "3c00b899c5", title: "Galent FDE Session 1 — What is an FDE?", src: "VIMEO" },
+  galentSession2: { kind: "vimeo", id: "1202558378", hash: "f4d9043652", title: "Galent FDE Session 2 — Stellantis walkthrough + platform deep-dive", src: "VIMEO2" },
   ycMcGrew: { kind: "youtube", id: "Zyw-YA0k3xo", title: "The FDE Playbook for AI Startups — Bob McGrew (Y Combinator)", src: "YCFDE" }
 };
 
@@ -59,7 +62,7 @@ const BRANCHES = [
       {
         t: "The one-sentence core",
         lead: "An FDE owns customer outcomes &mdash; the actual results the customer is trying to achieve &mdash; not relationships, not satisfaction scores, not the PR.",
-        body: "<blockquote>&ldquo;An FDE is a software engineer who owns customer <em>outcomes</em>. Not customer relationships, not satisfaction scores, but outcomes: the actual results the customer is trying to achieve.&rdquo; [[VINOO_FDE]]</blockquote><p>Shipping the PR is an <strong>output</strong>. The analyst's morning being 45 minutes shorter is an <strong>outcome</strong>. FDEs are measured on the second. [[VINOO_FDE]]</p>"
+        body: "<blockquote>&ldquo;An FDE is a software engineer who owns customer <em>outcomes</em>. Not customer relationships, not satisfaction scores, but outcomes: the actual results the customer is trying to achieve.&rdquo; [[VINOO_FDE]]</blockquote><p>Shipping the PR is an <strong>output</strong>. The analyst's morning being 45 minutes shorter is an <strong>outcome</strong>. FDEs are measured on the second. [[VINOO_FDE]][[VIMEO]]</p>"
       },
       {
         t: "The inversion: one-to-many vs many-to-one",
@@ -135,7 +138,7 @@ const BRANCHES = [
       {
         t: "HITL is the FDE's direction-check",
         lead: "Human-in-the-loop isn't only a feature you ship &mdash; it's the FDE's own discipline of checking that the build is still pointed at the deliverable.",
-        body: "<p>Periodically zoom out from the code and run a <strong>direction-check</strong>: <em>What are the finalized deliverables? Am I crossing them off? Where's the discrepancy? What's too rigid to survive the customer's real constraints?</em></p><p>This is trait 5 (own outcomes) and trait 2 (calibrate to the situation) made operational &mdash; the recurring &lsquo;is this still pointed at the outcome?&rsquo; checkpoint that you build into your own cadence rather than waiting for a gate. [[VINOO_FDE]]</p>",
+        body: "<p>Periodically zoom out from the code and run a <strong>direction-check</strong>: <em>What are the finalized deliverables? Am I crossing them off? Where's the discrepancy? What's too rigid to survive the customer's real constraints?</em></p><p>This is trait 5 (own outcomes) and trait 2 (calibrate to the situation) made operational &mdash; the recurring &lsquo;is this still pointed at the outcome?&rsquo; checkpoint that you build into your own cadence rather than waiting for a gate. [[VIMEO]][[VINOO_FDE]]</p>",
         views: [
           { r: "As an FDE", t: "Build the checkpoint into your own cadence &mdash; don't wait for a review. &lsquo;Am I crossing off the finalized deliverables?&rsquo; is a question you ask yourself." },
           { r: "As the reviewer", t: "The review checks direction, not just correctness: discrepancy against the deliverable, and inflexibility that won't survive the customer's real constraints." }
@@ -253,7 +256,7 @@ const BRANCHES = [
       {
         t: "Why modernize &mdash; keep the value, remove the risk",
         lead: "Legacy is hard to maintain, expensive to run, and hard to extend. You replace it while making sure the business <em>gains</em>, never loses.",
-        body: "<p>Systems get modernized because legacy is hard to maintain and expensive to run, and costly to build on top of. The job is to stand up new software that covers what matters in the old one &mdash; <strong>keep the business value, remove the risk.</strong> It should be a gain, not a like-for-like swap. And it's never big-bang: modernization runs <strong>in phases</strong>, proven out with a POC on the one or two most critical modules first. [[FOWLER_SF]][[FOWLER_FP]]</p>"
+        body: "<p>Systems get modernized because legacy is hard to maintain and expensive to run, and costly to build on top of. The job is to stand up new software that covers what matters in the old one &mdash; <strong>keep the business value, remove the risk.</strong> It should be a gain, not a like-for-like swap. And it's never big-bang: modernization runs <strong>in phases</strong>, proven out with a POC on the one or two most critical modules first. [[FOWLER_SF]][[FOWLER_FP]][[VIMEO]]</p>"
       },
       {
         t: "The FDE's 4-step method (diagnose before you build)",
@@ -263,22 +266,22 @@ const BRANCHES = [
           {
             t: "1 &middot; Understand the business before a single line of code",
             lead: "What is the app, why does it matter, where does it sit, and what must never break?",
-            body: "<p>On the first call, take a walkthrough; see it from the <em>user's</em> perspective (persona, current features, desired enhancements). Find the <strong>core trade-offs</strong> &mdash; the modules that, if they break, halt the business. Those get battle-tested before any deploy. [[VINOO_FDE]]</p>"
+            body: "<p>On the first call, take a walkthrough; see it from the <em>user's</em> perspective (persona, current features, desired enhancements). Find the <strong>core trade-offs</strong> &mdash; the modules that, if they break, halt the business. Those get battle-tested before any deploy. [[VINOO_FDE]][[VIMEO]]</p>"
           },
           {
             t: "2 &middot; Analyze the sources &mdash; trust nothing, trace everything",
             lead: "Code + docs + manuals + screenshots. Never rely on one tool. Never take AI analysis as hard truth.",
-            body: "<p>Do not rely on one platform or one tool, and never take its analysis as hard truth &mdash; counter, question, and verify against the cited sources, and always trace it back to the business understanding you built. On a mismatch: flag it, redo the analysis with another approach, read the code yourself, escalate to an SME. Large legacy codebases mean heavy back-and-forth &mdash; expect it. [[CC_BP]]</p>"
+            body: "<p>Do not rely on one platform or one tool, and never take its analysis as hard truth &mdash; counter, question, and verify against the cited sources, and always trace it back to the business understanding you built. On a mismatch: flag it, redo the analysis with another approach, read the code yourself, escalate to an SME. Large legacy codebases mean heavy back-and-forth &mdash; expect it. [[CC_BP]][[VIMEO]]</p>"
           },
           {
             t: "3 &middot; Specification generation (via the target state)",
             lead: "Map features to the validated business understanding, then write what the modernized app will be.",
-            body: "<p>Once sources are analyzed and validated, write the <strong>specification document</strong> &mdash; the modernized app's features, screens, personas &mdash; all traced back to ground truth. It is itself a checkpoint (&ldquo;how well are my specs grounded?&rdquo;) and it goes to the client <strong>as a proposal</strong>, iterated with feature add/omit. [[SDD_BCMS]]</p>"
+            body: "<p>Once sources are analyzed and validated, write the <strong>specification document</strong> &mdash; the modernized app's features, screens, personas &mdash; all traced back to ground truth. It is itself a checkpoint (&ldquo;how well are my specs grounded?&rdquo;) and it goes to the client <strong>as a proposal</strong>, iterated with feature add/omit. [[SDD_BCMS]][[VIMEO]]</p>"
           },
           {
             t: "4 &middot; Implement in modules, never in one go",
             lead: "AI coding tools + tests, module by module, validated by SMEs &mdash; so a domino effect can't take the whole system down.",
-            body: "<p>Don't let the domino effect happen &mdash; do it one step at a time and validate with SMEs. The common failure: a necessary feature gets missed and the <em>intended business impact isn't derived</em> &mdash; most often when both the source and target stacks are unfamiliar. That's exactly where an SME validates the implemented approach. [[FOWLER_FP]]</p>"
+            body: "<p>Don't let the domino effect happen &mdash; do it one step at a time and validate with SMEs. The common failure: a necessary feature gets missed and the <em>intended business impact isn't derived</em> &mdash; most often when both the source and target stacks are unfamiliar. That's exactly where an SME validates the implemented approach. [[FOWLER_FP]][[VIMEO]]</p>"
           }
         ]
       },
@@ -331,7 +334,7 @@ const BRANCHES = [
       {
         t: "Co-pilot, never autopilot",
         lead: "AI helps &mdash; it does not do the task for you. The FDE keeps the human checkpoint.",
-        body: "<p>Treat the tooling as a co-pilot, never autopilot: keep analysis, validation, and HITL in the loop that checks &mdash; is this going in the right direction? This is the same discipline as the Mindset branch's <em>direction-check</em>: deliverables crossed off, discrepancies caught, inflexibility flagged. The FDE owns the steering even when the agent writes the code. [[CC_BP]][[ANTH_AGENTS]]</p>"
+        body: "<p>Treat the tooling as a co-pilot, never autopilot: keep analysis, validation, and HITL in the loop that checks &mdash; is this going in the right direction? This is the same discipline as the Mindset branch's <em>direction-check</em>: deliverables crossed off, discrepancies caught, inflexibility flagged. The FDE owns the steering even when the agent writes the code. [[CC_BP]][[ANTH_AGENTS]][[VIMEO]]</p>"
       },
       {
         t: "What does &ldquo;done&rdquo; look like?",
@@ -395,7 +398,116 @@ const BRANCHES = [
     ]
   },
 
-  /* ============================================================ 7 — resources */
+
+  /* ============================================================ 7 — galent sessions */
+  {
+    id: "galent",
+    t: "Galent Sessions",
+    icon: "&#9636;",
+    color: "#34d399",
+    tag: "The vendor walkthrough, recorded",
+    lead: "Two recorded sessions with Archit (Galent) on what an FDE does and how their app-mod platform runs. Galent is a sister company, not this cohort's client &mdash; treat these as a <em>consistency reference</em> so an engineer moving between orgs hears one vocabulary. Your delivery target stays the brownfield projects on the Client Delivery page. Everything vendor-specific lives in this branch and nowhere else on the map.",
+    nodes: [
+      {
+        t: "Watch first &mdash; Session 1: What is an FDE?",
+        lead: "Archit&rsquo;s framing of the role, why companies modernize, the FDE&rsquo;s own 4-step method, and the co-pilot close.",
+        body: "<p>The whole generalized spine of this Atlas &mdash; <em>understand the business before a single line of code</em>, <em>keep the business value and remove the risk</em>, and the HITL direction-check &mdash; comes from this session. [[VIMEO]]</p><p class=\"note\"><strong>If the player does not load:</strong> these are private instructor copies and the embed is domain-restricted, so the frame may show a Vimeo error. Use the <em>source</em> link under the player, which opens the recording directly. Ask your trainer if you hit a permissions wall.</p>",
+        video: "vimeoSession1"
+      },
+      {
+        t: "Watch second &mdash; Session 2: Stellantis walkthrough &amp; platform",
+        lead: "The same method run against a real 33-year-old COBOL warehouse system, plus a screen-by-screen platform tour.",
+        body: "<p>Where Session 1 gives you the method, Session 2 shows it surviving contact with a mainframe. [[VIMEO2]]</p><p class=\"note\"><strong>If the player does not load:</strong> these are private instructor copies and the embed is domain-restricted, so the frame may show a Vimeo error. Use the <em>source</em> link under the player, which opens the recording directly. Ask your trainer if you hit a permissions wall.</p>",
+        video: "galentSession2"
+      },
+      {
+        t: "The Galent app-mod pipeline (7 steps)",
+        lead: "What the platform does, as walked on screen. Distinct from the FDE&rsquo;s own 4-step method in App Modernization &mdash; that one is what <em>you</em> do, this is what the tool does.",
+        body: "<p><strong>Inputs:</strong> source code, documentation, minutes of meeting, DB schema, client data, <em>plus</em> the target-state configuration.<br><strong>Outputs:</strong> an understanding of the existing app, a modernized target design (security, DB, data-migration strategy, features, architecture), and a ready-to-build backlog of epics, stories and sub-tasks that lands in Jira in implementation order. [[VIMEO]][[VIMEO2]]</p>",
+        video: "galentSession2",
+        deeper: [
+          {
+            t: "1 &middot; Ingestion of sources (Application Discovery)",
+            lead: "Ingest the legacy codebase and every source, then map features to data schema to user persona.",
+            body: "<p>Agents produce <em>application understanding</em>, <em>features</em> and <em>business features</em>, identify the domain, dissect lines of code, and generate an architecture diagram and personas &mdash; roughly <strong>16 analysis layers.</strong></p><p><strong>&ldquo;Application at a glance&rdquo;</strong> answers three things: who uses it (receiving clerks, storage attendants, material handlers), what the system logic does (records every part movement arriving at the plant dock, prints movement tickets directing handlers), and what it integrates with (plant shop-floor display, supervisor email, pager alerts).</p><p><strong>Managed sources</strong> are file groups &mdash; requirements, minutes of meeting, logs, custom labels &mdash; plus an external-repo connection. Anything you upload here flows into the target state. [[VIMEO2]]</p>"
+          },
+          {
+            t: "2 &middot; Target-state generation",
+            lead: "The complete modernized design, before a line of it is built.",
+            body: "<p><strong>Target-state configuration</strong> picks the path (Cloud Native, Databricks, Salesforce) and the in-scope features. <strong>Scope selection</strong> narrows to the POC. <strong>Target-state results</strong> give files analyzed, an executive summary and the modernized design.</p><p>Archit&rsquo;s phrase: you can <em>&ldquo;dissect the whole modernized application even before it is built.&rdquo;</em> [[VIMEO]][[VIMEO2]]</p>"
+          },
+          {
+            t: "3 &middot; Target-state walkthrough &amp; validation",
+            lead: "The checkpoint the presenter never numbered out loud. Heavy back-and-forth with the customer and their SMEs.",
+            body: "<p>Architecture diagram, parameters, and &ldquo;here is where we are&rdquo; walkthroughs. Session 1 calls this the stage with the most iteration alongside source analysis.</p><p><strong>Naming note.</strong> Archit catches his own slide numbering slipping here in Session 2 &mdash; <em>&ldquo;this three or four, there&rsquo;s a mismatch&rdquo;</em> &mdash; and never names step 3 as a numbered step in either session. This Atlas names it, because the walkthrough plainly happens and an unnamed step is harder to learn than a named one. See <em>Where the sessions and this Atlas differ.</em> [[VIMEO2]]</p>"
+          },
+          {
+            t: "4 &middot; Implementation-specs generation",
+            lead: "From target state to a statement of work, agreed with the client.",
+            body: "<p>Auto-generated from the in-scope capabilities and the configuration. Editable after validation, though Archit expects you rarely need to: <em>&ldquo;once the previous steps have worked up to the mark, this step is actually very smooth flowing.&rdquo;</em></p><p>Ships with <strong>design documents</strong>: architecture overview, non-functional requirements, recommended testing strategy, data-migration strategy, and the delivery and rollout plan. [[VIMEO2]]</p>"
+          },
+          {
+            t: "5 &middot; Epics &amp; stories &mdash; the BA&rsquo;s surface",
+            lead: "Capability layer, then epics, then story features. Written in business language on purpose.",
+            body: "<p><strong>The BA reviews this</strong>, and this is where time estimates and resource planning land. Highlighted items are the BA&rsquo;s; platform notes and labels are for the agent or developer.</p><p>Deliberately carries <em>no</em> technical jargon or file names, so a BA can track and validate <strong>without reading the codebase</strong>. The BA milestone here is what catches a missed feature before it reaches development. [[VIMEO]][[VIMEO2]]</p>"
+          },
+          {
+            t: "6 &middot; Sub-tasks &mdash; the engineer&rsquo;s and agent&rsquo;s surface",
+            lead: "Generated only after the BA has given feedback on epics and stories. Never before.",
+            body: "<p>Technically specific: technical spec, <strong>definition of done</strong>, and <strong>the relevant files from the legacy codebase</strong> &mdash; the one place legacy file references appear.</p><p>Archit&rsquo;s reason for the separate step: <em>&ldquo;any dev or any AI agent working on the sub-task can understand the existing code alongside the spec and the expected outcome.&rdquo;</em> [[VIMEO]][[VIMEO2]]</p>"
+          },
+          {
+            t: "7 &middot; Implementation workbench + code companion",
+            lead: "Three panes: your stories, a VS Code editor, and a team of agents.",
+            body: "<p>The <strong>code companion</strong> is not one agent but a group with expertise across UI/UX, front-end and back-end. It triggers per sub-task and <strong>wraps each in about five to seven minutes</strong>, checks for duplication and already-implemented code, designs a plan, implements, commits, and resolves conflicts. It raises and reviews PRs into GitHub, Bitbucket or Azure DevOps.</p><p>Archit: it is <em>&ldquo;a software engineer itself&rdquo;</em> &mdash; which is exactly why the co-pilot rule below matters. [[VIMEO]][[VIMEO2]]</p>"
+          }
+        ]
+      },
+      {
+        t: "Stellantis &mdash; the case study",
+        lead: "Fortune-500 automotive, just-in-time manufacturing, and a 33-year-old COBOL system whose failure stops the production line.",
+        body: "<p>The <strong>Controlled Storage Application</strong> is a mainframe-COBOL Kanban warehouse-management system, <strong>31 to 33 years old</strong>, patched throughout with feature additions in 2018 and 2023. Around <strong>140&ndash;200K lines</strong> total.</p><p><strong>The crux:</strong> if the modernized app does not match the business model, the production line stops and losses run minute to minute. That is why it must be battle-tested before deploy, and why the approach is <strong>strangler fig</strong> &mdash; group modules into domains and migrate in phased milestones, never big-bang. [[FOWLER_SF]][[VIMEO2]]</p>",
+        video: "galentSession2",
+        deeper: [
+          {
+            t: "The POC scope &mdash; Replenishment Management System",
+            lead: "About 21K in-scope lines out of 140&ndash;200K. When a part runs low, raise and fulfil a replenish order.",
+            body: "<p>High-low request file and Kanban picklist. Picking one critical module and proving the approach on it is the standard opening move: <em>&ldquo;every time that you are approaching a new app modernization project, you&rsquo;ll be doing a POC first.&rdquo;</em></p><p>Archit&rsquo;s caution on scoping a POC: the replenishment engine alone was not functionally sufficient, so its dependencies had to be pulled into the POC too. [[VIMEO]][[VIMEO2]]</p>"
+          },
+          {
+            t: "Team shape and cadence",
+            lead: "Three FDEs for a Java + Angular target, and a deliberately relaxed three-week rhythm.",
+            body: "<p>One Java FDE, one Angular FDE, and one <strong>architect-level FDE</strong> who owns the legacy-to-new mapping.</p><p>Cadence: analysis in week 1 with client-call validation, target state by week 2, generated features by week 3. Archit calls that <em>&ldquo;a very relaxed timeframe.&rdquo;</em> Stellantis slipped past it anyway &mdash; a client-side reorg, plus the difficulty of tracking down SMEs for a 33-year-old system. Expect the schedule to flex for reasons that have nothing to do with the code. [[VIMEO2]]</p>"
+          }
+        ]
+      },
+      {
+        t: "External analysis with AI agents (Claude Code)",
+        lead: "FDE discretion, not a platform step. When the tool cannot handle the codebase, you go around it and pipe the findings back.",
+        body: "<p>The platform was not mature enough for a mainframe COBOL base of that size, so Archit cloned the repo locally, opened <strong>Claude Code</strong>, designed agents, ran them in parallel, and fed the results back in as a managed-source file group &mdash; where they flow into the target state and the specs.</p><p>This is the clearest illustration of the session&rsquo;s real thesis: <em>&ldquo;100% FDE&rsquo;s discretion along this whole process.&rdquo;</em> If the playbook works, leave it alone. If it breaks, step in. [[VIMEO2]][[CC_BP]]</p>",
+        video: "galentSession2",
+        deeper: [
+          {
+            t: "The 4-layer prompt structure",
+            lead: "Archit&rsquo;s preferred shape for an analysis agent. Read it as an anti-hallucination design, not a template.",
+            body: "<ol><li><strong>Read the actual code</strong> &mdash; no guesses, no assumptions, stated as a hard roadblock.</li><li><strong>Cite the evidence</strong> &mdash; the location in code. Never cite what is not there.</li><li><strong>Extract what exists</strong> &mdash; de-duplicate against the platform&rsquo;s prior analysis. He saved 16 platform docs into one markdown file, gave the agent the path, and asked it to <em>rate that analysis&rsquo;s accuracy</em> while doing its own exploration. Batch the huge files (one program was 14&ndash;15K lines) and be exhaustive.</li><li><strong>Phases of approach + accuracy mapping</strong> &mdash; source location and already-found domains in, phased analysis and an accuracy listing out.</li></ol><p>Note that layers 1 and 2 are the same discipline this Atlas teaches as <em>trust nothing, trace everything</em>. [[VIMEO2]][[CC_BP]]</p>"
+          },
+          {
+            t: "What the second look actually caught",
+            lead: "Three classes of defect the platform&rsquo;s own analysis missed.",
+            body: "<ul><li><strong>De-duplication</strong> &mdash; one capability spread across two programs, counted twice as two features.</li><li><strong>Ghost programs</strong> &mdash; cited programs that do not exist in the codebase. Hallucination, caught by requiring citations.</li><li><strong>Missing data schema</strong> &mdash; absent from the sources entirely, so a business doc and sample data had to be requested from the client.</li></ul><p>Why small files matter in COBOL: a 200-line program can hold a critical feature and gets overshadowed in analysis by a 15K-line neighbour. Three passes were run &mdash; the whole control-storage app, the in-scope replenishment scope, and a business-capability analysis. [[VIMEO2]]</p>"
+          }
+        ]
+      },
+      {
+        t: "Where the sessions and this Atlas differ",
+        lead: "Read this before you quote a session in front of a client. Two numbering defects and two open questions, found by checking the recordings against the transcripts.",
+        body: "<p><strong>The pipeline step count is inconsistent in the source.</strong> It is walked as seven steps, but Archit summarizes the same flow as <em>&ldquo;these are the six stages&rdquo;</em> and catches his slide numbering slipping live: <em>&ldquo;this three or four, there&rsquo;s a mismatch.&rdquo;</em> This Atlas commits to <strong>seven</strong> and names step 3, because the walkthrough plainly performs it.</p><p><strong>The FDE&rsquo;s 4 steps and the platform&rsquo;s 7 steps are different things</strong> and are easy to conflate because both are numbered and both start with understanding the sources. The 4-step method in <em>App Modernization</em> is what you do. The 7-step pipeline here is what the tool does. Sequence them, do not merge them.</p><p><strong>&ldquo;What does done look like?&rdquo; was never crisply answered.</strong> Asked in Session 2, deferred to the platform walkthrough, and only loosely resolved as BA-validated POC acceptance. If you need a definition of done, you are building it yourself.</p><p><strong>The verbatim prompt was promised and not delivered.</strong> Archit offered to share the 4-layer prompt and agent JSON in the chat after Session 2. The transcripts record no follow-up. The reconstruction above comes from what he narrated on screen, not from his file. [[VIMEO]][[VIMEO2]]</p>"
+      }
+    ]
+  },
+
+  /* ============================================================ 8 — resources */
   {
     id: "resources",
     t: "Resources &amp; Video",
