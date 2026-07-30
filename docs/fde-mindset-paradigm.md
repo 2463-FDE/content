@@ -101,8 +101,17 @@ RULES:
 - If I have very few sessions, say so and mark the report thin rather than
   extrapolating a personality from three data points.
 
-FINALLY, emit a log entry in exactly this format, fenced, for me to paste into
-my progress log:
+FINALLY, create the file ./fde-progress.md with exactly this content, filled in.
+Do not print it and ask me to save it. Write the file, then tell me the path.
+
+If ./fde-progress.md already exists, STOP and do not touch it. Tell me it exists
+and that I should be using the delta prompt instead. Never overwrite that file:
+it is the only record of the earlier runs and it cannot be regenerated.
+
+# FDE progress log
+
+Weekly self-assessment against the FDE mindset paradigm.
+https://2463-fde.github.io/content/fde-insights.html
 
 ## Run 1 · <date> · end of week 6
 Spread:       Scope <n> / Sequence <n> / Build <n> / Ship <n> / Measure <n>
@@ -120,8 +129,10 @@ Carried:      n/a (baseline)
 One report is a snapshot. Five reports are a trajectory, and the trajectory is
 the point. Run this at the end of each week from week 6 through week 10.
 
-Keep a single file, `fde-progress.md`, wherever you actually work. One entry per run,
-appended, newest at the bottom. The prompt emits the entry for you.
+The prompts write the log for you. Run 1 creates `fde-progress.md` in whatever directory you
+started Claude from, and runs 2 through 5 append to it, newest at the bottom. You never edit it
+by hand. Start Claude from the same place each week so all five runs land in one file, and keep
+that file somewhere you will find it again: it is what you bring to your week 10 defense.
 
 | Run | Do it at the end of | That week covers | What to look hardest at |
 |---|---|---|---|
@@ -184,8 +195,11 @@ RULES:
 - Do not manufacture improvement. Flat is a finding. Regression is a finding.
 - Never drop a friction or success code that is not in the rubric's mapping table.
   List it as unmapped and say what you think it maps to.
-- End by emitting my log entry in the same fenced format as the baseline run,
-  incrementing the run number and filling the Carried: line from section A.
+- End by APPENDING my log entry to ./fde-progress.md, in the same format as the
+  earlier entries, incrementing the run number and filling the Carried: line
+  from section A. Append only. Never rewrite or reformat the earlier entries,
+  and never drop one, even if an earlier entry looks wrong or incomplete. Tell
+  me the path once you have written it.
 ```
 
 ---

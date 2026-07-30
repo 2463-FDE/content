@@ -148,8 +148,10 @@
             <small>It reads the sessions you have actually run this program, on your own machine.</small></div></li>
           <li><div>In the <b>same session</b>, hit copy below and paste.
             <small>Run 1 uses the baseline prompt. Runs 2 through 5 use the delta prompt.</small></div></li>
-          <li><div>Paste the log entry it gives you into <code>fde-progress.md</code>.
-            <small>One file, appended, newest at the bottom. That file is the whole point.</small></div></li>
+          <li><div>Nothing. It writes <code>fde-progress.md</code> for you.
+            <small>Run 1 creates the file in whatever directory you started Claude from. Runs 2
+            to 5 append to it. That file is the whole point, so keep it somewhere you will find
+            it again and bring it to your week 10 defense.</small></div></li>
         </ol>
 
         <div class="fi-warn">
@@ -378,8 +380,9 @@
       </div>
       <div class="fi-card">
         <div class="k">📄 Your log</div>
-        <p>Keep <b>fde-progress.md</b> wherever you actually work. The prompt writes each entry
-        for you. Bring it to your week 10 defense.</p>
+        <p>The prompts write <b>fde-progress.md</b> for you, so start Claude from the
+        <b>same directory</b> each week and all five runs land in one file. Bring it to your
+        week 10 defense.</p>
       </div>
       <div class="fi-card">
         <div class="k">🔒 Your data</div>
@@ -551,8 +554,17 @@ RULES:
 - If I have very few sessions, say so and mark the report thin rather than
   extrapolating a personality from three data points.
 
-FINALLY, emit a log entry in exactly this format, fenced, for me to paste into
-my progress log:
+FINALLY, create the file ./fde-progress.md with exactly this content, filled in.
+Do not print it and ask me to save it. Write the file, then tell me the path.
+
+If ./fde-progress.md already exists, STOP and do not touch it. Tell me it exists
+and that I should be using the delta prompt instead. Never overwrite that file:
+it is the only record of the earlier runs and it cannot be regenerated.
+
+# FDE progress log
+
+Weekly self-assessment against the FDE mindset paradigm.
+https://2463-fde.github.io/content/fde-insights.html
 
 ## Run 1 - <date> - end of week 6
 Spread:       Scope <n> / Sequence <n> / Build <n> / Ship <n> / Measure <n>
@@ -602,8 +614,11 @@ RULES:
 - Do not manufacture improvement. Flat is a finding. Regression is a finding.
 - Never drop a friction or success code that is not in the rubric's mapping table.
   List it as unmapped and say what you think it maps to.
-- End by emitting my log entry in the same fenced format as the baseline run,
-  incrementing the run number and filling the Carried: line from section A.
+- End by APPENDING my log entry to ./fde-progress.md, in the same format as the
+  earlier entries, incrementing the run number and filling the Carried: line
+  from section A. Append only. Never rewrite or reformat the earlier entries,
+  and never drop one, even if an earlier entry looks wrong or incomplete. Tell
+  me the path once you have written it.
 </script>
 
 <script>
