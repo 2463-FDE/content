@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="fde-day" content="w05d1">
-<meta name="fde-concepts" content="spec-as-source-of-truth,vibe-coding-failure-mode,sdd-phase-gates,specs-as-agent-context,spec-rigor-spectrum">
+<meta name="fde-concepts" content="spec-as-source-of-truth,vibe-coding-failure-mode,sdd-phase-gates,current-state-target-state,feature-parity-trap,specs-as-agent-context,spec-rigor-spectrum">
 <title>W5·D1 — Spec Before Code: Spec-Driven Development | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260714-w3f">
 <script src="../../assets/js/theme.js"></script>
@@ -156,33 +156,30 @@
 
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Requirement quality</div>
-        <h2>Requirements an agent can't misread</h2>
-        <p>Gates only help if the artifacts passing through them are unambiguous — a vague spec that gets human
-        sign-off is still a vague spec. This is where <strong>Kiro</strong>, AWS's spec-driven IDE, contributes the
-        sharpest idea of the day. Kiro structures every feature as three files — <code>requirements.md</code> (user
-        stories plus acceptance criteria), <code>design.md</code> (architecture, sequence diagrams, data flow, error
-        handling, testing strategy), and <code>tasks.md</code> (discrete, trackable tasks with live status) — with
-        <strong>approval gates</strong> between requirements → design → tasks. Same spine as Spec Kit; different
-        vendor. That convergence is itself evidence the shape is real.</p>
-        <p>Kiro's distinctive move is <em>how</em> acceptance criteria get written: <strong>EARS</strong> — the Easy
-        Approach to Requirements Syntax. Every criterion follows a structured template:
-        <strong><code>WHEN [condition or event] THE SYSTEM SHALL [expected behavior]</code></strong>. For example:
-        "WHEN a user submits a form with invalid data THE SYSTEM SHALL display validation errors." Compare that to
-        the vibe-coding equivalent — "handle bad input gracefully" — and you can see exactly what the structure buys.
-        The EARS version names a concrete trigger and an observable behavior, which means it is
-        <strong>testable</strong> (you can write the failing test straight from the sentence) and
-        <strong>traceable</strong> (you can point at the code and the test that satisfy it). The vague version is a
-        Rorschach blot the agent fills with whatever "graceful" statistically tends to mean.</p>
-        <p>This is the requirements-quality bar to internalize: <strong>a requirement is done when a literal-minded
-        reader can't misread it.</strong> Structured keywords keep criteria "unambiguous and easy to understand," in
-        Kiro's phrasing — and note that the reader they're defending against isn't a careless junior. It's the same
-        agent from step one, doing exactly what you said. Tomorrow you'll practice synthesizing requirements like these
-        from messy client discovery conversations; today, just recognize that the sentence template is doing real
-        engineering work.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a requirements linter — take a
-        deliberately vague requirement ("the dashboard should load fast and handle errors well"), rewrite it in EARS
-        form, then watch an agent implement both versions side by side and diff how far the vague one drifted. Needs
-        backend standup.</p></div>
+        <h2>Current state → target state (and the parity trap)</h2>
+        <p>Every workflow you've seen so far starts at <code>/specify</code> — a blank file and a description of what
+        you want. That is the greenfield case, and it is not yours. You have inherited a system that already runs, that
+        the business depends on, and that nobody documented. Where does the spec come from then?</p>
+        <p>From a method with four beats, in which writing the spec is the <em>third</em>. One: <strong>understand the
+        business</strong> before a line of code — take the walkthrough, find the modules that halt the business if they
+        break. Two: <strong>analyze the sources</strong> — code, docs, screenshots, tickets — trusting no single tool
+        and never taking an AI's analysis as hard truth. Three: <strong>write the specification against a chosen target
+        state</strong>. Four: <strong>implement in modules</strong>, validated by SMEs. The step people skip is the
+        target state itself, and it's where the real decisions live: UI/UX, storage, target language, deployment
+        architecture, phase-out pattern. Get the target state right and the spec, the backlog, and the implementation
+        all inherit correct decisions; get it wrong and every downstream artifact compounds the error.</p>
+        <p>One more thing changes on brownfield: <strong>the spec is a client-facing proposal</strong>, not an internal
+        agent input. It goes to the sponsor, gets argued over, and comes back with features added and omitted. Which is
+        precisely where the discipline earns its keep — because the default answer to "what should the new system do?"
+        is the <strong>feature-parity trap</strong>: rebuild exactly what exists, in newer tech. Fowler's warning is
+        blunt. Teams badly underestimate it, and <em>merely defining the "as-is" scope</em> is often the single largest
+        cost on the project. Worse, legacy systems bloat — a Standish Group study found roughly <strong>half of
+        existing features go unused</strong>, and old bug-workarounds calcify into "must-have" requirements. Rebuilding
+        all of it "is not only waste, it's a missed opportunity to build what's actually needed today." Scope to value,
+        not to parity — and if that sounds like a judgment call rather than a procedure, that's the next step.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a target-state worksheet —
+        feed in a legacy module's real behavior, mark each feature keep / drop / redesign with a one-line
+        justification, and watch the generated spec shrink as you cut the unused half. Needs backend standup.</p></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
@@ -287,6 +284,9 @@
           <li><a href="https://arxiv.org/abs/2602.00180" target="_blank" rel="noopener">arXiv 2602.00180 — Spec-Driven Development: From Code to Contract</a> — the spec-first / spec-anchored / spec-as-source taxonomy and when-to-use decision framework.</li>
           <li><a href="https://arxiv.org/abs/2605.01160" target="_blank" rel="noopener">arXiv 2605.01160 — The Productivity-Reliability Paradox</a> — the 19% RCT slowdown, 98%-more-PRs telemetry, and the SGM governance model.</li>
           <li><a href="https://arxiv.org/abs/2601.03878" target="_blank" rel="noopener">arXiv 2601.03878 — Understanding Specification-Driven Code Generation with LLMs</a> — the SANER 2026 registered report studying human intervention in spec refinement.</li>
+          <li><a href="https://martinfowler.com/articles/patterns-legacy-displacement/feature-parity.html" target="_blank" rel="noopener">Patterns of Legacy Displacement: Feature Parity — Fowler / Thoughtworks</a> — why defining the "as-is" is the biggest cost, and the Standish finding that ~50% of legacy features go unused.</li>
+          <li><a href="https://vinoo.io/writing/2026-02-05-forward-deployed-engineering/" target="_blank" rel="noopener">Forward Deployed Engineering — Vinoo Ganesh</a> — the four-beat method the spec sits inside: understand the business, analyze the sources, specify against a target state, implement in modules.</li>
+          <li><a href="../../client-delivery.html?w=5" target="_blank" rel="noopener">Client Delivery — Week 5 packet</a> — your project's ask and handover artifacts; the input to every deliverable this week.</li>
         </ul>
       </section>
 
@@ -376,23 +376,26 @@
     <ul class="goals-list">
       <li>Explain why vibe coding fails predictably — and why it's a specification gap, not a model-capability gap</li>
       <li>Walk the gated artifact chain (Specify → Plan → Tasks → Implement) and say what each gate catches</li>
-      <li>Rewrite a vague requirement as a testable EARS criterion (WHEN … THE SYSTEM SHALL …)</li>
+      <li>Derive a spec on brownfield: current state → target state → a spec that ships to the client as a proposal</li>
+      <li>Name the feature-parity trap and argue against a like-for-like rebuild with a concrete alternative</li>
       <li>Argue for a position on the rigor spectrum (spec-first / spec-anchored / spec-as-source / no spec) for a given change</li>
     </ul>
-    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <div class="ma-k">Deliverable — commit to your brownfield project repo</div>
     <ul class="deliv-list check">
-      <li>Create <code>specs/day1-spec.md</code> for one small feature of your project</li>
+      <li>Create <code>specs/day1-spec.md</code> against <b>this week's client ask</b> — open your
+        <a href="../../client-delivery.html?w=5">Week 5 client packet</a> first</li>
       <li><b>①</b> goals + one user journey (the <em>what</em>, zero technology choices)</li>
-      <li><b>②</b> three acceptance criteria in EARS form</li>
-      <li><b>③</b> one line stating where this feature sits on the rigor spectrum, and why</li>
+      <li><b>②</b> a two-line <b>current state → target state</b>: what the system does today in the area of the ask, and what you're proposing it become</li>
+      <li><b>③</b> one line stating where this sits on the rigor spectrum, and why</li>
+      <li><b>④</b> one sentence naming the <b>outcome</b> — what changes for a real person if this ships</li>
     </ul>
-    <p class="goals-foot">Bring it to Day 2, where you'll learn to synthesize a spec like this out of a messy client
-    discovery conversation — the input is rarely this clean in the field.</p>
+    <p class="goals-foot">Don't specify the fix the client named yet. Tomorrow you'll read the handover artifacts and
+    find out whether the ask and the evidence agree — the input is rarely as clean as it looks on Monday.</p>
   </div>
 </div>
 
 <script>
-window.FDE_NEXT = { label: "Day 2 — Requirements synthesis: discovery to spec →", href: "w05d2.html" };
+window.FDE_NEXT = { label: "Day 2 — Requirements synthesis: reframe, then specify →", href: "w05d2.html" };
 window.DIAGRAM = {
   title: "Spec-driven development · the artifact pipeline",
   width: 500, height: 690,
@@ -421,8 +424,8 @@ window.DIAGRAM = {
       detail:"The only phase where production code gets written — task by task, against the validated artifacts. The human is a steward: steer, verify, spot gaps, refine before advancing." },
 
     // requirements quality (EARS)
-    { id:"ears", step:4, x:330, y:226, w:156, h:84, label:"EARS criterion\nWHEN [condition]\nTHE SYSTEM SHALL\n[behavior]",
-      detail:"Kiro's requirements bar: acceptance criteria in EARS form — 'WHEN a user submits a form with invalid data THE SYSTEM SHALL display validation errors.' Testable (write the failing test from the sentence) and traceable. A requirement is done when a literal-minded reader can't misread it." },
+    { id:"ears", step:4, x:330, y:226, w:156, h:84, label:"BROWNFIELD ENTRY\ncurrent state →\nTARGET STATE\n→ spec as proposal",
+      detail:"On brownfield there is no blank /specify. The spec is the third beat of a method: understand the business → analyze the sources (trust nothing, trace everything) → write the spec against a chosen TARGET STATE → implement in modules with SME validation. The target state is where UI/UX, storage, language and deployment get decided; every downstream artifact inherits it. And the spec goes to the client as a PROPOSAL. The trap it must survive: feature parity — defining the 'as-is' is often the biggest cost, and ~50% of legacy features are unused. Scope to value, not parity." },
 
     // specs as persistent agent context (GSD)
     { id:"gsd", step:5, x:330, y:344, w:156, h:96, label:"persistent context\nPROJECT.md ROADMAP.md\nPLAN.md SUMMARY.md\nSTATE.md",
@@ -443,7 +446,7 @@ window.DIAGRAM = {
     { id:"e_g1",      step:3, from:"specify", to:"plan",     label:"✋ human gate", lx:8 },
     { id:"e_g2",      step:3, from:"plan",    to:"tasks",    label:"✋ human gate", lx:8 },
     { id:"e_g3",      step:3, from:"tasks",   to:"impl",     label:"✋ human gate", lx:8 },
-    { id:"e_ears",    step:4, from:"ears",    to:"specify",  label:"can't misread", ly:-4 },
+    { id:"e_ears",    step:4, from:"ears",    to:"specify",  label:"feeds the spec", ly:-4 },
     { id:"e_ctx",     step:5, from:"gsd",     to:"impl",     label:"fresh context / task", ly:-4 },
     { id:"e_rigor",   step:6, from:"spectrum",to:"pipe",     label:"how much of this?", lx:6 },
     { id:"e_evid",    step:7, from:"evidence",to:"spectrum", label:"grounds the call", ly:6 }
@@ -453,7 +456,7 @@ window.DIAGRAM = {
     "The failure is <b>measured</b>: 98% more PRs, 91% longer reviews, flat delivery. Generation got cheap; the bottleneck moved into review. <span style='opacity:.7'>(tap)</span>",
     "The SDD inversion: the <b>spec becomes the source of truth</b>, and code is a generated, secondary artifact. <span style='opacity:.7'>(tap)</span>",
     "The canonical loop: <b>Specify → Plan → Tasks → Implement</b>, each phase emitting a Markdown artifact a human validates <b>before</b> the next phase starts. <span style='opacity:.7'>(tap the phases)</span>",
-    "Gates need unambiguous artifacts. <b>EARS</b> — WHEN [condition] THE SYSTEM SHALL [behavior] — makes each requirement testable and impossible to misread. <span style='opacity:.7'>(tap)</span>",
+    "But you don't start from blank. On brownfield the spec is derived: current state → <b>target state</b> → a spec that goes to the client as a <b>proposal</b> — and must dodge the <b>feature-parity trap</b>. <span style='opacity:.7'>(tap)</span>",
     "Specs double as <b>persistent context</b>: GSD's artifacts survive session boundaries and feed fresh-context executors — the Week-1 window discipline at project scale. <span style='opacity:.7'>(tap)</span>",
     "Rigor is a <b>spectrum</b> — spec-first, spec-anchored, spec-as-source — and the FDE skill is matching rigor to risk, not applying ceremony everywhere. <span style='opacity:.7'>(tap)</span>",
     "Honest close: the motivation is proven, the workflow is still being formally validated — <b>adoption is running ahead of the evidence</b>. Carry the shape, cite it honestly. <span style='opacity:.7'>(tap)</span>"
@@ -494,7 +497,7 @@ window.QUIZ = {
         "Testable, traceable acceptance criteria a literal-minded reader can't misread",
         "Elimination of any need for human review" ],
       answer: [0, 1, 3],
-      explain: "Specs give humans cheap gates, give agents persistent curated context (GSD's answer to context rot), and — written in EARS form — give both a testable contract. They don't make generation deterministic, and they move human review earlier rather than removing it: the human is a steward, not a bystander." },
+      explain: "Specs give humans cheap gates, give agents persistent curated context (GSD's answer to context rot), and — written as testable criteria, which you'll draft tomorrow — give both a contract. They don't make generation deterministic, and they move human review earlier rather than removing it: the human is a steward, not a bystander." },
     { type: "match",
       stem: "Match each situation to the right position on the rigor spectrum.",
       pairs: [
@@ -504,9 +507,9 @@ window.QUIZ = {
         { l: "Humans never edit generated code; it's always regenerated from the spec", r: "spec-as-source" } ],
       explain: "Rigor is a spectrum, not a binary. Spec-first uses the spec once; spec-anchored keeps it alive alongside the code; spec-as-source makes code like compiler output — never hand-edited. The FDE skill is matching rigor to risk: stakes, number of readers, system lifetime." },
     { type: "open",
-      stem: "Rewrite this requirement so an agent can't misread it, using EARS form — then say in one sentence what the rewrite buys you: 'The app should handle failed payments gracefully.'",
-      hint: "WHEN [condition or event] THE SYSTEM SHALL [observable behavior]. What can you now write directly from the sentence?",
-      model: "Something like: 'WHEN a payment is declined by the processor THE SYSTEM SHALL display the decline reason to the user and retain the cart contents' (any concrete trigger + observable behavior works). The rewrite buys testability and traceability — you can write the failing test straight from the sentence and point at the code that satisfies it, instead of leaving 'gracefully' as a blank the agent fills with plausible defaults." }
+      stem: "A sponsor on a legacy modernization says: “just rebuild what we have today, in the new stack — same features, nothing lost.” In two or three sentences: why is that the most expensive thing they could ask for, and what do you propose instead?",
+      hint: "What does it actually cost to write down everything the old system does? And how much of it does anyone use?",
+      model: "It's the feature-parity trap. Defining the complete 'as-is' scope is often the single largest cost on the project — you're paying to document fifteen years of accreted behavior before you build anything — and roughly half of legacy features go unused, with old bug-workarounds now calcified into 'must-have' requirements. So the ask spends the budget reproducing waste. The counter-proposal: start from the business model and pick a target state, scope the spec to the capabilities that carry value, and prove it with a POC on the one or two modules that halt the business if they break. Scope to value, not to parity — and note this is a push-back with an alternative, not a no." }
   ]
 };
 </script>
@@ -519,6 +522,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
-<script src="../../assets/js/glossary.js?v=20260710-g3"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 </body>
 </html>

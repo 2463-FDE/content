@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="fde-day" content="w05d4">
-<meta name="fde-concepts" content="phased-plan-gates,verifiable-task-decomposition,nfr-quality-model,slo-shaped-nfr-targets">
+<meta name="fde-concepts" content="phased-plan-gates,verifiable-task-decomposition,graph-backed-decomposition,nfr-quality-model,slo-shaped-nfr-targets">
 <title>W5·D4 — Decomposition: Spec to Phased Plans | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260714-w3f">
 <script src="../../assets/js/theme.js"></script>
@@ -243,33 +243,41 @@
 
       <section class="step" data-diagram="0" data-step="7">
         <div class="tag">Assembly</div>
-        <h2>The finished artifact: phased, gated, verifiable, targeted</h2>
-        <p>Put the day back together as a single checklist you can run on any plan — yours or anyone's. A
-        decomposition worth handing off has four properties. <strong>Phased:</strong> work is ordered into research →
-        design/contracts → tasks (or the domain's equivalent), each phase small enough to validate before the next
-        begins — Spec Kit's Phase 0/1/2, Kiro's requirements/design/tasks, same shape. <strong>Gated:</strong> the
-        boundaries have named conditions — a constitution check that must pass before research and be re-checked after
-        design, Phase −1 simplicity/anti-abstraction/integration gates with a complexity-tracking table for documented
-        exceptions. <strong>Verifiable:</strong> every task ends in a pass/fail check, requirements are written in
-        testable EARS shape, dependencies are explicit enough to sequence into waves, and the artifacts themselves get
-        cross-checked (<code>/speckit.analyze</code>) before implementation starts. <strong>Targeted:</strong> the NFR
-        section walks ISO 25010's nine characteristics, keeps the load-bearing ones, and states each as a citable,
-        measurable target — SLO-shaped for performance and capacity, ASVS-leveled with requirement IDs for security.</p>
-        <p>Run that checklist against the pipeline you already work inside and you'll recognize everything: this
-        program's own ticket workflow phases work through plan and verify stages, gates plans on grounding citations,
-        and refuses to let reviews silently skip. That isn't coincidence — it's this day's material, operationalized.
-        The plan is also where <em>tomorrow</em> starts: Day 5 takes a finished spec + plan + task list and hands it to
-        an implementing agent end-to-end, then reviews the output against the spec. Everything you wrote into the plan
-        today — the gates, the checks, the targets — is what makes that handoff safe rather than hopeful.</p>
+        <h2>Decompose against the graph, not against intuition</h2>
+        <p>Put the day together first. A decomposition worth handing off is <strong>phased</strong> (research →
+        design/contracts → tasks, each small enough to validate before the next), <strong>gated</strong> (named
+        conditions at the boundaries, with a complexity-tracking table for documented exceptions),
+        <strong>verifiable</strong> (every task ends in a pass/fail check; artifacts cross-checked with
+        <code>/speckit.analyze</code> before implementation), and <strong>targeted</strong> (NFRs kept from ISO 25010
+        and stated as SLO-shaped or ASVS-cited numbers). Four properties, one checklist, runnable on anyone's plan.</p>
+        <p>But there's a prior question that decides whether any of it is <em>correct</em>: how do you know where the
+        phase boundaries go? Draw one without knowing which services share a transaction and you split an atomic
+        operation across two phases. Assign a latency SLO without the dependency edges and it lands on the service that
+        doesn't own the slow path. This is the week-4 material arriving with a job: you decompose against the
+        <strong>system graph</strong> — the <em>knowledge graph</em> of what exists (services, entities, tables, call
+        edges) and the <em>context graph</em> of how decisions get made (business rules, standards, compliance
+        constraints). The agentic-planning literature makes the same move formally: "a complex task usually consists of
+        several subtasks that are easier to handle," and "proper task decomposition is important because reasonable
+        sub-task decomposition can improve the accuracy and efficiency of the agent in performing tasks." Those
+        subtasks have dependencies — one's output is another's input — and together they form a <strong>task dependency
+        graph</strong>, kept acyclic so execution can't deadlock. Your phases are a coarser view of that same graph. So
+        the corollary is worth holding onto: <strong>bad decomposition is usually a missing-graph problem, not a model
+        problem.</strong></p>
+        <p>Which is exactly your situation this week. Nobody handed you a map of the system your reframe touches —
+        which services write to the same rows, which paths a retry can travel twice, which constraints are enforced in
+        code versus in the database. That map is the difference between a plan whose phases are real and a plan whose
+        phases are guesses that happen to be numbered. Tomorrow the spec, plan, and tasks get handed to an implementing
+        agent end-to-end; everything you wrote in today — the gates, the checks, the targets, and the graph they were
+        drawn against — is what makes that handoff safe rather than hopeful.</p>
 
         <div class="callout mindset">
           <div class="k">FDE mindset</div>
           <p>A spec tells the client <em>what</em> they're getting. The phased plan is where <strong>you</strong> earn
-          trust: it shows the client their risk is front-loaded into gated phases, their reviews land at checkpoints
-          instead of at the end, and their "it must be fast and secure" has become numbers someone can be held to.
-          When an engagement goes sideways, it is almost never because the spec was wrong — it's because nobody could
-          say, at week three, which phase they were in and what had been <em>proven</em> so far. The plan is the
-          instrument that makes progress a fact instead of a feeling.</p>
+          trust: risk front-loaded into gated phases, reviews landing at checkpoints instead of at the end, and "it must
+          be fast and secure" turned into numbers someone can be held to. When an engagement goes sideways it is almost
+          never because the spec was wrong — it's because nobody could say, at week three, which phase they were in and
+          what had been <em>proven</em>. And when a plan is wrong from the start, it's almost never the model's
+          fault: <strong>you can't decompose a system you haven't mapped.</strong></p>
         </div>
       </section>
 
@@ -286,6 +294,9 @@
           <li><a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener">OWASP ASVS</a> — Application Security Verification Standard 5.0.0: ~350 requirements, 17 chapters, verification levels L1–L3.</li>
           <li><a href="https://code.claude.com/docs/en/best-practices" target="_blank" rel="noopener">Claude Code — Best practices</a> — Explore → Plan → Implement → Commit, pass/fail checks, self-contained specs, and when to skip planning.</li>
           <li><a href="https://arxiv.org/abs/2604.05278" target="_blank" rel="noopener">Spec Kit Agents: Context-Grounded Agentic Workflows (arXiv)</a> — validating spec/plan/tasks artifacts against repository evidence; 58.2% Pass@1 on SWE-bench Lite.</li>
+          <li><a href="https://arxiv.org/html/2506.18019v1" target="_blank" rel="noopener">Graphs Meet AI Agents — arXiv 2506.18019</a> — task decomposition improves agent accuracy and efficiency; subtask dependencies form a task dependency graph (DAG).</li>
+          <li><a href="https://www.kore.ai/blog/what-are-context-graphs" target="_blank" rel="noopener">What are context graphs — kore.ai</a> — knowledge graph (what exists) vs context graph (how decisions get made); the pair your phase boundaries should be drawn against.</li>
+          <li><a href="../../client-delivery.html?w=5" target="_blank" rel="noopener">Client Delivery — Week 5 packet</a> — the evidence your NFR targets and phase boundaries should be sourced from.</li>
         </ul>
       </section>
 
@@ -374,12 +385,13 @@
       <li>Write tasks and requirements so every one ends in a check that passes or fails, and know when a plan is overkill</li>
       <li>State perf/scale/security NFRs as measurable targets: an ISO 25010 pass, SLO-shaped indicators, and a cited ASVS level</li>
     </ul>
-    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <div class="ma-k">Deliverable — commit to your brownfield project repo</div>
     <ul class="deliv-list check">
-      <li>Add <code>PLAN.md</code> for one feature of your project (use this week's spec)</li>
+      <li>Add <code>PLAN.md</code> for the <b>reframed problem</b> in your <a href="../../client-delivery.html?w=5">Week 5 client packet</a> — built on the spec and ADR you wrote on Days 2–3</li>
       <li><b>①</b> three phases with a one-line gate condition at each boundary</li>
       <li><b>②</b> five tasks, each ending in an explicit pass/fail check you could actually run</li>
-      <li><b>③</b> an NFR table: the 25010 characteristics you kept, one SLO-shaped target each, one ASVS level with a one-line justification</li>
+      <li><b>③</b> an NFR table: the 25010 characteristics you kept, one SLO-shaped target each, one ASVS level with a one-line justification. Source at least one target from the packet's real evidence, not a round number you liked</li>
+      <li><b>④</b> a five-line <b>system-graph sketch</b> for the area you're touching: which services write the affected rows, which paths a retry can travel twice, and where the constraint is enforced today. Say in one sentence which phase boundary that sketch changed</li>
     </ul>
     <p class="goals-foot">Bring it to Day 5, where a finished spec + plan + task list gets handed to an implementing
     agent end-to-end — and the gates and checks you wrote today are what make that handoff reviewable.</p>
@@ -430,8 +442,8 @@ window.DIAGRAM = {
 
     // the handoff
     { id:"handoff", step:7, x:28, y:620, w:458, h:52,
-      label:"→ HANDOFF  phased · gated · verifiable · NFR-targeted",
-      detail:"The four-property checklist for any plan: phases small enough to validate; named gate conditions at boundaries (with a complexity-tracking record for exceptions); pass/fail checks on every task and cross-checked artifacts; NFRs as citable measurable targets. Day 5 hands this artifact to an implementing agent end-to-end." }
+      label:"→ HANDOFF  phased · gated · verifiable · NFR-targeted\n   …all of it drawn against the SYSTEM GRAPH",
+      detail:"The four-property checklist for any plan: phases small enough to validate; named gate conditions at boundaries (with a complexity-tracking record for exceptions); pass/fail checks on every task and cross-checked artifacts; NFRs as citable measurable targets. And the prior question that decides whether any of it is correct: where do the phase boundaries go? You decompose against the system graph — the KNOWLEDGE graph of what exists (services, entities, tables, call edges) and the CONTEXT graph of how decisions get made (business rules, standards, compliance constraints). Draw a boundary without the dependency edges and you split an atomic operation across two phases, or assign a latency SLO to the service that doesn't own the slow path. Bad decomposition is usually a missing-graph problem, not a model problem." }
   ],
   edges: [
     { id:"e_pipe",  step:1, from:"pipe",    to:"plan",   label:"decompose", lx:-8 },
@@ -451,7 +463,7 @@ window.DIAGRAM = {
     "Now the other half of quality: walk <b>ISO 25010's nine characteristics</b> as the NFR checklist — capacity (scale) is a first-class slot, not an afterthought. <span style='opacity:.7'>(tap)</span>",
     "Perf and scale targets get <b>SLO-shaped</b>: a simple indicator, an explicit target value, an owning phase gate. <span style='opacity:.7'>(tap)</span>",
     "Security gets an <b>ASVS level</b> and citable requirement IDs — 'must be secure' becomes something an auditor can check. <span style='opacity:.7'>(tap)</span>",
-    "The handoff artifact: <b>phased, gated, verifiable, NFR-targeted</b>. Tomorrow this plan gets handed to an implementing agent end-to-end. <span style='opacity:.7'>(tap)</span>"
+    "The handoff artifact: <b>phased, gated, verifiable, NFR-targeted</b> — and every one of those boundaries drawn against the <b>system graph</b>, because you can't decompose a system you haven't mapped. <span style='opacity:.7'>(tap)</span>"
   ]
 };
 window.QUIZ = {
@@ -514,6 +526,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
-<script src="../../assets/js/glossary.js?v=20260710-g3"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 </body>
 </html>

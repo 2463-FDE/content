@@ -368,12 +368,14 @@
       <li>Gate a data cutover with ETL + CDC + consistency validation, and protect the rollback window</li>
       <li>Quote the AlphaTrans gap (96% compiles vs ~25% behaves) when a client asks "can't AI just rewrite it?"</li>
     </ul>
-    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <div class="ma-k">Deliverable — commit to your brownfield project repo</div>
     <ul class="deliv-list check">
-      <li>Add a <code>LEGMOD.md</code> to your notes repo</li>
-      <li><b>①</b> pick any legacy-ish module in your own project (or a past one) and write its broad→narrow question ladder — the three questions you'd ask an agent, in order</li>
-      <li><b>②</b> write one characterization test for it: input, dummy expectation, the actual recorded value, and the renamed test name</li>
+      <li>Add a <code>LEGMOD.md</code> covering <b>this week's client ask</b> — open your
+        <a href="../../client-delivery.html?w=6">Week 6 client packet</a> for the module and its handover artifacts</li>
+      <li><b>①</b> the broad→narrow question ladder for that module — the three questions you'd ask an agent, in order — then run them and record what the agent got wrong</li>
+      <li><b>②</b> write characterization tests that pin its <em>actual</em> behavior: input, dummy expectation, the recorded value, the renamed test. Include one <b>failing</b> test that demonstrates the defect the client can't see — the field the parser silently drops, or the update that silently loses</li>
       <li><b>③</b> sketch its strangler plan in five bullets: the seam, the façade, the ACL boundary, the data phase, and the one irreversible step you'd gate on a human decision</li>
+      <li><b>④</b> one line for the client, in their currency: what is being lost today, and what it would cost them if nobody noticed for another six months</li>
     </ul>
     <p class="goals-foot">Bring it to Day 5, where the whole week converges: delivering a real feature end-to-end with
     the agentic pipeline you've been assembling.</p>
@@ -506,6 +508,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
-<script src="../../assets/js/glossary.js?v=20260710-g3"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 </body>
 </html>

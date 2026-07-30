@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="fde-day" content="w05d2">
-<meta name="fde-concepts" content="stakeholder-discovery-interviews,ambiguity-clarification,ears-notation,requirement-quality-characteristics,acceptance-criteria-gherkin">
-<title>W5·D2 — Requirements Synthesis: Discovery to Spec | 2463-FDE</title>
+<meta name="fde-concepts" content="xy-problem-reframe,outcome-vs-output,stakeholder-discovery-interviews,ambiguity-clarification,ears-notation,requirement-quality-characteristics,acceptance-criteria-gherkin">
+<title>W5·D2 — Requirements Synthesis: Reframe, Then Specify | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260714-w3f">
 <script src="../../assets/js/theme.js"></script>
 </head>
@@ -32,125 +32,149 @@
 
     <article class="reading-col">
       <div class="lede">
-        <h1>Requirements Synthesis: Discovery to Spec</h1>
+        <h1>Requirements Synthesis: Reframe, Then Specify</h1>
         <div class="meta">
           <span><b>Week 5</b> · Day 2</span>
-          <span>Client Discovery &amp; Spec Craft</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span>Problem Scoping &amp; Spec Craft</span>
+          <span><b>~20 min</b> · reading @150 wpm + diagram + check</span>
         </div>
-        <p class="summary">A stakeholder says "the system should be fast and easy to use," and everyone in the room
-        nods. Six weeks later the demo lands wrong, and the postmortem discovers that "fast" meant three different
-        things to three different people. Today you learn the craft that prevents that: running discovery conversations
-        that surface what stakeholders actually mean, hunting the ambiguity in what they said, and compressing it into
-        a spec precise enough that a teammate — or an AI agent — can build from it without guessing. Scroll the
-        reading; the panel on the right turns one vague stakeholder sentence into a precise, testable spec, one
-        refinement at a time.</p>
+        <p class="summary">Your client this week says "just fix the calendar" — and the artifacts they attached show a
+        retried booking request creating a second confirmed row. The ask and the evidence disagree, and nobody in the
+        room has noticed. Today is the craft for that gap: following the handover to the real defect, naming it in the
+        client's own currency, and only <em>then</em> compressing it into a spec precise enough that a teammate — or an
+        agent — can build from it without guessing. Two failures to defend against, in order: the requirement everyone
+        read differently, and the one everyone understood perfectly that described the wrong system. Scroll the
+        reading; the panel on the right walks a real client ask down to a testable spec, one rung at a time.</p>
         <div class="ix-legend"></div>
       </div>
 
       <section class="step" data-diagram="0" data-step="0">
         <div class="tag">The whole game</div>
-        <h2>Ambiguity in, garbage out — now with proof</h2>
-        <p>Requirements have been written in natural language since software began, and natural language is
-        <strong>inherently imprecise</strong>. The official EARS guide states the failure chain plainly: requirements
-        problems <em>propagate to lower levels</em>, creating "unnecessary volatility and risk, impacting programme
-        schedule and cost." A fuzzy sentence at the top becomes a wrong design in the middle and a rebuilt feature at
-        the bottom. That has always been true — but it used to be arguable, the kind of thing process people said and
-        engineers shrugged at.</p>
-        <p>It is no longer arguable, because we can now <em>measure</em> it. A 2025 study called <strong>SpecFix</strong>
-        looked at what happens when you hand ambiguous problem descriptions to LLM-based code generation: "unclear
-        problem descriptions may lead to incorrect program generation." The team built a tool that repairs the
-        ambiguity in the description <em>before</em> any code is generated — and on the benchmark problems it modified
-        (43.58% of them needed repair), <strong>Pass@1 jumped by 30.9%</strong>. Same model, same task, same effort;
-        the only variable was how precisely the requirement was stated. Even better, the repairs transferred: a
-        description clarified for one model made <em>other</em> models more accurate too (+10.48%).</p>
-        <p>Sit with what that means for your job. In the AI era, <strong>spec precision is a code-quality lever</strong>,
-        not a documentation nicety. Every ambiguity you fail to surface in a discovery conversation gets resolved
-        anyway — later, silently, by whoever or whatever implements the spec, <em>by guessing</em>. Today's craft is
-        the pipeline that stops the guess: discovery conversation → ambiguity hunt → precise requirement → testable
-        acceptance criteria. Each stage exists to squeeze interpretation out of the words before the words become
-        code.</p>
+        <h2>The ask is evidence, not instructions</h2>
+        <p>Open your client packet for this week. If you're on Riverbend, Dr. Okonkwo writes: <em>"Our scheduling
+        keeps double-booking the same slot and it's getting embarrassing — two patients show up for one appointment.
+        The team's pretty sure it's a glitch in the calendar widget, so could you just fix the calendar so it stops
+        doing that?"</em> If you're on Meridian, it's <em>"Customers want to pay online — card and ACH. Let's just add
+        a payment form so they can self-serve. We've had a few 'I was charged twice' complaints, but I think people are
+        just confused."</em> Both are friendly, specific, and actionable. Both name the fix. Everyone nods.</p>
+        <p>Now open what came attached. Riverbend's export has two rows with <code>slot_id=88231</code>, both
+        <code>status=confirmed</code>, created <strong>400 milliseconds apart</strong> for different patients. The
+        server log shows a <code>POST /appointments</code> that took 2.11 seconds, then a second POST for the same slot
+        — both returned 201. The booking handler reads <code>if not slot_taken(slot_id): insert_appointment(...)</code>
+        with no transaction, and the DDL has no <code>UNIQUE</code> on <code>slot_id</code>. Meridian's pile is the
+        same story in a different currency: one retried <code>POST /payments</code>, two rows.</p>
+        <p>Nothing in either pile is a calendar bug or a missing form. The artifacts describe a <strong>retry that
+        produced a duplicate</strong>, and the client has already told you the cause. Here is the day's whole game: the
+        ask is <em>data about what the client believes</em>, and the handover is <em>data about what is true</em>. When
+        they disagree, the spec follows the evidence — and your first job is to notice they disagree at all.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="1">
-        <div class="tag">Stage 1 · discovery</div>
-        <h2>Interview stakeholders about success, not features</h2>
-        <p>Discovery starts with a <strong>stakeholder interview</strong> — in Nielsen Norman Group's definition, "a
-        conversation with a person who has a vested interest in a project with a goal of gathering insights to drive
-        the project's success." Note what that definition does <em>not</em> say: it doesn't say "a meeting where the
-        client lists features." The beginner walks in with a notepad titled <em>what should it do?</em> The
-        practitioner walks in with a different first question: <strong>what does success look like?</strong></p>
-        <p>NN/g's recommended coverage gives you a four-area checklist to walk in every discovery conversation:
-        <strong>success metrics</strong> (how will this person know the project worked?), <strong>priorities</strong>
-        (what matters most, what's negotiable?), <strong>history and expertise</strong> (what's been tried, what does
-        this person know that you don't?), and <strong>process and workflow</strong> (how does the work actually flow
-        today?). Features fall out of those four areas naturally — and features gathered <em>without</em> them are
-        exactly the ones that get rebuilt, because nobody asked what problem they were supposed to solve.</p>
-        <p>Coverage matters more than cleverness. A merely competent interviewer who systematically touches all four
-        areas will out-discover a brilliant one who improvises, because the expensive failures are the areas nobody
-        visited at all. The findings, NN/g notes, "should help inform all aspects of your project: UX research,
-        ideation, priorities, timeline, resources, and stakeholder-engagement plans" — which is a polite way of saying
-        the interview <em>is</em> the foundation everything else stands on. For an FDE, whose whole role is landing at
-        a client and figuring out what to build, this is not a soft skill on the side of the engineering. It is the
-        first engineering artifact of the engagement.</p>
+        <div class="tag">The reframe</div>
+        <h2>The XY problem — and why a perfect spec can still be wrong</h2>
+        <p>This pattern has a name older than any of the tooling: the <strong>XY problem</strong>. The customer needs a
+        solution to <strong>X</strong>, forms a theory about the cause, and asks you for <strong>Y</strong> — the fix
+        their theory implies. You get handed Y. "Just fix the calendar" is Y. "Two patients stop showing up for one
+        slot" is X. The single most important question in the FDE's vocabulary exists to get from one to the other:
+        <em>"What are you trying to accomplish?"</em></p>
+        <p>Notice how badly this fails silently. You <em>can</em> fix the calendar widget. It will demo. The
+        double-books keep happening, because the race was never in the UI — and now the client has paid for a fix and
+        lost trust in the diagnosis. The canonical FDE framing is blunt: building Y instead of X is the most expensive
+        mistake in the role, and its usual product is <strong>shelfware</strong> — software that works, ships, and is
+        never adopted, because it addressed a problem nobody had.</p>
+        <p>Which sets up the distinction that governs the rest of today, and that most requirements training misses.
+        <strong>Ambiguous and wrong are different failures.</strong> Everything you'll learn in the back half of this
+        reading — the 29148 well-formedness bar, EARS, RFC 2119, Gherkin — defends against a requirement that two
+        people can read two ways. <em>None of it defends against a requirement that is perfectly clear and describes
+        the wrong system.</em> A flawlessly unambiguous, fully verifiable, EARS-shaped spec for the calendar widget is
+        the most expensive artifact you could produce this week. Reframe first; then specify. And when you push back,
+        push back <strong>with an alternative, not a no</strong> — "not the calendar, and here's the smaller thing that
+        actually stops it" is a proposal; "that's not the problem" is an argument.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
-        <div class="tag">Stage 1 · probing</div>
-        <h2>Follow-up questions are where discovery actually happens</h2>
-        <p>The first answer a stakeholder gives you is almost never the real one — it's the rehearsed one. The real
-        material comes out under <strong>open-ended probing</strong>: "Tell me more about that." "Can you give me an
-        example?" "Why is that important to you?" Each of those forces the stakeholder off the script and into the
-        specifics where requirements actually live. "We need better reporting" is a script line; "last quarter our VP
-        spent two days hand-building a spreadsheet because the export drops the region column" is a requirement.</p>
-        <p>The failure modes are just as well-catalogued as the techniques: interviewing <strong>too late</strong>
-        (after the decisions the interview should have informed), asking <strong>closed-ended questions</strong> that
-        yield a yes/no where a story was available, and <strong>interrupting</strong> — filling the silence the
-        stakeholder was about to fill with the thing you needed to hear. Notice that all three are coverage failures,
-        not intelligence failures. You don't miss requirements because you aren't clever; you miss them because of
-        "lack of familiarity with the domain, excessive cognitive load, and information overload" — the three
-        pressures a CMU study identifies as the reason human interviewers drop threads mid-conversation.</p>
-        <p>That same study (Shen, Singhal &amp; Breaux, 2025) has a finding you should carry into every engagement:
-        GPT-4o-generated follow-up questions were rated <em>no worse</em> than human-authored ones for clarity,
-        relevancy, and informativeness — and when the generation was <strong>guided by a taxonomy of common
-        interviewer mistakes</strong>, the LLM's questions beat the humans'. Read that carefully, because the lesson
-        isn't "let AI run your interviews." It's that <strong>a mistake-and-coverage framework beats freeform "ask
-        good questions"</strong> — for the model <em>and for you</em>. Walk in with the checklist, track what you
-        haven't covered, and use an AI copilot to catch the threads you dropped while you were busy listening.</p>
+        <div class="tag">Stage 1 · dig</div>
+        <h2>Dig where the evidence is, on a coverage checklist</h2>
+        <p>You reframe by asking, not by asserting. Nielsen Norman Group defines a stakeholder interview as "a
+        conversation with a person who has a vested interest in a project with a goal of gathering insights to drive
+        the project's success" — note what that does <em>not</em> say: it isn't a meeting where the client lists
+        features. The beginner asks <em>what should it do?</em> The practitioner asks <strong>what does success look
+        like?</strong> — and, on brownfield, <em>what do the artifacts say is actually happening?</em></p>
+        <p>NN/g's four coverage areas give you the checklist: <strong>success metrics</strong> (how will this person
+        know it worked?), <strong>priorities</strong> (what's negotiable?), <strong>history and expertise</strong>
+        (what's been tried, what do they know that you don't?), and <strong>process and workflow</strong> (how does the
+        work actually flow today?). Your packet's <em>dig</em> list is those four areas pointed at this week's evidence:
+        <em>Are the two confirmed rows a UI glitch, or two successful inserts — and what created the second? Walk
+        read-check-then-insert under two near-simultaneous requests: what stops both from passing the check? If the
+        client retries a slow booking POST, what makes the server treat it as the same booking?</em> Each is
+        open-ended, each is answerable from the handover, and together they walk the client from their theory to yours
+        without ever telling them they were wrong.</p>
+        <p>Coverage beats cleverness, and the research says so twice. Interviewers drop threads not from lack of
+        intelligence but from "lack of familiarity with the domain, excessive cognitive load, and information
+        overload." And in a 2025 CMU study, GPT-4o's follow-up questions were rated <em>no worse</em> than
+        human-authored ones — then <strong>beat</strong> them once generation was guided by a taxonomy of common
+        interviewer mistakes. The lesson isn't "let AI run your interviews." It's that a mistake-and-coverage framework
+        outperforms freeform "ask good questions," for the model and for you.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live interview-practice
-        widget — you play the FDE against an AI stakeholder with a hidden brief; it scores your coverage of the four
-        NN/g areas and flags closed-ended questions and missed follow-up threads in real time. Needs backend
-        standup.</p></div>
+        widget — you play the FDE against an AI stakeholder holding this week's hidden problem; it scores your coverage
+        of the four NN/g areas, flags closed-ended questions, and tells you whether you reached the reframe before the
+        call ended. Needs backend standup.</p></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
-        <div class="tag">Stage 2 · the gate</div>
-        <h2>Hunt the ambiguity before it hunts you</h2>
-        <p>Between the conversation and the spec sits the day's most important discipline: the <strong>ambiguity
-        hunt</strong>. Take every sentence you captured and interrogate it — could two reasonable people read this
-        differently? "The dashboard should load quickly." Quickly on what hardware, what network, what data volume?
-        Under 200ms or under 5 seconds? Every one of those unanswered questions is a decision someone downstream will
-        make for the stakeholder, without asking.</p>
-        <p>The formal bar for when you've squeezed enough ambiguity out comes from
-        <strong>ISO/IEC/IEEE 29148:2018</strong>, the active international standard for requirements engineering. Its
-        widely-taught characteristics of a well-formed requirement include: <strong>necessary</strong> (delete it and
-        something breaks), <strong>unambiguous</strong> (interpretable in <em>only one way</em>),
-        <strong>complete</strong> (needs no further amplification), <strong>singular</strong> (one requirement per
-        statement — no smuggled "and"), <strong>feasible</strong>, <strong>verifiable</strong> (you can devise a test
-        that proves it's met — enhanced when the requirement is measurable), and <strong>traceable</strong> (you can
-        point back to who needs it and why). "Fast and easy to use" fails four of those at once: it's ambiguous,
-        double-barreled, unverifiable, and traceable to nobody in particular.</p>
-        <p>The modern move — borrowed straight from spec-driven tooling — is to make the ambiguity <em>visible</em>
-        instead of resolving it silently: mark the spec with an explicit <strong><code>[NEEDS CLARIFICATION]</code></strong>
-        tag wherever a question is still open, and take the list back to the stakeholder as a batch. That tag is a
-        small piece of genius. It converts ambiguity from an invisible landmine into a tracked work item, and it makes
-        the honest state of the spec legible: not "done," but "done except these six named questions." An FDE who
-        returns from discovery with six sharp <code>[NEEDS CLARIFICATION]</code> items looks far more competent than
-        one who returns with false confidence — and ships far fewer rebuilds.</p>
+        <div class="tag">Stage 2 · name it</div>
+        <h2>Name the real problem in the client's own currency</h2>
+        <p>The dig gets you to the technical truth: booking does a read-check-then-insert with no transaction and no
+        unique constraint, and the client retries slow requests, so two inserts pass the same check. That sentence is
+        correct, and it is <em>useless</em> in the room. Dr. Okonkwo did not ask for a concurrency-control review; she
+        asked why two patients showed up for one appointment. The reframe only lands when you restate it in the
+        currency she already counts in.</p>
+        <p>So translate. <strong>Double-booking is a correctness defect, not a UI bug</strong> — and it costs
+        clinician time that was sold twice, patients who get billed twice, and trust that is expensive to rebuild. On
+        Meridian: storing the PAN and logging the CVV isn't "a security nit," it is a direct PCI-DSS violation whose
+        remedy — tokenize, never store sensitive authentication data — happens to <em>shrink</em> the audit surface
+        rather than grow it. That's the shape of a good reframe: it names the real defect, prices it in the client's
+        terms, and arrives with a smaller, cheaper alternative than the one they asked for.</p>
+        <p>Write it as one sentence you could say out loud, because that sentence is the first line of your spec:
+        <em>"You asked for a calendar fix; the logs show a retried booking creating a second confirmed row, so what I
+        want to spec is an idempotency key plus a database-level slot constraint — smaller than a calendar rewrite, and
+        it makes the double-book impossible instead of unlikely."</em> That is the artifact this day produces. And it
+        is worth being precise about why it matters: an FDE <strong>owns outcomes, not outputs</strong>. The merged PR
+        is the output. Two patients no longer showing up for one slot is the outcome — and it is the only one of the
+        two the client will remember.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
-        <div class="tag">Stage 3 · EARS</div>
+        <div class="tag">Stage 3 · the gate</div>
+        <h2>Hunt the ambiguity before it hunts you</h2>
+        <p>You have the right problem now. That does not make it a specifiable one — and this is where the second
+        failure mode starts. Take every sentence in your reframe and interrogate it: could two reasonable people read
+        this differently? "The system should handle retries safely." Safely for how long — is a repeat booking an hour
+        later the same request or a new one? "Two patients show up for one slot" — is the constraint one appointment
+        per slot, or one per slot <em>per provider</em>? Every unanswered question there is a decision someone
+        downstream will make on the client's behalf, without asking.</p>
+        <p>The formal bar comes from <strong>ISO/IEC/IEEE 29148:2018</strong>, the active requirements-engineering
+        standard. Its widely-taught characteristics of a well-formed requirement: <strong>necessary</strong> (delete it
+        and something breaks), <strong>unambiguous</strong> (interpretable in <em>only one way</em>),
+        <strong>complete</strong>, <strong>singular</strong> (no smuggled "and"), <strong>feasible</strong>,
+        <strong>verifiable</strong> (you can devise a test that proves it — enhanced when measurable), and
+        <strong>traceable</strong> (back to who needs it and why). "Fast and easy to use" fails four at once.</p>
+        <p>The modern move — borrowed from spec-driven tooling — is to make ambiguity <em>visible</em> rather than
+        resolve it silently: mark the spec with an explicit <strong><code>[NEEDS CLARIFICATION]</code></strong> tag
+        wherever a question is open, and take the list back as a batch. That tag converts ambiguity from an invisible
+        landmine into a tracked work item, and makes the honest state of the spec legible: not "done," but "done except
+        these six named questions." An FDE who returns with six sharp open questions looks far more competent than one
+        who returns with false confidence — and ships far fewer rebuilds.</p>
+        <p>And unlike most process advice, this one is <em>measured</em>. The 2025 <strong>SpecFix</strong> study
+        repaired ambiguous problem descriptions <em>before</em> handing them to an LLM for code generation: on the
+        benchmark problems that needed repair (43.58% of them), <strong>Pass@1 rose 30.9%</strong> — same model, same
+        task, same effort. The repairs even transferred across models (+10.48%). Spec precision is a
+        <strong>code-quality lever</strong>, not a documentation nicety. Every ambiguity you don't surface gets
+        resolved anyway — silently, by guessing, at machine speed.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Stage 4 · EARS</div>
         <h2>EARS: five sentence shapes that remove interpretation</h2>
         <p>Once you know what the stakeholder means, you need a way to write it down that <em>can't</em> drift back
         into fuzz. That's <strong>EARS</strong> — the Easy Approach to Requirements Syntax (Mavin et al., 2009). Its
@@ -168,21 +192,20 @@
         requirements combine clauses, in the same fixed order. Forcing yourself to pick a pattern forces the question
         the stakeholder never answered: is this <em>always</em> true, true <em>when</em> something happens, or true
         <em>while</em> some state holds? Those are different systems.</p>
-        <p>If this sounds like aerospace ceremony, look at the adopters list — Airbus, Bosch, NASA, Rolls-Royce — and
-        then look at how the official guide sells it: "lightweight, there is little training overhead, no specialist
-        tool is necessary," and notably effective for authors whose first language isn't English. Then look at your
-        own AI tooling: AWS's <strong>Kiro</strong> writes its <code>requirements.md</code> in EARS —
-        "WHEN a user submits a form with invalid data THE SYSTEM SHALL display validation errors next to the relevant
-        fields." A 2009 notation from jet-engine control systems is now the native language of agentic coding specs,
-        for exactly the reason SpecFix measured: constrained syntax in, better code out.</p>
+        <p>If this sounds like aerospace ceremony, look at the adopters — Airbus, Bosch, NASA, Rolls-Royce — and at how
+        the official guide sells it: "lightweight, there is little training overhead, no specialist tool is necessary,"
+        and notably effective for authors whose first language isn't English. Then look at your own tooling: AWS's
+        <strong>Kiro</strong> writes its <code>requirements.md</code> in EARS. A 2009 notation from jet-engine control
+        systems is now the native language of agentic coding specs, for exactly the reason SpecFix measured:
+        constrained syntax in, better code out.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: an EARS rewriting drill —
         you're dealt vague stakeholder quotes ("it should handle errors gracefully"), pick the right EARS pattern, and
         rewrite; an AI grader checks clause order, singularity, and verifiability against 29148. Needs backend
         standup.</p></div>
       </section>
 
-      <section class="step" data-diagram="0" data-step="5">
-        <div class="tag">Stage 3 · force</div>
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Stage 4 · force</div>
         <h2>MUST, SHOULD, MAY — and the discipline of not saying MUST</h2>
         <p>EARS gives a requirement its shape; <strong>RFC 2119</strong> gives it its <em>force</em>. Published in
         1997 and still the normative-language baseline for specs everywhere, it defines the capitalized keywords you've
@@ -192,12 +215,12 @@
         particular item, but the full implications must be understood and carefully weighed" — a strong default with a
         documented escape hatch. <strong>MAY</strong> means "truly optional" — an implementation is conformant with or
         without it.</p>
-        <p>Three words, three completely different contracts — and stakeholder language flattens all three into
-        "should." When a client says "it should log every transaction," your job is to ask the RFC 2119 question out
-        loud: if a transaction ever goes unlogged, is that a compliance incident (MUST), a quality issue we'd accept
-        under load (SHOULD), or a nice-to-have (MAY)? The answer changes the architecture. MUST-log means durable
-        write-ahead logging in the transaction path; SHOULD-log might be an async best-effort queue. Same stakeholder
-        sentence, two different systems, and only the keyword forces the decision to be made consciously.</p>
+        <p>Three words, three different contracts — and stakeholder language flattens all three into "should." When
+        your client says the system "should never double-book," ask the RFC 2119 question out loud: if one slips
+        through, is that a patient-safety and billing incident (MUST), or something we'd tolerate under load (SHOULD)?
+        The answer changes the architecture. MUST means a database constraint in the write path; SHOULD might be an
+        application-level check. Same sentence, two different systems, and only the keyword forces the decision to be
+        made consciously.</p>
         <p>The RFC carries one more instruction that most people skip, and it's the most FDE-relevant line in the
         document: imperatives "MUST only be used where it is actually required for interoperation or to limit behavior
         which has potential for causing harm" — <em>not</em> to impose your implementation preferences. A spec where
@@ -207,71 +230,47 @@
         Week 1 — applied to authority instead of context.</p>
       </section>
 
-      <section class="step" data-diagram="0" data-step="6">
-        <div class="tag">Stage 4 · Gherkin</div>
-        <h2>Acceptance criteria: the rule, instantiated as examples</h2>
-        <p>An EARS requirement states the <em>rule</em>. But rules are still abstractions, and abstractions still
-        leave room to argue about edge cases. The final compression stage makes the requirement concrete:
-        <strong>acceptance criteria written as executable examples</strong>, in the Gherkin syntax that Cucumber made
-        standard. <strong>Given</strong> describes the initial context — "the <em>scene</em> of the scenario…
-        typically something that happened in the <em>past</em>." <strong>When</strong> is the event or action — and
-        the docs warn you to keep implementation details out of it (the user submits the form, not "the user POSTs to
-        /api/v2/forms"). <strong>Then</strong> is "an <em>expected</em> outcome, or result," verified by an observable
-        assertion — something you can actually see or measure, not an internal state you hope is right.</p>
-        <p>The syntax scales with structure, not verbosity. <strong>And</strong> / <strong>But</strong> chain steps
-        within a section. A <strong>Background</strong> extracts the Givens shared by every scenario in the file, so
-        you write the setup once. A <strong>Scenario Outline</strong> with an <strong>Examples</strong> table
-        parameterizes one scenario over many input rows — one shape, a dozen concrete cases. And every file "must
-        always" open with a <code>Feature:</code> line and a short description, so the examples stay anchored to the
-        requirement they serve. The craft bar: a good scenario is a <em>concrete case of a business rule in three to
-        five steps</em>. Longer than that, and you're describing a workflow, not testing a rule.</p>
-        <p>Here's the bridge that ties the whole day together: <strong>EARS and Gherkin are the same requirement at
-        two altitudes.</strong> EARS states the rule — "When a user submits a form with invalid data, the system shall
-        display validation errors next to the relevant fields." Gherkin instantiates it — <em>Given</em> a
-        registration form, <em>When</em> the user submits it with an empty email field, <em>Then</em> an "email is
-        required" error appears next to the email input. If you can't write the Gherkin, your EARS statement wasn't
-        verifiable. If you can't state the EARS rule, your scenarios are just anecdotes. Writing both, and checking
-        each against the other, is the cheapest requirements review you will ever run.</p>
-      </section>
-
       <section class="step" data-diagram="0" data-step="7">
-        <div class="tag">Stage 5 · productized</div>
-        <h2>Spec-driven development: the pipeline, encoded in tooling</h2>
-        <p>Everything you just learned as human craft has now been productized as <strong>spec-driven
-        development</strong>, and you should recognize the shape instantly. GitHub's <strong>Spec Kit</strong>
-        (v0.12.3) walks a fixed artifact chain: <code>/speckit.constitution</code> establishes the project's governing
-        principles, <code>/speckit.specify</code> defines <em>what</em> you're building — requirements and user
-        stories — then <code>/speckit.clarify</code>, then <code>/speckit.plan</code>, <code>/speckit.tasks</code>,
-        and <code>/speckit.implement</code>, with <code>/speckit.analyze</code> checking cross-artifact consistency.
-        Each phase emits a Markdown artifact that feeds the next — the same discovery→spec→plan funnel you'd run at a
-        client, encoded as slash commands. AWS's Kiro does the same with a three-file chain:
-        <code>requirements.md</code> (EARS, as you saw) → <code>design.md</code> → <code>tasks.md</code>.</p>
-        <p>The detail worth studying is <em>where the tools put the gate</em>. Spec Kit's docs mandate running "the
-        structured clarification workflow <strong>before</strong> creating a technical plan to reduce rework
-        downstream" — <code>/speckit.clarify</code> performs sequential, <em>coverage-based</em> questioning and
-        records the answers, and specs carry explicit <code>[NEEDS CLARIFICATION]</code> markers rather than silent
-        assumptions. Clarify-before-plan, coverage-based questioning, ambiguity made visible instead of guessed away:
-        the toolmakers independently converged on exactly the discipline this reading has been teaching, because the
-        cost curve forced them to. Agents amplify whatever you feed them — precise spec in, working code out;
-        ambiguity in, confidently wrong code out, at machine speed.</p>
-        <p>Which hands you the day's closing argument. The same gate applies to human stakeholders. An ambiguity you
-        don't surface in the discovery conversation becomes a <code>[NEEDS CLARIFICATION]</code> that an agent — or a
-        teammate — resolves <em>by guessing</em>. The FDE's edge isn't typing speed or model access; everyone at the
-        client has those now. The edge is standing at the top of the funnel, running the interview that finds what
-        success means, hunting the ambiguity while it's still cheap, and writing the EARS-and-Gherkin spec that makes
-        everything downstream — human and AI alike — measurably better. That is requirements synthesis: discovery in,
-        spec out, guessing eliminated.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a discovery→spec pipeline
-        sandbox — feed in a raw stakeholder-interview transcript and watch an agent draft EARS requirements with
-        <code>[NEEDS CLARIFICATION]</code> markers, then answer its clarification questions and see the Gherkin
-        acceptance criteria regenerate. Needs backend standup.</p></div>
+        <div class="tag">Stage 5 · Gherkin</div>
+        <h2>Acceptance criteria: the rule, instantiated as examples</h2>
+        <p>An EARS requirement states the <em>rule</em>, and rules still leave room to argue about edge cases. The
+        final compression stage makes it concrete: <strong>acceptance criteria as executable examples</strong>, in
+        Cucumber's Gherkin syntax. <strong>Given</strong> is the initial context — "the <em>scene</em> of the
+        scenario… typically something that happened in the <em>past</em>." <strong>When</strong> is the event, with
+        implementation details kept out (the user submits the form, not "POSTs to /api/v2/forms"). <strong>Then</strong>
+        is "an <em>expected</em> outcome, or result," verified by an observable assertion — not an internal state you
+        hope is right.</p>
+        <p>The syntax scales with structure, not verbosity. <strong>Background</strong> extracts the Givens shared
+        across a file; a <strong>Scenario Outline</strong> with an <strong>Examples</strong> table parameterizes one
+        scenario over many rows. The craft bar: a good scenario is a <em>concrete case of a business rule in three to
+        five steps</em>. Longer, and you're describing a workflow, not testing a rule.</p>
+        <p><strong>EARS and Gherkin are the same requirement at two altitudes</strong> — and your packet tells you
+        which examples to write, asking for <strong>test vectors for the retry and concurrent-booking cases</strong>.
+        <em>Given</em> a booking for slot 88231 with idempotency key <code>K</code>, <em>When</em> the identical request
+        arrives again, <em>Then</em> the response is the original confirmation and no second row exists. And:
+        <em>Given</em> two bookings for slot 88231 arriving 400 ms apart, <em>When</em> both are processed,
+        <em>Then</em> exactly one succeeds. Write those and the double-book cannot silently regress. If you can't write
+        the Gherkin, your EARS rule wasn't verifiable; if you can't state the rule, your scenarios are anecdotes.
+        Checking each against the other is the cheapest requirements review you will ever run.</p>
+        <p>Tomorrow you'll meet the tools that encode this chain — Spec Kit's
+        <code>specify → clarify → plan</code>, Kiro's <code>requirements.md → design.md → tasks.md</code> — enforcing
+        the same gate this reading does: clarify <em>before</em> plan. But notice the one thing none of them does for
+        you. <code>/speckit.clarify</code> finds the ambiguities <em>in the spec you wrote</em>. It will never tell you
+        the spec is about a calendar widget when the defect is a race in the booking handler. Reframing stays yours.
+        Everyone at the client has the tooling now; the edge is being the person who notices the ask and the evidence
+        disagree, and says so with a smaller proposal in hand.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a reframe-to-spec sandbox —
+        feed in this week's client ask plus its handover artifacts and watch an agent propose a reframe, draft EARS
+        requirements with <code>[NEEDS CLARIFICATION]</code> markers, and regenerate the Gherkin as you answer its
+        questions. Needs backend standup.</p></div>
 
         <div class="callout mindset">
           <div class="k">FDE mindset</div>
-          <p>The most expensive line in any project is the one two people read differently and neither noticed. You
-          are the person paid to notice. <strong>Interview for success, hunt the ambiguity, write it so it can only be
-          read one way, and prove it with an example.</strong> Everything downstream — the plan, the tasks, the code,
-          the agent runs — inherits the precision you established here.</p>
+          <p>The two most expensive sentences on an engagement are the one two people read differently and neither
+          noticed, and the one everybody understood perfectly that described the wrong system. You are the person paid
+          to catch both — in that order. <strong>Follow the evidence to the real problem, name it in the client's
+          currency, write it so it can only be read one way, and prove it with an example.</strong> Everything
+          downstream — the plan, the tasks, the code, the agent runs — inherits whichever problem you chose here.</p>
         </div>
       </section>
 
@@ -289,6 +288,9 @@
           <li><a href="https://kiro.dev/docs/specs/feature-specs/" target="_blank" rel="noopener">Feature Specs — Kiro Docs</a> — EARS notation in requirements.md, with worked examples.</li>
           <li><a href="https://arxiv.org/abs/2507.02858" target="_blank" rel="noopener">Requirements Elicitation Follow-Up Question Generation — arXiv 2507.02858 (Shen, Singhal &amp; Breaux)</a> — mistake-taxonomy-guided LLM follow-ups match or beat human interviewers.</li>
           <li><a href="https://arxiv.org/abs/2505.07270" target="_blank" rel="noopener">SpecFix: Automated Repair of Ambiguous Problem Descriptions — arXiv 2505.07270 (Jia et al.)</a> — repairing ambiguity before generation: +30.9% Pass@1 on repaired problems, cross-model transfer.</li>
+          <li><a href="https://vinoo.io/writing/2026-02-05-forward-deployed-engineering/" target="_blank" rel="noopener">Forward Deployed Engineering — Vinoo Ganesh (Project Frontline)</a> — the XY problem, "push back with an alternative, not a no," shelfware, and owning outcomes rather than outputs.</li>
+          <li><a href="https://blog.palantir.com/a-day-in-the-life-of-a-palantir-forward-deployed-software-engineer-45ef2de257b1" target="_blank" rel="noopener">A Day in the Life of a Forward Deployed Software Engineer — Palantir</a> — many capabilities for one customer; why the reframe is the job, not a preamble to it.</li>
+          <li><a href="../../client-delivery.html?w=5" target="_blank" rel="noopener">Client Delivery — Week 5 packet</a> — your project's ask, handover artifacts, and dig questions. This is the input to today's deliverable.</li>
         </ul>
       </section>
 
@@ -304,12 +306,12 @@
       <div class="side-cards">
         <button class="activity-card" type="button" data-modal="deep-modal">
           <div class="ac-k">⌖ Deep dive</div>
-          <div class="ac-t">One vague sentence → full spec, worked end-to-end</div>
+          <div class="ac-t">“Just fix the calendar” → full spec, worked end-to-end</div>
           <div class="ac-meta">optional · +10 min</div>
         </button>
         <button class="activity-card accent" type="button" data-modal="quiz-modal">
           <div class="ac-k">✓ Comprehension check</div>
-          <div class="ac-t">6 quick questions on discovery → spec</div>
+          <div class="ac-t">6 quick questions on reframe → spec</div>
           <div class="ac-meta">~5 min · practice, not graded</div>
         </button>
       </div>
@@ -330,38 +332,47 @@
 <div id="deep-modal" class="modal-overlay" hidden>
   <div class="modal-card">
     <button class="modal-close" type="button" aria-label="Close">✕</button>
-    <h2>Deep dive: one vague sentence, worked end-to-end</h2>
-    <p class="quiz-sub">Optional. ~10 minutes. The full pipeline applied to a single stakeholder quote.</p>
-    <p><strong>The raw quote.</strong> A payments-ops lead says in discovery: <em>"When something goes wrong with a
-    payment, the team should know about it fast."</em> Nod-worthy, and useless as written. Run the pipeline.</p>
-    <p><strong>1 · Probe.</strong> "Can you give me an example?" surfaces the real event: last month a card processor
-    outage produced 4,000 failed charges and the team found out from angry customers, not from the system. "Why is
-    that important?" surfaces the success metric: ops wants to open an incident before customers notice. So "something
-    goes wrong" means <em>payment failure rate exceeds a threshold</em>, "the team" means <em>the on-call ops
-    engineer</em>, and "fast" means <em>before the support queue does</em>.</p>
-    <p><strong>2 · Ambiguity hunt (29148 bar).</strong> The original sentence is ambiguous (what is "wrong"? "fast"?),
-    non-singular ("know about it" bundles detection + notification), and unverifiable (no test can prove "fast").
-    Threshold and window are still open → mark them: <code>[NEEDS CLARIFICATION: failure-rate threshold and
-    measurement window — proposed 5% over 5 minutes, confirm with ops lead]</code>.</p>
+    <h2>Deep dive: "just fix the calendar," worked end-to-end</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The full ladder applied to this week's client ask.</p>
+    <p><strong>The ask.</strong> <em>"Our scheduling keeps double-booking the same slot… the team's pretty sure it's a
+    glitch in the calendar widget, so could you just fix the calendar?"</em> Friendly, specific, and it names the fix.
+    Run the ladder.</p>
+    <p><strong>1 · Reframe (XY).</strong> The attached export has two <code>status=confirmed</code> rows for
+    <code>slot_id=88231</code>, 400 ms apart, different patients. The server log shows a 2.11-second
+    <code>POST /appointments</code> followed by a second POST for the same slot — both 201. The handler is
+    <code>if not slot_taken(slot_id): insert_appointment(...)</code>: no transaction, and the DDL has no
+    <code>UNIQUE</code>. So Y is "the calendar widget renders a stale slot"; X is "a retried request created a second
+    booking, and two concurrent requests can both pass the check." Nothing in the evidence points at the UI.</p>
+    <p><strong>2 · Name it in their currency.</strong> Not "a concurrency defect in the booking path" — that sentence
+    is correct and useless in the room. Say: <em>double-books sell the same clinician hour twice, bill two patients for
+    one appointment, and cost more trust than they cost money.</em> Then the proposal, deliberately smaller than the
+    ask: an idempotency key on the booking POST plus a database-level constraint on the slot.</p>
+    <p><strong>3 · Ambiguity hunt (29148 bar).</strong> "Stop double-booking" is non-singular (dedupe on retry and
+    prevent the race are two requirements) and unverifiable as stated. Two questions stay open →
+    <code>[NEEDS CLARIFICATION: is the uniqueness constraint one appointment per slot, or one per slot per provider?]</code>
+    and <code>[NEEDS CLARIFICATION: idempotency-key retention window — proposed 24h, confirm with front desk]</code>.</p>
     <div class="model-answer show">
-      <div class="ma-k">3 · EARS (unwanted-behaviour pattern) + RFC 2119 force</div>
-      <p style="margin:6px 0 0">"<b>If</b> the payment failure rate exceeds 5% over any 5-minute window, <b>then</b>
-      the monitoring system <b>shall</b> page the on-call ops engineer within 60 seconds." — one trigger, one system,
-      one measurable response. Force check: unlogged pages are an incident-response failure, so this is a
-      <b>MUST/SHALL</b>. A companion "the system SHOULD include the three most recent failure reasons in the page" is
-      genuinely a SHOULD — valid reasons to drop it under load exist and are understood.</p>
-      <div class="ma-k" style="margin-top:12px">4 · Gherkin (the rule, instantiated)</div>
-      <p style="margin:6px 0 0"><code>Given</code> 100 payment attempts in the last 5 minutes<br>
-      <code>And</code> 6 of them failed<br>
-      <code>When</code> the monitoring window closes<br>
-      <code>Then</code> the on-call ops engineer receives a page within 60 seconds.</p>
-      <p style="margin:6px 0 0">Add a <code>Scenario Outline</code> with an <code>Examples</code> table for
-      4%-no-page / 5%-boundary / 6%-page rows, and the threshold ambiguity can never silently regress.</p>
+      <div class="ma-k">4 · EARS (two requirements, not one) + RFC 2119 force</div>
+      <p style="margin:6px 0 0">"<b>If</b> a booking request arrives with an idempotency key that has already been
+      processed, <b>then</b> the scheduling service <b>shall</b> return the original confirmation without creating a
+      new appointment." And: "The scheduling service <b>shall</b> enforce at most one confirmed appointment per slot at
+      the database level." Force check: a double-book is a patient-safety and billing incident, so both are
+      <b>MUST/SHALL</b> — not preferences. A companion "the booking UI SHOULD disable the confirm button after first
+      submit" is genuinely a SHOULD: helpful, and no longer load-bearing once the constraint exists.</p>
+      <div class="ma-k" style="margin-top:12px">5 · Gherkin (the two test vectors the packet asks for)</div>
+      <p style="margin:6px 0 0"><code>Given</code> a confirmed booking for slot 88231 with idempotency key K<br>
+      <code>When</code> the identical request is received again<br>
+      <code>Then</code> the original confirmation is returned <code>And</code> no second appointment row exists.</p>
+      <p style="margin:6px 0 0"><code>Given</code> two booking requests for slot 88231 arriving 400 ms apart<br>
+      <code>When</code> both are processed<br>
+      <code>Then</code> exactly one is confirmed <code>And</code> the other receives a slot-unavailable response.</p>
     </div>
-    <p style="margin-top:14px"><strong>Why bother, in numbers.</strong> SpecFix's result is the cost-benefit in one
-    line: repairing ambiguity in 43.58% of problem descriptions raised generated-code Pass@1 by 30.9% — and the
-    repaired description helped <em>other</em> models too (+10.48%). Ten minutes of synthesis buys correctness for
-    every implementer downstream, human or agent. That ratio is why this is Week 5's core craft.</p>
+    <p style="margin-top:14px"><strong>What it cost, and what it bought.</strong> The reframe took one careful read of
+    the handover. It replaced a calendar rewrite with two constraints, and it turned an unfalsifiable complaint into
+    two scenarios that can regression-test forever. Compare the alternative: a beautifully specified, perfectly
+    unambiguous calendar fix that demos on Friday and double-books on Monday. SpecFix quantifies only the second half
+    of this — repairing ambiguity in 43.58% of descriptions raised Pass@1 by 30.9% — but the first half, picking the
+    right problem at all, is the half no tool does for you.</p>
   </div>
 </div>
 
@@ -381,75 +392,83 @@
     <h2>Day 2 — goals &amp; deliverable</h2>
     <div class="ma-k">By the end of today you can</div>
     <ul class="goals-list">
-      <li>Run a discovery conversation against the four NN/g coverage areas, probing with open-ended follow-ups instead of closed questions</li>
-      <li>Audit any requirement against the 29148 bar (unambiguous, singular, verifiable…) and flag open questions as explicit <code>[NEEDS CLARIFICATION]</code> items</li>
-      <li>Rewrite vague stakeholder language into the correct EARS pattern, with RFC 2119 keywords spent deliberately</li>
-      <li>Instantiate a requirement as Gherkin acceptance criteria — and use the EARS↔Gherkin round-trip as a self-review</li>
+      <li>Spot the XY problem in a real client ask — and reframe it from the handover artifacts rather than from argument</li>
+      <li>Push back with an alternative, not a no: name the defect in the client's currency and propose something smaller than the ask</li>
+      <li>Run the four NN/g coverage areas as dig questions against evidence, and audit every requirement against the 29148 bar with explicit <code>[NEEDS CLARIFICATION]</code> items</li>
+      <li>Rewrite the reframed problem into the correct EARS pattern, with RFC 2119 keywords spent deliberately</li>
+      <li>Instantiate it as Gherkin test vectors — and use the EARS↔Gherkin round-trip as a self-review</li>
     </ul>
-    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <div class="ma-k">Deliverable — commit to your brownfield project repo</div>
     <ul class="deliv-list check">
-      <li>Add a <code>requirements.md</code> to your project</li>
-      <li><b>①</b> three vague requirements from your own project, each rewritten in the correct EARS pattern with a MUST/SHOULD/MAY keyword you can defend</li>
-      <li><b>②</b> one Gherkin scenario (3–5 steps) instantiating your most important EARS requirement</li>
-      <li><b>③</b> at least one honest <code>[NEEDS CLARIFICATION]</code> marker with the question you'd take back to the stakeholder</li>
+      <li>Add a <code>requirements.md</code> covering <b>this week's client ask</b> — open your
+        <a href="../../client-delivery.html?w=5">Week 5 client packet</a> for the ask and its handover artifacts</li>
+      <li><b>①</b> the <b>reframe line</b> at the top: what they asked for, what the evidence shows, and what you propose instead — one sentence you could say out loud</li>
+      <li><b>②</b> three requirements for the <em>reframed</em> problem, each in the correct EARS pattern with a MUST/SHOULD/MAY keyword you can defend</li>
+      <li><b>③</b> the two Gherkin scenarios your packet asks for — the retry case and the concurrent-request case (3–5 steps each)</li>
+      <li><b>④</b> at least one honest <code>[NEEDS CLARIFICATION]</code> marker with the question you'd take back to the client</li>
+      <li><b>⑤</b> one closing line: the <b>outcome</b> this spec buys a real person, and the number you'd watch to know it worked</li>
     </ul>
-    <p class="goals-foot">Bring it to Day 3 — the spec you wrote today becomes the input to planning and task
-    decomposition, exactly as it does in Spec Kit and Kiro.</p>
+    <p class="goals-foot">Spec only — nothing gets built this week. Bring it to Day 3, where the decisions inside this
+    reframe become ADRs, and then to Day 4, where it becomes a phased plan.</p>
   </div>
 </div>
 
 <script>
 window.FDE_NEXT = { label: "Day 3 — next in Week 5 →", href: "w05d3.html" };
 window.DIAGRAM = {
-  title: "Discovery → spec · the funnel",
+  title: "Client ask → spec · the reframe ladder",
   width: 500, height: 690,
   nodes: [
-    // the raw stakeholder quote (dark payload card)
-    { id:"quote", step:0, kind:"example", x:14, y:14, w:472, h:78,
-      label:"DISCOVERY CALL · payments-ops lead, minute 22\n  “When something goes wrong with a payment,\n   the team should know about it fast.”  ← everyone nods" },
+    // the client ask + the artifacts that contradict it (dark payload card)
+    { id:"ask", step:0, kind:"example", x:14, y:14, w:472, h:84,
+      label:"CLIENT ASK · Riverbend, Monday\n  “pretty sure it's a glitch in the calendar widget —\n   could you just fix the calendar?”   ← everyone nods\n  ATTACHED: 2 confirmed rows, slot 88231, 400ms apart" },
 
-    // the funnel container
-    { id:"funnel", step:0, x:28, y:104, w:330, h:402, label:"THE SYNTHESIS FUNNEL  (interpretation squeezed out stage by stage)" },
+    // the ladder container
+    { id:"ladder", step:0, x:28, y:110, w:330, h:452, label:"THE REFRAME LADDER  (right problem first, then right words)" },
 
-    // stages, in flow order top to bottom
-    { id:"interview", step:1, x:46, y:140, w:294, h:48, label:"Stakeholder interview — 4 coverage areas",
-      detail:"NN/g: cover success metrics, priorities, history/expertise, and process/workflow — 'what does success look like?' before 'what should it do?'. Features gathered without those four areas are the ones that get rebuilt. Coverage beats cleverness." },
-    { id:"probe", step:2, x:46, y:196, w:294, h:44, label:"Probe: “can you give me an example?”",
-      detail:"First answers are rehearsed; follow-ups get the real material. Failure modes: too late, closed-ended, interrupting. CMU 2025: LLM follow-up questions guided by a taxonomy of interviewer mistakes beat human-authored ones — the framework is the skill, for you and the model." },
-    { id:"amb", step:3, x:46, y:248, w:294, h:48, label:"Ambiguity hunt → [NEEDS CLARIFICATION]",
+    // rungs, in flow order top to bottom
+    { id:"xy", step:1, x:46, y:146, w:294, h:48, label:"XY: stated ask ≠ real need",
+      detail:"The customer needs X, forms a theory, and asks for Y. 'Just fix the calendar' is Y; 'two patients stop showing up for one slot' is X. The FDE question: 'what are you trying to accomplish?' Building Y instead of X is the most expensive mistake in the role — and its usual product is shelfware." },
+    { id:"dig", step:2, x:46, y:202, w:294, h:48, label:"Dig the artifacts — 4 coverage areas",
+      detail:"NN/g: success metrics, priorities, history/expertise, process/workflow — 'what does success look like?' before 'what should it do?'. The packet's dig list points those areas at the handover. CMU 2025: LLM follow-ups guided by a mistake taxonomy beat human-authored ones — the framework is the skill, for you and the model." },
+    { id:"name", step:3, x:46, y:258, w:294, h:48, label:"Name it in the client's currency",
+      detail:"Technical truth: read-check-then-insert with no transaction, plus a client that retries. Client currency: clinician time sold twice, patients billed twice, trust lost. A good reframe names the defect, prices it in their terms, and arrives with a SMALLER alternative than the one they asked for." },
+    { id:"amb", step:4, x:46, y:314, w:294, h:48, label:"Ambiguity hunt → [NEEDS CLARIFICATION]",
       detail:"29148:2018 bar: necessary, unambiguous (one reading only), complete, singular, feasible, verifiable, traceable. Mark open questions explicitly instead of resolving them silently — an unsurfaced ambiguity gets resolved downstream by guessing." },
-    { id:"ears", step:4, x:46, y:304, w:294, h:48, label:"EARS: If <trigger>, then the <system> shall…",
+    { id:"ears", step:5, x:46, y:370, w:294, h:48, label:"EARS: If <trigger>, then the <system> shall…",
       detail:"Five patterns — ubiquitous / When (event) / While (state) / If-then (unwanted) / Where (optional) — plus complex combinations. Fixed clause order = one place for each fact = one way to read it. Used by Airbus, Bosch, NASA, Rolls-Royce — and by Kiro's requirements.md." },
-    { id:"norm", step:5, x:46, y:360, w:294, h:44, label:"Force: MUST / SHOULD / MAY (RFC 2119)",
+    { id:"norm", step:6, x:46, y:426, w:294, h:44, label:"Force: MUST / SHOULD / MAY (RFC 2119)",
       detail:"MUST = absolute; SHOULD = strong default with weighed exceptions; MAY = truly optional. Use imperatives only where actually required for interoperation or to limit harm — a spec where everything is MUST hides the three requirements that really are." },
-    { id:"gherkin", step:6, x:46, y:412, w:294, h:80, label:"Gherkin acceptance criteria\nGiven <context> · When <event> · Then <observable outcome>",
-      detail:"Given = the scene (past); When = the event, no implementation details; Then = expected outcome verified by observable assertions. Background shares Givens; Scenario Outline + Examples parameterize. A good scenario: one business rule, 3–5 steps. Can't write the Gherkin? The EARS rule wasn't verifiable." },
+    { id:"gherkin", step:7, x:46, y:478, w:294, h:70, label:"Gherkin test vectors\nretry case · concurrent-booking case",
+      detail:"Given = the scene (past); When = the event, no implementation details; Then = an observable assertion. Your packet asks for exactly two: the retried booking returns the original confirmation with no second row, and two bookings 400ms apart yield exactly one success. Can't write the Gherkin? The EARS rule wasn't verifiable." },
 
-    // the guessing hazard — outside the funnel
-    { id:"guess", step:3, x:366, y:236, w:120, h:72, label:"⚠ UNSURFACED\n= resolved by\nGUESSING",
+    // hazards — outside the ladder, one per failure mode
+    { id:"shelf", step:1, x:366, y:148, w:120, h:80, label:"⚠ BUILD Y\n= it demos,\nthe race stays,\n= SHELFWARE",
+      detail:"You can fix the calendar widget. It will demo. The double-books keep happening, because the race was never in the UI — and the client has now paid for a fix and lost trust in the diagnosis. Most enterprise software fails from non-adoption, not from being broken." },
+    { id:"guess", step:4, x:366, y:312, w:120, h:76, label:"⚠ UNSURFACED\n= resolved by\nGUESSING",
       detail:"SpecFix (2025): ambiguous descriptions measurably degrade LLM code generation. Repairing ambiguity before generation on 43.58% of benchmark problems raised Pass@1 by 30.9%, and repairs transfer across models (+10.48%). Spec precision is a code-quality lever." },
 
-    // outputs
-    { id:"pipeline", step:7, x:34, y:556, w:216, h:70, label:"spec-driven tooling\nconstitution → specify → clarify\n→ plan → tasks → implement",
-      detail:"Spec Kit v0.12.3 encodes the funnel as slash commands, each emitting a Markdown artifact that feeds the next; /speckit.clarify runs coverage-based questioning BEFORE /speckit.plan. Kiro: requirements.md (EARS) → design.md → tasks.md. The gate the tools enforce is the gate you run on humans." },
-    { id:"build", step:7, x:300, y:566, w:186, h:52, label:"implementer (human or agent)\nbuilds without guessing",
-      detail:"Agents amplify whatever you feed them: precise spec in, working code out; ambiguity in, confidently wrong code at machine speed. The FDE's edge is the top of the funnel — the interview, the hunt, the spec." }
+    // output
+    { id:"pkg", step:7, x:34, y:578, w:230, h:70, label:"SPEC PACKAGE (this week's deliverable)\nreframe · EARS · Gherkin vectors\nspec only — not built",
+      detail:"The packet's deliverable: a problem-scoping doc that reframes 'calendar bug' → idempotency + concurrency, acceptance criteria, the idempotency-key + DB-constraint design, and test vectors. Implementation is scoped, not shipped — that's next week." },
+    { id:"build", step:7, x:300, y:588, w:186, h:52, label:"implementer (human or agent)\nbuilds the right thing",
+      detail:"Agents amplify whatever you feed them: right problem + precise spec in, working code out; wrong problem in, a beautifully-built calendar fix out, at machine speed. No tool reframes for you — /speckit.clarify only finds ambiguities in the spec you already wrote." }
   ],
   edges: [
-    { id:"e_guess", step:3, from:"amb", to:"guess", label:"skipped? ⚠", ly:-4 },
-    { id:"e_alt", step:6, from:"ears", to:"gherkin", label:"rule → example", lx:-8 },
-    { id:"e_pipe", step:7, from:"gherkin", to:"pipeline", label:"artifact chain", lx:-6 },
-    { id:"e_build", step:7, from:"pipeline", to:"build", label:"feeds", ly:-2 }
+    { id:"e_shelf", step:1, from:"xy", to:"shelf", label:"skipped? ⚠", ly:-4 },
+    { id:"e_guess", step:4, from:"amb", to:"guess", label:"skipped? ⚠", ly:-4 },
+    { id:"e_pkg", step:7, from:"gherkin", to:"pkg", label:"assembles into", lx:-6 },
+    { id:"e_build", step:7, from:"pkg", to:"build", label:"hands off", ly:-2 }
   ],
   captions: [
-    "One real stakeholder sentence — nod-worthy, and readable three different ways. The funnel below squeezes the interpretation out, stage by stage. <span style='opacity:.7'>(tap nodes for detail)</span>",
-    "Discovery starts with a <b>stakeholder interview</b> covering four areas — success metrics first, features last. <span style='opacity:.7'>(tap)</span>",
-    "The real requirements come out under <b>open-ended probing</b> — 'can you give me an example?' beats a clever question. <span style='opacity:.7'>(tap)</span>",
-    "The <b>ambiguity hunt</b>: audit every sentence against the 29148 bar, and mark what's still open as <b>[NEEDS CLARIFICATION]</b> — because unsurfaced ambiguity gets resolved downstream <b>by guessing</b>. <span style='opacity:.7'>(tap both)</span>",
-    "<b>EARS</b> rewrites the answer in one of five fixed sentence shapes — one place for each fact, one way to read it. <span style='opacity:.7'>(tap)</span>",
+    "A real client ask — friendly, specific, and contradicted by the artifacts attached to it. The ladder below gets from what they believe to what is true. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "The <b>XY problem</b>: they need X, they ask for Y. Build Y and it demos, the defect survives, and you've shipped <b>shelfware</b>. <span style='opacity:.7'>(tap both)</span>",
+    "You reframe by <b>asking</b>, not asserting — the four coverage areas pointed at the handover, so the client walks to your conclusion themselves. <span style='opacity:.7'>(tap)</span>",
+    "Say it in <b>their currency</b>: not 'a concurrency defect' but 'clinician time sold twice' — and arrive with a smaller alternative than the ask. <span style='opacity:.7'>(tap)</span>",
+    "Right problem, still fuzzy words. The <b>ambiguity hunt</b> against the 29148 bar; what's still open gets a <b>[NEEDS CLARIFICATION]</b>, because unsurfaced ambiguity is resolved <b>by guessing</b>. <span style='opacity:.7'>(tap both)</span>",
+    "<b>EARS</b> rewrites it in one of five fixed sentence shapes — one place for each fact, one way to read it. <span style='opacity:.7'>(tap)</span>",
     "<b>RFC 2119</b> sets the force: MUST, SHOULD, or MAY — spent sparingly, so the load-bearing requirements stand out. <span style='opacity:.7'>(tap)</span>",
-    "<b>Gherkin</b> instantiates the rule as a concrete, testable example — same requirement, second altitude. Can't write it? The rule wasn't verifiable. <span style='opacity:.7'>(tap)</span>",
-    "Spec-driven tooling (Spec Kit, Kiro) encodes this exact funnel — clarify <b>before</b> plan — and hands the artifact to an implementer who <b>builds without guessing</b>. <span style='opacity:.7'>(tap)</span>"
+    "<b>Gherkin</b> instantiates the rule as the two test vectors your packet asks for — and the whole ladder assembles into the week's <b>spec package</b>. <span style='opacity:.7'>(tap)</span>"
   ]
 };
 window.QUIZ = {
@@ -457,14 +476,14 @@ window.QUIZ = {
   title: "Check your understanding",
   questions: [
     { type: "scq",
-      stem: "A stakeholder opens discovery with a list of twelve features. Per NN/g's coverage areas, your best first move is:",
+      stem: "Your client writes: “scheduling keeps double-booking — the team's pretty sure it's a glitch in the calendar widget, so just fix the calendar.” The attached export shows two confirmed rows for the same slot created 400 ms apart, and the booking handler does read-check-then-insert with no transaction. Your first move is:",
       options: [
-        "Write the twelve features into the spec so nothing is lost",
-        "Ask which programming language they'd prefer",
-        "Ask what success looks like — metrics, priorities, history, and current workflow — before treating the feature list as requirements",
-        "Schedule a second meeting to add more features" ],
-      answer: 2,
-      explain: "The four NN/g coverage areas are success metrics, priorities, history/expertise, and process/workflow. Features gathered without them are the ones that get rebuilt — the feature list is input, not requirements. 'What does success look like?' comes before 'what should it do?'." },
+        "Write a well-formed EARS spec for the calendar widget — the ask is unambiguous, so specify it",
+        "Reframe: the artifacts show a retried request creating a duplicate, so spec idempotency + a slot constraint — and take that back as a smaller alternative",
+        "Fix the calendar as asked; raising the race would undermine the client's own engineers",
+        "Ask the client to decide between the calendar fix and the concurrency fix" ],
+      answer: 1,
+      explain: "Classic XY problem: they need X (two patients stop showing up for one slot) and asked for Y (the calendar fix their theory implies). The ask is data about what they believe; the handover is data about what is true. Option A is the trap the whole day is about — a flawlessly unambiguous spec for the wrong system. And the push-back lands as an alternative, not a no: smaller than a calendar rewrite, and it makes the double-book impossible rather than unlikely." },
     { type: "scq",
       stem: "Per the SpecFix study, what happened when ambiguity was repaired in problem descriptions BEFORE LLM code generation?",
       options: [
@@ -497,9 +516,9 @@ window.QUIZ = {
         { l: "The system shall encrypt all data at rest", r: "ubiquitous (always holds)" } ],
       explain: "Choosing the pattern is itself a diagnostic act: When = response to an event, While = behavior during a state, If/then = handling unwanted situations, and no clause at all = a property that always holds. The fixed clause order is the anti-ambiguity mechanism." },
     { type: "open",
-      stem: "A teammate hands you the EARS requirement 'When a search returns no results, the system shall inform the user helpfully.' In a sentence or two: what's wrong, and what would you do next — using both the Gherkin round-trip and the [NEEDS CLARIFICATION] discipline?",
-      hint: "Try to write the Then step. What can't you assert?",
-      model: "The response clause is unverifiable — 'inform the user helpfully' has no observable assertion, so you can't write the Gherkin Then step, which is the round-trip telling you the rule fails the 29148 bar. Mark it [NEEDS CLARIFICATION: what exactly appears — message text? suggested alternatives?], take the question back to the stakeholder, then rewrite with a concrete response like 'shall display a “no results” message and up to three suggested alternative queries.'" }
+      stem: "Write the one-sentence reframe you'd say out loud to this week's client — the sentence that becomes the first line of your spec. It must do three things: acknowledge what they asked for, cite the evidence, and propose something smaller than their ask. Then add a second sentence naming the outcome it buys and how you'd measure it.",
+      hint: "“You asked for ___; the ___ shows ___; so what I want to spec is ___ — smaller than ___.” Then: what changes for a real person, and what number proves it?",
+      model: "Riverbend: “You asked for a calendar fix; the logs show a retried booking creating a second confirmed row 400 ms after the first, so what I want to spec is an idempotency key plus a database-level slot constraint — smaller than a calendar rewrite, and it makes the double-book impossible instead of unlikely.” All three moves matter: acknowledging the ask keeps it a proposal rather than a correction, the evidence makes it their conclusion rather than your opinion, and the smaller scope is what makes it easy to say yes to. Push back with an alternative, not a no — and price it in their currency (clinician time sold twice, patients billed twice), not yours (a race on Slot). Outcome sentence: “Two patients stop showing up for one appointment — measured as duplicate confirmed rows per slot, which should go to zero, and the double-booking complaints the front desk logs each week.” The merged PR is the output; that is the outcome, and it is the one the client will remember." }
   ]
 };
 </script>
@@ -512,6 +531,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
-<script src="../../assets/js/glossary.js?v=20260710-g3"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 </body>
 </html>

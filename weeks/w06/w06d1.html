@@ -38,8 +38,9 @@
           <span>Agentic Engineering</span>
           <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
         </div>
-        <p class="summary">You've driven Claude Code since Week 1. This week you stop being a passenger. Today's job is
-        two-fold: first, map the <strong>terminal-native coding-agent landscape</strong> — Claude Code, Codex CLI, and
+        <p class="summary">Last week you scoped a problem and wrote a spec package for it — deliberately without
+        building anything. This week you build. You've driven Claude Code since Week 1; now you stop being a passenger.
+        Today's job is two-fold: first, map the <strong>terminal-native coding-agent landscape</strong> — Claude Code, Codex CLI, and
         Gemini CLI have converged on one recognizable shape, and knowing that shape lets you walk into any client stack —
         then go deep on Claude Code's control surfaces: <strong>permissions</strong>, <strong>CLAUDE.md memory</strong>,
         <strong>skills</strong>, and <strong>hooks</strong>. The single idea holding it all together is the difference
@@ -387,11 +388,11 @@
       <li>Place an instruction in the right home: CLAUDE.md scope, path-scoped rule, skill, or hook — and justify it with the facts/procedures/deterministic test</li>
       <li>Draw the harness-vs-model line for any proposed guardrail — and say which side a client's "we told it not to" lives on</li>
     </ul>
-    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <div class="ma-k">Deliverable — commit to your brownfield project repo</div>
     <ul class="deliv-list check">
-      <li>Add a <code>.claude/settings.json</code> to your project with at least one deny rule and one allow rule you can defend</li>
-      <li>Write (or tighten) your project's <code>CLAUDE.md</code> — under 200 lines, facts only</li>
-      <li>In <code>NOTES.md</code>: one guardrail from your project stated twice — once as steering (CLAUDE.md line) and once as enforcement (permission rule or hook) — plus a sentence on what only the enforcement version guarantees</li>
+      <li>Add a <code>.claude/settings.json</code> to the repo with at least one deny rule and one allow rule you can defend. Make the deny rule earn its place on <em>this</em> system — the paths holding PHI or cardholder data, not a generic pattern</li>
+      <li>Write (or tighten) the repo's <code>CLAUDE.md</code> — under 200 lines, facts only: the real service topology, the commands that actually run, and the constraint an agent must never violate here</li>
+      <li>In <code>NOTES.md</code>: one guardrail from this codebase stated twice — once as steering (CLAUDE.md line) and once as enforcement (permission rule or hook) — plus a sentence on what only the enforcement version guarantees</li>
     </ul>
     <p class="goals-foot">Bring the settings file to Day 2 — we start driving multi-step agent workflows against real
     repos, and your permission rules are the seatbelt.</p>
@@ -523,6 +524,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
-<script src="../../assets/js/glossary.js?v=20260710-g3"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 </body>
 </html>

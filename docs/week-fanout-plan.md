@@ -351,3 +351,28 @@ to `CONCEPTS` (reused ids are already present).
       functional `ix-run` blocks. (Content first; interactivity later.)
 - [ ] Decide W9-10 once the client is known (~W6-7), then re-run this workflow
       with domain-updated topics.
+
+---
+
+## Client-coupling convention (added 2026-07-30)
+
+Every reading-day deliverable targets **that week's client packet**, not a generic "your project"
+or notes repo. The packet in `content/client-delivery.html` (source of truth:
+`projects/{healthcare,finance}/client-packets.md`) already supplies the ask, the handover
+artifacts, the dig questions, and the deliverable shape — the reading's job is to teach the craft
+and then point at it.
+
+Rules for authoring W7+:
+1. Each day's `#goals-modal` `.deliv-list` names the brownfield repo and deep-links
+   `../../client-delivery.html?w=NN`.
+2. The five days chain into **one** artifact the packet asks for, rather than five unrelated ones.
+3. The ★ milestone day ends on the packet's stated deliverable plus an **outcome line** — what
+   changes for a person at the client, and the number that proves it.
+4. Reserve "your own project (or a past one)" only for landscape/comparison days where the client
+   system genuinely isn't the subject (e.g. a tool-matrix day).
+
+**Retrofit status:** W5 and W6 done (2026-07-30). **W2, W3, W4 still use the old "your project /
+notes repo" framing** — tracked retrofit, not yet scheduled. Rationale for the ordering: the cohort
+was mid-W5 when this landed, so W5/W6 were the weeks still in front of them.
+
+Origin: `content/docs/w05-fde-alignment-review.md` (Gap 2 — two parallel week-5s that never touch).

@@ -288,6 +288,7 @@
           <li><a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions" target="_blank" rel="noopener">Documenting Architecture Decisions — Cognitect (Nygard, 2011)</a> — the original five-section format and the small-modular-documents rationale.</li>
           <li><a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/architectural-decision-records/adr-process.html" target="_blank" rel="noopener">ADR process — AWS Prescriptive Guidance</a> — Proposed → Accepted/Rejected → Superseded lifecycle, immutability, decision log enforced at code review.</li>
           <li><a href="https://agents.md/" target="_blank" rel="noopener">AGENTS.md</a> — the open format for agent-facing project knowledge; 60k+ projects, nested monorepo files.</li>
+          <li><a href="../../client-delivery.html?w=5" target="_blank" rel="noopener">Client Delivery — Week 5 packet</a> — your project's ask and handover artifacts; the decision your ADR captures comes from here.</li>
         </ul>
       </section>
 
@@ -385,11 +386,11 @@
       <li>Describe the ADR lifecycle (Proposed → Accepted → Superseded), why accepted ADRs are immutable, and how the decision log gets teeth at code review</li>
       <li>Explain the knowledge-modeling layer — <code>AGENTS.md</code>, constitutions, decision logs — as versioned context that agents and new humans inherit alike</li>
     </ul>
-    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <div class="ma-k">Deliverable — commit to your brownfield project repo</div>
     <ul class="deliv-list check">
-      <li>Create <code>doc/arch/adr-001.md</code> in Nygard's five-section format capturing one real decision your project has already made (stack, storage, framework — anything architecturally significant)</li>
-      <li>Add (or tighten) an <code>AGENTS.md</code> at your repo root: build/test commands, conventions, one security note</li>
-      <li>In <code>NOTES.md</code>: one sentence placing your own project on the lock-vs-defer axis, and why</li>
+      <li>Create <code>doc/arch/adr-001.md</code> in Nygard's five-section format capturing <b>a decision from your Day 2 reframe</b> — the idempotency-key strategy, the uniqueness constraint, or the tokenization boundary. Write the "why not X" for the option you rejected (including the client's original ask)</li>
+      <li>Add (or tighten) an <code>AGENTS.md</code> at your repo root: build/test commands, conventions, one security note that matters <em>on this system</em> (PHI or cardholder-data handling, not a generic warning)</li>
+      <li>In <code>NOTES.md</code>: one sentence placing this brownfield codebase on the lock-vs-defer axis, and why — remember the tools' bets differ on greenfield vs fifteen years of undocumented decisions</li>
     </ul>
     <p class="goals-foot">Bring the ADR to Day 4 — decomposition into phased plans — where locked decisions become the
     fixed points your plan is built around.</p>
@@ -404,7 +405,7 @@ window.DIAGRAM = {
   nodes: [
     // the engagement scenario (dark example card)
     { id:"task", step:0, kind:"example", x:14, y:14, w:472, h:78,
-      label:"CLIENT ENGAGEMENT  ·  \"which spec tool should we adopt?\"\n  3 candidate tools · decisions made silently in PRs today\n  real question: where do decisions get LOCKED, and where DEFERRED?" },
+      label:"YOUR ENGAGEMENT  ·  a system a departed contractor left undocumented\n  no ADRs · every decision made silently in PRs · 3 candidate tools\n  real question: where do decisions get LOCKED, and where DEFERRED?" },
 
     // the three tools (three columns)
     { id:"sk", step:1, x:28, y:106, w:142, h:96, label:"SPEC-KIT\n(GitHub, 0.12.3)\nphase-gated pipeline",
@@ -525,6 +526,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
-<script src="../../assets/js/glossary.js?v=20260710-g3"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 </body>
 </html>

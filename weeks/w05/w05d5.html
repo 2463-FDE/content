@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="fde-day" content="w05d5">
-<meta name="fde-concepts" content="spec-implement-handoff,cross-artifact-consistency,implementation-convergence,adversarial-review-loop,spec-code-traceability">
+<meta name="fde-concepts" content="spec-implement-handoff,cross-artifact-consistency,implementation-convergence,loop-stopping-conditions,adversarial-review-loop,spec-code-traceability,outcome-vs-output">
 <title>W5·D5 — Spec-to-Implementation Handoff End-to-End | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260714-w3f">
 <script src="../../assets/js/theme.js"></script>
@@ -193,12 +193,24 @@
         provider lets you check whether the code being written still matches the spec's requirements. Drift is handled
         by pulling the artifacts and the code back together, not by letting the spec rot into fiction while the code
         wanders off.</p>
-        <p>Read the two mechanisms as one principle and it's the heart of the day: <strong>the spec stays authoritative
-        for the entire lifecycle</strong>, not just at kickoff. Converge closes code-toward-spec gaps; Sync closes
-        spec-toward-reality gaps. Teams that skip this treat the spec as a launch document, and within two weeks it
-        describes a system that no longer exists — at which point every downstream promise of spec-driven development
-        (traceability, reviewability, safe re-generation) quietly dies. The loop is what keeps the inversion from step
-        one true: code keeps serving the spec only if you keep making it.</p>
+        <p>Read the two mechanisms as one principle: <strong>the spec stays authoritative for the entire
+        lifecycle</strong>, not just at kickoff. Converge closes code-toward-spec gaps; Sync closes spec-toward-reality
+        gaps. Teams that skip this treat the spec as a launch document, and within two weeks it describes a system that
+        no longer exists — at which point every downstream promise of SDD (traceability, reviewability, safe
+        re-generation) quietly dies.</p>
+        <p>Now name the shape you've built, because it has one. A loop is not a sequence — automation runs step 1 → 2 →
+        3, while a loop runs <strong>observe → decide → act → verify → repeat</strong>, with the agent deciding inside
+        it. And a working loop needs exactly two things: a <strong>trigger</strong> (a pull request, a failed CI run, a
+        command) and a <strong>machine-verifiable stopping condition</strong> — all tests pass, converge reports zero
+        gaps, a score clears a threshold. That second one is where the pass/fail checks you wrote into every task on
+        Day 4 stop being documentation hygiene and start being load-bearing: they are the halt condition. Without one,
+        as the practitioners put it, <em>"you haven't built a loop. You've built a very confident token furnace."</em></p>
+        <p>Which is also why the verification evidence in today's milestone is test output rather than assertions.
+        Autonomous loops need hard limits — maximum iterations, no-progress detection, a cost ceiling — and
+        verification the agent cannot self-certify: <strong>never let the agent decide it's finished simply because it
+        says so.</strong> The leverage has moved from writing better prompts to designing the loop around them, and
+        you've just written every component of one: the spec is the goal, the checks are the stopping condition, and
+        converge is the iteration. Next week you'll wire it to an actual trigger.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="6">
@@ -279,6 +291,9 @@
           <li><a href="https://google.github.io/eng-practices/review/reviewer/standard.html" target="_blank" rel="noopener">Google Engineering Practices — The Standard of Code Review</a> — "definitely improves the overall code health … even if the CL isn't perfect."</li>
           <li><a href="https://arxiv.org/abs/2601.03878" target="_blank" rel="noopener">arXiv 2601.03878 — Understanding Specification-Driven Code Generation with LLMs</a> — CURRANTE Specification→Tests→Function workflow; where human intervention matters most.</li>
           <li><a href="https://arxiv.org/abs/2605.01160" target="_blank" rel="noopener">arXiv 2605.01160 — The Productivity-Reliability Paradox</a> — 20–56% gains vs 19% slowdown; spec discipline as the binding constraint.</li>
+          <li><a href="https://galent.com/insights/blogs/loop-engineering-why-the-next-leap-in-ai-development-isnot-a-better-prompt/" target="_blank" rel="noopener">Loop Engineering — Galent</a> — observe → decide → act → verify → repeat; why a loop needs a trigger and a machine-verifiable stopping condition, and never lets the agent self-certify.</li>
+          <li><a href="https://vinoo.io/writing/2026-02-05-forward-deployed-engineering/" target="_blank" rel="noopener">Forward Deployed Engineering — Vinoo Ganesh</a> — owning outcomes rather than outputs, shelfware as the canonical failure, and the direction-check as a recurring gate.</li>
+          <li><a href="../../client-delivery.html?w=5" target="_blank" rel="noopener">Client Delivery — Week 5 packet</a> — the spec package this milestone delivers.</li>
         </ul>
       </section>
 
@@ -370,22 +385,27 @@
       <li>Write a self-contained spec an agent can execute in a fresh session — with a runnable verification step</li>
       <li>Set up a fresh-context adversarial review (gaps, not style) and triage findings past the over-engineering trap</li>
       <li>Trace an EARS requirement through task → code → test, and apply the "improves overall code health" merge bar</li>
+      <li>Name a loop's two requirements — a trigger and a machine-verifiable stopping condition — and point at yours</li>
+      <li>State the outcome a spec buys and the number that proves it, separately from the fact that it merged</li>
     </ul>
-    <div class="ma-k">★ Milestone — commit to your project repo</div>
+    <div class="ma-k">★ Milestone — commit to your brownfield project repo</div>
     <ul class="deliv-list check">
-      <li>Your d1–d4 spec + plan + tasks, <b>gated</b>: checklist + analyze findings and the fixes you made</li>
+      <li>Your d1–d4 artifacts for the <a href="../../client-delivery.html?w=5">Week 5 client packet</a> — spec, ADR, plan, tasks — assembled as the <b>spec package</b> your packet asks for, <b>gated</b>: checklist + analyze findings and the fixes you made</li>
       <li>The handoff: agent transcript or log of implementation from the self-contained spec, <b>with verification evidence</b> (test output, not assertions)</li>
-      <li>Convergence record: gap tasks found on the first converge pass and how the loop closed them</li>
+      <li>Convergence record: gap tasks found on the first converge pass and how the loop closed them — plus one line naming your <b>stopping condition</b> and what would have happened without it</li>
       <li>Adversarial review findings with your triage — which you fixed, which you declined as over-engineering, and why</li>
       <li>A short <code>REVIEW.md</code>: your merge decision against the Google code-health standard, plus one requirement traced spec → task → code → test</li>
+      <li><b>The outcome gate</b> — before the merge decision, two lines: what changes for a real person at the client if this ships, and the number you'd watch to know it did. If you can't name either, you have an output, not an outcome</li>
     </ul>
-    <p class="goals-foot">This is the Week 5 milestone: the artifacts you authored all week, proven end to end against a
-    real implementing agent. Next week we study the executors themselves — the coding-agent landscape.</p>
+    <p class="goals-foot">This is the Week 5 milestone: <b>Scope → Sequence → Build → Ship → Measure</b>, run once, end
+    to end, against a real implementing agent — and it started with reading the handover closely enough to notice the
+    ask was wrong. Note what you did <em>not</em> do: ship the calendar fix. Next week we study the executors
+    themselves, and the spec package you just wrote becomes something you implement.</p>
   </div>
 </div>
 
 <script>
-window.FDE_NEXT = { label: "Back to Program →", href: "../../index.html" };
+window.FDE_NEXT = { label: "Week 6 · Day 1 — Coding-agents landscape →", href: "../w06/w06d1.html" };
 window.DIAGRAM = {
   title: "Spec → implementation · the handoff pipeline",
   width: 500, height: 690,
@@ -410,7 +430,7 @@ window.DIAGRAM = {
 
     // convergence loop
     { id:"conv", step:5, x:260, y:302, w:226, h:70, label:"/speckit.converge\ngap tasks → re-implement ↺",
-      detail:"Verify all planned work is complete and generate tasks for remaining gaps; if tasks appear, implement again and repeat until converged. Mid-flight requirement changes: Kiro's Sync Files regenerates tasks against the new requirements; #spec checks code against the spec during implementation. Iterative by design." },
+      detail:"Verify all planned work is complete and generate tasks for remaining gaps; if tasks appear, implement again and repeat until converged. Mid-flight requirement changes: Kiro's Sync Files regenerates tasks against the new requirements; #spec checks code against the spec during implementation. Iterative by design — and note the shape: observe → decide → act → verify → repeat. Every working loop needs a TRIGGER and a MACHINE-VERIFIABLE STOPPING CONDITION (converge reports zero gaps; the Day-4 pass/fail checks are that condition). Without one you haven't built a loop, you've built a very confident token furnace — so add hard limits too: max iterations, no-progress detection, a cost ceiling, and verification the agent can't self-certify." },
 
     // adversarial review
     { id:"rev", step:6, x:28, y:404, w:458, h:70, label:"ADVERSARIAL REVIEW · fresh context, diff + criteria only\nevery requirement implemented · edge cases tested · nothing out of scope",
@@ -506,6 +526,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
-<script src="../../assets/js/glossary.js?v=20260710-g3"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 </body>
 </html>

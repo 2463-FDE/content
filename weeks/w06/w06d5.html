@@ -386,12 +386,13 @@
       <li>Configure branch protection so tests, lint, build, and (by your explicit choice) AI-review severity are non-negotiable merge gates</li>
       <li>Read an agent-PR's fate the way the data does — rejection ≠ agent failure, reviewer involvement is normal — and debrief the run against DORA's throughput-vs-instability tension</li>
     </ul>
-    <div class="ma-k">Deliverable — the milestone run, committed to your project repo</div>
+    <div class="ma-k">★ Milestone — the run, committed to your brownfield project repo</div>
     <ul class="deliv-list check">
-      <li>Your <code>SPEC.md</code> (names files/interfaces, states out-of-scope, ends with an end-to-end verification step)</li>
-      <li>A merged (or deliberately rejected) PR with: evidence of verification in the description, an automated review pass, and required status checks green</li>
+      <li>Your <code>SPEC.md</code> for the <a href="../../client-delivery.html?w=6">Week 6 client ask</a> (names real files/interfaces, states out-of-scope, ends with an end-to-end verification step)</li>
+      <li>A merged (or deliberately rejected) PR <b>against the brownfield repo</b> with: evidence of verification in the description, an automated review pass, and required status checks green</li>
       <li>Your gating policy written down: which checks are required, whether AI-review severity blocks, and what happens when the reviewer is unavailable</li>
       <li>A short <code>DEBRIEF.md</code>: did throughput come with instability, which control system caught what, and what you'd change in the <em>system</em> before the next run</li>
+      <li>The outcome line, same standard as last week: what changes for someone at the client, and the number that proves it</li>
     </ul>
     <p class="goals-foot">This is the week's ★ integration milestone — the pieces from d1–d4 assembled into one gated
     delivery. Bring the debrief to the next session; the delivery system you just built is the artifact, not the feature.</p>
@@ -527,6 +528,6 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
-<script src="../../assets/js/glossary.js?v=20260710-g3"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 </body>
 </html>
