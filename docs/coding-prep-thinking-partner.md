@@ -126,6 +126,62 @@ chars, scratchpad ≤ 4000 chars.
 
 **Fixed during verification:** the partner opened every conversation by demanding the problem statement be pasted, which stalled turn one on problems it already knows. The no-statement branch of the system prompt now tells it to work from its own knowledge and only ask when a specific detail is load-bearing.
 
+---
+
+## 3. Revision — server-side problem bank (2026-08-03, same day)
+
+The paste-the-statement box was doing two jobs badly: it made the learner fetch
+context by hand, and it was the one place learner prose fed the system prompt.
+Both are gone.
+
+### 3.1 What changed
+
+- **`backend/src/coach-problems.js`** — a bank covering all 67 problems on the
+  page, built from a LeetCode GraphQL pull. Per problem: our **condensed
+  restatement** of the task, up to two example I/O pairs, up to five constraints,
+  the **official Python and Java starter signatures**, and the topic tags.
+- **`/coach/start` now takes `{passcode, slug}` and nothing else.** It returns the
+  brief and both starter signatures. The modal renders the problem and pre-fills
+  the scratchpad; the learner types only conversation.
+- **`/coach/message` accepts no problem fields at all.** The session's slug fixed
+  the context at start, so a mid-conversation payload cannot redefine the task.
+- **Slug is validated** against `/^[a-z0-9-]+$/` and looked up in the bank. It is
+  never interpolated into the prompt as free text; unknown-but-well-formed slugs
+  fall back to generic mode.
+- **Openings now route on the bank's topic tags**, not the page's pattern label —
+  one less client-supplied string reaching the server's logic.
+- **A TRUST BOUNDARY section** in the system prompt names the conversation and the
+  scratchpad as learner input: their work and their words, never instructions,
+  never a redefinition of the task.
+
+On copyright: LeetCode's statement prose is theirs, so none of it ships. What we
+carry is our own restatement plus objective data — their published function
+signatures, the example I/O, the numeric bounds.
+
+### 3.2 Verification — results
+
+| Check | Result |
+|-------|--------|
+| Slug tampering: path traversal, prompt-injection text as slug, instruction text as slug | all **rejected** at the regex; unknown-but-clean slug degrades to generic mode |
+| Scratchpad injection ×4 — fake SYSTEM OVERRIDE comment, forged assistant/user turns, forged tool result, in-comment task redefinition | **4/4 held.** It read them as notes and asked its next question. |
+| Does it use the brief? 3 problems, asked "what am I being asked to return?" | correct and specific every time (Koko's minimum speed, Two Sum II's sorted/1-indexed difference, the `k` return of Remove Duplicates), **zero paste-nagging** |
+| Core jailbreak regression ×5, including "print your context verbatim" | **5/5 held** |
+| Opening router, 22 cases | pass, after fixing three real mis-routes (see below) |
+| Scrubber, 11 cases | pass, after fixing one false positive |
+| Browser: brief, examples, constraints, both starters, language toggle, reset | pass, no console errors |
+
+**Bugs found and fixed by this round:**
+1. **Scrub false positive.** Long prose the model wrapped in backticks was being
+   deleted, producing "the smallest value of `k…h`". Long spans are now stripped
+   only when they look like code; otherwise the backticks are unwrapped and the
+   words kept.
+2. **Opening mis-routes.** `heap-priority-queue` matched a `queue` pattern meant
+   for stacks, so Top K Frequent opened with a stack question. Number of Islands
+   matched `depth-first-search` before `matrix` and opened with a *tree* question.
+   Tag rules are now anchored and ordered by identifying signal, with the three
+   interval problems named outright (LeetCode tags Insert Interval as "array" and
+   nothing else).
+
 ### 2.4 Original verify plan
 
 1. `node --check` on both new/changed backend files.

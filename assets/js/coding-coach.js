@@ -1,20 +1,26 @@
 /* coding-coach.js — the coding-prep "thinking partner".
  *
- * Opens a LeetCode-shaped modal for one problem: statement pane, code scratchpad
- * (CodeMirror 5, Python or Java), and a chat pane wired to the Worker's /coach/*
- * routes. The agent on the other end is a SOUNDING BOARD — it never returns code.
- * The scratchpad is a scratchpad: nothing here executes, learners still run and
- * submit on LeetCode. Its job is to give the partner something concrete to react to.
+ * Opens a LeetCode-shaped modal for one problem: the problem brief, a code
+ * scratchpad (CodeMirror 5, Python or Java, pre-filled with the official starter
+ * signature), and a chat pane wired to the Worker's /coach/* routes. The agent on
+ * the other end is a SOUNDING BOARD — it never returns code.
  *
- * Public API:  window.FDE_openCoach({ slug, name, pattern, difficulty, url })
+ * The learner types nothing but conversation. The problem brief, the examples,
+ * the constraints and the starter signature all arrive from the Worker keyed by
+ * slug, so there is no free-text field feeding the model's context — the only
+ * learner-authored input is their chat turns and their own scratchpad.
  *
- * Dependencies: none at load time. CodeMirror is lazy-loaded from cdnjs on first
- * open, so the page's cold load is untouched; if the CDN is blocked we fall back
- * to a plain <textarea> and everything else still works.
+ * Nothing here executes. Learners still run and submit on LeetCode; the
+ * scratchpad exists so the partner has something concrete to react to.
+ *
+ * Public API:  window.FDE_openCoach({ slug, name, difficulty, url })
+ *   name/difficulty are only used for the header before the brief loads.
+ *
+ * Dependencies: none at load time. CodeMirror lazy-loads from cdnjs on first open;
+ * if the CDN is blocked we fall back to a plain <textarea>.
  *
  * Persistence (localStorage, per problem slug):
  *   cc-code-<slug>-<lang>   scratchpad text
- *   cc-stmt-<slug>          pasted problem statement
  *   cc-log-<slug>           transcript [{role,text}]
  *   cc-sid-<slug>           {id, at} — dropped after 6h to match the Worker's TTL
  */
@@ -25,43 +31,31 @@
   var CDN = "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/";
   var SESSION_MAX_AGE = 6 * 60 * 60 * 1000; // matches COACH_TTL_SECONDS
 
-  // Starter scratchpad = the UMPIRE skeleton the page's readings teach (plan
-  // comments first, code second). Deliberately contains no problem-specific hint.
-  var STARTERS = {
-    python:
-      "# U — restate the problem in your own words (input, output, one edge case):\n" +
-      "#\n" +
-      "# M — what pattern does this match, and why that one?\n" +
-      "#\n" +
-      "# P — plan, in plain steps:\n" +
-      "#   1.\n" +
-      "#   2.\n" +
-      "#\n" +
-      "# I — implement below.\n\n",
-    java:
-      "// U — restate the problem in your own words (input, output, one edge case):\n" +
-      "//\n" +
-      "// M — what pattern does this match, and why that one?\n" +
-      "//\n" +
-      "// P — plan, in plain steps:\n" +
-      "//   1.\n" +
-      "//   2.\n" +
-      "//\n" +
-      "// I — implement below.\n\n",
-  };
+  // Used only until the Worker hands over the official signature (and when the
+  // learner isn't signed in). The UMPIRE skeleton the page's readings teach.
+  function fallbackStarter(lang) {
+    var c = lang === "java" ? "//" : "#";
+    return [
+      c + " U — restate the problem in your own words (input, output, one edge case):",
+      c, c + " M — what pattern does this match, and why that one?",
+      c, c + " P — plan, in plain steps:", c + "   1.", c + "   2.",
+      c, c + " I — implement below.", "", "",
+    ].join("\n");
+  }
 
   var S = {
-    problem: null,
+    problem: null,     // {slug, name, difficulty, url} from the page row
+    brief: null,       // {title, ask, examples, constraints, starter} from the Worker
     sessionId: null,
     lang: "python",
     busy: false,
     capped: false,
-    editor: null,      // CodeMirror instance, or null when using the textarea fallback
+    editor: null,
     textarea: null,
     messages: [],
   };
 
-  // ---- storage helpers -------------------------------------------------------
+  // ---- storage ---------------------------------------------------------------
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
@@ -72,7 +66,7 @@
   }
 
   function codeKey() { return "cc-code-" + S.problem.slug + "-" + S.lang; }
-  function stmtKey() { return "cc-stmt-" + S.problem.slug; }
+  function briefKey() { return "cc-brief-" + S.problem.slug; }
   function logKey() { return "cc-log-" + S.problem.slug; }
   function sidKey() { return "cc-sid-" + S.problem.slug; }
 
@@ -111,7 +105,6 @@
       });
     return cmPromise;
   }
-
   function cmTheme() {
     return document.documentElement.getAttribute("data-theme") === "dark" ? "material-darker" : "default";
   }
@@ -119,15 +112,13 @@
   // ---- rendering -------------------------------------------------------------
   function esc(s) {
     return String(s == null ? "" : s)
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
-  // Chat is plain text plus short `inline` spans (the Worker strips code blocks
-  // before they ever reach us, so there is no block-level code path to render).
+  // Chat is plain text plus short `inline` spans — the Worker strips code blocks
+  // before they ever reach us, so there is no block-level code path to render.
   function fmt(s) {
     return esc(s).replace(/`([^`\n]{1,60})`/g, "<code>$1</code>").replace(/\n/g, "<br>");
   }
-
   function el(id) { return document.getElementById(id); }
 
   function buildModal() {
@@ -154,9 +145,10 @@
         '</div>' +
         '<div class="cc-panes" id="ccPanes">' +
           '<section class="cc-pane cc-problem" data-pane="problem">' +
-            '<div class="cc-ph">The problem</div>' +
-            '<p class="cc-note">Paste the statement here if you want the partner to be exact about the wording. Optional — it knows most of these by name.</p>' +
-            '<textarea class="cc-stmt" id="ccStmt" placeholder="Paste the LeetCode problem statement (optional)"></textarea>' +
+            '<div class="cc-ph">The task</div>' +
+            '<p class="cc-ask" id="ccAsk">Loading…</p>' +
+            '<div id="ccExWrap" hidden><div class="cc-ph">Examples</div><div id="ccEx"></div></div>' +
+            '<div id="ccConsWrap" hidden><div class="cc-ph">Constraints</div><ul class="cc-cons" id="ccCons"></ul></div>' +
             '<div class="cc-ph">UMPIRE</div>' +
             '<ol class="cc-umpire">' +
               '<li><b>U</b>nderstand — restate it, name the output, give one edge case</li>' +
@@ -174,6 +166,7 @@
                 '<button class="cc-lang on" data-lang="python">Python</button>' +
                 '<button class="cc-lang" data-lang="java">Java</button>' +
               '</div>' +
+              '<button class="cc-reset" id="ccReset" title="Restore the starter signature">↺ reset</button>' +
               '<span class="cc-hint">Scratchpad — nothing runs here. Run it on LeetCode.</span>' +
             '</div>' +
             '<div class="cc-edwrap" id="ccEdWrap"><textarea class="cc-fallback" id="ccFallback" spellcheck="false"></textarea></div>' +
@@ -195,17 +188,16 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !wrap.hidden) close();
     });
-
     el("ccTabs").addEventListener("click", function (e) {
-      var b = e.target.closest(".cc-tab"); if (!b) return;
-      showPane(b.dataset.pane);
+      var b = e.target.closest(".cc-tab"); if (b) showPane(b.dataset.pane);
     });
-
     wrap.querySelectorAll(".cc-lang").forEach(function (b) {
       b.addEventListener("click", function () { setLang(b.dataset.lang); });
     });
-
-    el("ccStmt").addEventListener("input", function () { lsSet(stmtKey(), el("ccStmt").value); });
+    el("ccReset").addEventListener("click", function () {
+      setCode(starterFor(S.lang));
+      persistCode();
+    });
     el("ccSend").addEventListener("click", send);
     el("ccInput").addEventListener("keydown", function (e) {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
@@ -219,7 +211,39 @@
     if (name === "code" && S.editor) S.editor.refresh();
   }
 
+  // Render the brief the Worker sent. Everything here is server-side content.
+  function renderBrief(b) {
+    S.brief = b || null;
+    if (!b || b.known === false) {
+      el("ccAsk").textContent = "This one isn't in the problem bank yet — open it on LeetCode and tell the partner what it asks for in your own words. (That's the Understand step anyway.)";
+      el("ccExWrap").hidden = true;
+      el("ccConsWrap").hidden = true;
+      return;
+    }
+    if (b.title) el("ccName").textContent = b.title;
+    if (b.difficulty) {
+      var d = el("ccDiff");
+      d.textContent = b.difficulty;
+      d.className = "cp-diff " + (/hard/i.test(b.difficulty) ? "h" : /med/i.test(b.difficulty) ? "m" : "e");
+      d.hidden = false;
+    }
+    el("ccAsk").textContent = b.ask || "";
+    var ex = b.examples || [];
+    el("ccExWrap").hidden = !ex.length;
+    el("ccEx").innerHTML = ex.map(function (e) { return '<pre class="cc-ex">' + esc(e) + "</pre>"; }).join("");
+    var cons = b.constraints || [];
+    el("ccConsWrap").hidden = !cons.length;
+    el("ccCons").innerHTML = cons.map(function (c) { return "<li>" + esc(c) + "</li>"; }).join("");
+    // Briefs are static per problem — cache so a revisit paints instantly and a
+    // replayed transcript doesn't need a round trip just to fill the pane.
+    try { lsSet(briefKey(), JSON.stringify(b)); } catch (e) {}
+  }
+
   // ---- editor ----------------------------------------------------------------
+  function starterFor(lang) {
+    if (S.brief && S.brief.starter && S.brief.starter[lang]) return S.brief.starter[lang];
+    return fallbackStarter(lang);
+  }
   function currentCode() {
     if (S.editor) return S.editor.getValue();
     return S.textarea ? S.textarea.value : "";
@@ -229,12 +253,19 @@
   }
   function persistCode() { lsSet(codeKey(), currentCode()); }
 
+  // Drop the starter in once the Worker's version arrives — but never clobber
+  // work in progress.
+  function applyStarter() {
+    var saved = lsGet(codeKey());
+    if (saved != null && saved.trim() && saved.trim() !== fallbackStarter(S.lang).trim()) return;
+    setCode(starterFor(S.lang));
+    persistCode();
+  }
+
   function mountEditor() {
-    var host = el("ccEdWrap");
     S.textarea = el("ccFallback");
     var saved = lsGet(codeKey());
-    var initial = saved == null ? STARTERS[S.lang] : saved;
-    S.textarea.value = initial;
+    S.textarea.value = saved == null ? starterFor(S.lang) : saved;
     S.textarea.addEventListener("input", persistCode);
 
     loadCM().then(function () {
@@ -250,7 +281,6 @@
       });
       S.editor.setSize("100%", "100%");
       S.editor.on("change", persistCode);
-      host.classList.add("cm-live");
     }).catch(function () {
       // CDN blocked — the textarea fallback is already live and persisting.
     });
@@ -264,7 +294,7 @@
       b.classList.toggle("on", b.dataset.lang === lang);
     });
     var saved = lsGet(codeKey());
-    setCode(saved == null ? STARTERS[lang] : saved);
+    setCode(saved == null ? starterFor(lang) : saved);
     if (S.editor) S.editor.setOption("mode", lang === "java" ? "text/x-java" : "python");
   }
 
@@ -288,11 +318,9 @@
     el("ccSend").disabled = on || S.capped;
     el("ccInput").disabled = S.capped;
   }
-
   function turnsLabel(left) {
     el("ccTurns").textContent = left == null ? "" : left + " turn" + (left === 1 ? "" : "s") + " left";
   }
-
   function lockChat(msg) {
     S.capped = true;
     el("ccInput").disabled = true;
@@ -311,34 +339,31 @@
   function startSession() {
     var idt = ident();
     if (!idt || !idt.code) {
+      el("ccAsk").textContent = "Sign in with your cohort access code to load this problem and talk it through.";
       pushMsg("coach", "Sign in with your cohort access code to use the thinking partner — the button is in the top-right of the page.", { transient: true, sys: true });
       lockChat("Sign in to start a conversation.");
       return Promise.resolve(false);
     }
-    return post("/coach/start", {
-      passcode: idt.code,
-      problem: {
-        slug: S.problem.slug,
-        name: S.problem.name,
-        pattern: S.problem.pattern,
-        difficulty: S.problem.difficulty,
-        statement: el("ccStmt").value.slice(0, 6000),
-      },
-    }).then(function (r) {
+    // Slug only. Everything the partner is told about the problem lives server-side.
+    return post("/coach/start", { passcode: idt.code, slug: S.problem.slug }).then(function (r) {
       if (!r.data || !r.data.ok) {
         var msg = r.data && r.data.error === "bad_passcode"
           ? "That access code isn't recognized — sign in again from the top-right of the page."
           : "Couldn't reach the partner right now. Your scratchpad still works; try again in a minute.";
+        el("ccAsk").textContent = "Couldn't load the problem — open it on LeetCode in the meantime.";
         pushMsg("coach", msg, { transient: true, sys: true });
         lockChat("Partner unavailable.");
         return false;
       }
       S.sessionId = r.data.sessionId;
       saveSession(S.sessionId);
+      renderBrief(r.data.problem);
+      applyStarter();
       pushMsg("coach", r.data.opening);
       turnsLabel(r.data.messagesLeft);
       return true;
     }).catch(function () {
+      el("ccAsk").textContent = "Couldn't load the problem — open it on LeetCode in the meantime.";
       pushMsg("coach", "Couldn't reach the partner (network). Your scratchpad still works.", { transient: true, sys: true });
       lockChat("Partner unavailable.");
       return false;
@@ -351,7 +376,6 @@
     var text = input.value.trim();
     if (!text) return;
     if (!S.sessionId) {
-      // Session expired mid-visit — restart transparently, then send.
       setBusy(true);
       startSession().then(function (ok) { setBusy(false); if (ok) send(); });
       return;
@@ -367,7 +391,6 @@
       text: text,
       code: currentCode().slice(0, 4000),
       lang: S.lang,
-      statement: el("ccStmt").value.slice(0, 6000),
     }).then(function (r) {
       thinking.remove();
       setBusy(false);
@@ -415,10 +438,10 @@
     S.problem = {
       slug: problem.slug || "",
       name: problem.name || "",
-      pattern: problem.pattern || "",
       difficulty: problem.difficulty || "",
       url: problem.url || "",
     };
+    S.brief = null;
     S.lang = "python";
     S.capped = false;
     S.busy = false;
@@ -429,9 +452,11 @@
     diff.textContent = S.problem.difficulty || "";
     diff.className = "cp-diff " + (/hard/i.test(S.problem.difficulty) ? "h" : /med/i.test(S.problem.difficulty) ? "m" : "e");
     diff.hidden = !S.problem.difficulty;
-    el("ccPat").textContent = S.problem.pattern || "";
+    el("ccPat").textContent = "";
     el("ccLC").href = S.problem.url || "#";
-    el("ccStmt").value = lsGet(stmtKey()) || "";
+    el("ccAsk").textContent = "Loading…";
+    el("ccExWrap").hidden = true;
+    el("ccConsWrap").hidden = true;
     el("ccLog").innerHTML = "";
     el("ccInput").value = "";
     el("ccInput").disabled = false;
@@ -443,10 +468,23 @@
     el("ccModal").hidden = false;
     document.body.style.overflow = "hidden";
 
-    if (!S.editor && !S.textarea) mountEditor();
-    else { var saved = lsGet(codeKey()); setCode(saved == null ? STARTERS[S.lang] : saved); if (S.editor) { S.editor.setOption("theme", cmTheme()); S.editor.refresh(); } }
+    // Paint from the cached brief first (instant on a revisit); the /coach/start
+    // response refreshes it. Must run before the editor mounts so the starter
+    // signature is available.
+    try {
+      var cached = JSON.parse(lsGet(briefKey()) || "null");
+      if (cached) renderBrief(cached);
+    } catch (e) {}
 
-    // Replay a stored transcript if the session is still live; otherwise start clean.
+    if (!S.editor && !S.textarea) mountEditor();
+    else {
+      var saved = lsGet(codeKey());
+      setCode(saved == null ? starterFor(S.lang) : saved);
+      if (S.editor) { S.editor.setOption("theme", cmTheme()); S.editor.refresh(); }
+    }
+
+    // Replay a stored transcript if the session is still live; otherwise start
+    // clean. Either way we re-fetch the brief so the problem pane is populated.
     var sid = loadSession();
     var stored = [];
     try { stored = JSON.parse(lsGet(logKey()) || "[]"); } catch (e) { stored = []; }

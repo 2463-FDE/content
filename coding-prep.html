@@ -159,9 +159,12 @@
   .cc-problem { padding:14px 16px; overflow:auto; gap:0; }
   .cc-ph { font-size:11px; text-transform:uppercase; letter-spacing:.11em; font-weight:800; color:var(--accent); margin:0 0 6px; }
   .cc-problem .cc-ph:not(:first-child) { margin-top:18px; }
-  .cc-note { font-size:12.5px; color:var(--ink-soft); margin:0 0 8px; line-height:1.5; }
-  .cc-stmt { width:100%; min-height:120px; resize:vertical; font:inherit; font-size:13px; line-height:1.5; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:9px 11px; }
-  .cc-stmt:focus { outline:none; border-color:var(--accent); }
+  .cc-ask { font-size:14px; line-height:1.6; color:var(--ink); margin:0 0 4px; }
+  .cc-ex { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.5; color:var(--ink-soft); background:var(--surface-2); border:1px solid var(--line); border-radius:9px; padding:8px 10px; margin:0 0 7px; white-space:pre-wrap; word-break:break-word; }
+  .cc-cons { margin:0; padding-left:18px; }
+  .cc-cons li { font-size:12px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--ink-soft); line-height:1.55; margin:3px 0; word-break:break-word; }
+  .cc-reset { cursor:pointer; font:inherit; font-size:12px; font-weight:700; color:var(--ink-soft); background:none; border:1px solid var(--line); border-radius:8px; padding:4px 10px; }
+  .cc-reset:hover { color:var(--accent); border-color:var(--accent); }
   .cc-umpire { margin:0; padding-left:19px; }
   .cc-umpire li { font-size:12.5px; color:var(--ink-soft); line-height:1.5; margin:5px 0; }
   .cc-umpire b { color:var(--accent); }
@@ -577,7 +580,9 @@ function autoCollapse(row){
 }
 function openCoach(row){
   if(!window.FDE_openCoach)return;
-  window.FDE_openCoach({slug:row.dataset.slug,url:row.dataset.url,name:row.dataset.name,pattern:row.dataset.pattern,difficulty:row.dataset.diff});
+  // Slug is the only thing the partner's context is keyed on — name/difficulty
+  // just fill the modal header until the Worker's brief arrives.
+  window.FDE_openCoach({slug:row.dataset.slug,url:row.dataset.url,name:row.dataset.name,difficulty:row.dataset.diff});
 }
 panEl.addEventListener("click",e=>{
   const row=e.target.closest(".cp-prob"); if(!row)return;
