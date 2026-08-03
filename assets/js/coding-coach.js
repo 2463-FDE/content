@@ -272,13 +272,21 @@
       : "your scratchpad goes with every message — it's empty right now");
   }
 
-  // Drop the starter in once the Worker's version arrives — but never clobber
-  // work in progress.
+  // Drop the official starter in once the Worker's brief arrives — but never
+  // clobber work in progress. Runs over BOTH languages, not just the visible one:
+  // the Java pad is usually still a bare skeleton saved from before the problem
+  // bank existed, and it would otherwise never pick up its signature.
   function applyStarter() {
-    var saved = lsGet(codeKey());
-    if (saved != null && saved.trim() && saved.trim() !== fallbackStarter(S.lang).trim()) return;
-    setCode(starterFor(S.lang));
-    persistCode();
+    ["python", "java"].forEach(function (lang) {
+      var key = "cc-code-" + S.problem.slug + "-" + lang;
+      var saved = lsGet(key);
+      var stale = saved == null || !saved.trim() || saved.trim() === fallbackStarter(lang).trim();
+      if (!stale) return;                       // real work in there — leave it alone
+      var v = starterFor(lang);
+      if (lang === S.lang) setCode(v);
+      lsSet(key, v);
+    });
+    updateFoot();
   }
 
   function mountEditor() {
@@ -314,6 +322,7 @@
     });
     var saved = lsGet(codeKey());
     setCode(saved == null ? starterFor(lang) : saved);
+    applyStarter();   // covers a pad saved before the brief (or the bank) existed
     if (S.editor) S.editor.setOption("mode", lang === "java" ? "text/x-java" : "python");
     updateFoot();
   }
