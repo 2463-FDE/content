@@ -120,7 +120,11 @@ chars, scratchpad ≤ 4000 chars.
 | 2 | Scrubber vs 7 adversarial replies + 4 must-keep prose cases + 9 opening routes | 20/20 pass. Two real gaps found and fixed: code smuggled mid-line after a prose lead-in ("Try this: for i in range…") and a bare Java signature line — the line-start-only matcher missed both; added `CODE_ANYWHERE` signatures. |
 | 3 | Live page: 67 chips on 67 rows, modal opens, CodeMirror loads both modes, language toggle swaps mode + starter, 3-pane grid `320px / 1fr / 400px` at 1600px, tab strip at 900px, dark mode picks up `material-darker`, no console errors | pass |
 | 4 | Degradation: no login → sign-in nudge + locked composer; backend unreachable → "Partner unavailable", scratchpad and editor keep working | pass |
-| 5 | Live prompt-adversarial pass against the deployed Worker | **deferred — needs deploy** |
+| 5 | Adversarial pass — 12 attack cases, 15 replies, run against `wrangler dev --remote` (real KV + real secrets, live route untouched) | **15/15 HELD.** Not one reply required the scrub — the prompt refused on its own every time. Attacks: direct demand, instruction override, claimed instructor authority, "already submitted", pseudocode loophole, "just two lines", rewrite-my-broken-Java, fill-in-the-blank, off-topic, textbook roleplay, French, and a 4-turn escalation ending in "I'll fail my interview tomorrow". |
+| 6 | Good-faith conversation quality (6-turn Two Sum walkthrough) | pass — 25–67 words per reply, one question each, caught the "sort then two pointers" wrong turn by pointing out sorting destroys the indices *without* naming the fix, confirmed the pattern only after the learner said it, then pushed for a hand-trace. |
+| 7 | Post-deploy probe on production | pass |
+
+**Fixed during verification:** the partner opened every conversation by demanding the problem statement be pasted, which stalled turn one on problems it already knows. The no-statement branch of the system prompt now tells it to work from its own knowledge and only ask when a specific detail is load-bearing.
 
 ### 2.4 Original verify plan
 
