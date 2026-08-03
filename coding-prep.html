@@ -130,6 +130,76 @@
   .cp-add > summary .an { color:var(--accent); }
   .cp-add > summary .arep { margin-left:auto; font-weight:600; }
   .cp-add .cp-probs { padding:2px 12px 12px; }
+
+  /* ---- thinking-partner chip + modal (coding-coach.js) ---- */
+  button.cp-cc { font-size:11px; font-weight:800; color:var(--accent-ink); background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:999px; padding:3px 10px; white-space:nowrap; cursor:pointer; font-family:inherit; }
+  button.cp-cc:hover { border-color:var(--accent); box-shadow:0 2px 8px var(--shadow); }
+
+  .cc-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:400; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .cc-overlay[hidden] { display:none; }
+  .cc-shell { background:var(--surface); border:1px solid var(--line); border-radius:16px; width:min(1560px,100%); height:min(920px,94vh); display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,.4); }
+  .cc-top { display:flex; align-items:center; gap:12px; padding:11px 16px; border-bottom:1px solid var(--line); flex-shrink:0; }
+  .cc-id { display:flex; align-items:center; gap:10px; min-width:0; flex-wrap:wrap; }
+  .cc-name { font-weight:700; font-size:17px; }
+  .cc-pat { font-size:12.5px; color:var(--ink-soft); }
+  .cc-actions { margin-left:auto; display:flex; align-items:center; gap:14px; flex-shrink:0; }
+  .cc-lc { font-size:12.5px; font-weight:700; color:var(--accent); text-decoration:none; white-space:nowrap; }
+  .cc-lc:hover { text-decoration:underline; }
+  .cc-turns { font-size:12px; color:var(--ink-soft); white-space:nowrap; }
+  .cc-x { border:1px solid var(--line); background:var(--surface-2); color:var(--ink); border-radius:8px; cursor:pointer; width:30px; height:30px; font-size:13px; }
+  .cc-x:hover { border-color:var(--accent); color:var(--accent); }
+
+  .cc-tabbar { display:none; gap:7px; padding:9px 14px; border-bottom:1px solid var(--line); flex-shrink:0; }
+  .cc-tab { flex:1; cursor:pointer; font:inherit; font-size:13px; font-weight:650; color:var(--ink-soft); background:var(--surface-2); border:1px solid var(--line); border-radius:9px; padding:7px 10px; }
+  .cc-tab.on { color:var(--accent-ink); background:var(--accent-soft); border-color:var(--accent-line); }
+
+  .cc-panes { flex:1; min-height:0; display:grid; grid-template-columns:320px minmax(0,1fr) 400px; }
+  .cc-pane { min-width:0; min-height:0; display:flex; flex-direction:column; border-right:1px solid var(--line); }
+  .cc-pane.cc-chat { border-right:0; }
+  .cc-problem { padding:14px 16px; overflow:auto; gap:0; }
+  .cc-ph { font-size:11px; text-transform:uppercase; letter-spacing:.11em; font-weight:800; color:var(--accent); margin:0 0 6px; }
+  .cc-problem .cc-ph:not(:first-child) { margin-top:18px; }
+  .cc-note { font-size:12.5px; color:var(--ink-soft); margin:0 0 8px; line-height:1.5; }
+  .cc-stmt { width:100%; min-height:120px; resize:vertical; font:inherit; font-size:13px; line-height:1.5; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:9px 11px; }
+  .cc-stmt:focus { outline:none; border-color:var(--accent); }
+  .cc-umpire { margin:0; padding-left:19px; }
+  .cc-umpire li { font-size:12.5px; color:var(--ink-soft); line-height:1.5; margin:5px 0; }
+  .cc-umpire b { color:var(--accent); }
+  .cc-rule { margin-top:18px; font-size:12.5px; line-height:1.5; color:var(--ink); background:var(--accent-soft); border:1px dashed var(--accent-line); border-radius:10px; padding:10px 12px; }
+
+  .cc-code { overflow:hidden; }
+  .cc-codebar { display:flex; align-items:center; gap:12px; padding:9px 12px; border-bottom:1px solid var(--line); flex-shrink:0; flex-wrap:wrap; }
+  .cc-langs { display:flex; gap:6px; }
+  .cc-lang { cursor:pointer; font:inherit; font-size:12.5px; font-weight:700; color:var(--ink-soft); background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:5px 12px; }
+  .cc-lang.on { color:var(--accent-ink); background:var(--accent-soft); border-color:var(--accent-line); }
+  .cc-hint { font-size:12px; color:var(--ink-soft); margin-left:auto; }
+  .cc-edwrap { flex:1; min-height:0; overflow:auto; }
+  .cc-fallback { width:100%; height:100%; min-height:320px; border:0; outline:0; resize:none; padding:12px 14px; background:transparent; color:var(--ink); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px; line-height:1.55; }
+  .cc-edwrap .CodeMirror { height:100%; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px; line-height:1.55; }
+
+  .cc-log { flex:1; min-height:0; overflow:auto; padding:16px; display:flex; flex-direction:column; gap:11px; }
+  .cc-msg { font-size:14px; line-height:1.56; }
+  .cc-msg code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; background:var(--surface-2); border:1px solid var(--line); border-radius:5px; padding:1px 5px; }
+  .cc-learner { align-self:flex-end; max-width:88%; background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:13px 13px 4px 13px; padding:9px 12px; }
+  .cc-coach { align-self:flex-start; max-width:94%; background:var(--surface-2); border:1px solid var(--line); border-radius:13px 13px 13px 4px; padding:9px 12px; }
+  .cc-who { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.11em; font-weight:800; color:var(--accent); margin-bottom:3px; }
+  .cc-sys { opacity:.9; }
+  .cc-thinking { opacity:.55; }
+  .cc-composer { display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--line); flex-shrink:0; }
+  .cc-composer textarea { flex:1; resize:none; font:inherit; font-size:14px; line-height:1.5; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:8px 11px; }
+  .cc-composer textarea:focus { outline:none; border-color:var(--accent); }
+  .cc-composer button { cursor:pointer; font:inherit; font-size:14px; font-weight:700; color:#fff; background:var(--accent); border:0; border-radius:10px; padding:8px 18px; }
+  .cc-composer button:disabled { opacity:.45; cursor:default; }
+  .cc-foot { padding:0 14px 10px; font-size:11.5px; color:var(--ink-soft); flex-shrink:0; }
+
+  @media (max-width:1180px) {
+    .cc-overlay { padding:0; }
+    .cc-shell { width:100%; height:100%; border-radius:0; border:0; }
+    .cc-tabbar { display:flex; }
+    .cc-panes { grid-template-columns:1fr; }
+    .cc-pane { display:none; border-right:0; }
+    .cc-pane.on { display:flex; }
+  }
 </style>
 </head>
 <body>
@@ -422,11 +492,12 @@ const addOf=t=>t.mods.flatMap(m=>m.add);
 
 function probRow(p){
   const s=slug(p.u),dk=done(s);
-  return `<div class="cp-prob${dk?" done":""}" data-slug="${s}" data-url="${p.u}" role="button" tabindex="0" title="Open on LeetCode + mark attempted">
+  const esc=x=>String(x).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  return `<div class="cp-prob${dk?" done":""}" data-slug="${s}" data-url="${p.u}" data-name="${esc(p.n)}" data-pattern="${esc(p.p)}" data-diff="${DIFF[p.d]}" role="button" tabindex="0" title="Open on LeetCode + mark attempted">
     <input type="checkbox" ${dk?"checked":""} aria-label="mark ${p.n} done">
     <div><div class="pn">${p.n} ↗</div>
     <div class="pp">${p.p}${p.note?" · "+p.note:""}${p.wx?` · <span class="wx">📺 solved in the video above — re-implement it from memory</span>`:""}</div></div>
-    <div class="right">${YT[s]?`<a class="cp-nc" href="https://www.youtube.com/watch?v=${YT[s]}" target="_blank" rel="noopener">▶ NeetCode video ↗</a>`:`<a class="cp-nc" href="https://www.youtube.com/results?search_query=${encodeURIComponent(p.n+" leetcode python")}" target="_blank" rel="noopener">▶ solution videos ↗</a>`}<span class="cp-diff ${p.d}">${DIFF[p.d]}</span></div>
+    <div class="right"><button class="cp-cc" data-cc title="Open the thinking partner — it never gives you code">🧠 Think it through</button>${YT[s]?`<a class="cp-nc" href="https://www.youtube.com/watch?v=${YT[s]}" target="_blank" rel="noopener">▶ NeetCode video ↗</a>`:`<a class="cp-nc" href="https://www.youtube.com/results?search_query=${encodeURIComponent(p.n+" leetcode python")}" target="_blank" rel="noopener">▶ solution videos ↗</a>`}<span class="cp-diff ${p.d}">${DIFF[p.d]}</span></div>
   </div>`;
 }
 function readBlock(r){
@@ -504,15 +575,20 @@ function autoCollapse(row){
   const inEss=m.ess.some(p=>slug(p.u)===row.dataset.slug);
   if(essDone&&inEss) mod.open=false;   // collapse the moment the last essential is checked
 }
+function openCoach(row){
+  if(!window.FDE_openCoach)return;
+  window.FDE_openCoach({slug:row.dataset.slug,url:row.dataset.url,name:row.dataset.name,pattern:row.dataset.pattern,difficulty:row.dataset.diff});
+}
 panEl.addEventListener("click",e=>{
   const row=e.target.closest(".cp-prob"); if(!row)return;
+  if(e.target.closest("[data-cc]")){openCoach(row);return;}  // thinking partner: modal only, no LeetCode tab, no auto-mark
   if(e.target.closest("a"))return;                     // NeetCode video chip: just the link
   if(e.target.matches("input")){ setDone(row,e.target.checked); if(e.target.checked)autoCollapse(row); return; }  // checkbox = toggle only (un-mark without opening)
   launch(row);                                          // anywhere else: open on LeetCode + mark
 });
 panEl.addEventListener("keydown",e=>{
   const row=e.target.closest(".cp-prob");
-  if(row&&(e.key==="Enter"||e.key===" ")&&!e.target.matches("input,a")){e.preventDefault();launch(row);}
+  if(row&&(e.key==="Enter"||e.key===" ")&&!e.target.matches("input,a,button")){e.preventDefault();launch(row);}
 });
 function activate(id){
   document.querySelectorAll(".cp-tab").forEach(b=>b.classList.toggle("on",b.dataset.id===id));
@@ -525,5 +601,6 @@ activate(CP.some(t=>t.id===h)?h:"entry");
 </script>
 <script src="assets/js/roster.js?v=20260706"></script>
 <script src="assets/js/auth.js"></script>
+<script src="assets/js/coding-coach.js?v=20260803"></script>
 </body>
 </html>
