@@ -251,7 +251,26 @@
   function setCode(v) {
     if (S.editor) S.editor.setValue(v); else if (S.textarea) S.textarea.value = v;
   }
-  function persistCode() { lsSet(codeKey(), currentCode()); }
+  function persistCode() { lsSet(codeKey(), currentCode()); updateFoot(); }
+
+  // The partner reads the scratchpad on every turn. Say so, and show how much of
+  // it is real work — otherwise "your scratchpad rides along" is a claim the
+  // learner has no way to check.
+  function codeLines() {
+    return currentCode().split("\n").filter(function (l) {
+      var t = l.trim();
+      return t && t.indexOf("#") !== 0 && t.indexOf("//") !== 0;
+    }).length;
+  }
+  function updateFoot() {
+    if (S.capped) return;
+    var f = el("ccFoot");
+    if (!f) return;
+    var n = codeLines();
+    f.innerHTML = "Enter sends · Shift+Enter for a new line · " + (n
+      ? '<b class="cc-attached">the partner can see your ' + S.lang + " scratchpad (" + n + " line" + (n === 1 ? "" : "s") + ")</b>"
+      : "your scratchpad goes with every message — it's empty right now");
+  }
 
   // Drop the starter in once the Worker's version arrives — but never clobber
   // work in progress.
@@ -296,6 +315,7 @@
     var saved = lsGet(codeKey());
     setCode(saved == null ? starterFor(lang) : saved);
     if (S.editor) S.editor.setOption("mode", lang === "java" ? "text/x-java" : "python");
+    updateFoot();
   }
 
   // ---- chat ------------------------------------------------------------------
@@ -334,6 +354,27 @@
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     }).then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); });
+  }
+
+  // Brief without touching the live session — used when reopening a problem that
+  // already has a conversation going. Costs nothing server-side.
+  function fetchBrief() {
+    var idt = ident();
+    if (!idt || !idt.code) { briefUnavailable("Sign in with your cohort access code to load this problem."); return Promise.resolve(false); }
+    return post("/coach/brief", { passcode: idt.code, slug: S.problem.slug }).then(function (r) {
+      if (!r.data || !r.data.ok) { briefUnavailable(); return false; }
+      renderBrief(r.data.problem);
+      applyStarter();
+      return true;
+    }).catch(function () { briefUnavailable(); return false; });
+  }
+
+  // Never leave the pane sitting on "Loading…" — say what happened and point at
+  // the source of truth.
+  function briefUnavailable(msg) {
+    if (S.brief) return; // a cached brief is already on screen
+    el("ccAsk").textContent = msg ||
+      "Couldn't load the problem details. Open it on LeetCode with the link above — the partner still works.";
   }
 
   function startSession() {
@@ -461,7 +502,7 @@
     el("ccInput").value = "";
     el("ccInput").disabled = false;
     el("ccSend").disabled = false;
-    el("ccFoot").textContent = "Enter sends · Shift+Enter for a new line · your scratchpad rides along";
+    el("ccFoot").textContent = "Enter sends · Shift+Enter for a new line";
     el("ccModal").querySelectorAll(".cc-lang").forEach(function (b) { b.classList.toggle("on", b.dataset.lang === "python"); });
     showPane("chat");
 
@@ -493,12 +534,16 @@
       S.messages = stored;
       stored.forEach(function (m) { pushMsg(m.role, m.text, { transient: true }); });
       turnsLabel(null);
+      // The live session is untouched; this just fills the problem pane and the
+      // starter signature, which the conversation itself never carries.
+      fetchBrief();
       el("ccInput").focus();
     } else {
       S.sessionId = null;
       lsDel(logKey());
       startSession().then(function () { el("ccInput").focus(); });
     }
+    updateFoot();
   }
 
   window.FDE_openCoach = open;
