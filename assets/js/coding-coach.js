@@ -262,14 +262,24 @@
       return t && t.indexOf("#") !== 0 && t.indexOf("//") !== 0;
     }).length;
   }
+  // Mirrors the Worker's isUntouchedStarter: an untouched pad isn't sent, so the
+  // footer must not claim it was. Compared against both starters — the official
+  // signature one and the signature-free fallback.
+  function norm(s) {
+    return s.split("\n").map(function (l) { return l.replace(/\s+$/, ""); }).join("\n").trim();
+  }
+  function scratchpadUntouched() {
+    var c = norm(currentCode());
+    return !c || c === norm(starterFor(S.lang)) || c === norm(fallbackStarter(S.lang));
+  }
   function updateFoot() {
     if (S.capped) return;
     var f = el("ccFoot");
     if (!f) return;
-    var n = codeLines();
+    var n = scratchpadUntouched() ? 0 : codeLines();
     f.innerHTML = "Enter sends · Shift+Enter for a new line · " + (n
       ? '<b class="cc-attached">the partner can see your ' + S.lang + " scratchpad (" + n + " line" + (n === 1 ? "" : "s") + ")</b>"
-      : "your scratchpad goes with every message — it's empty right now");
+      : "your scratchpad goes with every message — nothing written in it yet");
   }
 
   // Drop the official starter in once the Worker's brief arrives — but never
