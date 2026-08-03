@@ -222,3 +222,48 @@ claim the learner had no way to verify.
 
 Verified on production against a seeded stale session: brief renders, examples
 show, starter upgrades to the official signature, footer reports the attachment.
+
+---
+
+## 5. Untouched scratchpad is no longer sent (2026-08-03)
+
+An untouched pad is our own UMPIRE comments plus the starter signature — both
+already in the system prompt. Sending it back cost tokens and, worse, invited the
+partner to treat prompts *we* wrote as the learner's thinking.
+
+`isUntouchedStarter()` drops the scratchpad when it is empty or matches either
+starter (the official-signature one, or the signature-free fallback the client
+uses when the brief didn't load). Comparison is whitespace-insensitive per line
+and otherwise exact — anything the learner typed still goes, **including notes
+filled into the UMPIRE plan comments**, which are exactly the reasoning the
+partner exists to react to. The composer footer mirrors the same check so it
+can't claim a pad was attached when it wasn't.
+
+**Measured saving: ~100 tokens per turn** (78 for the starter block, ~24 for the
+scratchpad wrapper) — an earlier estimate of ~250 in conversation was 3× high.
+At Haiku pricing that is about $0.0001 a turn; the real win is that the partner
+stops reacting to our own scaffolding.
+
+### Why prompt caching was rejected
+
+Considered and measured, not skipped: the system prompt is **~1,090 tokens**, and
+Haiku 4.5's minimum cacheable prefix is **4,096**. Below that the API silently
+declines to cache — no error, `cache_creation_input_tokens: 0` — so a
+`cache_control` marker would read as an optimization while doing nothing. The
+economics wouldn't save it either: writes cost 1.25×, reads 0.1×, and a turn runs
+about $0.004, capped at 60 replies/learner/day (~$0.24/day worst case).
+
+Storing scratchpad versions in the conversation history was also rejected. The
+current design injects the code once per request onto the newest learner turn;
+versioning it into history would carry every past snapshot forward, which costs
+*more* as soon as the learner edits twice.
+
+### Verification
+
+| Check | Result |
+|-------|--------|
+| `isUntouchedStarter`, 12 cases (both languages, both starters, trailing whitespace, empty, real work added, UMPIRE comments filled in, wrong-language pad) | 12/12 pass |
+| Live: untouched pad | partner starts at Understand, never references code |
+| Live: real work in pad | partner names `seen` and the `pass` placeholder |
+| Live: UMPIRE comments filled in | still sent — partner quotes the learner's Match note back |
+| Footer across states (untouched / work / language switch / reset), local and production | matches the Worker in every state, no console errors |
