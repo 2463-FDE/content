@@ -196,3 +196,29 @@ signatures, the example I/O, the numeric bounds.
 
 Deploy is a separate, explicitly-approved step (`npx wrangler deploy` from the working
 tree — see the backend-repo caveat: `src/index.js` in git HEAD is a stub).
+
+---
+
+## 4. Fix — brief loading on reopen (2026-08-03)
+
+**Symptom:** opening "Think it through" on a problem showed `Loading…` in the task
+pane and a scratchpad with no signature.
+
+**Cause:** `open()` has two paths. A fresh problem calls `/coach/start`, which
+returns the brief. A problem with a conversation already in flight takes a replay
+path that restores the transcript — and that path never fetched the brief. Anyone
+who had opened the partner before the problem bank shipped landed there, so the
+pane hung and the old signature-less starter stayed put.
+
+**Fix:** `POST /coach/brief {passcode, slug}` returns the brief alone — no session
+minted, no KV write, no model call — and the replay path calls it. `briefFor()` is
+now shared by both routes so they can't drift. The pane also states the failure
+instead of sitting on `Loading…` when the fetch fails, and `applyStarter()`
+upgrades a stale skeleton to the official signature without touching real work.
+
+**Also:** the composer footer now reports that the partner reads the scratchpad
+and how many non-comment lines are in it. "Your scratchpad rides along" was a
+claim the learner had no way to verify.
+
+Verified on production against a seeded stale session: brief renders, examples
+show, starter upgrades to the official signature, footer reports the attachment.
