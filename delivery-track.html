@@ -258,6 +258,45 @@
   .dt-pg.next { text-align:right; }
   @media (max-width:640px){ .dt-pager { flex-direction:column; } .dt-pg.next { text-align:left; } }
 
+
+  /* ---- week-by-week build ---------------------------------------------- */
+  .dt-weekbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 20px;
+    border:1px solid var(--line); background:var(--surface); border-radius:14px; padding:11px 15px; }
+  .dt-weekbar .wb-k { font-size:11px; text-transform:uppercase; letter-spacing:.11em; font-weight:800; color:var(--ink-soft); }
+  .dt-weekbar .wb-btns { display:flex; gap:6px; }
+  .wkbtn { cursor:pointer; border:1.5px solid var(--line); background:var(--surface); border-radius:9px;
+    padding:6px 14px; font:inherit; font-size:13.5px; font-weight:700; color:var(--ink-soft); }
+  .wkbtn:hover { border-color:var(--accent); color:var(--accent); }
+  .wkbtn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .dt-weekbar .wb-note { font-size:12.5px; color:var(--ink-soft); }
+  .dt-weekbar .wb-all { margin-left:auto; display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-soft); cursor:pointer; }
+  .dt-weekbar .wb-all input { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
+
+  .dt-ladder { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:6px 0 20px; }
+  @media (max-width:700px){ .dt-ladder { grid-template-columns:repeat(2,1fr); } }
+  .dt-ladder .rung { border:1px solid var(--line); background:var(--surface-2); border-radius:11px; padding:10px 12px; }
+  .dt-ladder .rung .rw { display:block; font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--ink-soft); }
+  .dt-ladder .rung .rt { font-size:14.5px; font-weight:650; }
+  .dt-ladder .rung.now { border-color:var(--accent); background:var(--accent-soft); }
+  .dt-ladder .rung.now .rw { color:var(--accent-ink); }
+  .dt-ladder .rung.later { opacity:.5; }
+
+  .dt-layer { border-top:1px solid var(--line); padding-top:18px; margin-top:22px; }
+  .dt-layer:first-of-type { border-top:none; padding-top:0; margin-top:4px; }
+  .dt-layer .lhead { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .dt-layer .lhead h3 { margin:0 0 8px; font-size:20px; }
+  .wkchip { font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+    border:1px solid var(--accent-line); background:var(--accent-soft); color:var(--accent-ink);
+    border-radius:999px; padding:2px 10px; white-space:nowrap; }
+  .dt-layer[hidden] { display:none; }
+
+  .dt-locked { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:18px 0 0;
+    border:1px dashed var(--line); border-radius:12px; padding:12px 15px; background:var(--surface-2);
+    font-size:13.5px; color:var(--ink-soft); }
+  .dt-locked b { color:var(--ink); }
+  .dt-locked button { margin-left:auto; }
+  @media print { .dt-layer[hidden], .dt-weekbar { display:block !important; } .dt-locked { display:none !important; } }
+
   @media print {
     .topbar, .dt-rail, .dt-tools, .dt-tabbar, .dt-pager, .egnav, .egdots, .dt-hero p, footer.foot { display:none !important; }
     .dt-cols { grid-template-columns:1fr; }
@@ -294,6 +333,10 @@
     <p>One page, given to you before you do anything, because a rubric you cannot see is just a vague
     instruction wearing a lab coat. Every Monday you present to the client and are scored against
     what is written here. <b>The trend is what matters, not any single Monday.</b></p>
+    <p style="margin-top:10px;font-size:16px;color:var(--ink-soft)">Set your week below and the page
+    grows with the engagement — Week 7 shows the starting layer of every section, and each week adds
+    the next one. Nothing is hidden from you; <b>"show every week"</b> opens the whole thing whenever
+    you want to read ahead.</p>
   </div>
 
   <nav class="dt-tabbar" id="tabbar" aria-label="Delivery track sections">
@@ -304,6 +347,14 @@
     <button class="dt-tab" data-tab="blocker"><span class="tn">05</span> Blockers &amp; estimates <span class="fillable">form</span></button>
     <button class="dt-tab" data-tab="loop"><span class="tn">06</span> The Claude loop</button>
   </nav>
+
+
+  <div class="dt-weekbar" id="weekbar">
+    <span class="wb-k">Your week</span>
+    <span class="wb-btns" id="wbBtns"></span>
+    <span class="wb-note" id="wbNote"></span>
+    <label class="wb-all"><input type="checkbox" id="wbAll"> Show every week's material</label>
+  </div>
 
   <div class="dt-cols">
   <div class="dt-main">
@@ -600,6 +651,8 @@
       </div>
     </div>
 
+    <div class="dt-layer" data-from="8">
+      <div class="lhead"><span class="wkchip">Adds in Week 8</span></div>
     <div class="dt-eg" data-eg data-title="Translation pairs">
       <button class="egbtn" type="button"><span class="egi">▸</span> See 4 worked examples
         <span class="egmeta">generic · W1–W4 · swipe →</span></button>
@@ -671,6 +724,8 @@
         <div class="egdots"></div>
       </div>
     </div>
+    </div>
+
   </section>
   <div class="dt-pager" id="pager-week"></div>
   </div>
@@ -992,7 +1047,7 @@
     </details>
   </section>
 
-  <section class="dt-sec" id="habits">
+  <section class="dt-sec dt-layer" data-from="8" id="habits">
     <div class="k">Underneath the score</div>
     <h2>Four habits</h2>
     <p class="lede">Each one is a thing that actually happened on demo day, kept because it worked or
@@ -1197,6 +1252,8 @@
       </div>
     </div>
 
+    <div class="dt-layer" data-from="8">
+      <div class="lhead"><span class="wkchip">Adds in Week 8</span></div>
     <h3>4 · The golden path</h3>
     <p class="dt-note" style="margin:0 0 8px">Which screens, in what order, against what data. Seed
     the data <b>before</b> the room is watching — "let me just create a record" is dead air. Tell
@@ -1261,6 +1318,10 @@
       </div>
     </div>
 
+    </div>
+
+    <div class="dt-layer" data-from="9">
+      <div class="lhead"><span class="wkchip">Adds in Week 9</span></div>
     <h3>5 · The claims audit</h3>
     <p class="dt-note" style="margin:0 0 8px">Every comparative word you plan to say — <i>faster,
     better, more performant, cheaper, safer</i> — goes in this table or gets cut.</p>
@@ -1328,6 +1389,10 @@
       </div>
     </div>
 
+    </div>
+
+    <div class="dt-layer" data-from="10">
+      <div class="lhead"><span class="wkchip">Adds in Week 10</span></div>
     <h3>6 · The one question I hope they don't ask</h3>
     <div class="dt-form">
       <div class="row"><div class="lb">Q<small>Write it down.</small></div>
@@ -1391,6 +1456,8 @@
         <div class="egdots"></div>
       </div>
     </div>
+    </div>
+
   </section>
   <div class="dt-pager" id="pager-premortem"></div>
   </div>
@@ -1521,248 +1588,307 @@
 
   <section class="dt-sec" id="estimate">
     <div class="k">The skill underneath the card</div>
-    <h2>How to estimate — and why your tools lie in opposite directions</h2>
-    <p class="lede">Two numbers are required on every blocker card. Here is how to produce them so
-    they mean something, and why <b>Claude's estimate reads high while your own reads low.</b> Both
-    are documented biases, not personal failings.</p>
+    <h2>How to estimate</h2>
+    <p class="lede">Every blocker card asks for two numbers. This section teaches how to produce numbers worth
+    believing — <b>one layer per week</b>. Week 7 is a single rule you can use on Monday. By Week 10 you can defend an
+    estimate to a client's finance lead.</p>
 
-    <h3>The two biases, pointed at each other</h3>
-    <div class="dt-tbl">
-      <div class="th g-ev"><div>Who's estimating</div><div>Which way it bends</div><div>Why</div></div>
-      <div class="tr g-ev">
-        <div style="padding:9px 12px"><b>You, about your own work</b></div>
-        <div style="padding:9px 12px"><b>Too low.</b> The planning fallacy — and knowing about it doesn't fix it.</div>
-        <div style="padding:9px 12px">In the classic study, people gave dates they were 50%, 75% and 99% sure of. Only <b>13% finished by their 50% date, 19% by their 75%, and 45% by the date they were 99% sure about.</b></div>
-      </div>
-      <div class="tr g-ev">
-        <div style="padding:9px 12px"><b>Claude, about your work</b></div>
-        <div style="padding:9px 12px"><b>Too high.</b> The same bias <i>reverses</i> for outside observers.</div>
-        <div style="padding:9px 12px">It has no memory of your throughput, can't see how much already exists, and its training is full of human-scale project language — so it prices a generic team, review cycles and meetings included.</div>
-      </div>
-    </div>
-    <div class="dt-rule">The model's number is not wrong, it is <b>an outside view of a stranger</b>.
-      It's roughly what this would cost some team, somewhere. Your job is to make it a view of
-      <b>you</b> — by giving it your own history.</div>
-
-    <h3>What the evidence says about AI speedup (and why it matters here)</h3>
-    <div class="dt-tbl">
-      <div class="th g-cl" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,.8fr)"><div>Study</div><div>Setting</div><div>Effect</div></div>
-      <div class="tr g-cl" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,.8fr)">
-        <div style="padding:9px 12px">Peng et al., 2023 (GitHub Copilot RCT)</div>
-        <div style="padding:9px 12px">Write an HTTP server from scratch — isolated, greenfield</div>
-        <div style="padding:9px 12px;color:var(--good-ink);font-weight:650">55.8% faster</div>
-      </div>
-      <div class="tr g-cl" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,.8fr)">
-        <div style="padding:9px 12px">Paradis et al., 2024 (Google, 96 engineers)</div>
-        <div style="padding:9px 12px">Complex enterprise task, real tooling</div>
-        <div style="padding:9px 12px;color:var(--good-ink);font-weight:650">~21% faster</div>
-      </div>
-      <div class="tr g-cl" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,.8fr)">
-        <div style="padding:9px 12px">METR, 2025 (16 experienced OSS devs, 246 issues)</div>
-        <div style="padding:9px 12px">Repos they maintain — 22k+ stars, 1M+ lines</div>
-        <div style="padding:9px 12px;color:var(--bad-ink);font-weight:650">19% SLOWER</div>
-      </div>
-      <div class="tr g-cl" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,.8fr)">
-        <div style="padding:9px 12px">METR, Feb 2026 update (agentic tools)</div>
-        <div style="padding:9px 12px">Same design, Claude Code / Codex era</div>
-        <div style="padding:9px 12px">Returning devs <b>−18%</b>, new devs <b>−4%</b> — likely faster, weak evidence</div>
-      </div>
-    </div>
-    <div class="dt-warn"><b>The number to remember:</b> in the 2025 study developers expected AI to
-    speed them up 24%, were actually slowed 19%, and <b>after finishing still believed they had been
-    sped up 20%.</b> Felt speedup is not evidence. That is the oracle rule pointed at yourself.</div>
-    <p class="dt-note">Read the spread, not any single row: <b>greenfield and isolated → large
-    speedup. Large, unfamiliar, mature codebase → small or negative.</b> Brownfield client work —
-    which is exactly what you are doing — sits at the pessimistic end of that range. And METR pulled
-    its 2026 headline partly because <b>time-on-task stopped meaning anything once developers work on
-    something else while the agent runs.</b> Which brings us to the thing to actually measure.</p>
-
-    <div class="dt-rule">Track <b>two clocks</b>: <b>wall-clock</b> (calendar time from start to on
-      <code>main</code>) and <b>touch-time</b> (your hands actually on it). Agents make these diverge
-      hard. A client cares about the first; your calibration needs the second.</div>
-
-    <h3>The method, in the order to reach for it</h3>
-    <div class="dt-steps">
-      <div class="dt-step"><div class="sb"><b>Take the outside view first.</b> Reference-class
-        forecasting (Flyvbjerg; it's UK government guidance for infrastructure): find past similar
-        work, look at what it <i>actually</i> took, place this one in that distribution.
-        <b>Your calibration log is your reference class</b> — after three weeks, "tasks like this ran
-        1.7× my first guess" is a real, personal correction factor.</div></div>
-      <div class="dt-step key"><div class="sb"><b>Then three points, not one.</b> Optimistic
-        <code>o</code>, most likely <code>m</code>, pessimistic <code>p</code>.
-        <div class="dt-formula">expected <b>te = (o + 4m + p) / 6</b><br>
-          spread <b>σ = (p − o) / 6</b></div>
-        The formula is not the point. <b>Naming <code>p</code> forces you to name the risk that
-        produces it</b> — which is literally the "and what would cause it" field on the card.</div></div>
-      <div class="dt-step"><div class="sb"><b>Quote likely, commit at the bad case.</b> Standard flow
-        practice is to commit at roughly the <b>85th percentile</b> and quote the 50th as "likely."
-        Two numbers, one commitment.</div></div>
-      <div class="dt-step"><div class="sb"><b>Re-estimate when scope decisions change, not when time
-        passes.</b> The cone of uncertainty narrows only as decisions remove variability — and early
-        estimates in the original research overran by up to <b>100%</b> or underran by <b>50%</b>.
-        <b>Monday's requirements update re-widens the cone every week</b>, so re-estimating on Tuesday
-        is the method, not indecision.</div></div>
-      <div class="dt-step"><div class="sb"><b>Segment it.</b> Estimating the parts and adding them up
-        beats estimating the whole — a documented planning-fallacy counter. Totals hide integration,
-        review and deploy; parts don't.</div></div>
+    <div class="dt-ladder">
+      <div class="rung" data-rung="7"><span class="rw">W7</span><span class="rt">Two numbers</span></div>
+      <div class="rung" data-rung="8"><span class="rw">W8</span><span class="rt">Check yourself</span></div>
+      <div class="rung" data-rung="9"><span class="rw">W9</span><span class="rt">Split it first</span></div>
+      <div class="rung" data-rung="10"><span class="rw">W10</span><span class="rt">Commit &amp; defend</span></div>
     </div>
 
-    <div class="dt-eg" data-eg data-title="Estimating, worked">
-      <button class="egbtn" type="button"><span class="egi">▸</span> See 4 worked examples
-        <span class="egmeta">incl. the prompt to use · swipe →</span></button>
-      <div class="egwrap" hidden>
-        <div class="eghead"><span class="egttl">Estimating, worked</span>
-          <span class="egpos">1 / 4</span>
-          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
-          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
-        <div class="egtrack" tabindex="0">
-          <article class="egslide">
-            <div class="egtags"><span class="wk bad">Before</span></div>
-            <h4>The estimate with nothing behind it</h4>
-            <div class="dt-say">You: "How long to add reply-posting to the assistant?"<br>
-            Claude: "Roughly 2–3 weeks."<br>
-            You, to the client: "Should be a couple of weeks."</div>
-            <p class="why"><b>Three problems.</b> The model priced a generic team with review cycles
-            you don't have. You laundered its number into a commitment. And "a couple of weeks" has
-            no bad case, so the client cannot plan around it. <b>Neither of you is lying; the number
-            is just unsourced.</b></p>
-          </article>
-          <article class="egslide">
-            <div class="egtags"><span class="wk good">Segment + three points</span></div>
-            <h4>The same item, broken up</h4>
-            <div class="dt-tbl">
-              <div class="th g-cal" style="grid-template-columns:minmax(0,1.4fr) 90px 90px 90px minmax(0,1fr)"><div>Part</div><div>O</div><div>M</div><div>P</div><div>What makes it P</div></div>
-              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 90px 90px 90px minmax(0,1fr)"><div>Service account + scope agreed</div><div>0.5d</div><div>3d</div><div>8d</div><div>Goes to monthly security review</div></div>
-              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 90px 90px 90px minmax(0,1fr)"><div>Write path + retries</div><div>0.5d</div><div>1d</div><div>2d</div><div>Their API rejects markdown bodies</div></div>
-              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 90px 90px 90px minmax(0,1fr)"><div>Audit trail on every post</div><div>0.5d</div><div>1d</div><div>3d</div><div>Compliance wants a field we don't have</div></div>
-              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 90px 90px 90px minmax(0,1fr)"><div>Merge, review, deploy</div><div>0.5d</div><div>1d</div><div>2d</div><div>Release window is weekly</div></div>
-            </div>
-            <div class="dt-formula">te = (2 + 4×6 + 15) / 6 ≈ <b>6.8 days</b> &nbsp;·&nbsp; σ = (15 − 2) / 6 ≈ <b>2.2 days</b></div>
-            <p class="why"><b>The last row is the one you'd have forgotten.</b> Segmenting is what
-            surfaces merge, review and deploy — the parts an agent never charges you for and a client
-            always waits on.</p>
-          </article>
-          <article class="egslide">
-            <div class="egtags"><span class="wk good">Reference class</span></div>
-            <h4>Correcting with your own history</h4>
-            <div class="dt-tbl">
-              <div class="th g-cal" style="grid-template-columns:minmax(0,1.4fr) 110px 110px minmax(0,1fr)"><div>Past item of this shape</div><div>Estimated</div><div>Actual</div><div>Ratio</div></div>
-              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 110px 110px minmax(0,1fr)"><div>Re-index the ticket corpus</div><div>2d</div><div>5d</div><div>2.5×</div></div>
-              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 110px 110px minmax(0,1fr)"><div>Timeout + breaker on ticket API</div><div>1d</div><div>2d</div><div>2.0×</div></div>
-              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 110px 110px minmax(0,1fr)"><div>Service account for read scope</div><div>3d</div><div>4d</div><div>1.3×</div></div>
-            </div>
-            <p class="egnote" style="margin-top:10px">Median ratio ≈ <b>2.0×</b> on the pure-build
-            items, <b>1.3×</b> where the delay was someone else's. So: build parts get doubled;
-            access parts get their bad case widened rather than their likely.</p>
-            <p class="why"><b>This is the whole method in one table.</b> Three weeks of honest logging
-            beats any amount of thinking harder, and it is the one correction factor that is
-            genuinely <i>yours</i> — not a generic team's, not the model's.</p>
-          </article>
-          <article class="egslide">
-            <div class="egtags"><span class="wk good">The prompt</span><span class="wk">W6 · fresh session</span></div>
-            <h4>How to ask Claude for an estimate you can use</h4>
-            <div class="dt-prompt" style="margin-top:0">
-              <div class="ph">Paste your real history in — that's what changes the answer</div>
-              <pre>Estimate this, but do not give me a single number.
+    <!-- ============================ W7 LAYER ============================ -->
+    <div class="dt-layer" data-from="7">
+      <div class="lhead"><span class="wkchip">Week 7</span><h3>Two numbers, never one</h3></div>
 
-My reference class — my last three items of this shape, estimated vs actual:
-  - re-index corpus: est 2d, actual 5d (missed a dependency)
-  - timeout + breaker: est 1d, actual 2d (didn't price the staging proof)
-  - read-scope service account: est 3d, actual 4d (person was out a day)
-
-The work: <describe it>
-
-Return: (1) the parts, separately — include merge, review and deploy;
-(2) optimistic / most likely / pessimistic per part;
-(3) for each pessimistic, the specific event that causes it;
-(4) totals with te = (o+4m+p)/6.
-Do not adjust for "AI makes this faster" — my history already includes that.</pre>
-            </div>
-            <p class="why"><b>The last line matters.</b> Without it the model double-counts its own
-            speedup — once in the estimate, once in your history, which already reflects working this
-            way. And demanding the event that causes each pessimistic case is what turns a number
-            into a sentence a client can act on.</p>
-          </article>
+      <p>When something is blocked, a client needs two numbers from you, not one:</p>
+      <div class="dt-two" style="margin:10px 0 14px">
+        <div class="dt-def">
+          <div class="dk">Likely</div>
+          <div class="dd">What you think it will take.</div>
+          <div class="dw">Your honest middle guess. Not your best day, not your worst.</div>
         </div>
-        <div class="egdots"></div>
-      </div>
-    </div>
-
-    <h3 id="calibration">The calibration loop</h3>
-    <p class="dt-note" style="margin:0 0 10px">This is what separates a skill from paperwork, and it
-    is how you build the reference class above. Every Monday, for every card filed previously:</p>
-    <div class="dt-tbl">
-      <div class="th g-cal"><div>Item</div><div>Estimated</div><div>Actual</div><div>Off by</div><div>Why</div></div>
-      <div class="tr g-cal"><div><input class="dt-in" data-f="cal1.a"></div><div><input class="dt-in" data-f="cal1.b"></div><div><input class="dt-in" data-f="cal1.c"></div><div><input class="dt-in" data-f="cal1.d"></div><div><input class="dt-in" data-f="cal1.e"></div></div>
-      <div class="tr g-cal"><div><input class="dt-in" data-f="cal2.a"></div><div><input class="dt-in" data-f="cal2.b"></div><div><input class="dt-in" data-f="cal2.c"></div><div><input class="dt-in" data-f="cal2.d"></div><div><input class="dt-in" data-f="cal2.e"></div></div>
-      <div class="tr g-cal"><div><input class="dt-in" data-f="cal3.a"></div><div><input class="dt-in" data-f="cal3.b"></div><div><input class="dt-in" data-f="cal3.c"></div><div><input class="dt-in" data-f="cal3.d"></div><div><input class="dt-in" data-f="cal3.e"></div></div>
-    </div>
-    <p class="dt-note" style="margin-top:10px"><b>Expect the first estimates to be bad.</b> Nobody is
-    scored on accuracy; you are scored on whether the delta shrinks and whether you can say <i>why</i>
-    it missed. Three honest reasons cover almost every miss:</p>
-    <ul style="font-size:15px;line-height:1.6;padding-left:22px">
-      <li><b>I didn't know about the dependency</b> → your scoping missed it. Fix the scoping.</li>
-      <li><b>I knew and didn't price it</b> → optimism. Price the bad case next time.</li>
-      <li><b>Someone else moved slower than I assumed</b> → you didn't confirm with the named person. Confirm.</li>
-    </ul>
-
-    <div class="dt-eg" data-eg data-title="Calibration logs">
-      <button class="egbtn" type="button"><span class="egi">▸</span> See 3 worked examples
-        <span class="egmeta">good · bad · what to say · swipe →</span></button>
-      <div class="egwrap" hidden>
-        <div class="eghead"><span class="egttl">Calibration logs</span>
-          <span class="egpos">1 / 3</span>
-          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
-          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
-        <div class="egtrack" tabindex="0">
-          <article class="egslide">
-            <div class="egtags"><span class="wk good">Three weeks, done right</span></div>
-            <div class="dt-tbl">
-              <div class="th g-cal"><div>Item</div><div>Est</div><div>Actual</div><div>Off by</div><div>Why</div></div>
-              <div class="tr g-cal"><div>Re-index the ticket corpus</div><div>2d</div><div>5d</div><div>+3</div><div>Didn't know about the dependency — nobody had exported tickets since 2024, the export job had to be rebuilt.</div></div>
-              <div class="tr g-cal"><div>Timeout + breaker on ticket API</div><div>1d</div><div>2d</div><div>+1</div><div>Knew and didn't price it — I priced the code, not the staging run that proves it degrades cleanly.</div></div>
-              <div class="tr g-cal"><div>Service account for write scope</div><div>3d</div><div>4d</div><div>+1</div><div>Someone else moved slower — Dana was out Tuesday. I'd asked but hadn't confirmed the day.</div></div>
-            </div>
-            <p class="why"><b>+3, +1, +1 — the delta is shrinking</b>, which is the only thing being
-            scored. Each "why" is one of the three honest reasons, named plainly, no padding. Week
-            four's estimate from this person is worth believing; week one's wasn't.</p>
-          </article>
-          <article class="egslide">
-            <div class="egtags"><span class="wk bad">The same log, faked</span></div>
-            <div class="dt-tbl">
-              <div class="th g-cal"><div>Item</div><div>Est</div><div>Actual</div><div>Off by</div><div>Why</div></div>
-              <div class="tr g-cal"><div>Re-index</div><div>2d</div><div>5d</div><div>+3</div><div>Stuff came up</div></div>
-              <div class="tr g-cal"><div>Timeout work</div><div>1d</div><div>3d</div><div>+2</div><div>Harder than expected</div></div>
-              <div class="tr g-cal"><div>Service account</div><div>3d</div><div>7d</div><div>+4</div><div>Still waiting on IT</div></div>
-            </div>
-            <p class="why"><b>Three non-answers, and the delta is growing.</b> "Harder than expected"
-            is the sentence that guarantees next week's estimate is wrong the same way — it names no
-            mechanism, so nothing changes. <b>"Still waiting on IT" isn't a calibration entry at
-            all</b>, it's the blocker card failing in a different box.</p>
-          </article>
-          <article class="egslide">
-            <div class="egtags"><span class="wk good">20 seconds on Monday</span></div>
-            <h4>Saying it out loud, before you're asked</h4>
-            <div class="dt-say">"Quick calibration. Last Monday I said the re-index was two days; it
-            took five, because nobody had exported tickets since 2024 and the export job had to be
-            rebuilt first — a dependency I didn't know existed. The week before I was off by one, and
-            before that three. <b>The gap is closing but it's still there, so treat my numbers as the
-            middle of a range, not a promise.</b>"</div>
-            <p class="why"><b>Why volunteer a miss?</b> Because the alternative is the client
-            discovering the pattern themselves, at which point every future number is discounted.
-            Said first, it does the opposite: it is the single fastest way to make the <i>next</i>
-            estimate believable. Being believable about time is worth more to a client than being
-            fast.</p>
-          </article>
+        <div class="dt-def">
+          <div class="dk">Bad case</div>
+          <div class="dd">What it takes if the thing you're worried about happens.</div>
+          <div class="dw">And you say <b>what that thing is</b>. That half is the point.</div>
         </div>
-        <div class="egdots"></div>
+      </div>
+
+      <div class="dt-rule">One number is a guess wearing a suit. <b>Two numbers plus the reason for the second one</b>
+        is something a client can plan around.</div>
+
+      <div class="dt-ex" style="margin-top:14px">
+        <div class="bad">
+          <div class="ek">✗ One number</div>
+          <p style="margin:0;font-size:16px"><i>"Should be about three days."</i></p>
+          <p style="margin:10px 0 0;font-size:13.5px;color:var(--ink-soft)">If it takes six, you were wrong. There is
+          nothing here the client can plan around, and nothing you can learn from later.</p>
+        </div>
+        <div class="good">
+          <div class="ek">✓ Two numbers and a reason</div>
+          <p style="margin:0;font-size:16px"><i>"Three days. Eight if it has to go through the monthly security
+          review instead of being signed off directly."</i></p>
+          <p style="margin:10px 0 0;font-size:13.5px;color:var(--ink-soft)">Now the client knows what to worry about,
+          and can go unstick the thing you named.</p>
+        </div>
+      </div>
+
+      <p class="dt-note" style="margin-top:14px"><b>That is the whole of Week 7.</b> Put both numbers on every blocker
+      card, and say the cause of the bad case out loud on Monday. Nothing else about estimating matters yet.</p>
+    </div>
+
+    <!-- ============================ W8 LAYER ============================ -->
+    <div class="dt-layer" data-from="8" id="calibration">
+      <div class="lhead"><span class="wkchip">Week 8</span><h3>Check yourself against what actually happened</h3></div>
+
+      <p>Last week you gave numbers. This week you find out how good they were — and that is the entire skill. Every
+      Monday, for every estimate you gave, write down four things: what you said, what it actually took, the gap, and
+      <b>why</b>.</p>
+
+      <div class="dt-tbl">
+        <div class="th g-cal"><div>Item</div><div>Estimated</div><div>Actual</div><div>Off by</div><div>Why</div></div>
+        <div class="tr g-cal"><div><input class="dt-in" data-f="cal1.a"></div><div><input class="dt-in" data-f="cal1.b"></div><div><input class="dt-in" data-f="cal1.c"></div><div><input class="dt-in" data-f="cal1.d"></div><div><input class="dt-in" data-f="cal1.e"></div></div>
+        <div class="tr g-cal"><div><input class="dt-in" data-f="cal2.a"></div><div><input class="dt-in" data-f="cal2.b"></div><div><input class="dt-in" data-f="cal2.c"></div><div><input class="dt-in" data-f="cal2.d"></div><div><input class="dt-in" data-f="cal2.e"></div></div>
+        <div class="tr g-cal"><div><input class="dt-in" data-f="cal3.a"></div><div><input class="dt-in" data-f="cal3.b"></div><div><input class="dt-in" data-f="cal3.c"></div><div><input class="dt-in" data-f="cal3.d"></div><div><input class="dt-in" data-f="cal3.e"></div></div>
+      </div>
+
+      <p class="dt-note" style="margin-top:10px"><b>Expect the first ones to be bad.</b> Nobody is scored on accuracy.
+      You are scored on whether the gap shrinks, and whether you can say why it missed. Almost every miss is one of
+      three things:</p>
+      <ul style="font-size:15px;line-height:1.6;padding-left:22px">
+        <li><b>I didn't know about that dependency</b> → your scoping missed it. Scope wider next time.</li>
+        <li><b>I knew and didn't price it</b> → optimism. Put it in the bad case next time.</li>
+        <li><b>Someone else was slower than I assumed</b> → you never confirmed the date with them. Confirm.</li>
+      </ul>
+
+      <div class="dt-rule" style="margin-top:14px"><b>Track two clocks, not one.</b> Calendar time from start to
+        merged, and the hours your hands were actually on it. With an agent running unattended those two numbers pull
+        apart fast — a client cares about the first, your own calibration needs the second.</div>
+
+      <div class="dt-eg" data-eg data-title="Calibration logs">
+        <button class="egbtn" type="button"><span class="egi">▸</span> See 3 worked examples
+          <span class="egmeta">good · bad · what to say · swipe →</span></button>
+        <div class="egwrap" hidden>
+          <div class="eghead"><span class="egttl">Calibration logs</span>
+            <span class="egpos">1 / 3</span>
+            <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+            <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+          <div class="egtrack" tabindex="0">
+            <article class="egslide">
+              <div class="egtags"><span class="wk good">Three weeks, done right</span></div>
+              <div class="dt-tbl">
+                <div class="th g-cal"><div>Item</div><div>Est</div><div>Actual</div><div>Off by</div><div>Why</div></div>
+                <div class="tr g-cal"><div>Re-index the ticket corpus</div><div>2d</div><div>5d</div><div>+3</div><div>Didn't know about the dependency — nobody had exported tickets since 2024, so the export job had to be rebuilt first.</div></div>
+                <div class="tr g-cal"><div>Timeout + breaker on ticket API</div><div>1d</div><div>2d</div><div>+1</div><div>Knew and didn't price it — I priced the code, not the staging run that proves it degrades cleanly.</div></div>
+                <div class="tr g-cal"><div>Service account for write scope</div><div>3d</div><div>4d</div><div>+1</div><div>Someone else moved slower — Dana was out Tuesday. I'd asked, but hadn't confirmed the day.</div></div>
+              </div>
+              <p class="why"><b>+3, +1, +1 — the gap is shrinking</b>, which is the only thing being scored. Each "why"
+              is one of the three reasons, named plainly, with no padding. Week four's estimate from this person is
+              worth believing; week one's wasn't.</p>
+            </article>
+            <article class="egslide">
+              <div class="egtags"><span class="wk bad">The same log, faked</span></div>
+              <div class="dt-tbl">
+                <div class="th g-cal"><div>Item</div><div>Est</div><div>Actual</div><div>Off by</div><div>Why</div></div>
+                <div class="tr g-cal"><div>Re-index</div><div>2d</div><div>5d</div><div>+3</div><div>Stuff came up</div></div>
+                <div class="tr g-cal"><div>Timeout work</div><div>1d</div><div>3d</div><div>+2</div><div>Harder than expected</div></div>
+                <div class="tr g-cal"><div>Service account</div><div>3d</div><div>7d</div><div>+4</div><div>Still waiting on IT</div></div>
+              </div>
+              <p class="why"><b>Three non-answers, and the gap is growing.</b> "Harder than expected" names no
+              mechanism, so nothing changes and next week misses the same way. <b>"Still waiting on IT" isn't a
+              calibration entry at all</b> — that is the blocker card failing in a different box.</p>
+            </article>
+            <article class="egslide">
+              <div class="egtags"><span class="wk good">20 seconds on Monday</span></div>
+              <h4>Saying it out loud, before you're asked</h4>
+              <div class="dt-say">"Quick calibration. Last Monday I said the re-index was two days; it took five,
+              because nobody had exported tickets since 2024 and the export job had to be rebuilt first — a dependency
+              I didn't know existed. The week before I was off by one, and before that three. <b>The gap is closing
+              but it's still there, so treat my numbers as the middle of a range, not a promise.</b>"</div>
+              <p class="why"><b>Why volunteer a miss?</b> Because the alternative is the client spotting the pattern
+              themselves, and from then on every number you give gets quietly discounted. Said first, it does the
+              opposite: it is the fastest way to make the <i>next</i> estimate believable.</p>
+            </article>
+          </div>
+          <div class="egdots"></div>
+        </div>
       </div>
     </div>
 
-    <p class="dt-note" style="margin-top:18px;font-size:13.5px">Sources: Buehler, Griffin &amp; Ross
-    on the planning fallacy; Kahneman &amp; Tversky's outside view; Flyvbjerg / UK DfT reference-class
-    forecasting; PERT three-point estimation; METR 2025 RCT + Feb 2026 update; Paradis et al. 2024
-    (Google); Peng et al. 2023 (GitHub Copilot).</p>
+    <!-- ============================ W9 LAYER ============================ -->
+    <div class="dt-layer" data-from="9">
+      <div class="lhead"><span class="wkchip">Week 9</span><h3>Split the work before you put a number on it</h3></div>
+
+      <p>By now you have two or three weeks of your own history, and you have probably noticed the same thing everyone
+      notices: <b>the parts you forgot are what blew the estimate</b>, not the part you thought about. The fix is
+      mechanical. Never estimate a whole item. List its parts, put numbers on each, add them up.</p>
+
+      <p class="dt-note">The parts people leave out, every time: <b>merge, review, and deploy.</b> An agent will write
+      the code in an afternoon and none of those three get faster because of it.</p>
+
+      <p>For each part, three numbers instead of two — best case, likely, bad case. Two useful things fall out. First,
+      naming the best case stops you anchoring on it. Second, the spread between best and bad case <em>is</em> your
+      uncertainty, made visible. If you want the standard formula, it weights the middle:</p>
+      <div class="dt-formula">expected = ( best + <b>4 × likely</b> + bad ) ÷ 6</div>
+      <p class="dt-note">You do not have to use the formula. What you must do is <b>write the parts down separately</b>
+      — that alone moves most people's estimates closer to reality than any arithmetic.</p>
+
+      <div class="dt-eg" data-eg data-title="Splitting an item">
+        <button class="egbtn" type="button"><span class="egi">▸</span> See 2 worked examples
+          <span class="egmeta">generic · swipe →</span></button>
+        <div class="egwrap" hidden>
+          <div class="eghead"><span class="egttl">Splitting an item</span>
+            <span class="egpos">1 / 2</span>
+            <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+            <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+          <div class="egtrack" tabindex="0">
+            <article class="egslide">
+              <div class="egtags"><span class="wk bad">Before</span></div>
+              <h4>One number for the whole thing</h4>
+              <div class="dt-say">You: "How long to let the assistant post a reply back to the ticket?"<br>
+              Claude: "Roughly two to three weeks."<br>
+              You, to the client: "Should be a couple of weeks."</div>
+              <p class="why">Three problems. The model priced a generic team with review cycles you do not have. You
+              passed its number on as a commitment. And "a couple of weeks" has no bad case, so the client cannot plan
+              around it. <b>Nobody lied — the number is just unsourced.</b></p>
+            </article>
+            <article class="egslide">
+              <div class="egtags"><span class="wk good">After</span><span class="wk">same item, split</span></div>
+              <div class="dt-tbl">
+                <div class="th g-cal" style="grid-template-columns:minmax(0,1.4fr) 80px 80px 80px minmax(0,1fr)"><div>Part</div><div>Best</div><div>Likely</div><div>Bad</div><div>What makes it the bad case</div></div>
+                <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 80px 80px 80px minmax(0,1fr)"><div>Get the access scope agreed</div><div>0.5d</div><div>3d</div><div>8d</div><div>Goes to the monthly security review</div></div>
+                <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 80px 80px 80px minmax(0,1fr)"><div>Write path + retries</div><div>0.5d</div><div>1d</div><div>2d</div><div>Their API rejects formatted text</div></div>
+                <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 80px 80px 80px minmax(0,1fr)"><div>Audit trail on every post</div><div>0.5d</div><div>1d</div><div>3d</div><div>Compliance wants a field we don't store</div></div>
+                <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 80px 80px 80px minmax(0,1fr)"><div>Merge, review, deploy</div><div>0.5d</div><div>1d</div><div>2d</div><div>Release window is weekly</div></div>
+              </div>
+              <p class="why"><b>The last row is the one you would have forgotten</b> — and on a weekly release train it
+              can be the biggest one. Totals: about seven days likely, fifteen in the bad case. That is a sentence a
+              client can act on, and every row names its own risk.</p>
+            </article>
+          </div>
+          <div class="egdots"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ W10 LAYER ============================ -->
+    <div class="dt-layer" data-from="10">
+      <div class="lhead"><span class="wkchip">Week 10</span><h3>Commit at the bad case — and know why your tools mislead you</h3></div>
+
+      <p><b>Quote the likely number. Commit to the bad one.</b> That is the whole of the last rule. Teams that deliver
+      predictably do not estimate better than you — they promise the pessimistic number and look reliable when it
+      lands early.</p>
+
+      <p>The rest of this layer is the <i>why</i>, and it is what lets you defend a number to someone senior. Your two
+      sources of estimates are both biased, in opposite directions:</p>
+
+      <div class="dt-tbl">
+        <div class="th g-ev"><div>Who's estimating</div><div>Which way it bends</div><div>Why</div></div>
+        <div class="tr g-ev">
+          <div style="padding:9px 12px"><b>You, about your own work</b></div>
+          <div style="padding:9px 12px"><b>Too low.</b> Knowing about the bias does not fix it.</div>
+          <div style="padding:9px 12px">In the classic study, people gave dates they were 50%, 75% and 99% sure of. Only <b>13% finished by their 50% date, and 45% by the date they were 99% sure about.</b></div>
+        </div>
+        <div class="tr g-ev">
+          <div style="padding:9px 12px"><b>Claude, about your work</b></div>
+          <div style="padding:9px 12px"><b>Too high.</b> The same bias reverses for outside observers.</div>
+          <div style="padding:9px 12px">It has no memory of how fast you actually work and cannot see how much already exists, so it prices a generic team — review cycles, meetings and all.</div>
+        </div>
+      </div>
+      <p class="dt-note" style="margin-top:10px">The model's number is not wrong so much as <b>a forecast of a
+      stranger</b>. Your job is to make it a forecast of <b>you</b>, by handing it your own history — which is exactly
+      what you have been logging since Week 8.</p>
+
+      <h4 style="margin:20px 0 6px">Does AI make this faster? It depends, and the spread is the finding</h4>
+      <div class="dt-tbl">
+        <div class="th g-ev"><div>Study</div><div>Setting</div><div>Effect</div></div>
+        <div class="tr g-ev">
+          <div style="padding:9px 12px">Copilot trial, 2023</div>
+          <div style="padding:9px 12px">Write a small server from scratch — isolated, greenfield</div>
+          <div style="padding:9px 12px;color:var(--good-ink);font-weight:650">55.8% faster</div>
+        </div>
+        <div class="tr g-ev">
+          <div style="padding:9px 12px">Google, 2024 — 96 engineers</div>
+          <div style="padding:9px 12px">A complex enterprise task, real tooling</div>
+          <div style="padding:9px 12px;color:var(--good-ink);font-weight:650">~21% faster</div>
+        </div>
+        <div class="tr g-ev">
+          <div style="padding:9px 12px">METR, 2025 — experienced maintainers</div>
+          <div style="padding:9px 12px">Repositories they know well, 1M+ lines</div>
+          <div style="padding:9px 12px;color:var(--bad-ink);font-weight:650">19% slower</div>
+        </div>
+        <div class="tr g-ev">
+          <div style="padding:9px 12px">METR, Feb 2026 — agentic tools</div>
+          <div style="padding:9px 12px">Same design, Claude Code era</div>
+          <div style="padding:9px 12px">Faster again, but the measurement broke down</div>
+        </div>
+      </div>
+      <div class="dt-warn" style="margin-top:12px"><b>The number to remember:</b> in the 2025 study developers
+      expected AI to speed them up 24%, were actually slowed 19%, and <b>after finishing still believed they had been
+      sped up 20%.</b> Felt speedup is not evidence — that is the oracle rule, pointed at yourself.</div>
+      <p class="dt-note">Read the spread rather than any single row. <b>Greenfield and isolated, large speedup.
+      Big, old, unfamiliar codebase, small or negative.</b> Brownfield client work — what you are doing — sits at the
+      pessimistic end.</p>
+
+      <div class="dt-eg" data-eg data-title="Asking Claude for a usable estimate">
+        <button class="egbtn" type="button"><span class="egi">▸</span> See the prompt to use
+          <span class="egmeta">copy-ready · swipe →</span></button>
+        <div class="egwrap" hidden>
+          <div class="eghead"><span class="egttl">Asking Claude for a usable estimate</span>
+            <span class="egpos">1 / 2</span>
+            <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+            <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+          <div class="egtrack" tabindex="0">
+            <article class="egslide">
+              <div class="egtags"><span class="wk good">The prompt</span><span class="wk">fresh session</span></div>
+              <div class="dt-prompt" style="margin-top:0">
+                <div class="ph">Paste your real history in — that is what changes the answer
+                  <span class="cp"><button class="dt-btn" data-copyprompt="pEst">Copy</button></span></div>
+                <pre id="pEst">Estimate this, but do not give me a single number.
+
+My last three items of this shape, estimated vs actual:
+  - re-index corpus: said 2 days, took 5 (missed a dependency)
+  - timeout + breaker: said 1 day, took 2 (didn't price the staging proof)
+  - read-scope service account: said 3 days, took 4 (person was out a day)
+
+The work: &lt;describe it&gt;
+
+Give me back:
+  1. the parts, separately - and include merge, review and deploy
+  2. best / likely / bad case for each part
+  3. for each bad case, the specific event that causes it
+  4. the totals
+
+Do not adjust for "AI makes this faster" - my history already includes that.</pre>
+              </div>
+              <p class="why"><b>The last line matters.</b> Without it the model counts its own speedup twice — once in
+              the estimate, and once in your history, which already reflects working this way.</p>
+            </article>
+            <article class="egslide">
+              <div class="egtags"><span class="wk good">What you say</span></div>
+              <h4>The finished sentence, out loud</h4>
+              <div class="dt-say">"Likely four days. Eight if the scope request goes to the monthly security review
+              instead of being signed off directly. My last three estimates of this shape ran over by three, one and
+              one, so treat four as the middle of a range rather than a promise — and I'll hold myself to the
+              eight."</div>
+              <p class="why">Three properties, and they are the whole section in one breath: <b>two numbers</b>, the
+              <b>cause of the bad case named</b>, and <b>your own track record stated before anyone asks</b>. An
+              engineer who can be believed about time is worth more to a client than one who is fast.</p>
+            </article>
+          </div>
+          <div class="egdots"></div>
+        </div>
+      </div>
+
+      <p class="dt-note" style="margin-top:18px;font-size:13.5px">Sources: Buehler, Griffin &amp; Ross on the planning
+      fallacy; Kahneman &amp; Tversky's outside view; Flyvbjerg and the UK Department for Transport on reference-class
+      forecasting; PERT three-point estimation; METR's 2025 trial and February 2026 update; Paradis et al. 2024
+      (Google); Peng et al. 2023 (GitHub Copilot).</p>
+    </div>
   </section>
   <div class="dt-pager" id="pager-blocker"></div>
   </div>
@@ -1934,7 +2060,7 @@ to their own team, using only what I gave you. Then list what you had to guess a
                 ["rt-thu", "Thu–Fri · build"], ["rt-fri", "Fri · pre-mortem"]],
     rubric:    [["rubric", "The five dimensions"], ["habits", "Four habits"]],
     premortem: [["premortem", "Pre-mortem sheet"]],
-    blocker:   [["blocker", "Blocker card"], ["estimate", "How to estimate"], ["calibration", "Calibration loop"]],
+    blocker:   [["blocker", "Blocker card"], ["estimate", "How to estimate"], ["calibration", "Calibration \u00b7 W8"]],
     loop:      [["claude", "The Claude loop"]]
   };
   const tabBtns = Array.from(document.querySelectorAll(".dt-tab"));
@@ -2031,6 +2157,12 @@ to their own team, using only what I gave you. Then list what you had to guess a
   function scrollToAnchor(id) {
     const el = document.getElementById(id);
     if (!el) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    // A deep link can point into a layer this learner's week hasn't unlocked.
+    // Reveal everything rather than scrolling to a hidden element.
+    if (el.closest("[data-from][hidden]") || el.hasAttribute("hidden")) {
+      const c = document.getElementById("wbAll");
+      if (c && !c.checked) { c.checked = true; c.dispatchEvent(new Event("change")); }
+    }
     let p = el.parentElement;
     while (p) { if (p.tagName === "DETAILS") p.open = true; p = p.parentElement; }
     requestAnimationFrame(() => {
@@ -2117,11 +2249,16 @@ to their own team, using only what I gave you. Then list what you had to guess a
   document.querySelectorAll("[data-eg]").forEach(initCarousel);
   window.addEventListener("resize", syncAllCarousels);
 
-  /* ------------------------ fillable artifacts --------------------------- */
+  /* ---------------- week-by-week build + fillable artifacts ---------------- */
+  /* One week concept for the whole page. It drives three things: which layers
+     of material are visible (data-from), which week the two forms read and
+     write, and the ladder highlight in the estimate section. Persisted so a
+     learner sets it once in W7 and the page grows with them. */
   const WEEKS = [7, 8, 9, 10];
   const idt = (typeof window.FDE_getIdentity === "function" && window.FDE_getIdentity()) || null;
   const CODE = (idt && idt.code) || "anon";
   const state = { pm: 7, bc: 7 };
+  let WEEK = 7, SHOW_ALL = false;
 
   function keyFor(group, field) { return "fde_dt:" + CODE + ":" + state[group] + ":" + field; }
   function groupOf(el) {
@@ -2149,22 +2286,106 @@ to their own team, using only what I gave you. Then list what you had to guess a
   function flash(group, msg) {
     const n = document.getElementById(group === "pm" ? "pmSaved" : "bcSaved");
     if (!n) return;
-    n.innerHTML = "<b>✓</b> " + msg + " · week " + state[group] + " · " +
+    n.innerHTML = "<b>\u2713</b> " + msg + " \u00b7 week " + state[group] + " \u00b7 " +
       (CODE === "anon" ? "this browser only" : CODE);
     clearTimeout(timers[group]);
     timers[group] = setTimeout(() => { n.textContent = ""; }, 2600);
   }
+
+  // --- gating -------------------------------------------------------------
+  const LADDER_NOTE = {
+    7:  "Week 7 shows the starting layer of each section. More unlocks as the weeks run.",
+    8:  "Week 8 adds the checking layer \u2014 calibration, the golden path, translation pairs.",
+    9:  "Week 9 adds the harder layers \u2014 splitting work before estimating, the claims audit.",
+    10: "Week 10 shows everything, including the evidence behind the estimating rules."
+  };
+  function applyWeek() {
+    document.querySelectorAll("[data-from]").forEach(el => {
+      const from = parseInt(el.dataset.from, 10);
+      const show = SHOW_ALL || from <= WEEK;
+      if (show) el.removeAttribute("hidden"); else el.setAttribute("hidden", "");
+    });
+    document.querySelectorAll(".dt-ladder .rung").forEach(r => {
+      const w = parseInt(r.dataset.rung, 10);
+      r.classList.toggle("now", w === WEEK && !SHOW_ALL);
+      r.classList.toggle("later", w > WEEK && !SHOW_ALL);
+    });
+    const note = document.getElementById("wbNote");
+    if (note) note.textContent = SHOW_ALL ? "Showing every week \u2014 useful for reading ahead." : (LADDER_NOTE[WEEK] || "");
+    document.querySelectorAll(".wkbtn").forEach(b => b.classList.toggle("on", +b.dataset.week === WEEK));
+    document.querySelectorAll(".dt-wksel .dt-wk").forEach(b => b.classList.toggle("on", b.textContent === "W" + WEEK));
+    paintLocked();
+    setTimeout(syncAllCarousels, 0);
+  }
+  function paintLocked() {
+    document.querySelectorAll(".dt-locked").forEach(n => n.remove());
+    if (SHOW_ALL) return;
+    document.querySelectorAll(".dt-sec").forEach(sec => {
+      const hiddenLayers = Array.from(sec.querySelectorAll("[data-from]"))
+        .filter(el => el.hasAttribute("hidden"));
+      const secHidden = sec.hasAttribute("hidden");
+      if (secHidden || !hiddenLayers.length) return;
+      const weeks = hiddenLayers.map(el => +el.dataset.from).sort((a, b) => a - b);
+      const next = weeks[0];
+      const strip = document.createElement("div");
+      strip.className = "dt-locked";
+      strip.innerHTML = "\u2192 <span><b>" + hiddenLayers.length + " more " +
+        (hiddenLayers.length === 1 ? "layer" : "layers") + "</b> in this section, starting Week " + next +
+        ". They build on what's above \u2014 you don't need them yet.</span>";
+      const b = document.createElement("button");
+      b.className = "dt-btn ghost"; b.type = "button"; b.textContent = "Read ahead";
+      b.addEventListener("click", () => { const c = document.getElementById("wbAll"); c.checked = true; c.dispatchEvent(new Event("change")); });
+      strip.appendChild(b);
+      sec.appendChild(strip);
+    });
+    // whole sections can be gated too (the habits section, for one) — flag those
+    // at panel level, otherwise a W7 learner never learns they exist.
+    document.querySelectorAll(".dt-panel").forEach(panel => {
+      const hiddenSecs = Array.from(panel.querySelectorAll(".dt-sec[data-from]"))
+        .filter(s => s.hasAttribute("hidden"));
+      if (!hiddenSecs.length) return;
+      const next = Math.min.apply(null, hiddenSecs.map(s => +s.dataset.from));
+      const strip = document.createElement("div");
+      strip.className = "dt-locked";
+      strip.innerHTML = "\u2192 <span><b>" + hiddenSecs.length + " more section" +
+        (hiddenSecs.length === 1 ? "" : "s") + "</b> on this tab, starting Week " + next + ".</span>";
+      const b = document.createElement("button");
+      b.className = "dt-btn ghost"; b.type = "button"; b.textContent = "Read ahead";
+      b.addEventListener("click", () => { const c = document.getElementById("wbAll"); c.checked = true; c.dispatchEvent(new Event("change")); });
+      strip.appendChild(b);
+      const pager = panel.querySelector(".dt-pager");
+      panel.insertBefore(strip, pager || null);
+    });
+  }
+  function setWeek(w, opts) {
+    if (WEEKS.indexOf(w) === -1) return;
+    WEEK = w; state.pm = w; state.bc = w;
+    load("pm"); load("bc");
+    applyWeek();
+    try { localStorage.setItem("fde_dt_week", String(w)); } catch (e) { /* private mode */ }
+    if (opts && opts.flash) { flash("pm", "Loaded"); flash("bc", "Loaded"); }
+  }
+
+  // week bar
+  (function buildWeekBar() {
+    const host = document.getElementById("wbBtns");
+    WEEKS.forEach(w => {
+      const b = document.createElement("button");
+      b.className = "wkbtn"; b.type = "button"; b.dataset.week = w; b.textContent = "W" + w;
+      b.addEventListener("click", () => setWeek(w, { flash: true }));
+      host.appendChild(b);
+    });
+    const all = document.getElementById("wbAll");
+    all.addEventListener("change", () => { SHOW_ALL = all.checked; applyWeek(); });
+  })();
+
+  // the per-form selectors drive the same single week
   function buildWeeks(group, host) {
     WEEKS.forEach(w => {
       const b = document.createElement("button");
-      b.className = "dt-wk" + (w === state[group] ? " on" : "");
+      b.className = "dt-wk";
       b.textContent = "W" + w;
-      b.addEventListener("click", () => {
-        state[group] = w;
-        host.querySelectorAll(".dt-wk").forEach(x => x.classList.toggle("on", x.textContent === "W" + w));
-        load(group);
-        flash(group, "Loaded");
-      });
+      b.addEventListener("click", () => setWeek(w, { flash: true }));
       host.appendChild(b);
     });
   }
@@ -2177,7 +2398,6 @@ to their own team, using only what I gave you. Then list what you had to guess a
       let t; el.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => save(el), 500); });
     }
   });
-  load("pm"); load("bc");
 
   /* --------------------------- markdown export --------------------------- */
   const val = f => {
@@ -2257,14 +2477,10 @@ to their own team, using only what I gave you. Then list what you had to guess a
 
   /* ------------------------------ boot ----------------------------------- */
   const qw = parseInt(new URLSearchParams(location.search).get("w"), 10);
-  if (WEEKS.indexOf(qw) !== -1) {
-    ["pm", "bc"].forEach(g => {
-      state[g] = qw;
-      const host = document.getElementById(g === "pm" ? "pmWeeks" : "bcWeeks");
-      host.querySelectorAll(".dt-wk").forEach(x => x.classList.toggle("on", x.textContent === "W" + qw));
-      load(g);
-    });
-  }
+  let saved = 7;
+  try { saved = parseInt(localStorage.getItem("fde_dt_week"), 10) || 7; } catch (e) { saved = 7; }
+  setWeek(WEEKS.indexOf(qw) !== -1 ? qw : (WEEKS.indexOf(saved) !== -1 ? saved : 7));
+
   show("contract", { keepHash: true });
   routeFromHash(true);
 })();
