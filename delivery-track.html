@@ -1,0 +1,2273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delivery Track | 2463-FDE</title>
+<link rel="stylesheet" href="assets/css/style.css?v=20260714-w3f">
+<script src="assets/js/theme.js"></script>
+<style>
+  /* ---- delivery-track page-specific layout (reuses site design language) ---- */
+  .dt-wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px 80px; }
+  .dt-hero { padding: 34px 0 4px; }
+  .dt-hero h1 { font-size: 40px; margin: 0 0 8px; letter-spacing: -.5px; }
+  .dt-hero h1 b { color: var(--accent); }
+  .dt-hero p { color: var(--ink-soft); font-size: 17.5px; max-width: 820px; margin: 0; }
+  .dt-hero .dt-weeks-tag { display:inline-block; font-size:11.5px; text-transform:uppercase; letter-spacing:.12em; font-weight:800; color:var(--accent); margin-bottom:6px; }
+
+  /* ---- tab bar (sticky under the topbar) ---- */
+  .dt-tabbar { position:sticky; top:45px; z-index:40; display:flex; gap:6px; flex-wrap:wrap;
+    margin:20px 0 22px; padding:8px 0; background:var(--bar-bg); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line); }
+  .dt-tab { cursor:pointer; border:1.5px solid var(--line); background:var(--surface); border-radius:11px;
+    padding:9px 15px; font:inherit; font-size:14px; font-weight:650; color:var(--ink-soft);
+    display:flex; align-items:center; gap:8px; transition:border-color .12s, color .12s, background .12s; }
+  .dt-tab:hover { border-color:var(--accent); color:var(--accent); }
+  .dt-tab.on { background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink); }
+  .dt-tab .tn { font-size:11px; font-weight:800; letter-spacing:.08em; opacity:.7; }
+  .dt-tab .fillable { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+    border:1px solid var(--good-line); background:var(--good-soft); color:var(--good-ink); border-radius:999px; padding:1px 7px; }
+  @media (max-width:900px){ .dt-tab { padding:8px 11px; font-size:13px; } .dt-tab .tn { display:none; } }
+
+  .dt-panel { display:none; }
+  .dt-panel.on { display:block; }
+
+  /* two-column: content + sticky section rail */
+  .dt-cols { display:grid; grid-template-columns:minmax(0,1fr) 236px; gap:28px; align-items:start; }
+  .dt-main { min-width:0; }
+  .dt-rail { position:sticky; top:112px; display:grid; gap:4px; font-size:13.5px; }
+  .dt-rail .rk { font-size:11px; text-transform:uppercase; letter-spacing:.12em; font-weight:800; color:var(--ink-soft); margin-bottom:4px; }
+  .dt-rail a { display:block; padding:6px 10px; border-radius:8px; color:var(--ink-soft); text-decoration:none; border-left:2px solid transparent; }
+  .dt-rail a:hover { background:var(--surface); color:var(--accent); }
+  .dt-rail a.on { color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); font-weight:650; }
+  @media (max-width:1000px){ .dt-cols { grid-template-columns:1fr; } .dt-rail { display:none; } }
+
+  /* section shell */
+  .dt-sec { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:26px 28px; box-shadow:0 6px 24px var(--shadow); margin:0 0 22px; scroll-margin-top:118px; }
+  .dt-sec.flash { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft), 0 6px 24px var(--shadow); }
+  .dt-sec > .k { font-size:12px; text-transform:uppercase; letter-spacing:.12em; font-weight:800; color:var(--accent); }
+  .dt-sec > h2 { font-size:27px; margin:3px 0 6px; line-height:1.2; }
+  .dt-sec > .lede { color:var(--ink-soft); font-size:15.5px; margin:0 0 16px; max-width:840px; line-height:1.55; }
+  .dt-sec h3 { font-size:18.5px; margin:24px 0 6px; }
+  .dt-sec p { font-size:15.5px; line-height:1.6; }
+  .dt-sec code { font-family:var(--mono); font-size:.82em; background:var(--code-bg); padding:1px 5px; border-radius:4px; }
+  .dt-note { font-size:14.5px; color:var(--ink-soft); line-height:1.55; }
+
+  /* pull-quote / rule box */
+  .dt-rule { background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:12px; padding:15px 18px; font-size:16px; line-height:1.55; color:var(--ink); margin:14px 0; }
+  .dt-rule b { color:var(--accent-ink); }
+  .dt-say { background:var(--surface-2); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; font-size:16.5px; font-style:italic; margin:12px 0; line-height:1.6; }
+  .dt-warn { background:var(--bad-soft); border:1px solid var(--bad-line); border-radius:12px; padding:13px 16px; font-size:15px; line-height:1.55; margin:14px 0; }
+  .dt-warn b { color:var(--bad-ink); }
+
+  /* the contract: reachable / numbered */
+  .dt-two { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin:4px 0 18px; }
+  @media (max-width:760px){ .dt-two { grid-template-columns:1fr; } }
+  .dt-def { border:1px solid var(--line); border-radius:12px; padding:15px 18px; background:var(--surface-2); }
+  .dt-def .dk { font-size:12.5px; text-transform:uppercase; letter-spacing:.1em; font-weight:800; color:var(--accent); }
+  .dt-def .dd { font-size:16px; font-weight:650; margin:3px 0 6px; }
+  .dt-def .dw { font-size:14px; color:var(--ink-soft); line-height:1.5; }
+
+  /* paths */
+  .dt-paths { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:6px 0 4px; }
+  @media (max-width:900px){ .dt-paths { grid-template-columns:1fr; } }
+  .dt-path { border:1.5px solid var(--line); border-radius:14px; padding:16px 18px; background:var(--surface); }
+  .dt-path.a { border-color:var(--good-line); background:var(--good-soft); }
+  .dt-path.b { border-color:var(--warn-line); background:var(--warn-soft); }
+  .dt-path.n { border-color:var(--bad-line); background:var(--bad-soft); }
+  .dt-path .pk { font-size:11.5px; text-transform:uppercase; letter-spacing:.1em; font-weight:800; }
+  .dt-path.a .pk { color:var(--good-ink); } .dt-path.b .pk { color:var(--warn-ink); } .dt-path.n .pk { color:var(--bad-ink); }
+  .dt-path .pt { font-size:17px; font-weight:700; margin:3px 0 6px; }
+  .dt-path .pb { font-size:14.5px; color:var(--ink-soft); line-height:1.55; }
+  .dt-path .pb b { color:var(--ink); }
+
+  /* Monday timing strip */
+  .dt-mon { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:8px 0 4px; }
+  @media (max-width:900px){ .dt-mon { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:560px){ .dt-mon { grid-template-columns:1fr; } }
+  .dt-slot { border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:var(--surface-2); }
+  .dt-slot .sm { font-size:23px; font-weight:800; color:var(--accent); line-height:1; }
+  .dt-slot .st { font-size:15px; font-weight:700; margin:6px 0 4px; }
+  .dt-slot .ss { font-size:13.5px; color:var(--ink-soft); line-height:1.5; }
+
+  /* weekly rhythm */
+  .dt-rhythm { display:grid; gap:9px; }
+  .dt-day { display:grid; grid-template-columns:104px minmax(0,1fr); gap:14px; border:1px solid var(--line); border-radius:12px; padding:13px 16px; background:var(--surface-2); scroll-margin-top:122px; align-items:start; }
+  .dt-day .dn { font-size:12px; text-transform:uppercase; letter-spacing:.1em; font-weight:800; color:var(--accent); }
+  .dt-day .dn small { display:block; font-weight:650; color:var(--ink-soft); letter-spacing:0; text-transform:none; font-size:12px; margin-top:2px; }
+  .dt-day .dt-t { font-size:15.5px; font-weight:650; }
+  .dt-day .dt-s { font-size:14px; color:var(--ink-soft); line-height:1.55; margin-top:3px; }
+  .dt-day:target, .dt-day.flash { border-color:var(--accent); background:var(--accent-soft); }
+  @media (max-width:640px){ .dt-day { grid-template-columns:1fr; gap:4px; } }
+
+  /* rubric */
+  .dt-bar { background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:12px; padding:14px 18px; margin:2px 0 14px; font-size:16px; line-height:1.55; }
+  .dt-bar b { color:var(--accent-ink); }
+  .dt-dim { border:1px solid var(--line); border-radius:13px; margin:0 0 10px; background:var(--surface-2); overflow:hidden; }
+  .dt-dim > summary { cursor:pointer; list-style:none; padding:14px 18px; display:flex; align-items:center; gap:11px; flex-wrap:wrap; }
+  .dt-dim > summary::-webkit-details-marker { display:none; }
+  .dt-dim > summary:hover { background:var(--surface); }
+  .dt-dim .dl { font-size:12px; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:.1em; }
+  .dt-dim .dnm { font-size:18px; font-weight:700; }
+  .dt-dim .dsum { font-size:13.5px; color:var(--ink-soft); margin-left:auto; }
+  .dt-dim .chev { color:var(--ink-soft); font-size:13px; transition:transform .15s; }
+  .dt-dim:not([open]) .chev { transform:rotate(-90deg); }
+  .dt-dim .dbody { padding:0 18px 18px; }
+  .dt-score { display:grid; grid-template-columns:38px minmax(0,1fr); gap:0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--surface); }
+  .dt-score > div { padding:10px 13px; border-top:1px solid var(--line); font-size:14.5px; line-height:1.5; }
+  .dt-score > div:nth-child(1), .dt-score > div:nth-child(2) { border-top:none; }
+  .dt-score .n { font-weight:800; text-align:center; color:var(--ink-soft); background:var(--surface-2); }
+  .dt-score .n.pass { color:var(--good-ink); background:var(--good-soft); }
+  .dt-score .n.fail { color:var(--bad-ink); background:var(--bad-soft); }
+  .dt-dim blockquote { margin:12px 0 0; padding:11px 15px; border-left:3px solid var(--accent); background:var(--surface); border-radius:8px; font-size:14.5px; color:var(--ink-soft); line-height:1.55; }
+  .dt-dim blockquote b { color:var(--ink); }
+
+  /* habits */
+  .dt-habits { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  @media (max-width:820px){ .dt-habits { grid-template-columns:1fr; } }
+  .dt-habit { border:1px solid var(--line); border-radius:12px; padding:14px 17px; background:var(--surface-2); }
+  .dt-habit .hn { font-size:12px; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:.1em; }
+  .dt-habit .ht { font-size:15.5px; font-weight:700; margin:3px 0 4px; }
+  .dt-habit .hb { font-size:14px; color:var(--ink-soft); line-height:1.55; }
+
+  /* fillable artifacts */
+  .dt-tools { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 14px; }
+  .dt-wksel { display:flex; gap:6px; }
+  .dt-wk { cursor:pointer; border:1.5px solid var(--line); background:var(--surface); border-radius:9px; padding:7px 13px; font:inherit; font-size:13.5px; font-weight:700; color:var(--ink-soft); }
+  .dt-wk:hover { border-color:var(--accent); color:var(--accent); }
+  .dt-wk.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .dt-btn { cursor:pointer; border:1.5px solid var(--line); background:var(--surface); border-radius:9px; padding:7px 13px; font:inherit; font-size:13.5px; font-weight:700; color:var(--ink); }
+  .dt-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .dt-btn.ghost { border-style:dashed; color:var(--ink-soft); }
+  .dt-saved { font-size:12.5px; color:var(--ink-soft); margin-left:auto; }
+  .dt-saved b { color:var(--good-ink); }
+
+  .dt-form { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface); }
+  .dt-form .row { display:grid; grid-template-columns:200px minmax(0,1fr); border-top:1px solid var(--line); }
+  .dt-form .row:first-child { border-top:none; }
+  .dt-form .lb { padding:11px 14px; background:var(--surface-2); font-size:14px; font-weight:700; border-right:1px solid var(--line); }
+  .dt-form .lb small { display:block; font-weight:500; color:var(--ink-soft); font-size:12.5px; line-height:1.45; margin-top:3px; }
+  .dt-form .fl { padding:6px 8px; }
+  @media (max-width:700px){ .dt-form .row { grid-template-columns:1fr; } .dt-form .lb { border-right:none; border-bottom:1px solid var(--line); } }
+
+  .dt-in, .dt-ta, .dt-sel { width:100%; font:inherit; font-size:14.5px; color:var(--ink); background:transparent; border:1px solid transparent; border-radius:7px; padding:7px 9px; resize:vertical; }
+  .dt-in:hover, .dt-ta:hover, .dt-sel:hover { border-color:var(--line); }
+  .dt-in:focus, .dt-ta:focus, .dt-sel:focus { outline:none; border-color:var(--accent); background:var(--surface-2); }
+  .dt-in::placeholder, .dt-ta::placeholder { color:var(--dim); }
+  .dt-ta { min-height:44px; line-height:1.5; }
+  .dt-sel { border-color:var(--line); background:var(--surface); }
+
+  /* grid tables */
+  .dt-tbl { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface); }
+  .dt-tbl .th, .dt-tbl .tr { display:grid; }
+  .dt-tbl .th { background:var(--surface-2); font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; color:var(--ink-soft); }
+  .dt-tbl .th > div { padding:9px 12px; }
+  .dt-tbl .tr { border-top:1px solid var(--line); align-items:center; }
+  .dt-tbl .tr > div { padding:4px 6px; min-width:0; }
+  .dt-tbl .tr > div.num { padding:9px 12px; font-weight:800; color:var(--ink-soft); font-size:13.5px; }
+  .dt-tbl .tr > div.chk { text-align:center; }
+  .dt-tbl input[type=checkbox] { width:17px; height:17px; accent-color:var(--accent); cursor:pointer; }
+  .g-ob  { grid-template-columns:34px minmax(0,1fr) 120px 62px; }
+  .g-chk { grid-template-columns:44px minmax(0,1fr) 250px; }
+  .g-2   { grid-template-columns:44px minmax(0,1fr); }
+  .g-3   { grid-template-columns:44px minmax(0,1fr) minmax(0,1fr); }
+  .g-fs  { grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); }
+  .g-gp  { grid-template-columns:34px minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,.9fr); }
+  .g-cl  { grid-template-columns:minmax(0,1.2fr) 100px minmax(0,.8fr) minmax(0,1fr) minmax(0,.9fr); }
+  .g-cal { grid-template-columns:minmax(0,1fr) 110px 110px 100px minmax(0,1.4fr); }
+  .g-ev  { grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) minmax(0,.9fr); }
+  @media (max-width:900px){
+    .dt-tbl .th { display:none; }
+    .dt-tbl .tr { grid-template-columns:1fr !important; }
+    .dt-tbl .tr > div { border-top:1px dashed var(--line); }
+    .dt-tbl .tr > div:first-child { border-top:none; }
+    .dt-tbl .tr > div.chk { text-align:left; padding-left:12px; }
+  }
+
+  /* ---- example carousel ------------------------------------------------- */
+  .dt-eg { margin:12px 0 0; }
+  .egbtn { cursor:pointer; width:100%; text-align:left; border:1px dashed var(--info-line); background:var(--info-soft);
+    border-radius:12px; padding:11px 15px; font:inherit; font-size:14px; font-weight:700; color:var(--info);
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap; transition:border-color .12s, background .12s; }
+  .egbtn:hover { border-style:solid; background:var(--surface); }
+  .egbtn .egi { font-size:12px; transition:transform .15s; }
+  .egbtn.open .egi { transform:rotate(90deg); }
+  .egbtn .egmeta { margin-left:auto; font-size:11.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-soft); }
+  .egwrap { border:1px solid var(--info-line); border-top:none; border-radius:0 0 12px 12px; background:var(--info-soft); overflow:hidden; }
+  .egbtn.open { border-radius:12px 12px 0 0; border-style:solid; border-bottom-color:transparent; }
+  .eghead { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--info-line); }
+  .eghead .egttl { font-size:13px; font-weight:800; color:var(--info); text-transform:uppercase; letter-spacing:.07em; }
+  .eghead .egpos { font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-left:auto; font-variant-numeric:tabular-nums; }
+  .egnav { cursor:pointer; border:1.5px solid var(--info-line); background:var(--surface); color:var(--info);
+    border-radius:9px; width:32px; height:30px; font:inherit; font-size:15px; font-weight:800; line-height:1; }
+  .egnav:hover:not(:disabled) { border-color:var(--info); background:var(--info-soft); }
+  .egnav:disabled { opacity:.35; cursor:default; }
+  .egtrack { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .egtrack::-webkit-scrollbar { display:none; }
+  .egslide { flex:0 0 100%; scroll-snap-align:start; padding:15px 16px 16px; min-width:0; }
+  .egslide .egtags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+  .egslide .wk { font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; border:1px solid var(--info-line); background:var(--surface); color:var(--info); border-radius:999px; padding:2px 9px; }
+  .egslide .wk.good { border-color:var(--good-line); background:var(--good-soft); color:var(--good-ink); }
+  .egslide .wk.bad  { border-color:var(--bad-line);  background:var(--bad-soft);  color:var(--bad-ink); }
+  .egslide .wk.warn { border-color:var(--warn-line); background:var(--warn-soft); color:var(--warn-ink); }
+  .egslide h4 { margin:0 0 8px; font-size:16.5px; }
+  .egslide .egnote { font-size:13.5px; color:var(--ink-soft); line-height:1.55; margin:0 0 10px; }
+  .egslide .dt-tbl, .egslide .dt-form, .egslide .dt-prompt { background:var(--surface); }
+  .egslide .dt-tbl .tr > div, .egslide .dt-tbl .th > div { padding:9px 12px; font-size:14px; line-height:1.5; }
+  .egslide .dt-form .fl { padding:10px 13px; font-size:14.5px; line-height:1.55; }
+  .egslide .dt-say { background:var(--surface); margin:0 0 10px; font-size:15.5px; }
+  .egslide .why { margin:11px 0 0; font-size:13.5px; color:var(--ink-soft); line-height:1.6; border-left:3px solid var(--info); padding-left:12px; }
+  .egslide .why b { color:var(--ink); }
+  .egdots { display:flex; gap:7px; justify-content:center; padding:0 0 12px; }
+  .egdot { cursor:pointer; width:8px; height:8px; border-radius:50%; border:none; padding:0; background:var(--info-line); }
+  .egdot.on { background:var(--info); transform:scale(1.25); }
+
+  /* estimation evidence */
+  .dt-formula { font-family:var(--mono); font-size:15px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:12px 15px; margin:10px 0; line-height:1.7; }
+  .dt-formula b { color:var(--accent); }
+
+  /* good / bad example pair */
+  .dt-ex { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:14px; }
+  @media (max-width:860px){ .dt-ex { grid-template-columns:1fr; } }
+  .dt-ex .good, .dt-ex .bad { border:1px solid; border-radius:12px; padding:15px 17px; font-size:14.5px; line-height:1.6; }
+  .dt-ex .good { border-color:var(--good-line); background:var(--good-soft); }
+  .dt-ex .bad { border-color:var(--bad-line); background:var(--bad-soft); }
+  .dt-ex .ek { font-size:11.5px; text-transform:uppercase; letter-spacing:.1em; font-weight:800; margin-bottom:7px; }
+  .dt-ex .good .ek { color:var(--good-ink); } .dt-ex .bad .ek { color:var(--bad-ink); }
+  .dt-ex dl { margin:0; } .dt-ex dt { font-weight:700; margin-top:9px; font-size:13.5px; }
+  .dt-ex dt:first-child { margin-top:0; }
+  .dt-ex dd { margin:2px 0 0; color:var(--ink-soft); }
+
+  /* claude prompts */
+  .dt-steps { counter-reset:s; display:grid; gap:9px; margin:8px 0 4px; }
+  .dt-step { counter-increment:s; display:grid; grid-template-columns:30px minmax(0,1fr); gap:12px; border:1px solid var(--line); border-radius:12px; padding:12px 15px; background:var(--surface-2); }
+  .dt-step::before { content:counter(s); font-weight:800; color:var(--accent); font-size:16px; }
+  .dt-step.key { border-color:var(--accent); background:var(--accent-soft); }
+  .dt-step .sb { font-size:14.5px; line-height:1.55; }
+  .dt-prompt { border:1px solid var(--line); border-radius:12px; overflow:hidden; margin:10px 0 0; background:var(--surface); }
+  .dt-prompt .ph { display:flex; align-items:center; gap:10px; padding:9px 14px; background:var(--surface-2); border-bottom:1px solid var(--line); font-size:13px; font-weight:700; color:var(--ink-soft); }
+  .dt-prompt .ph .cp { margin-left:auto; }
+  .dt-prompt pre { margin:0; padding:13px 15px; font-family:var(--mono); font-size:13px; line-height:1.55; white-space:pre-wrap; color:var(--ink); }
+
+  /* prev / next tab pager */
+  .dt-pager { display:flex; gap:12px; align-items:stretch; margin:4px 0 0; }
+  .dt-pg { flex:1; cursor:pointer; border:1.5px solid var(--line); background:var(--surface); border-radius:13px; padding:14px 18px; font:inherit; text-align:left; color:var(--ink); transition:border-color .12s, transform .12s, box-shadow .12s; }
+  .dt-pg:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 20px var(--shadow); }
+  .dt-pg .pgk { font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:800; color:var(--ink-soft); }
+  .dt-pg .pgt { font-size:16.5px; font-weight:700; color:var(--accent); margin-top:2px; }
+  .dt-pg.next { text-align:right; }
+  @media (max-width:640px){ .dt-pager { flex-direction:column; } .dt-pg.next { text-align:left; } }
+
+  @media print {
+    .topbar, .dt-rail, .dt-tools, .dt-tabbar, .dt-pager, .egnav, .egdots, .dt-hero p, footer.foot { display:none !important; }
+    .dt-cols { grid-template-columns:1fr; }
+    .dt-panel { display:block !important; }
+    .dt-sec { box-shadow:none; break-inside:avoid; page-break-inside:avoid; }
+    .dt-dim { break-inside:avoid; }
+    .dt-dim:not([open]) .dbody { display:block; }
+    .egwrap[hidden] { display:block !important; }
+    .egtrack { display:block; overflow:visible; }
+    .egslide { break-inside:avoid; border-top:1px solid var(--info-line); }
+    .dt-in, .dt-ta, .dt-sel { border-color:var(--line) !important; }
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="delivery-track.html">Delivery Track</a>
+    <a class="topnav" href="gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right"></div>
+</div>
+
+<div class="dt-wrap">
+  <div class="dt-hero">
+    <span class="dt-weeks-tag">Weeks 7–10 · client engagement</span>
+    <h1>The <b>Delivery</b> Track</h1>
+    <p>One page, given to you before you do anything, because a rubric you cannot see is just a vague
+    instruction wearing a lab coat. Every Monday you present to the client and are scored against
+    what is written here. <b>The trend is what matters, not any single Monday.</b></p>
+  </div>
+
+  <nav class="dt-tabbar" id="tabbar" aria-label="Delivery track sections">
+    <button class="dt-tab on" data-tab="contract"><span class="tn">01</span> The contract</button>
+    <button class="dt-tab" data-tab="week"><span class="tn">02</span> The week</button>
+    <button class="dt-tab" data-tab="rubric"><span class="tn">03</span> How you're scored</button>
+    <button class="dt-tab" data-tab="premortem"><span class="tn">04</span> Pre-mortem <span class="fillable">form</span></button>
+    <button class="dt-tab" data-tab="blocker"><span class="tn">05</span> Blockers &amp; estimates <span class="fillable">form</span></button>
+    <button class="dt-tab" data-tab="loop"><span class="tn">06</span> The Claude loop</button>
+  </nav>
+
+  <div class="dt-cols">
+  <div class="dt-main">
+
+  <!-- ==================================================================== -->
+  <!-- TAB 01 — THE CONTRACT                                                -->
+  <!-- ==================================================================== -->
+  <div class="dt-panel on" id="tab-contract">
+  <section class="dt-sec" id="contract">
+    <div class="k">The contract</div>
+    <h2>Reachable and numbered</h2>
+    <p class="lede">Everything you present is reachable and numbered. There are two ways to get
+    there — and one way that is not a delivery at all.</p>
+
+    <div class="dt-two">
+      <div class="dt-def">
+        <div class="dk">Reachable</div>
+        <div class="dd">A person can click to it in the product.</div>
+        <div class="dw">Terminal output is not a demo. If you say something is ready, the client
+        expects to click it.</div>
+      </div>
+      <div class="dt-def">
+        <div class="dk">Numbered</div>
+        <div class="dd">One measurement that proves the change — taken <i>before</i> and after.</div>
+        <div class="dw">"More performant" without a measurement is an opinion in an engineer's voice.</div>
+      </div>
+    </div>
+
+    <div class="dt-paths">
+      <div class="dt-path a">
+        <div class="pk">Path A — shipped</div>
+        <div class="pt">On <code>main</code></div>
+        <div class="pb">Merged. Not a PR, not a branch, not "ready to merge." This is the default and
+        most things should land here. On demo day there were <b>eight open PRs</b> between the four of
+        you and two entire weeks of work that existed and could not be shown. <b>Unmerged work is
+        worth zero to a client.</b></div>
+      </div>
+      <div class="dt-path b">
+        <div class="pk">Path B — POC + estimate</div>
+        <div class="pt">Clickable ahead of the backend</div>
+        <div class="pb">A working interface running ahead of the backend, <b>plus a
+        <a href="#blocker" data-goto="blocker" style="color:var(--warn-ink);font-weight:700">blocker card</a></b>
+        with two numbers, a named owner and a conversion date. Legitimate when the remaining work is
+        genuinely gated — a compliance review, a decision that isn't yours, a dependency you don't
+        own. <b>Not legitimate as a way to avoid finishing.</b></div>
+      </div>
+      <div class="dt-path n">
+        <div class="pk">Neither — not a delivery</div>
+        <div class="pt">A branch, a terminal, a description</div>
+        <div class="pb">To a client these are the same thing: <b>nothing</b>. A POC with no date
+        behind it is "it's in a PR" wearing a new hat. If the same item is Path B twice running
+        without the estimate moving, that gets said out loud.</div>
+      </div>
+    </div>
+
+    <p class="dt-note" style="margin-top:14px">Path B is a real delivery, and often the smarter one:
+    the client reacts to the interface — the thing they can actually judge — while the backend
+    finishes behind it. Done well the feature lands the day the backend is done, instead of weeks
+    later while the UX is still being argued about.</p>
+
+    <div class="dt-rule">Whichever path — <b>say the state first, before you show anything.</b></div>
+    <div class="dt-say">"This works today. Here is what I need more time to make robust, and here is
+    how long."</div>
+    <p class="dt-note">Silence reads as either nothing happened or everything is finished. Both are
+    wrong.</p>
+
+    <div class="dt-eg" data-eg data-title="Same week, four ways">
+      <button class="egbtn" type="button"><span class="egi">▸</span> See 4 worked examples
+        <span class="egmeta">generic · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">Same week, four ways</span>
+          <span class="egpos">1 / 4</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk good">Path A · shipped</span><span class="wk">W2 · retrieval</span></div>
+            <h4>The same work, delivered as Path A</h4>
+            <p class="egnote">Made-up scenario used across this whole page: an internal
+            <b>support-ticket assistant</b> that suggests similar past tickets. Not your project.</p>
+            <div class="dt-say">"Agents can now search past tickets from the ticket screen. It's on
+            <code>main</code> — I'll click it. Over the 40-question set your team wrote, the right
+            ticket is in the top five <b>81% of the time, up from 62%</b>. That number comes from the
+            eval run in <code>artifacts/eval/2026-08-01.json</code>, not from my own test fixture."</div>
+            <p class="why"><b>Why it lands:</b> reachable, on main, one number with a baseline and a
+            source that isn't his own code. Thirty seconds, no method talk.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk warn">Path B · done right</span><span class="wk">W3 · agent</span></div>
+            <h4>Genuinely blocked — and still a delivery</h4>
+            <div class="dt-say">"The reply panel is clickable today against a frozen copy of last
+            quarter's tickets — that's what you're seeing. It isn't posting to live tickets yet
+            because that needs a service account only IT can issue. <b>Likely 3 days, 8 if it goes to
+            security review.</b> Dana in IT platform owns it; I've asked for Thursday. Meanwhile I've
+            drafted the scope request so that meeting is a yes/no. <b>It converts on main by Week 9,
+            Monday.</b>"</div>
+            <p class="why"><b>Why this is a real delivery:</b> clickable, two numbers with the risk
+            named, a person rather than a department, meanwhile-work, and a conversion date the
+            client can hold him to.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk bad">Path B · done wrong</span></div>
+            <h4>A POC with no date behind it</h4>
+            <div class="dt-say">"So this is a prototype of the reply feature — it's not hooked up to
+            anything real yet, but you can see the idea. We're waiting on some access from IT and
+            then it should come together pretty quickly."</div>
+            <p class="why"><b>Why it fails:</b> same screen as the previous slide, none of the
+            commitments. No numbers, no named owner, no conversion date, and "should come together
+            pretty quickly" is a claim with nothing behind it. <b>This is "it's in a PR" wearing a new
+            hat</b> — and if it shows up again next Monday unchanged, that gets said out loud.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk bad">Neither</span></div>
+            <h4>Not a delivery at all</h4>
+            <div class="dt-say">"I got search working, it's way better now. It's in a PR waiting on
+            review — I can show you the terminal output if you want."</div>
+            <p class="why"><b>Three failures in one sentence:</b> not on main, not reachable, and a
+            bare comparative with no number. The work may genuinely be excellent. To the client this
+            is indistinguishable from a week where nothing happened — <b>and that is the whole lesson
+            of demo day.</b></p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+  </section>
+  <div class="dt-pager" id="pager-contract"></div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- TAB 02 — THE WEEK                                                    -->
+  <!-- ==================================================================== -->
+  <div class="dt-panel" id="tab-week">
+  <section class="dt-sec" id="monday">
+    <div class="k">Every Monday</div>
+    <h2>The client steering meeting — 12 minutes, hard stop</h2>
+    <p class="lede">All four of you present last week's work to the client. In the same meeting the
+    client hands down <b>updated requirements</b> for the week ahead. That handoff is the forcing
+    function: it is what makes re-speccing necessary, and it is where the backlog comes from.
+    Shorter slots are deliberately harder — five reps each across W7–W10.</p>
+
+    <div class="dt-mon">
+      <div class="dt-slot"><div class="sm">2 min</div><div class="st">The outcome</div>
+        <div class="ss">In the client's language, before any method. Plus the honest state: what's
+        done, what needs hardening time, how long.</div></div>
+      <div class="dt-slot"><div class="sm">4 min</div><div class="st">Live demo</div>
+        <div class="ss">In the product, following your written script. Prepared data, planned
+        sequence of screens.</div></div>
+      <div class="dt-slot"><div class="sm">4 min</div><div class="st">Client questions</div>
+        <div class="ss">Trainer and peers, in role. Ambiguous ask? Ask the clarifying question
+        before you answer it.</div></div>
+      <div class="dt-slot"><div class="sm">2 min</div><div class="st">Findings as roadmap</div>
+        <div class="ss">What leaks, what it costs them, and a date. Plus last week's estimate:
+        estimated, actual, off by how much, why.</div></div>
+    </div>
+
+    <div class="dt-rule">The requirements you receive Monday are on the
+      <a href="client-delivery.html" style="color:var(--accent-ink);font-weight:700">Client Delivery</a>
+      page, per project, the same day. <b>Re-spec against them Tuesday.</b></div>
+
+    <div class="dt-eg" data-eg data-title="The 12 minutes, said out loud">
+      <button class="egbtn" type="button"><span class="egi">▸</span> See 4 worked examples
+        <span class="egmeta">generic · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">The 12 minutes, said out loud</span>
+          <span class="egpos">1 / 4</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk good">Slot 1 · 2 min</span><span class="wk">the opening</span></div>
+            <h4>The outcome, before any method</h4>
+            <div class="dt-say">"Two things landed this week and one didn't.<br><br>
+            The one that landed: agents no longer read a whole ticket history to answer a repeat
+            question — the assistant surfaces the three closest past tickets on the same screen. On
+            the 40 questions your team gave us, the right ticket is in the top five <b>81% of the
+            time, up from 62%</b>. That comes from the eval run, not from my own test.<br><br>
+            The one that didn't: posting a reply back into the ticket needs a service account I can't
+            issue myself. I'll come back to that in the last two minutes with a date.<br><br>
+            What I'd like from you today: watch whether the three suggestions are the ones your
+            agents would actually have opened."</div>
+            <p class="why"><b>Why it scores:</b> state before demo, outcome framed as agent time
+            rather than retrieval quality, one number with a baseline and an outside oracle, the gap
+            named up front instead of discovered, and an explicit ask that makes the question slot
+            useful.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk bad">Slot 1 · the same week, badly</span></div>
+            <h4>Method first, state never</h4>
+            <div class="dt-say">"So this week I looked at the retrieval side. I tried a few things —
+            started with plain keyword, that wasn't great, then moved to embeddings, and I ended up
+            with a hybrid approach plus a re-ranker, which seems to work a lot better. Let me just
+            pull it up… one sec… okay, so if I open a ticket here…"</div>
+            <p class="why"><b>What went wrong in 20 seconds:</b> opens with method, no outcome, no
+            number, no honest state, and dead air while it loads. The client has no idea whether the
+            week was good. <b>"Seems to work a lot better" is the exact sentence the claims audit
+            exists to delete.</b></p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk good">Slot 4 · 2 min</span><span class="wk">W6 · findings</span></div>
+            <h4>Findings as roadmap, with a date</h4>
+            <div class="dt-say">"One finding from wiring this up. The nightly ticket export includes
+            customer email addresses and lands on a share the whole company can read. If that list
+            left the building it's a notifiable incident, not an IT ticket.<br><br>
+            Here's what I'd do, and it's your call. This week I drop the email column from the export
+            — the assistant never needed it, so nothing breaks. Next week we narrow the share to the
+            support group. Who should see historical exports at all is bigger than my scope, and I'd
+            put that in front of whoever owns data retention rather than decide it myself. First step
+            lands Thursday."</div>
+            <p class="why"><b>Why it scores a 3+:</b> impact in their language, a sequenced next step
+            with a date, and the scope stays the client's — the expansion is proposed, not taken.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk good">Slot 4 · 20 sec</span><span class="wk">calibration</span></div>
+            <h4>Reporting last week's estimate, out loud</h4>
+            <div class="dt-say">"Quick calibration before I stop. Last Monday I told you the re-index
+            was two days. It took five. The reason: nobody had exported tickets since 2024 and the
+            export job had to be rebuilt first — I didn't know that dependency existed when I gave
+            you the number. The week before I was off by one day, and before that three. <b>The gap
+            is closing but it's still there, so treat my estimates as the middle of a range.</b>"</div>
+            <p class="why"><b>Why this is worth 20 seconds every week:</b> nobody is scored on
+            estimate accuracy — you are scored on whether the gap shrinks and whether you can say
+            <i>why</i> it missed. Saying it before you are asked is what makes the next number
+            believable.</p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dt-sec" id="rhythm">
+    <div class="k">The week</div>
+    <h2>What is expected, when</h2>
+    <p class="lede">The reps that make Monday survivable. None of them are long; all of them are
+    load-bearing.</p>
+
+    <div class="dt-rhythm">
+      <div class="dt-day" id="rt-mon">
+        <div class="dn">Mon <small>12 min + packet</small></div>
+        <div>
+          <div class="dt-t">Client steering meeting — present, then receive updated requirements.</div>
+          <div class="dt-s">Present last week against the rubric. Report last week's estimate versus
+          what actually happened. Leave with the new ask.</div>
+        </div>
+      </div>
+      <div class="dt-day" id="rt-tue">
+        <div class="dn">Tue <small>re-spec</small></div>
+        <div>
+          <div class="dt-t">Re-spec against the requirements you were handed yesterday.</div>
+          <div class="dt-s">What changed, what it invalidates, what it makes obsolete. This is
+          <b>W5 spec-driven development</b> pointed at a moving client, which is the real case.</div>
+        </div>
+      </div>
+      <div class="dt-day" id="rt-wed">
+        <div class="dn">Wed <small>10 min</small></div>
+        <div>
+          <div class="dt-t">Lock your number — and its <i>before</i> value.</div>
+          <div class="dt-s">Before the work is finished, so it cannot be retrofitted. The number
+          needs an oracle that is not your own implementation — the same rule as your
+          <b>W2 RAG eval harness</b>.</div>
+        </div>
+      </div>
+      <div class="dt-day" id="rt-thu">
+        <div class="dn">Thu–Fri <small>build</small></div>
+        <div>
+          <div class="dt-t">Build with the AI SDLC loop. Merge to <code>main</code>, or go Path B properly.</div>
+          <div class="dt-s">Intent → Claude writes the prompt → <b>critique it in a fresh session
+          before running it</b> → run → feed back the real result (<b>W6</b>). File a blocker card
+          <b>the day a roadblock appears</b>, not the day before you present.</div>
+        </div>
+      </div>
+      <div class="dt-day" id="rt-fri">
+        <div class="dn">Fri <small>45 min</small></div>
+        <div>
+          <div class="dt-t">Pre-mortem, then rehearse against a hostile client.</div>
+          <div class="dt-s">Fill the <a href="#premortem" data-goto="premortem">pre-mortem sheet</a>,
+          then run <a href="#claude" data-goto="loop">the hostile-client prompt</a> in a fresh session
+          and answer its five questions out loud. Fix your worst dimension. The trainer sees the
+          score, not the transcript. <b>From W9 the pre-mortem is a gate: no pre-mortem, no
+          presentation slot.</b>
+          <span class="trainer-only" style="margin-top:6px">🔑 Trainer: the scored persona simulators
+          live in <code>projects/delivery-track/personas/</code> — hidden objectives, do not hand the
+          files to learners.</span></div>
+        </div>
+      </div>
+      <div class="dt-day" id="rt-any">
+        <div class="dn">Weekly <small>15 min</small></div>
+        <div>
+          <div class="dt-t">Two translation pairs in your client update.</div>
+          <div class="dt-s">The same technical claim written twice — engineer voice, client voice,
+          with the number. This is the muscle dimensions (b) and (c) actually measure.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dt-eg" data-eg data-title="Translation pairs">
+      <button class="egbtn" type="button"><span class="egi">▸</span> See 4 worked examples
+        <span class="egmeta">generic · W1–W4 · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">Translation pairs</span>
+          <span class="egpos">1 / 4</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk">W2 · retrieval</span></div>
+            <h4>Hybrid retrieval + re-ranker</h4>
+            <div class="dt-tbl">
+              <div class="tr g-ev"><div><b>Engineer voice</b><br>"Swapped naive top-k for hybrid
+                retrieval with a re-ranker; recall@5 went from 0.62 to 0.81 on the 40-question gold
+                set."</div>
+                <div><b>Client voice</b><br>"When an agent asks a question, the answer they need is
+                in the first five results four times out of five. It used to be three."</div>
+                <div><b>The number</b><br>recall@5 <b>0.62 → 0.81</b>, 40 questions</div></div>
+            </div>
+            <p class="why"><b>The move:</b> "recall@5" becomes "four times out of five," and the
+            baseline survives as "it used to be three." Deleting the number is the most common way
+            this rep gets faked.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">W3 · agent reliability</span></div>
+            <h4>Timeout + circuit breaker</h4>
+            <div class="dt-tbl">
+              <div class="tr g-ev"><div><b>Engineer voice</b><br>"Put a 3s timeout and a circuit
+                breaker on the ticket-API call and moved it off the request thread."</div>
+                <div><b>Client voice</b><br>"When the ticket system has a bad twenty minutes, the
+                assistant goes quiet instead of freezing the whole screen. Your agents keep
+                working."</div>
+                <div><b>The number</b><br>worst-case page wait <b>30s → 3s</b></div></div>
+            </div>
+            <p class="why"><b>The move:</b> the client frame is not "reliability," it is "your people
+            can still work during an outage." Same fact, rebuilt from what it costs them.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">W1 · cost guard</span></div>
+            <h4>Token budget + caching</h4>
+            <div class="dt-tbl">
+              <div class="tr g-ev"><div><b>Engineer voice</b><br>"Added a per-request token ceiling
+                and cached embeddings, so we re-embed on change instead of per run."</div>
+                <div><b>Client voice</b><br>"A busy day can't produce a surprise bill any more —
+                there's a hard ceiling per request, and we stopped paying twice for the same
+                document."</div>
+                <div><b>The number</b><br>cost per 1,000 assists <b>$4.10 → $0.90</b></div></div>
+            </div>
+            <p class="why"><b>The move:</b> "token ceiling" means nothing to a COO; "can't produce a
+            surprise bill" is the same fact in the frame they budget in. <b>Cost translations land
+            harder than latency ones</b> — most clients feel money faster than milliseconds.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">W4 · graph / multi-agent</span></div>
+            <h4>Assembled view across services</h4>
+            <div class="dt-tbl">
+              <div class="tr g-ev"><div><b>Engineer voice</b><br>"Replaced 37 per-encounter queries
+                with one graph traversal; assembled-view p95 dropped from 3.8s to 0.9s."</div>
+                <div><b>Client voice</b><br>"The full customer picture opens in under a second
+                instead of nearly four. That's the screen your team lives on all day."</div>
+                <div><b>The number</b><br>p95 <b>3.8s → 0.9s</b></div></div>
+            </div>
+            <p class="why"><b>The move:</b> name <i>whose</i> screen and <i>how often</i>. A latency
+            number attached to a job someone does 200 times a day is a business case; the same number
+            on its own is trivia.</p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+  </section>
+  <div class="dt-pager" id="pager-week"></div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- TAB 03 — HOW YOU'RE SCORED                                           -->
+  <!-- ==================================================================== -->
+  <div class="dt-panel" id="tab-rubric">
+  <section class="dt-sec" id="rubric">
+    <div class="k">Scored every Monday</div>
+    <h2>The five dimensions</h2>
+    <div class="dt-bar"><b>Pass = mean ≥ 3.0 with no dimension below 2.</b> Technical accuracy ≤ 1
+      fails the week regardless of your mean.</div>
+    <p class="lede">Three things you should know about that bar, because you would find out anyway:
+    <b>Week 7 is scored but not passed</b> — it is your baseline, nobody fails W7. The 0–4
+    descriptions come from what actually happened at demo day; the <i>cut point</i> is a judgment
+    call built for this cohort, so argue with it if you think it is wrong. And this is formative and
+    the trainer's, <b>not a Revature grade</b> — it exists so you get five reps instead of one.
+    Optimising it defeats the point.</p>
+
+    <details class="dt-dim" open>
+      <summary><span class="chev">▾</span><span class="dl">(a)</span><span class="dnm">Technical accuracy</span>
+        <span class="dsum">Can you explain the mechanism, and its boundary?</span></summary>
+      <div class="dbody">
+        <div class="dt-score">
+          <div class="n fail">0</div><div>Says something factually wrong about the mechanism and doesn't correct it. Or can't name what was built.</div>
+          <div class="n fail">1</div><div>Names the component; the mechanism is vague or borrowed ("it uses AI to check the output"). Jargon substitutes for explanation.</div>
+          <div class="n">2</div><div>Correct mechanism at one level: what goes in, what comes out, where it sits. Can't answer "what happens when it fails."</div>
+          <div class="n pass">3</div><div>+ one alternative you rejected and why, + one failure mode and what happens then. Every claim traceable to the repo.</div>
+          <div class="n pass">4</div><div>+ you state the <b>boundary</b> — a class of input it won't catch, or a condition where it degrades — unprompted, without overselling the fix.</div>
+        </div>
+        <blockquote>Technical accuracy is the one dimension with a floor: <b>≤ 1 fails the week</b>
+        on its own. Everything else is a trend.</blockquote>
+
+        <div class="dt-eg" data-eg data-title="One question, four answers">
+          <button class="egbtn" type="button"><span class="egi">▸</span> Hear the difference
+            <span class="egmeta">4 answers · swipe →</span></button>
+          <div class="egwrap" hidden>
+            <div class="eghead"><span class="egttl">"How does it decide which past tickets to show?"</span>
+              <span class="egpos">1 / 4</span>
+              <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+              <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+            <div class="egtrack" tabindex="0">
+              <article class="egslide">
+                <div class="egtags"><span class="wk bad">Scores 0</span></div>
+                <div class="dt-say">"It's a neural network, so it's about 95% accurate at
+                understanding the ticket."</div>
+                <p class="why"><b>Fails the week on its own.</b> The 95% is invented, "understanding"
+                is not what happens, and nothing here is traceable to the repo. A 0 in this dimension
+                is the one score that overrides your mean.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk bad">Scores 1</span></div>
+                <div class="dt-say">"It uses AI to find the most relevant ones — it understands what
+                the ticket means, not just keywords."</div>
+                <p class="why"><b>Jargon substituting for explanation.</b> Every word is borrowed
+                from marketing copy. Ask "what does 'understands' do when the ticket is one line?"
+                and the answer runs out immediately.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk good">Scores 3</span><span class="wk">W2</span></div>
+                <div class="dt-say">"Every past ticket is turned into a set of numbers that stand in
+                for its meaning, and we look for tickets whose numbers sit closest to the new one. I
+                also tried plain keyword search — it missed anything worded differently, so we run
+                both and merge. When a ticket is one line with no detail, the closest matches are
+                close to random, so it shows nothing rather than three wrong things."</div>
+                <p class="why"><b>No jargon survived, and the mechanism is still exactly right</b> —
+                plus one rejected alternative and one failure mode with the behaviour named.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk good">Scores 4</span></div>
+                <div class="dt-say">"…and the boundary is worth naming: it matches on
+                <i>wording</i>, not on what was actually wrong. Two tickets described the same way
+                with different root causes look identical to it. That's a real class of miss, and
+                I'd rather you hear it from me than find it in month three."</div>
+                <p class="why"><b>The boundary, unprompted, with no oversold fix.</b> This is the
+                single cheapest way to move from 3 to 4 — and the thing most engineers withhold
+                because it feels like admitting weakness. It reads as competence.</p>
+              </article>
+            </div>
+            <div class="egdots"></div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="dt-dim">
+      <summary><span class="chev">▾</span><span class="dl">(b)</span><span class="dnm">Audience adaptation</span>
+        <span class="dsum">Built from their frame, not yours slowed down.</span></summary>
+      <div class="dbody">
+        <div class="dt-score">
+          <div class="n fail">0</div><div>Unglossed jargon at a non-technical listener (<code>p95</code>, <code>idempotent</code>, <code>HNSW</code>). Or condescension.</div>
+          <div class="n fail">1</div><div>The same explanation you'd give an engineer, delivered slower. Simplification by volume, not by frame.</div>
+          <div class="n">2</div><div>Reframes to their world at least once — cost, risk, time, or their job. Some jargon survives.</div>
+          <div class="n pass">3</div><div>Built <b>from</b> their frame: opens with the outcome that matters to them, then the mechanism. Unavoidable terms glossed in one clause. Ends by checking understanding.</div>
+          <div class="n pass">4</div><div>+ <b>asks the clarifying question before answering</b> when the ask is ambiguous. Handles a fashionable misconception without making them feel stupid.</div>
+        </div>
+        <blockquote>Your client is a COO, a VP of lending, a compliance officer. They are smart and
+        they are not engineers. <b>Simplifying by frame</b> means opening with what it costs, what it
+        risks, or what it does to their job — then the mechanism, once they want it.</blockquote>
+
+        <div class="dt-eg" data-eg data-title="Adapting to the room">
+          <button class="egbtn" type="button"><span class="egi">▸</span> See 4 worked examples
+            <span class="egmeta">generic · swipe →</span></button>
+          <div class="egwrap" hidden>
+            <div class="eghead"><span class="egttl">Adapting to the room</span>
+              <span class="egpos">1 / 4</span>
+              <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+              <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+            <div class="egtrack" tabindex="0">
+              <article class="egslide">
+                <div class="egtags"><span class="wk bad">Scores 1</span></div>
+                <h4>The engineer explanation, slower</h4>
+                <div class="dt-say">"So… the embedding model… takes the text… and produces a vector.
+                And then we compute… cosine similarity… between vectors. It's basically a distance,
+                if that makes sense?"</div>
+                <p class="why"><b>Simplification by volume, not by frame.</b> Same content, half the
+                speed, plus "if that makes sense" — which asks the client to admit confusion rather
+                than checking it yourself.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk good">Scores 3</span></div>
+                <h4>Built from their frame</h4>
+                <div class="dt-say">"The thing that changes for your team: an agent stops reading
+                three years of history to answer a question they've answered before. Underneath, each
+                past ticket gets a numeric fingerprint of what it's about, and we look for the closest
+                fingerprints. If your agents open the suggestions and they're the right ones, it's
+                working — if they ignore them, tell me and I'll show you why."</div>
+                <p class="why"><b>Outcome first, mechanism second, one gloss ("numeric
+                fingerprint"), and it ends by checking understanding</b> in a way that gives the
+                client something concrete to watch for.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk good">Scores 4</span><span class="wk">W5 · XY</span></div>
+                <h4>The clarifying question, before the answer</h4>
+                <p class="egnote">Client says: <i>"Can you make it smarter? It should just know the
+                answer."</i> That ask has at least three meanings.</p>
+                <div class="dt-say">"Before I answer — when you say it should know the answer, do you
+                mean it should <b>draft the reply</b> for the agent to send, <b>find the one past
+                ticket</b> that already solved it, or <b>close simple tickets without an agent</b>?
+                Those are three different builds and one of them I'd argue against. Which is closest
+                to what you pictured?"</div>
+                <p class="why"><b>The ambiguity is named without making the client feel imprecise</b>,
+                the options are in their language, and a refusal is signalled <i>before</i> a month of
+                work goes the wrong way. This is the XY reframe from W5, live.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk good">Scores 4</span><span class="wk">misconception</span></div>
+                <h4>Handling a fashionable misconception</h4>
+                <p class="egnote">Client says: <i>"My nephew says you can just feed the whole ticket
+                database into the AI now. Is all this search stuff even necessary?"</i></p>
+                <div class="dt-say">"He's not wrong that the limit moved a lot — that used to be
+                impossible. Two things still bite: it costs per use, so pasting three years of
+                tickets into every question gets expensive fast, and accuracy drops when the useful
+                paragraph is buried in a very large pile. Searching first is what keeps both under
+                control. If the pile ever gets small enough, I'll happily delete my own code."</div>
+                <p class="why"><b>Concede what's true first.</b> No correction of the nephew, no
+                defensiveness, two concrete reasons, and an explicit willingness to be wrong later.
+                Making a client feel stupid is scored a 0 no matter how right you are.</p>
+              </article>
+            </div>
+            <div class="egdots"></div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="dt-dim">
+      <summary><span class="chev">▾</span><span class="dl">(c)</span><span class="dnm">Claim with evidence</span>
+        <span class="dsum">Number, baseline, and where it came from.</span></summary>
+      <div class="dbody">
+        <div class="dt-score">
+          <div class="n fail">0</div><div>Bare comparatives — "faster," "more performant," "much better."</div>
+          <div class="n fail">1</div><div>One number, unsourced or non-comparable. "It's about 3x."</div>
+          <div class="n">2</div><div>One claim carries a number and a baseline (<code>p95 3.8s → 0.9s</code>); other comparatives stay bare.</div>
+          <div class="n pass">3</div><div><b>Every</b> comparative claim has number + baseline + where the number came from. Unmeasured claims are stated as unmeasured, or cut.</div>
+          <div class="n pass">4</div><div>+ you state a claim the evidence does <b>not</b> support and say so. Cite the artifact path so someone else can re-derive the number.</div>
+        </div>
+        <blockquote><b>The oracle rule.</b> Your number needs an oracle that isn't your own code. A
+        test whose expected value mirrors the implementation cannot catch a wrong implementation.</blockquote>
+
+        <div class="dt-eg" data-eg data-title="Four claims, scored">
+          <button class="egbtn" type="button"><span class="egi">▸</span> See 4 worked examples
+            <span class="egmeta">generic · swipe →</span></button>
+          <div class="egwrap" hidden>
+            <div class="eghead"><span class="egttl">Four claims, scored</span>
+              <span class="egpos">1 / 4</span>
+              <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+              <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+            <div class="egtrack" tabindex="0">
+              <article class="egslide">
+                <div class="egtags"><span class="wk bad">Scores 0</span></div>
+                <div class="dt-say">"Search is way more accurate now."</div>
+                <p class="why"><b>Bare comparative.</b> Nothing to check, nothing to dispute, nothing
+                to act on. It is an opinion in an engineer's voice.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk bad">Scores 1</span></div>
+                <div class="dt-say">"Accuracy is up about 30%."</div>
+                <p class="why"><b>A number with no baseline and no source.</b> 30% of what, measured
+                how, against when? A number that can't be re-derived is worse than no number — it
+                sounds checkable and isn't.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk good">Scores 3</span></div>
+                <div class="dt-say">"On the 40 questions your team wrote, the right ticket is in the
+                top five 81% of the time, up from 62%. That's the eval run in
+                <code>artifacts/eval/2026-08-01.json</code> — the expected answers came from your
+                agents, not from my code."</div>
+                <p class="why"><b>Number, baseline, source, and an oracle that is not the
+                implementation.</b> The last clause is what makes it evidence rather than a
+                self-graded exam.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk good">Scores 4</span></div>
+                <div class="dt-say">"…and I want to be straight about one thing: I think it also
+                saves agents time, but I haven't measured it. Nobody has timed a ticket before and
+                after. Treat that as unproven until we do."</div>
+                <p class="why"><b>States a claim the evidence does not support, before anyone asks.</b>
+                Said as a bare "agents are faster now," the same belief scores a 0. <b>The identical
+                thought, honestly framed, is the difference between the top and bottom of this
+                dimension.</b></p>
+              </article>
+            </div>
+            <div class="egdots"></div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="dt-dim">
+      <summary><span class="chev">▾</span><span class="dl">(d)</span><span class="dnm">Demo execution</span>
+        <span class="dsum">On main, reachable, prepared, scripted — including the failure.</span></summary>
+      <div class="dbody">
+        <div class="dt-score">
+          <div class="n fail">0</div><div>Nothing running. Terminal presented as a demo. Or demoing work that isn't on <code>main</code>.</div>
+          <div class="n fail">1</div><div>It runs, but from a terminal or script the client could never reach. Improvised path, dead air.</div>
+          <div class="n">2</div><div>In the product UI, reachable — but unprepared data. Pauses, retries, "normally this works."</div>
+          <div class="n pass">3</div><div>On <code>main</code>, reachable from the UI, prepared data, a <b>planned sequence of screens</b>, under the time cap. You state up front what is thin vs hardened.</div>
+          <div class="n pass">4</div><div>+ a failure is handled <b>on-script</b> — you rehearsed what to say when it breaks, and said it without losing the room. Hardening time requested with a duration attached.</div>
+        </div>
+        <blockquote>Plan the demo as a script: which screens, in what order, against what data, and
+        what you say when something fails. <b>Rehearse the failure. It will happen.</b></blockquote>
+        <p class="dt-note" style="margin-top:12px">The screen-by-screen plan and the failure script
+        live in the <a href="#premortem" data-goto="premortem">pre-mortem sheet</a> (§3 and §4), each
+        with three filled examples.</p>
+      </div>
+    </details>
+
+    <details class="dt-dim">
+      <summary><span class="chev">▾</span><span class="dl">(e)</span><span class="dnm">Findings as roadmap</span>
+        <span class="dsum">Impact in their language, sequenced, with a date.</span></summary>
+      <div class="dbody">
+        <div class="dt-score">
+          <div class="n fail">0</div><div>A finding delivered as a blocker or an accusation, no path forward. Or a real finding omitted to keep the demo clean.</div>
+          <div class="n fail">1</div><div>Finding stated accurately. No impact, no next step. The client is left holding a problem.</div>
+          <div class="n">2</div><div>+ business impact in their language — audit exposure, patient safety, dollars. No sequence, no date.</div>
+          <div class="n pass">3</div><div>+ <b>a sequenced next step with a date.</b> Scope stays the client's; expansion is proposed, not taken.</div>
+          <div class="n pass">4</div><div>+ findings ordered by risk with the reasoning shown, and anything you <b>refused</b> to build named out loud with the reason — not left implicit in the code.</div>
+        </div>
+        <blockquote>The model sentence: <i>"This leaks patient identifiers. Our next steps are to
+        close it and meet the privacy standard over the next three weeks."</i> A client can act on
+        that. <i>"It's not compliant"</i> just stops the conversation.</blockquote>
+
+        <div class="dt-eg" data-eg data-title="One finding, four deliveries">
+          <button class="egbtn" type="button"><span class="egi">▸</span> See 4 worked examples
+            <span class="egmeta">generic · W6 · swipe →</span></button>
+          <div class="egwrap" hidden>
+            <div class="eghead"><span class="egttl">One finding, four deliveries</span>
+              <span class="egpos">1 / 4</span>
+              <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+              <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+            <div class="egtrack" tabindex="0">
+              <article class="egslide">
+                <div class="egtags"><span class="wk bad">Scores 1</span></div>
+                <p class="egnote">While wiring the assistant you notice the nightly ticket export
+                includes customer email addresses on a company-wide share.</p>
+                <div class="dt-say">"By the way, the ticket export has customer emails in it and the
+                share is wide open."</div>
+                <p class="why"><b>Accurate and useless.</b> No impact, no next step — the client is
+                handed a problem and no way to act on it. Often read as blame.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk">Scores 2</span></div>
+                <div class="dt-say">"The nightly ticket export includes customer email addresses and
+                lands on a share the whole company can read. If that list left the building it's a
+                notifiable data incident, not an IT ticket."</div>
+                <p class="why"><b>Impact in their language, no path.</b> The client now knows they
+                have a problem and still doesn't know what happens next or who does it.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk good">Scores 3</span></div>
+                <div class="dt-say">"…so here's what I'd do, and it's your call. This week I drop the
+                email column from the export — the assistant never needed it, so nothing breaks. Next
+                week we narrow the share to the support group. Who should see historical exports at
+                all is bigger than my scope, and I'd put that in front of whoever owns data retention
+                rather than deciding it myself. First step lands Thursday."</div>
+                <p class="why"><b>Sequenced, dated, and the scope stays theirs.</b> Expansion is
+                proposed, not taken — that distinction is what separates a consultant from a
+                contractor with opinions.</p>
+              </article>
+              <article class="egslide">
+                <div class="egtags"><span class="wk good">Scores 4</span></div>
+                <div class="dt-say">"Two findings this week, and I'd fix them in this order: the
+                export first, because it's the one where the damage is outside the building, then the
+                stale admin accounts, which need someone inside to act badly. And one thing I chose
+                <b>not</b> to build: you asked for the assistant to auto-close low-priority tickets.
+                I didn't, because right now it can't tell a low-priority ticket from a badly-worded
+                urgent one — I'd rather earn that."</div>
+                <p class="why"><b>Ordered by risk with the reasoning shown, plus a refusal said out
+                loud.</b> Every one of you declined an ask at demo day and was right to — the ones
+                that landed were the ones spoken, not the ones left implicit in the code.</p>
+              </article>
+            </div>
+            <div class="egdots"></div>
+          </div>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section class="dt-sec" id="habits">
+    <div class="k">Underneath the score</div>
+    <h2>Four habits</h2>
+    <p class="lede">Each one is a thing that actually happened on demo day, kept because it worked or
+    because its absence cost someone.</p>
+    <div class="dt-habits">
+      <div class="dt-habit"><div class="hn">01</div><div class="ht">Track your client's regulator.</div>
+        <div class="hb">The sharpest exchange of demo day happened because the client had read the
+        news and the engineer had not. Know what moved this month.</div></div>
+      <div class="dt-habit"><div class="hn">02</div><div class="ht">Audit the handover artifact.</div>
+        <div class="hb">The brief you are given is a claim, not evidence. One of you ran the client's
+        own worked example and found it didn't reproduce. Do that by default.</div></div>
+      <div class="dt-habit"><div class="hn">03</div><div class="ht">Write down what you refused, and why.</div>
+        <div class="hb">Every one of you declined an ask and was right to. The ones that landed were
+        written down and said out loud. The ones that didn't were only ever in the code.</div></div>
+      <div class="dt-habit"><div class="hn">04</div><div class="ht">Test data is still a finding.</div>
+        <div class="hb">A card number or a patient record in a repo is a finding regardless of
+        provenance, because nobody reading it can tell it's fake. Remove it and say why.</div></div>
+    </div>
+  </section>
+  <div class="dt-pager" id="pager-rubric"></div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- TAB 04 — PRE-MORTEM (fillable)                                       -->
+  <!-- ==================================================================== -->
+  <div class="dt-panel" id="tab-premortem">
+  <section class="dt-sec" id="premortem">
+    <div class="k">Filled Friday, for Monday</div>
+    <h2>Demo pre-mortem</h2>
+    <p class="lede">Assume the failure has <i>already happened</i> and reason backwards — it improves
+    identification of failure causes by roughly 30% over asking "what could go wrong." The past
+    tense is doing the work, so write it that way. <b>From W9 this is a gate: no pre-mortem, no
+    presentation slot.</b></p>
+
+    <div class="dt-scen" style="border:1px solid var(--info-line);background:var(--info-soft);border-radius:12px;padding:13px 16px;margin:0 0 16px;font-size:14.5px;line-height:1.6;color:var(--ink-soft)">
+      <span style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:var(--info);margin-bottom:4px">About the examples on this tab</span>
+      Each carousel holds <b>three different made-up scenarios</b> — a support-ticket assistant
+      (<b>W2/W3</b>), a customer-360 view (<b>W4</b>), and a brownfield billing migration
+      (<b>W6</b>). None of them is your project. Swipe through them to see what belongs in each box,
+      not what to write.
+    </div>
+
+    <div class="dt-tools">
+      <span class="dt-wksel" id="pmWeeks"></span>
+      <button class="dt-btn" data-copy="premortem">📋 Copy as Markdown</button>
+      <button class="dt-btn ghost" data-clear="pm">Clear this week</button>
+      <span class="dt-saved" id="pmSaved"></span>
+    </div>
+
+    <h3>1 · The obituary</h3>
+    <p class="dt-note" style="margin:0 0 8px">"It is Monday morning. The demo died in front of the
+    client. Here is why." Five reasons, ranked by <b>likelihood</b>, not by how uncomfortable they
+    are. Specific enough that someone else could check them. <b>P</b> = preventable, close it before
+    Monday — a P left open on Monday is the finding and is scored as one. <b>R</b> = rehearsable,
+    write the sentence you will say (§3). <b>A</b> = accepted, out of your control and low impact.</p>
+    <div class="dt-tbl">
+      <div class="th g-ob"><div>#</div><div>It died because…</div><div>P / R / A</div><div>Closed</div></div>
+      <div class="tr g-ob"><div class="num">1</div><div><input class="dt-in" data-f="pm.ob1.t" placeholder="It died because…"></div><div><select class="dt-sel" data-f="pm.ob1.c"><option value="">—</option><option>P — preventable</option><option>R — rehearsable</option><option>A — accepted</option></select></div><div class="chk"><input type="checkbox" data-f="pm.ob1.k"></div></div>
+      <div class="tr g-ob"><div class="num">2</div><div><input class="dt-in" data-f="pm.ob2.t" placeholder="It died because…"></div><div><select class="dt-sel" data-f="pm.ob2.c"><option value="">—</option><option>P — preventable</option><option>R — rehearsable</option><option>A — accepted</option></select></div><div class="chk"><input type="checkbox" data-f="pm.ob2.k"></div></div>
+      <div class="tr g-ob"><div class="num">3</div><div><input class="dt-in" data-f="pm.ob3.t" placeholder="It died because…"></div><div><select class="dt-sel" data-f="pm.ob3.c"><option value="">—</option><option>P — preventable</option><option>R — rehearsable</option><option>A — accepted</option></select></div><div class="chk"><input type="checkbox" data-f="pm.ob3.k"></div></div>
+      <div class="tr g-ob"><div class="num">4</div><div><input class="dt-in" data-f="pm.ob4.t" placeholder="It died because…"></div><div><select class="dt-sel" data-f="pm.ob4.c"><option value="">—</option><option>P — preventable</option><option>R — rehearsable</option><option>A — accepted</option></select></div><div class="chk"><input type="checkbox" data-f="pm.ob4.k"></div></div>
+      <div class="tr g-ob"><div class="num">5</div><div><input class="dt-in" data-f="pm.ob5.t" placeholder="It died because…"></div><div><select class="dt-sel" data-f="pm.ob5.c"><option value="">—</option><option>P — preventable</option><option>R — rehearsable</option><option>A — accepted</option></select></div><div class="chk"><input type="checkbox" data-f="pm.ob5.k"></div></div>
+    </div>
+    <p class="dt-note" style="margin-top:8px">You have the weekend, so a <b>P</b> you leave open is a
+    choice.</p>
+
+    <div class="dt-eg" data-eg data-title="Filled obituaries">
+      <button class="egbtn" type="button"><span class="egi">▸</span> See 3 filled examples
+        <span class="egmeta">3 scenarios · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">Filled obituaries</span>
+          <span class="egpos">1 / 3</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario A</span><span class="wk">W2/W3 · ticket assistant</span></div>
+            <div class="dt-tbl">
+              <div class="th g-ob"><div>#</div><div>It died because…</div><div>P/R/A</div><div>Closed</div></div>
+              <div class="tr g-ob"><div class="num">1</div><div>I re-indexed the ticket corpus Friday night and the app still points at the old index name, so search returns nothing.</div><div>P</div><div class="chk">☑</div></div>
+              <div class="tr g-ob"><div class="num">2</div><div>The ticket API took 30s to answer in front of the client — no timeout, so the whole screen hung.</div><div>R</div><div class="chk">☐</div></div>
+              <div class="tr g-ob"><div class="num">3</div><div>My "81%" came from a gold set I generated myself, and they asked where the expected answers came from.</div><div>P</div><div class="chk">☑</div></div>
+              <div class="tr g-ob"><div class="num">4</div><div>The demo tenant had 11 tickets in it, so "three similar tickets" showed three unrelated ones.</div><div>P</div><div class="chk">☑</div></div>
+              <div class="tr g-ob"><div class="num">5</div><div>Room display cut off the right third of the screen where the scores render.</div><div>A</div><div class="chk">☐</div></div>
+            </div>
+            <p class="why"><b>Read the classification, not the list.</b> Three P's, all closed over the
+            weekend — that is the point of doing this Friday. #2 is outside his control this week, so
+            it gets a rehearsed sentence instead of a fix. #5 is real and not worth an hour.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario B</span><span class="wk">W4 · customer-360 view</span></div>
+            <div class="dt-tbl">
+              <div class="th g-ob"><div>#</div><div>It died because…</div><div>P/R/A</div><div>Closed</div></div>
+              <div class="tr g-ob"><div class="num">1</div><div>The customer I picked has 4 records under slightly different names, so the "full picture" showed a partial one and they noticed.</div><div>P</div><div class="chk">☑</div></div>
+              <div class="tr g-ob"><div class="num">2</div><div>The assembled view takes 9s on the largest account and I only ever tested a small one.</div><div>P</div><div class="chk">☑</div></div>
+              <div class="tr g-ob"><div class="num">3</div><div>Graph rebuild runs at 2am; if it fails silently the view shows yesterday's data with no indicator.</div><div>R</div><div class="chk">☐</div></div>
+              <div class="tr g-ob"><div class="num">4</div><div>They asked "where does this number come from" about the lifetime-value figure and I hadn't traced it.</div><div>P</div><div class="chk">☑</div></div>
+            </div>
+            <p class="why"><b>#1 is the one that would actually have killed it.</b> A "complete
+            picture" that is provably incomplete does more damage than a slow one — it breaks the
+            claim, not the demo. Notice it was found by picking a <i>hard</i> record on Friday rather
+            than a convenient one on Monday.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario C</span><span class="wk">W6 · brownfield migration</span></div>
+            <div class="dt-tbl">
+              <div class="th g-ob"><div>#</div><div>It died because…</div><div>P/R/A</div><div>Closed</div></div>
+              <div class="tr g-ob"><div class="num">1</div><div>The new billing path is behind a flag that is off in the environment I demo from, so I'd show the old behaviour and not notice.</div><div>P</div><div class="chk">☑</div></div>
+              <div class="tr g-ob"><div class="num">2</div><div>My characterization tests pass because they assert current behaviour — including the rounding bug the client cares about.</div><div>P</div><div class="chk">☑</div></div>
+              <div class="tr g-ob"><div class="num">3</div><div>Someone asks "is the old path deleted?" and the honest answer is no, both run.</div><div>R</div><div class="chk">☐</div></div>
+              <div class="tr g-ob"><div class="num">4</div><div>The finance export they use for reconciliation still reads the old table.</div><div>P</div><div class="chk">☐</div></div>
+            </div>
+            <p class="why"><b>#4 is left open deliberately and that is a defensible call</b> — it is
+            real, it is not fixable by Monday, and it becomes the two-minute finding with a date
+            instead of a surprise. <b>What is not defensible is leaving it open and not mentioning
+            it.</b></p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+
+    <h3>2 · The three checks that catch most of it</h3>
+    <p class="dt-note" style="margin:0 0 8px">Do these with the clock running, not from memory.</p>
+    <div class="dt-tbl">
+      <div class="th g-chk"><div></div><div>Check</div><div>Pass =</div></div>
+      <div class="tr g-chk"><div class="chk"><input type="checkbox" data-f="pm.ck1"></div><div style="padding:9px 12px"><b>Is it on <code>main</code>?</b> Not "ready to merge." Merged.</div><div style="padding:9px 12px;color:var(--ink-soft);font-size:14px"><code>git log origin/main</code> shows it</div></div>
+      <div class="tr g-chk"><div class="chk"><input type="checkbox" data-f="pm.ck2"></div><div style="padding:9px 12px"><b>Can a person click to it?</b> Open the product cold, from the login screen, and reach the thing without touching a terminal.</div><div style="padding:9px 12px;color:var(--ink-soft);font-size:14px">you did it just now, start to finish</div></div>
+      <div class="tr g-chk"><div class="chk"><input type="checkbox" data-f="pm.ck3"></div><div style="padding:9px 12px"><b>Does the number reproduce?</b> Re-run the measurement. Same order of magnitude?</div><div style="padding:9px 12px;color:var(--ink-soft);font-size:14px">you re-ran it Friday, not Tuesday</div></div>
+    </div>
+    <div class="dt-rule">If any of the three is false, <b>that is what you say first on Monday</b>,
+    before you show anything: <i>"This works today. Here is what I need more time to make robust,
+    and here is how long."</i></div>
+
+    <h3>3 · The failure script</h3>
+    <p class="dt-note" style="margin:0 0 8px">For every <b>R</b> above, write the exact words. Not a
+    plan — the words.</p>
+    <div class="dt-tbl">
+      <div class="th g-fs"><div>If this breaks</div><div>I say (≤8 words, then scope it)</div><div>I go to</div></div>
+      <div class="tr g-fs"><div><input class="dt-in" data-f="pm.fs1.a" placeholder="the ticket API hangs"></div><div><input class="dt-in" data-f="pm.fs1.b" placeholder="&quot;That's the ticket API timing out.&quot;"></div><div><input class="dt-in" data-f="pm.fs1.c" placeholder="recorded run, chapter 2"></div></div>
+      <div class="tr g-fs"><div><input class="dt-in" data-f="pm.fs2.a"></div><div><input class="dt-in" data-f="pm.fs2.b"></div><div><input class="dt-in" data-f="pm.fs2.c"></div></div>
+      <div class="tr g-fs"><div><input class="dt-in" data-f="pm.fs3.a"></div><div><input class="dt-in" data-f="pm.fs3.b"></div><div><input class="dt-in" data-f="pm.fs3.c"></div></div>
+    </div>
+    <p class="dt-note" style="margin-top:10px"><b>The shape of a good recovery, in order:</b>
+    ① Name it in eight words or fewer. ② <b>Scope it immediately</b> — "my environment, not the
+    feature" — this is the sentence that decides whether the room loses confidence in the <i>demo</i>
+    or in the <i>work</i>. ③ Be somewhere useful within 60 seconds: a chaptered recording, a second
+    screen, the next capability. <b>Never live debugging.</b> ④ Repair it in writing the same day:
+    one paragraph, what broke, why, and that it is fixed.</p>
+    <div class="dt-warn"><b>Do not apologise more than once.</b> The second apology is when the room
+    starts believing you.</div>
+
+    <div class="dt-eg" data-eg data-title="Filled failure scripts">
+      <button class="egbtn" type="button"><span class="egi">▸</span> See 3 filled examples
+        <span class="egmeta">3 scenarios · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">Filled failure scripts</span>
+          <span class="egpos">1 / 3</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario A</span><span class="wk">ticket assistant</span></div>
+            <div class="dt-tbl">
+              <div class="th g-fs"><div>If this breaks</div><div>I say</div><div>I go to</div></div>
+              <div class="tr g-fs"><div>The ticket API hangs (no timeout yet)</div><div>"That's the ticket system timing out — their side, not the assistant. It's exactly the fix I'm asking for time for."</div><div>Recorded run, chapter 2 — already open in tab 2</div></div>
+              <div class="tr g-fs"><div>Search returns nothing for the ticket I open</div><div>"Empty result — my index, not the feature. Here it is on one I know is indexed."</div><div>Ticket #4412, verified Friday</div></div>
+              <div class="tr g-fs"><div>Wi-Fi drops</div><div>"I'll keep talking while that reconnects."</div><div>The two-minute findings section, then back</div></div>
+            </div>
+            <p class="why"><b>Notice the second clause every time.</b> "Their side, not the
+            assistant." "My index, not the feature." That sentence decides whether the room loses
+            confidence in the demo or in the work — and it is impossible to produce under pressure
+            unless it was written on Friday.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario B</span><span class="wk">customer-360 view</span></div>
+            <div class="dt-tbl">
+              <div class="th g-fs"><div>If this breaks</div><div>I say</div><div>I go to</div></div>
+              <div class="tr g-fs"><div>The view takes 9s on the account they ask for</div><div>"That's a big account — nine seconds, and I know why. Let me show you, then I'll tell you the fix."</div><div>Keep talking through it, then the query plan slide</div></div>
+              <div class="tr g-fs"><div>Yesterday's data because the 2am rebuild failed</div><div>"That's stale — last night's rebuild failed silently. That's a finding, not a demo problem."</div><div>Straight into finding #2, out of order, on purpose</div></div>
+              <div class="tr g-fs"><div>They pick a customer with duplicate records</div><div>"Good pick — that's the duplicate problem I flagged. Watch what it does."</div><div>Show it honestly, then the de-dup proposal</div></div>
+            </div>
+            <p class="why"><b>Two of these three turn the failure into the finding.</b> When the thing
+            that breaks is a known defect you already planned to report, the recovery is to
+            <i>promote it early</i> rather than survive it — that reads as command of the system, not
+            luck.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario C</span><span class="wk">brownfield migration</span></div>
+            <div class="dt-tbl">
+              <div class="th g-fs"><div>If this breaks</div><div>I say</div><div>I go to</div></div>
+              <div class="tr g-fs"><div>Flag is off and the old path runs</div><div>"Wrong environment — that's the old path. One click."</div><div>Staging with the flag on, already logged in</div></div>
+              <div class="tr g-fs"><div>Totals differ by a cent between old and new</div><div>"That's the rounding difference. It's expected, and it's the reason for the next slide."</div><div>The reconciliation comparison, pre-run</div></div>
+              <div class="tr g-fs"><div>"Is the old code deleted?"</div><div>"No — both run today. Deleting it is week 9, and here's what has to be true first."</div><div>The migration sequence</div></div>
+            </div>
+            <p class="why"><b>The third row isn't a technical failure at all — it's a question you
+            dread.</b> Scripting the answer costs one line and turns the worst moment of the meeting
+            into a prepared one. Do that for any question you'd rather not get.</p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+
+    <h3>4 · The golden path</h3>
+    <p class="dt-note" style="margin:0 0 8px">Which screens, in what order, against what data. Seed
+    the data <b>before</b> the room is watching — "let me just create a record" is dead air. Tell
+    them what to watch for <i>before</i> you click, not after.</p>
+    <div class="dt-tbl">
+      <div class="th g-gp"><div>#</div><div>Screen</div><div>The data</div><div>What I say</div><div>Watch-for I name up front</div></div>
+      <div class="tr g-gp"><div class="num">1</div><div><input class="dt-in" data-f="pm.gp1.a"></div><div><input class="dt-in" data-f="pm.gp1.b"></div><div><input class="dt-in" data-f="pm.gp1.c"></div><div><input class="dt-in" data-f="pm.gp1.d"></div></div>
+      <div class="tr g-gp"><div class="num">2</div><div><input class="dt-in" data-f="pm.gp2.a"></div><div><input class="dt-in" data-f="pm.gp2.b"></div><div><input class="dt-in" data-f="pm.gp2.c"></div><div><input class="dt-in" data-f="pm.gp2.d"></div></div>
+      <div class="tr g-gp"><div class="num">3</div><div><input class="dt-in" data-f="pm.gp3.a"></div><div><input class="dt-in" data-f="pm.gp3.b"></div><div><input class="dt-in" data-f="pm.gp3.c"></div><div><input class="dt-in" data-f="pm.gp3.d"></div></div>
+    </div>
+    <p class="dt-note" style="margin-top:8px">One slide per two minutes, maximum. If a panel reads
+    like your speaker notes, it <b>is</b> your speaker notes.</p>
+
+    <div class="dt-eg" data-eg data-title="Filled golden paths">
+      <button class="egbtn" type="button"><span class="egi">▸</span> See 3 filled examples
+        <span class="egmeta">3 scenarios · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">Filled golden paths</span>
+          <span class="egpos">1 / 3</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario A</span><span class="wk">ticket assistant</span></div>
+            <div class="dt-tbl">
+              <div class="th g-gp"><div>#</div><div>Screen</div><div>Data</div><div>What I say</div><div>Watch-for</div></div>
+              <div class="tr g-gp"><div class="num">1</div><div>Ticket queue as an agent (not admin)</div><div>Seeded Friday: 60 real-shaped tickets, 2 near-duplicates of #4412</div><div>"This is what your agent sees on a Monday."</div><div>"Nothing new yet — I want you on their screen."</div></div>
+              <div class="tr g-gp"><div class="num">2</div><div>Ticket #4412 → similar-tickets panel</div><div>#4412 chosen because its duplicates were resolved differently</div><div>"The panel on the right is the new part."</div><div>"Watch the second one — worded completely differently, still surfaces."</div></div>
+              <div class="tr g-gp"><div class="num">3</div><div>Eval report page</div><div>The 40-question set your agents wrote, run Friday</div><div>"This is where 81% comes from — you can re-run it without me."</div><div>"Watch the four it misses. All one-line tickets."</div></div>
+            </div>
+            <p class="why"><b>Three screens for four minutes.</b> Data seeded Friday. The watch-for is
+            stated before the click every time, which is what turns a click into a demonstration. And
+            screen 3 hands the client the ability to check him — the strongest move in dimension (c).</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario B</span><span class="wk">customer-360 view</span></div>
+            <div class="dt-tbl">
+              <div class="th g-gp"><div>#</div><div>Screen</div><div>Data</div><div>What I say</div><div>Watch-for</div></div>
+              <div class="tr g-gp"><div class="num">1</div><div>Old flow: three tabs to assemble a customer</div><div>Account #88 — a real-shaped mid-size account</div><div>"This is today. Three tabs, about 40 seconds."</div><div>"Count the clicks. That's the thing we're removing."</div></div>
+              <div class="tr g-gp"><div class="num">2</div><div>New assembled view, same account</div><div>Same account, so the comparison is honest</div><div>"Same customer, one screen, under a second."</div><div>"Watch the timer top-right — I left it visible on purpose."</div></div>
+              <div class="tr g-gp"><div class="num">3</div><div>A duplicated customer</div><div>The 4-record customer found on Friday</div><div>"Here's where it isn't finished, and it's the important part."</div><div>"Watch the record count. Four humans, one person."</div></div>
+            </div>
+            <p class="why"><b>The old flow first is the whole trick.</b> A client cannot feel a
+            one-second load until they have watched the forty-second one. And ending on the defect —
+            deliberately, with a watch-for — converts the weakest part of the work into the moment
+            that proves you understand it.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario C</span><span class="wk">brownfield migration</span></div>
+            <div class="dt-tbl">
+              <div class="th g-gp"><div>#</div><div>Screen</div><div>Data</div><div>What I say</div><div>Watch-for</div></div>
+              <div class="tr g-gp"><div class="num">1</div><div>Reconciliation comparison, old vs new</div><div>A frozen month of invoices, run both ways Friday</div><div>"Same month, both engines. This is the evidence, before anything else."</div><div>"Watch the difference column. Zero except three rows."</div></div>
+              <div class="tr g-gp"><div class="num">2</div><div>Those three rows, in the product</div><div>The three invoices that differ, on purpose</div><div>"These three differ, and the new one is right. Here's why."</div><div>"Watch the rounding on the tax line."</div></div>
+              <div class="tr g-gp"><div class="num">3</div><div>Flag config screen</div><div>Staging, flag on</div><div>"Turning it on is one switch, and off is the same switch."</div><div>"Watch that this is reversible. That's the ask today."</div></div>
+            </div>
+            <p class="why"><b>Evidence screen first, product second.</b> For a migration nobody wants
+            a tour — they want to know whether the numbers moved and whether it can be undone. The
+            golden path is built backwards from the decision the client actually has to make.</p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+
+    <h3>5 · The claims audit</h3>
+    <p class="dt-note" style="margin:0 0 8px">Every comparative word you plan to say — <i>faster,
+    better, more performant, cheaper, safer</i> — goes in this table or gets cut.</p>
+    <div class="dt-tbl">
+      <div class="th g-cl"><div>The claim</div><div>The number</div><div>The baseline</div><div>Where it came from</div><div>Who could dispute it</div></div>
+      <div class="tr g-cl"><div><input class="dt-in" data-f="pm.cl1.a"></div><div><input class="dt-in" data-f="pm.cl1.b"></div><div><input class="dt-in" data-f="pm.cl1.c"></div><div><input class="dt-in" data-f="pm.cl1.d"></div><div><input class="dt-in" data-f="pm.cl1.e"></div></div>
+      <div class="tr g-cl"><div><input class="dt-in" data-f="pm.cl2.a"></div><div><input class="dt-in" data-f="pm.cl2.b"></div><div><input class="dt-in" data-f="pm.cl2.c"></div><div><input class="dt-in" data-f="pm.cl2.d"></div><div><input class="dt-in" data-f="pm.cl2.e"></div></div>
+      <div class="tr g-cl"><div><input class="dt-in" data-f="pm.cl3.a"></div><div><input class="dt-in" data-f="pm.cl3.b"></div><div><input class="dt-in" data-f="pm.cl3.c"></div><div><input class="dt-in" data-f="pm.cl3.d"></div><div><input class="dt-in" data-f="pm.cl3.e"></div></div>
+    </div>
+    <p class="dt-note" style="margin-top:8px"><b>The oracle rule:</b> the number must come from
+    something that is <b>not your own implementation</b>. Any row with a blank cell — cut the claim,
+    or state it as unmeasured, out loud and deliberately.</p>
+
+    <div class="dt-eg" data-eg data-title="Filled claims audits">
+      <button class="egbtn" type="button"><span class="egi">▸</span> See 3 filled examples
+        <span class="egmeta">incl. the rows that got cut · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">Filled claims audits</span>
+          <span class="egpos">1 / 3</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario A</span><span class="wk">ticket assistant</span></div>
+            <div class="dt-tbl">
+              <div class="th g-cl"><div>Claim</div><div>Number</div><div>Baseline</div><div>Source</div><div>Who could dispute</div></div>
+              <div class="tr g-cl"><div>Right past ticket in the top five more often</div><div>recall@5 0.81</div><div>0.62, same 40 questions, 25 July</div><div><code>artifacts/eval/2026-08-01.json</code> — answers written by their agents</div><div>Their support lead, who wrote the questions</div></div>
+              <div class="tr g-cl"><div>A bad twenty minutes on the ticket API no longer freezes the screen</div><div>worst wait 3s</div><div>30s+, observed 22 July incident</div><div>Their incident log + forced-timeout run in staging</div><div>Their platform team — they own the timeline</div></div>
+              <div class="tr g-cl"><div style="opacity:.55;text-decoration:line-through">Agents close tickets faster</div><div style="opacity:.55">—</div><div style="opacity:.55">—</div><div style="opacity:.55">nothing timed before or after</div><div style="color:var(--bad-ink);font-weight:650">CUT — say it as unmeasured</div></div>
+            </div>
+            <p class="why"><b>The third row is the one that matters.</b> It is the claim he most wants
+            to make and the one with no oracle, so it leaves the demo and gets said out loud as
+            unmeasured instead — which scores a 4. <b>The last column is the discipline:</b> if you
+            cannot name someone who could contradict the number, you have not sourced it.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario B</span><span class="wk">customer-360 view</span></div>
+            <div class="dt-tbl">
+              <div class="th g-cl"><div>Claim</div><div>Number</div><div>Baseline</div><div>Source</div><div>Who could dispute</div></div>
+              <div class="tr g-cl"><div>The full picture opens in under a second</div><div>p95 0.9s</div><div>3.8s, same 200 accounts, 18 July</div><div>Load run <code>perf/2026-08-01.json</code>, their account sample</div><div>Their DBA — the query plan is in the same file</div></div>
+              <div class="tr g-cl"><div>Fewer clicks to assemble a customer</div><div>3 tabs → 1</div><div>Counted on video of their own agent, 12 July</div><div>Their recorded session, not my estimate</div><div>The agent in the video</div></div>
+              <div class="tr g-cl"><div style="opacity:.55;text-decoration:line-through">Support calls will get shorter</div><div style="opacity:.55">—</div><div style="opacity:.55">—</div><div style="opacity:.55">plausible, no call-time data pulled</div><div style="color:var(--bad-ink);font-weight:650">CUT — propose measuring it</div></div>
+            </div>
+            <p class="why"><b>Row 2 is the strongest kind of evidence available to you:</b> a number
+            counted from the client's own recorded workflow. It cannot be accused of being a
+            self-graded exam. <b>Row 3 shows the better move for a cut claim</b> — don't just drop it,
+            propose how you'd measure it next week.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Scenario C</span><span class="wk">brownfield migration</span></div>
+            <div class="dt-tbl">
+              <div class="th g-cl"><div>Claim</div><div>Number</div><div>Baseline</div><div>Source</div><div>Who could dispute</div></div>
+              <div class="tr g-cl"><div>The new engine matches the old one</div><div>4,812 of 4,815 invoices identical</div><div>One frozen month, both engines</div><div>Diff report <code>recon/2026-07.csv</code></div><div>Their finance team — they own the month</div></div>
+              <div class="tr g-cl"><div>The three differences are the old engine being wrong</div><div>3 invoices, £0.02 total</div><div>Hand-checked against the tax rule</div><div>Their own finance policy doc, §4.2</div><div>Their controller</div></div>
+              <div class="tr g-cl"><div style="opacity:.55;text-decoration:line-through">The new engine is faster</div><div style="opacity:.55">—</div><div style="opacity:.55">—</div><div style="opacity:.55">true in dev, never measured at their volume</div><div style="color:var(--bad-ink);font-weight:650">CUT — irrelevant to today's decision</div></div>
+            </div>
+            <p class="why"><b>Row 2 is the hard one and the one that earns trust:</b> claiming the
+            <i>client's existing system</i> is wrong requires a source that isn't you — here, their
+            own policy document. <b>And the cut row is cut for a second legitimate reason</b> —
+            not just unmeasured, but irrelevant to the decision in the room. Cutting for relevance is
+            as valuable as cutting for evidence.</p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+
+    <h3>6 · The one question I hope they don't ask</h3>
+    <div class="dt-form">
+      <div class="row"><div class="lb">Q<small>Write it down.</small></div>
+        <div class="fl"><textarea class="dt-ta" data-f="pm.q" placeholder="The question you are hoping nobody asks…"></textarea></div></div>
+      <div class="row"><div class="lb">A<small>Two sentences.</small></div>
+        <div class="fl"><textarea class="dt-ta" data-f="pm.a" placeholder="Two sentences. If you can't, that is Monday's real risk — not the demo."></textarea></div></div>
+    </div>
+    <p class="dt-note" style="margin-top:10px">The answer is allowed to be <i>"I don't know. Here's
+    how I'd find out, and I'll have it by Tuesday."</i> That scores a 4 on honest state.
+    <b>Guessing scores a 0.</b></p>
+
+    <div class="dt-eg" data-eg data-title="Four questions worth writing down">
+      <button class="egbtn" type="button"><span class="egi">▸</span> See 4 worked examples
+        <span class="egmeta">generic · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">Four questions worth writing down</span>
+          <span class="egpos">1 / 4</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk">accountability</span></div>
+            <div class="dt-form">
+              <div class="row"><div class="lb">Q</div><div class="fl">"If it suggests the wrong past ticket and my agent copies that answer to a customer, who's responsible?"</div></div>
+              <div class="row"><div class="lb">A</div><div class="fl">"The agent is — it suggests, it never sends, and every suggestion shows the ticket it came from so they can check it in one click. I'd rather show you the four questions it still gets wrong than promise it won't."</div></div>
+            </div>
+            <p class="why"><b>The dreaded question is almost always about accountability, not
+            technology.</b> Two sentences: what the system actually does, then the honest edge.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">cost</span></div>
+            <div class="dt-form">
+              <div class="row"><div class="lb">Q</div><div class="fl">"What does this cost me per month once everyone's using it?"</div></div>
+              <div class="row"><div class="lb">A</div><div class="fl">"At your current ticket volume it's about $90 a month, and there's a hard ceiling per request so a busy day can't surprise you. That's measured from last week's real traffic — if volume doubles, so does the number, roughly linearly."</div></div>
+            </div>
+            <p class="why"><b>A cost answer needs the scaling behaviour, not just the figure.</b>
+            "About $90" invites a follow-up you won't have. "$90, roughly linear in volume, capped per
+            request" closes it.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">buy vs build</span></div>
+            <div class="dt-form">
+              <div class="row"><div class="lb">Q</div><div class="fl">"Doesn't our ticket vendor already sell an AI add-on? Why are we building this?"</div></div>
+              <div class="row"><div class="lb">A</div><div class="fl">"They do, and it may well be the right answer — I'd want to see it run against the 40 questions your team wrote before either of us decides. What we've built is that test plus a working baseline, so you can compare rather than take a demo's word for it."</div></div>
+            </div>
+            <p class="why"><b>Do not defend your own work here.</b> Offering the comparison — with
+            your eval harness as the referee — is stronger than any argument for building, and it is
+            honest if the vendor turns out to win.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">the honest "I don't know"</span></div>
+            <div class="dt-form">
+              <div class="row"><div class="lb">Q</div><div class="fl">"How does this behave on our Spanish-language tickets?"</div></div>
+              <div class="row"><div class="lb">A</div><div class="fl">"I don't know — every question in the test set is English, so I have no evidence either way. I'll pull 40 Spanish tickets from your own history and run the same test; I'll have the number Tuesday."</div></div>
+            </div>
+            <p class="why"><b>This scores a 4, and guessing would score a 0.</b> "I don't know" plus a
+            method and a date is a complete answer. The instinct to produce something plausible is
+            exactly the instinct this sheet exists to kill.</p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+  </section>
+  <div class="dt-pager" id="pager-premortem"></div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- TAB 05 — BLOCKERS & ESTIMATES (fillable)                             -->
+  <!-- ==================================================================== -->
+  <div class="dt-panel" id="tab-blocker">
+  <section class="dt-sec" id="blocker">
+    <div class="k">File it the day it appears</div>
+    <h2>Blocker card</h2>
+    <p class="lede">This is the artifact behind <b>Path B</b>. A POC without one of these is not a
+    delivery, it is a demo — the card is what makes it honest. File one <b>the day a roadblock
+    appears</b>, not the day before you present. Bring them Monday.</p>
+
+    <div class="dt-tools">
+      <span class="dt-wksel" id="bcWeeks"></span>
+      <button class="dt-btn" data-copy="blocker">📋 Copy as Markdown</button>
+      <button class="dt-btn ghost" data-clear="bc">Clear this week</button>
+      <span class="dt-saved" id="bcSaved"></span>
+    </div>
+
+    <div class="dt-form">
+      <div class="row"><div class="lb">Item</div><div class="fl"><input class="dt-in" data-f="bc.item" placeholder="e.g. reply-from-assistant"></div></div>
+      <div class="row"><div class="lb">What's blocked<small>One line, in client language.</small></div>
+        <div class="fl"><input class="dt-in" data-f="bc.what" placeholder="Not &quot;the write endpoint&quot; — &quot;replying to a ticket from the assistant.&quot;"></div></div>
+      <div class="row"><div class="lb">Why<small>The actual dependency, named.</small></div>
+        <div class="fl"><textarea class="dt-ta" data-f="bc.why" placeholder="Not &quot;IT hasn't got back to me&quot; — the specific thing that has to exist before you can build."></textarea></div></div>
+      <div class="row"><div class="lb">Likely</div><div class="fl"><input class="dt-in" data-f="bc.likely" placeholder="3 days"></div></div>
+      <div class="row"><div class="lb">Bad case<small>— and what would cause it.</small></div>
+        <div class="fl"><input class="dt-in" data-f="bc.bad" placeholder="8 days, if it goes to security review"></div></div>
+      <div class="row"><div class="lb">The unblocking action<small>The specific next thing that has to happen.</small></div>
+        <div class="fl"><input class="dt-in" data-f="bc.action" placeholder="30 minutes to agree the scope the service account needs"></div></div>
+      <div class="row"><div class="lb">Who owns that action<small>A named person. "IT" is not a person.</small></div>
+        <div class="fl"><input class="dt-in" data-f="bc.owner" placeholder="Dana, IT platform — asked for Thursday, chasing Wednesday"></div></div>
+      <div class="row"><div class="lb">What I'm doing meanwhile<small>The honest answer is rarely "waiting."</small></div>
+        <div class="fl"><textarea class="dt-ta" data-f="bc.meanwhile" placeholder="What you are building, drafting or narrowing while it's blocked."></textarea></div></div>
+      <div class="row"><div class="lb">Conversion date<small>When Path B becomes Path A.</small></div>
+        <div class="fl"><input class="dt-in" data-f="bc.convert" placeholder="Week 9, Monday"></div></div>
+    </div>
+
+    <div class="dt-eg" data-eg data-title="Filled blocker cards">
+      <button class="egbtn" type="button"><span class="egi">▸</span> See 4 worked examples
+        <span class="egmeta">2 good · 2 bad · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">Filled blocker cards</span>
+          <span class="egpos">1 / 4</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk good">Good</span><span class="wk">access dependency</span></div>
+            <div class="dt-form">
+              <div class="row"><div class="lb">What's blocked</div><div class="fl">The assistant can suggest a reply but can't post it back to the ticket. The screen works; Send is disabled.</div></div>
+              <div class="row"><div class="lb">Why</div><div class="fl">Posting needs a service account with write scope on the ticket API. Only IT can issue one, and the scope has to be agreed before they will.</div></div>
+              <div class="row"><div class="lb">Likely / bad case</div><div class="fl">3 days. 8 days if the scope request goes to the monthly security review instead of being signed off directly.</div></div>
+              <div class="row"><div class="lb">Unblocking action</div><div class="fl">30 minutes with IT platform to agree the minimum scope — write-comment only, no status changes.</div></div>
+              <div class="row"><div class="lb">Who owns it</div><div class="fl">Dana (IT platform). Asked for Thursday, no reply; chasing Wednesday morning.</div></div>
+              <div class="row"><div class="lb">Meanwhile</div><div class="fl">Reply panel clickable against a stubbed API, showing Monday for wording feedback. Scope request drafted so the meeting is a yes/no on one page.</div></div>
+              <div class="row"><div class="lb">Conversion date</div><div class="fl">Week 9, Monday.</div></div>
+            </div>
+            <p class="why"><b>The move that actually shortens the estimate</b> is the drafted scope
+            request — it converts a design meeting into a yes/no. Everything else is honesty; that
+            one is leverage.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk good">Good</span><span class="wk">vendor limit</span></div>
+            <div class="dt-form">
+              <div class="row"><div class="lb">What's blocked</div><div class="fl">Bulk re-processing of last year's tickets. The feature works one ticket at a time.</div></div>
+              <div class="row"><div class="lb">Why</div><div class="fl">The vendor rate-limits us to 1,000 API calls/hour on the current plan. 240,000 tickets is ten days of continuous calling.</div></div>
+              <div class="row"><div class="lb">Likely / bad case</div><div class="fl">2 days once the limit is raised. 12 days if it isn't and we run inside the existing limit.</div></div>
+              <div class="row"><div class="lb">Unblocking action</div><div class="fl">Ask the vendor for a temporary limit raise for a two-week backfill window — a support ticket, not a contract change.</div></div>
+              <div class="row"><div class="lb">Who owns it</div><div class="fl">Sam, who owns the vendor relationship. I've drafted the request; he sends it.</div></div>
+              <div class="row"><div class="lb">Meanwhile</div><div class="fl">Backfilling newest-first inside the current limit, so the most-used tickets are covered even if the raise never comes.</div></div>
+              <div class="row"><div class="lb">Conversion date</div><div class="fl">Week 10 — earlier if the raise lands.</div></div>
+            </div>
+            <p class="why"><b>Notice the bad case is not a disaster, it's a slower plan that still
+            works.</b> "12 days inside the existing limit" means the client is never held hostage to
+            the vendor's answer. That's what meanwhile-work is for.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk bad">Bad</span></div>
+            <h4>The card that isn't one</h4>
+            <div class="dt-say">"Blocked on IT. Waiting to hear back. Should be done next week."</div>
+            <p class="why"><b>Four failures in eleven words:</b> no named dependency, no person, one
+            number with no risk, and "waiting" as a plan. This is roughly what a client hears as
+            <b>"nothing is happening and I won't find out until it's late."</b></p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk bad">Red flag</span><span class="wk">week 3 of the same card</span></div>
+            <h4>Path B twice running, estimate unmoved</h4>
+            <div class="dt-tbl">
+              <div class="th g-3"><div>Wk</div><div>Likely / bad case</div><div>Who owns it</div></div>
+              <div class="tr g-3"><div class="num">7</div><div>3 days / 8 days</div><div>"IT"</div></div>
+              <div class="tr g-3"><div class="num">8</div><div>3 days / 8 days</div><div>"IT"</div></div>
+              <div class="tr g-3"><div class="num">9</div><div>3 days / 8 days</div><div>"IT"</div></div>
+            </div>
+            <p class="why"><b>An estimate that never moves is not an estimate, it's a copy-paste.</b>
+            Three weeks in, either the unblocking action was never taken or it was never really
+            blocked. This gets said out loud — not as a gotcha, but because the alternative is a
+            client discovering it in week 10. <b>If the number hasn't moved, the card needs a
+            different owner or a different plan.</b></p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+
+    <h3>Six rules</h3>
+    <ol style="font-size:15px;line-height:1.6;padding-left:22px">
+      <li><b>Two numbers, never one.</b> A single estimate is a guess wearing a suit. "Three days, or
+      eight if it goes to security review" is something a client can plan around. It also forces you
+      to name what the risk actually is, which is usually the more useful half.</li>
+      <li><b>Name a person, not a department.</b> The hardest field and the most valuable one.
+      "Blocked on IT" is a place to hide. "Blocked on Dana, who needs 30 minutes to agree the API
+      scope" is a thing someone can act on — and getting a person who doesn't report to you to act
+      <i>is</i> the job.</li>
+      <li><b>"Waiting" is almost never true.</b> You can still narrow the estimate, build the
+      interface, write the test, or draft the thing that needs approving so the approval is a yes/no
+      instead of a project. Filling this field honestly usually finds the work.</li>
+      <li><b>File it when it appears, not when you present.</b> A blocker discovered Friday and filed
+      Friday is a status update. The same blocker filed Monday morning is an excuse.</li>
+      <li><b>The conversion date is a commitment, and it is checked.</b> Path B items convert in
+      W9–W10. That is what those weeks are for.</li>
+      <li><b>Estimates get scored against reality</b> — that's the whole point.</li>
+    </ol>
+  </section>
+
+  <section class="dt-sec" id="estimate">
+    <div class="k">The skill underneath the card</div>
+    <h2>How to estimate — and why your tools lie in opposite directions</h2>
+    <p class="lede">Two numbers are required on every blocker card. Here is how to produce them so
+    they mean something, and why <b>Claude's estimate reads high while your own reads low.</b> Both
+    are documented biases, not personal failings.</p>
+
+    <h3>The two biases, pointed at each other</h3>
+    <div class="dt-tbl">
+      <div class="th g-ev"><div>Who's estimating</div><div>Which way it bends</div><div>Why</div></div>
+      <div class="tr g-ev">
+        <div style="padding:9px 12px"><b>You, about your own work</b></div>
+        <div style="padding:9px 12px"><b>Too low.</b> The planning fallacy — and knowing about it doesn't fix it.</div>
+        <div style="padding:9px 12px">In the classic study, people gave dates they were 50%, 75% and 99% sure of. Only <b>13% finished by their 50% date, 19% by their 75%, and 45% by the date they were 99% sure about.</b></div>
+      </div>
+      <div class="tr g-ev">
+        <div style="padding:9px 12px"><b>Claude, about your work</b></div>
+        <div style="padding:9px 12px"><b>Too high.</b> The same bias <i>reverses</i> for outside observers.</div>
+        <div style="padding:9px 12px">It has no memory of your throughput, can't see how much already exists, and its training is full of human-scale project language — so it prices a generic team, review cycles and meetings included.</div>
+      </div>
+    </div>
+    <div class="dt-rule">The model's number is not wrong, it is <b>an outside view of a stranger</b>.
+      It's roughly what this would cost some team, somewhere. Your job is to make it a view of
+      <b>you</b> — by giving it your own history.</div>
+
+    <h3>What the evidence says about AI speedup (and why it matters here)</h3>
+    <div class="dt-tbl">
+      <div class="th g-cl" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,.8fr)"><div>Study</div><div>Setting</div><div>Effect</div></div>
+      <div class="tr g-cl" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,.8fr)">
+        <div style="padding:9px 12px">Peng et al., 2023 (GitHub Copilot RCT)</div>
+        <div style="padding:9px 12px">Write an HTTP server from scratch — isolated, greenfield</div>
+        <div style="padding:9px 12px;color:var(--good-ink);font-weight:650">55.8% faster</div>
+      </div>
+      <div class="tr g-cl" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,.8fr)">
+        <div style="padding:9px 12px">Paradis et al., 2024 (Google, 96 engineers)</div>
+        <div style="padding:9px 12px">Complex enterprise task, real tooling</div>
+        <div style="padding:9px 12px;color:var(--good-ink);font-weight:650">~21% faster</div>
+      </div>
+      <div class="tr g-cl" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,.8fr)">
+        <div style="padding:9px 12px">METR, 2025 (16 experienced OSS devs, 246 issues)</div>
+        <div style="padding:9px 12px">Repos they maintain — 22k+ stars, 1M+ lines</div>
+        <div style="padding:9px 12px;color:var(--bad-ink);font-weight:650">19% SLOWER</div>
+      </div>
+      <div class="tr g-cl" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,.8fr)">
+        <div style="padding:9px 12px">METR, Feb 2026 update (agentic tools)</div>
+        <div style="padding:9px 12px">Same design, Claude Code / Codex era</div>
+        <div style="padding:9px 12px">Returning devs <b>−18%</b>, new devs <b>−4%</b> — likely faster, weak evidence</div>
+      </div>
+    </div>
+    <div class="dt-warn"><b>The number to remember:</b> in the 2025 study developers expected AI to
+    speed them up 24%, were actually slowed 19%, and <b>after finishing still believed they had been
+    sped up 20%.</b> Felt speedup is not evidence. That is the oracle rule pointed at yourself.</div>
+    <p class="dt-note">Read the spread, not any single row: <b>greenfield and isolated → large
+    speedup. Large, unfamiliar, mature codebase → small or negative.</b> Brownfield client work —
+    which is exactly what you are doing — sits at the pessimistic end of that range. And METR pulled
+    its 2026 headline partly because <b>time-on-task stopped meaning anything once developers work on
+    something else while the agent runs.</b> Which brings us to the thing to actually measure.</p>
+
+    <div class="dt-rule">Track <b>two clocks</b>: <b>wall-clock</b> (calendar time from start to on
+      <code>main</code>) and <b>touch-time</b> (your hands actually on it). Agents make these diverge
+      hard. A client cares about the first; your calibration needs the second.</div>
+
+    <h3>The method, in the order to reach for it</h3>
+    <div class="dt-steps">
+      <div class="dt-step"><div class="sb"><b>Take the outside view first.</b> Reference-class
+        forecasting (Flyvbjerg; it's UK government guidance for infrastructure): find past similar
+        work, look at what it <i>actually</i> took, place this one in that distribution.
+        <b>Your calibration log is your reference class</b> — after three weeks, "tasks like this ran
+        1.7× my first guess" is a real, personal correction factor.</div></div>
+      <div class="dt-step key"><div class="sb"><b>Then three points, not one.</b> Optimistic
+        <code>o</code>, most likely <code>m</code>, pessimistic <code>p</code>.
+        <div class="dt-formula">expected <b>te = (o + 4m + p) / 6</b><br>
+          spread <b>σ = (p − o) / 6</b></div>
+        The formula is not the point. <b>Naming <code>p</code> forces you to name the risk that
+        produces it</b> — which is literally the "and what would cause it" field on the card.</div></div>
+      <div class="dt-step"><div class="sb"><b>Quote likely, commit at the bad case.</b> Standard flow
+        practice is to commit at roughly the <b>85th percentile</b> and quote the 50th as "likely."
+        Two numbers, one commitment.</div></div>
+      <div class="dt-step"><div class="sb"><b>Re-estimate when scope decisions change, not when time
+        passes.</b> The cone of uncertainty narrows only as decisions remove variability — and early
+        estimates in the original research overran by up to <b>100%</b> or underran by <b>50%</b>.
+        <b>Monday's requirements update re-widens the cone every week</b>, so re-estimating on Tuesday
+        is the method, not indecision.</div></div>
+      <div class="dt-step"><div class="sb"><b>Segment it.</b> Estimating the parts and adding them up
+        beats estimating the whole — a documented planning-fallacy counter. Totals hide integration,
+        review and deploy; parts don't.</div></div>
+    </div>
+
+    <div class="dt-eg" data-eg data-title="Estimating, worked">
+      <button class="egbtn" type="button"><span class="egi">▸</span> See 4 worked examples
+        <span class="egmeta">incl. the prompt to use · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">Estimating, worked</span>
+          <span class="egpos">1 / 4</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk bad">Before</span></div>
+            <h4>The estimate with nothing behind it</h4>
+            <div class="dt-say">You: "How long to add reply-posting to the assistant?"<br>
+            Claude: "Roughly 2–3 weeks."<br>
+            You, to the client: "Should be a couple of weeks."</div>
+            <p class="why"><b>Three problems.</b> The model priced a generic team with review cycles
+            you don't have. You laundered its number into a commitment. And "a couple of weeks" has
+            no bad case, so the client cannot plan around it. <b>Neither of you is lying; the number
+            is just unsourced.</b></p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk good">Segment + three points</span></div>
+            <h4>The same item, broken up</h4>
+            <div class="dt-tbl">
+              <div class="th g-cal" style="grid-template-columns:minmax(0,1.4fr) 90px 90px 90px minmax(0,1fr)"><div>Part</div><div>O</div><div>M</div><div>P</div><div>What makes it P</div></div>
+              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 90px 90px 90px minmax(0,1fr)"><div>Service account + scope agreed</div><div>0.5d</div><div>3d</div><div>8d</div><div>Goes to monthly security review</div></div>
+              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 90px 90px 90px minmax(0,1fr)"><div>Write path + retries</div><div>0.5d</div><div>1d</div><div>2d</div><div>Their API rejects markdown bodies</div></div>
+              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 90px 90px 90px minmax(0,1fr)"><div>Audit trail on every post</div><div>0.5d</div><div>1d</div><div>3d</div><div>Compliance wants a field we don't have</div></div>
+              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 90px 90px 90px minmax(0,1fr)"><div>Merge, review, deploy</div><div>0.5d</div><div>1d</div><div>2d</div><div>Release window is weekly</div></div>
+            </div>
+            <div class="dt-formula">te = (2 + 4×6 + 15) / 6 ≈ <b>6.8 days</b> &nbsp;·&nbsp; σ = (15 − 2) / 6 ≈ <b>2.2 days</b></div>
+            <p class="why"><b>The last row is the one you'd have forgotten.</b> Segmenting is what
+            surfaces merge, review and deploy — the parts an agent never charges you for and a client
+            always waits on.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk good">Reference class</span></div>
+            <h4>Correcting with your own history</h4>
+            <div class="dt-tbl">
+              <div class="th g-cal" style="grid-template-columns:minmax(0,1.4fr) 110px 110px minmax(0,1fr)"><div>Past item of this shape</div><div>Estimated</div><div>Actual</div><div>Ratio</div></div>
+              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 110px 110px minmax(0,1fr)"><div>Re-index the ticket corpus</div><div>2d</div><div>5d</div><div>2.5×</div></div>
+              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 110px 110px minmax(0,1fr)"><div>Timeout + breaker on ticket API</div><div>1d</div><div>2d</div><div>2.0×</div></div>
+              <div class="tr g-cal" style="grid-template-columns:minmax(0,1.4fr) 110px 110px minmax(0,1fr)"><div>Service account for read scope</div><div>3d</div><div>4d</div><div>1.3×</div></div>
+            </div>
+            <p class="egnote" style="margin-top:10px">Median ratio ≈ <b>2.0×</b> on the pure-build
+            items, <b>1.3×</b> where the delay was someone else's. So: build parts get doubled;
+            access parts get their bad case widened rather than their likely.</p>
+            <p class="why"><b>This is the whole method in one table.</b> Three weeks of honest logging
+            beats any amount of thinking harder, and it is the one correction factor that is
+            genuinely <i>yours</i> — not a generic team's, not the model's.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk good">The prompt</span><span class="wk">W6 · fresh session</span></div>
+            <h4>How to ask Claude for an estimate you can use</h4>
+            <div class="dt-prompt" style="margin-top:0">
+              <div class="ph">Paste your real history in — that's what changes the answer</div>
+              <pre>Estimate this, but do not give me a single number.
+
+My reference class — my last three items of this shape, estimated vs actual:
+  - re-index corpus: est 2d, actual 5d (missed a dependency)
+  - timeout + breaker: est 1d, actual 2d (didn't price the staging proof)
+  - read-scope service account: est 3d, actual 4d (person was out a day)
+
+The work: <describe it>
+
+Return: (1) the parts, separately — include merge, review and deploy;
+(2) optimistic / most likely / pessimistic per part;
+(3) for each pessimistic, the specific event that causes it;
+(4) totals with te = (o+4m+p)/6.
+Do not adjust for "AI makes this faster" — my history already includes that.</pre>
+            </div>
+            <p class="why"><b>The last line matters.</b> Without it the model double-counts its own
+            speedup — once in the estimate, once in your history, which already reflects working this
+            way. And demanding the event that causes each pessimistic case is what turns a number
+            into a sentence a client can act on.</p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+
+    <h3 id="calibration">The calibration loop</h3>
+    <p class="dt-note" style="margin:0 0 10px">This is what separates a skill from paperwork, and it
+    is how you build the reference class above. Every Monday, for every card filed previously:</p>
+    <div class="dt-tbl">
+      <div class="th g-cal"><div>Item</div><div>Estimated</div><div>Actual</div><div>Off by</div><div>Why</div></div>
+      <div class="tr g-cal"><div><input class="dt-in" data-f="cal1.a"></div><div><input class="dt-in" data-f="cal1.b"></div><div><input class="dt-in" data-f="cal1.c"></div><div><input class="dt-in" data-f="cal1.d"></div><div><input class="dt-in" data-f="cal1.e"></div></div>
+      <div class="tr g-cal"><div><input class="dt-in" data-f="cal2.a"></div><div><input class="dt-in" data-f="cal2.b"></div><div><input class="dt-in" data-f="cal2.c"></div><div><input class="dt-in" data-f="cal2.d"></div><div><input class="dt-in" data-f="cal2.e"></div></div>
+      <div class="tr g-cal"><div><input class="dt-in" data-f="cal3.a"></div><div><input class="dt-in" data-f="cal3.b"></div><div><input class="dt-in" data-f="cal3.c"></div><div><input class="dt-in" data-f="cal3.d"></div><div><input class="dt-in" data-f="cal3.e"></div></div>
+    </div>
+    <p class="dt-note" style="margin-top:10px"><b>Expect the first estimates to be bad.</b> Nobody is
+    scored on accuracy; you are scored on whether the delta shrinks and whether you can say <i>why</i>
+    it missed. Three honest reasons cover almost every miss:</p>
+    <ul style="font-size:15px;line-height:1.6;padding-left:22px">
+      <li><b>I didn't know about the dependency</b> → your scoping missed it. Fix the scoping.</li>
+      <li><b>I knew and didn't price it</b> → optimism. Price the bad case next time.</li>
+      <li><b>Someone else moved slower than I assumed</b> → you didn't confirm with the named person. Confirm.</li>
+    </ul>
+
+    <div class="dt-eg" data-eg data-title="Calibration logs">
+      <button class="egbtn" type="button"><span class="egi">▸</span> See 3 worked examples
+        <span class="egmeta">good · bad · what to say · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">Calibration logs</span>
+          <span class="egpos">1 / 3</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk good">Three weeks, done right</span></div>
+            <div class="dt-tbl">
+              <div class="th g-cal"><div>Item</div><div>Est</div><div>Actual</div><div>Off by</div><div>Why</div></div>
+              <div class="tr g-cal"><div>Re-index the ticket corpus</div><div>2d</div><div>5d</div><div>+3</div><div>Didn't know about the dependency — nobody had exported tickets since 2024, the export job had to be rebuilt.</div></div>
+              <div class="tr g-cal"><div>Timeout + breaker on ticket API</div><div>1d</div><div>2d</div><div>+1</div><div>Knew and didn't price it — I priced the code, not the staging run that proves it degrades cleanly.</div></div>
+              <div class="tr g-cal"><div>Service account for write scope</div><div>3d</div><div>4d</div><div>+1</div><div>Someone else moved slower — Dana was out Tuesday. I'd asked but hadn't confirmed the day.</div></div>
+            </div>
+            <p class="why"><b>+3, +1, +1 — the delta is shrinking</b>, which is the only thing being
+            scored. Each "why" is one of the three honest reasons, named plainly, no padding. Week
+            four's estimate from this person is worth believing; week one's wasn't.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk bad">The same log, faked</span></div>
+            <div class="dt-tbl">
+              <div class="th g-cal"><div>Item</div><div>Est</div><div>Actual</div><div>Off by</div><div>Why</div></div>
+              <div class="tr g-cal"><div>Re-index</div><div>2d</div><div>5d</div><div>+3</div><div>Stuff came up</div></div>
+              <div class="tr g-cal"><div>Timeout work</div><div>1d</div><div>3d</div><div>+2</div><div>Harder than expected</div></div>
+              <div class="tr g-cal"><div>Service account</div><div>3d</div><div>7d</div><div>+4</div><div>Still waiting on IT</div></div>
+            </div>
+            <p class="why"><b>Three non-answers, and the delta is growing.</b> "Harder than expected"
+            is the sentence that guarantees next week's estimate is wrong the same way — it names no
+            mechanism, so nothing changes. <b>"Still waiting on IT" isn't a calibration entry at
+            all</b>, it's the blocker card failing in a different box.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk good">20 seconds on Monday</span></div>
+            <h4>Saying it out loud, before you're asked</h4>
+            <div class="dt-say">"Quick calibration. Last Monday I said the re-index was two days; it
+            took five, because nobody had exported tickets since 2024 and the export job had to be
+            rebuilt first — a dependency I didn't know existed. The week before I was off by one, and
+            before that three. <b>The gap is closing but it's still there, so treat my numbers as the
+            middle of a range, not a promise.</b>"</div>
+            <p class="why"><b>Why volunteer a miss?</b> Because the alternative is the client
+            discovering the pattern themselves, at which point every future number is discounted.
+            Said first, it does the opposite: it is the single fastest way to make the <i>next</i>
+            estimate believable. Being believable about time is worth more to a client than being
+            fast.</p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+
+    <p class="dt-note" style="margin-top:18px;font-size:13.5px">Sources: Buehler, Griffin &amp; Ross
+    on the planning fallacy; Kahneman &amp; Tversky's outside view; Flyvbjerg / UK DfT reference-class
+    forecasting; PERT three-point estimation; METR 2025 RCT + Feb 2026 update; Paradis et al. 2024
+    (Google); Peng et al. 2023 (GitHub Copilot).</p>
+  </section>
+  <div class="dt-pager" id="pager-blocker"></div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- TAB 06 — THE CLAUDE LOOP                                             -->
+  <!-- ==================================================================== -->
+  <div class="dt-panel" id="tab-loop">
+  <section class="dt-sec" id="claude">
+    <div class="k">Working with Claude, this week</div>
+    <h2>The loop, explicit</h2>
+    <p class="lede">The method changes in W7–W10: <b>you drive the intent, Claude writes the prompt,
+    and you critique it before you run it.</b></p>
+
+    <div class="dt-steps">
+      <div class="dt-step"><div class="sb">State the <b>intent</b> — the outcome and who it's for,
+        not the implementation. If you can only describe it as code, you haven't scoped it.</div></div>
+      <div class="dt-step"><div class="sb">Have Claude write the working prompt or spec.</div></div>
+      <div class="dt-step key"><div class="sb"><b>Critique that prompt in a fresh session before you
+        run it.</b> Does it name a stopping condition a machine can check? Does it say what "done"
+        is? <b>This is the step that will get skipped, and it's the one that matters</b> — a
+        generated prompt with no stopping condition is a token furnace with better grammar.</div></div>
+      <div class="dt-step"><div class="sb">Set the goal and run it.</div></div>
+      <div class="dt-step"><div class="sb">Feed back the <i>real</i> result — not "it worked," but
+        what changed, with the number.</div></div>
+    </div>
+
+    <p class="dt-note" style="margin-top:14px">Step 3 is the same trigger-plus-verifiable-stopping-condition
+    rule you already know from <b>W6</b>, pointed at your own prompting instead of at a pipeline. It
+    is also why the decks came out wordy: generated artifacts default to verbose, and nobody
+    critiqued the generation before accepting it.</p>
+
+    <div class="dt-eg" data-eg data-title="Step 3, catching something">
+      <button class="egbtn" type="button"><span class="egi">▸</span> Watch step 3 catch something
+        <span class="egmeta">3 stages · swipe →</span></button>
+      <div class="egwrap" hidden>
+        <div class="eghead"><span class="egttl">Step 3, catching something</span>
+          <span class="egpos">1 / 3</span>
+          <button class="egnav" data-dir="-1" aria-label="Previous example">←</button>
+          <button class="egnav" data-dir="1" aria-label="Next example">→</button></div>
+        <div class="egtrack" tabindex="0">
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Stage 1</span><span class="wk bad">looks fine</span></div>
+            <p class="egnote"><b>Intent:</b> "I want the assistant to stop suggesting tickets when it
+            isn't confident, instead of always showing three."</p>
+            <div class="dt-prompt" style="margin-top:0">
+              <div class="ph">What Claude generated</div>
+              <pre>Add a relevance threshold to the similar-tickets feature so that low-confidence
+matches are not shown. Make sure the user experience is good and the threshold
+is tuned appropriately. Add tests.</pre>
+            </div>
+            <p class="why">Reads like a perfectly reasonable ticket. <b>Every sentence is
+            unfalsifiable.</b> This is the version that gets run when step 3 is skipped.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Stage 2</span><span class="wk good">fresh session</span></div>
+            <div class="dt-prompt" style="margin-top:0">
+              <div class="ph">The critique</div>
+              <pre>No stopping condition a machine can check. "Tuned appropriately" against what?
+"Good UX" is not observable. "Add tests" — tests that assert what?
+An agent given this will keep tuning until it runs out of budget.
+
+Rewrite with: the metric, the direction, the data it's measured on, and the
+number that means stop.</pre>
+            </div>
+            <p class="why"><b>Note it was a different session.</b> Ask the session that wrote it and
+            you get a defence; ask a fresh one with a hostile brief and you get this. Same model,
+            different seat.</p>
+          </article>
+          <article class="egslide">
+            <div class="egtags"><span class="wk">Stage 3</span><span class="wk good">runnable</span></div>
+            <div class="dt-prompt" style="margin-top:0">
+              <div class="ph">What actually got run</div>
+              <pre>Add a score threshold below which the similar-tickets panel shows nothing
+instead of low-scoring matches.
+
+Done = on the 40-question set in artifacts/eval/goldset.json:
+  - precision@3 improves over the current 0.55 baseline
+  - recall@5 drops by no more than 0.03 from 0.81
+  - the empty state renders (test asserts the panel, not the score)
+Report the chosen threshold and both metrics. Stop when both hold, or report
+that no threshold satisfies both.</pre>
+            </div>
+            <p class="why"><b>The difference is the last line.</b> The first version has no way to be
+            finished, so an agent grinds. This one can fail honestly — "no threshold satisfies both"
+            is a real, useful answer, and exactly the kind of finding worth two minutes on Monday.</p>
+          </article>
+        </div>
+        <div class="egdots"></div>
+      </div>
+    </div>
+
+    <h3>Three prompts that do most of the work</h3>
+    <p class="dt-note" style="margin:0 0 4px"><b>Always in a fresh session</b> — never the one that
+    wrote the thing.</p>
+
+    <div class="dt-prompt">
+      <div class="ph">The hostile client — run this Friday <span class="cp"><button class="dt-btn" data-copyprompt="p1">Copy</button></span></div>
+      <pre id="p1">You are a skeptical COO at the client. You did not ask for this project, you inherited it,
+and your incentive is to kill spend that cannot be defended in the next budget review.
+Read this. Ask me the five questions you would actually ask in the room, hardest first.
+Do not soften them. Do not compliment anything.</pre>
+    </div>
+    <div class="dt-prompt">
+      <div class="ph">The claims auditor — run before §5 of the pre-mortem <span class="cp"><button class="dt-btn" data-copyprompt="p2">Copy</button></span></div>
+      <pre id="p2">Go through this claim by claim. For each: is it backed by a number, a named source, or an
+observed incident? If none of the three, mark it CUT. Return only the table.</pre>
+    </div>
+    <div class="dt-prompt">
+      <div class="ph">The read-back — checks dimension (b) <span class="cp"><button class="dt-btn" data-copyprompt="p3">Copy</button></span></div>
+      <pre id="p3">Don't evaluate it. Explain it back to me as if you were the client's eng lead repeating it
+to their own team, using only what I gave you. Then list what you had to guess at.</pre>
+    </div>
+
+    <div class="dt-warn" style="margin-top:16px">If you ask <b>"is this good?"</b> you will get a
+    compliment. That is a measured property of these models, not an accident.
+    <b>Assign a hostile role and a rubric instead.</b></div>
+  </section>
+  <div class="dt-pager" id="pager-loop"></div>
+  </div>
+
+  </div><!-- /dt-main -->
+
+  <nav class="dt-rail" id="rail" aria-label="Sections on this tab"></nav>
+  </div><!-- /dt-cols -->
+</div>
+
+<footer class="foot">2463-FDE · Delivery Track — reachable and numbered, or it isn't a delivery</footer>
+
+<!-- Identity first: the inline script below keys localStorage on the learner code,
+     and auth.js sets window.FDE_getIdentity synchronously at parse time. -->
+<script src="assets/js/roster.js?v=20260706"></script>
+<script src="assets/js/auth.js"></script>
+<script>
+/* ============================================================================
+   Delivery Track.
+
+   Tabs: six panels, one visible at a time. Deep links accepted in three shapes,
+   because index.html day cards, the client-delivery page and learners' own
+   bookmarks all point here differently:
+       delivery-track.html#tab-rubric      → tab id
+       delivery-track.html#rt-tue          → any section/day id inside a tab
+       delivery-track.html?w=8             → preselects week 8 on both forms
+   Any anchor that lives inside a hidden panel opens that panel first, then
+   scrolls, so no link can land on a blank page.
+
+   Example carousels: [data-eg] blocks. The track is a scroll-snap flex row, so
+   touch/trackpad swipe is native; the arrows and dots drive the same scroll.
+
+   Fillable artifacts (pre-mortem + blocker card) are LOCAL ONLY: localStorage,
+   keyed by learner code + week. Nothing is sent to the server; the trainer sees
+   what you bring on Monday, not this page.
+       fde_dt:<code>:<week>:<field>     e.g. fde_dt:jf:7:pm.ob1.t
+   ========================================================================== */
+(function () {
+  /* ---------------------------- tabs ------------------------------------ */
+  const TABS = [
+    { id: "contract",  label: "The contract" },
+    { id: "week",      label: "The week" },
+    { id: "rubric",    label: "How you're scored" },
+    { id: "premortem", label: "Pre-mortem" },
+    { id: "blocker",   label: "Blockers & estimates" },
+    { id: "loop",      label: "The Claude loop" }
+  ];
+  const RAIL_SECTIONS = {
+    contract:  [["contract", "The contract"]],
+    week:      [["monday", "Monday · 12 min"], ["rhythm", "The week, day by day"],
+                ["rt-tue", "Tue · re-spec"], ["rt-wed", "Wed · lock the number"],
+                ["rt-thu", "Thu–Fri · build"], ["rt-fri", "Fri · pre-mortem"]],
+    rubric:    [["rubric", "The five dimensions"], ["habits", "Four habits"]],
+    premortem: [["premortem", "Pre-mortem sheet"]],
+    blocker:   [["blocker", "Blocker card"], ["estimate", "How to estimate"], ["calibration", "Calibration loop"]],
+    loop:      [["claude", "The Claude loop"]]
+  };
+  const tabBtns = Array.from(document.querySelectorAll(".dt-tab"));
+  const panels = {};
+  TABS.forEach(t => { panels[t.id] = document.getElementById("tab-" + t.id); });
+
+  function panelOf(anchorId) {
+    const el = document.getElementById(anchorId);
+    if (!el) return null;
+    const panel = el.closest(".dt-panel");
+    return panel ? panel.id.replace(/^tab-/, "") : null;
+  }
+
+  function buildRail(tabId) {
+    const rail = document.getElementById("rail");
+    rail.innerHTML = '<div class="rk">On this tab</div>';
+    (RAIL_SECTIONS[tabId] || []).forEach(function (pair) {
+      const a = document.createElement("a");
+      a.href = "#" + pair[0]; a.textContent = pair[1];
+      rail.appendChild(a);
+    });
+    const wrap = document.createElement("div");
+    wrap.style.marginTop = "10px";
+    const b = document.createElement("button");
+    b.className = "dt-btn"; b.textContent = "🖨 Print / PDF"; b.style.width = "100%";
+    b.addEventListener("click", () => window.print());
+    wrap.appendChild(b); rail.appendChild(wrap);
+    spy();
+  }
+
+  function buildPager(tabId) {
+    const i = TABS.findIndex(t => t.id === tabId);
+    const host = document.getElementById("pager-" + tabId);
+    if (!host) return;
+    host.innerHTML = "";
+    const mk = (t, dir) => {
+      const b = document.createElement("button");
+      b.className = "dt-pg " + dir;
+      b.innerHTML = '<div class="pgk">' + (dir === "prev" ? "← Previous" : "Next →") +
+        '</div><div class="pgt">' + t.label + "</div>";
+      b.addEventListener("click", () => { show(t.id); window.scrollTo({ top: 0, behavior: "smooth" }); });
+      return b;
+    };
+    if (i > 0) host.appendChild(mk(TABS[i - 1], "prev"));
+    else { const sp = document.createElement("div"); sp.style.flex = "1"; host.appendChild(sp); }
+    if (i < TABS.length - 1) host.appendChild(mk(TABS[i + 1], "next"));
+  }
+
+  let io = null;
+  function spy() {
+    if (io) { io.disconnect(); io = null; }
+    if (!("IntersectionObserver" in window)) return;
+    const links = Array.from(document.querySelectorAll("#rail a"));
+    const secs = links.map(a => document.getElementById(a.getAttribute("href").slice(1))).filter(Boolean);
+    if (!secs.length) return;
+    io = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        links.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
+      });
+    }, { rootMargin: "-120px 0px -65% 0px", threshold: 0 });
+    secs.forEach(s => io.observe(s));
+  }
+
+  function show(tabId, opts) {
+    if (!panels[tabId]) tabId = "contract";
+    TABS.forEach(t => panels[t.id].classList.toggle("on", t.id === tabId));
+    tabBtns.forEach(b => b.classList.toggle("on", b.dataset.tab === tabId));
+    buildRail(tabId);
+    buildPager(tabId);
+    // carousels inside a hidden panel measure 0 wide; re-sync once visible
+    setTimeout(syncAllCarousels, 0);
+    if (!opts || !opts.keepHash) {
+      try { history.replaceState(null, "", location.pathname + location.search + "#tab-" + tabId); }
+      catch (e) { /* file:// or old browser — the hash is cosmetic here */ }
+    }
+  }
+
+  tabBtns.forEach(b => b.addEventListener("click", () => {
+    show(b.dataset.tab);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }));
+
+  // In-page links that cross tabs: <a href="#blocker" data-goto="blocker">
+  document.querySelectorAll("[data-goto]").forEach(a => {
+    a.addEventListener("click", e => {
+      e.preventDefault();
+      const target = a.getAttribute("href").slice(1);
+      show(a.dataset.goto, { keepHash: true });
+      scrollToAnchor(target);
+    });
+  });
+
+  function scrollToAnchor(id) {
+    const el = document.getElementById(id);
+    if (!el) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    let p = el.parentElement;
+    while (p) { if (p.tagName === "DETAILS") p.open = true; p = p.parentElement; }
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.classList.add("flash");
+      setTimeout(() => el.classList.remove("flash"), 2200);
+    });
+  }
+
+  function routeFromHash(initial) {
+    const raw = (location.hash || "").replace(/^#/, "");
+    if (!raw) { if (initial) show("contract"); return; }
+    if (raw.indexOf("tab-") === 0 && panels[raw.slice(4)]) { show(raw.slice(4), { keepHash: true }); return; }
+    const owner = panelOf(raw);
+    if (owner) { show(owner, { keepHash: true }); scrollToAnchor(raw); }
+    else if (initial) show("contract");
+  }
+  window.addEventListener("hashchange", () => routeFromHash(false));
+
+  /* -------------------------- example carousels -------------------------- */
+  const carousels = [];
+  function initCarousel(root) {
+    const btn = root.querySelector(".egbtn");
+    const wrap = root.querySelector(".egwrap");
+    const track = root.querySelector(".egtrack");
+    const pos = root.querySelector(".egpos");
+    const dots = root.querySelector(".egdots");
+    const navs = Array.from(root.querySelectorAll(".egnav"));
+    const slides = Array.from(root.querySelectorAll(".egslide"));
+    if (!btn || !track || !slides.length) return;
+    const c = { root, track, pos, dots, navs, slides, idx: 0 };
+
+    slides.forEach((s, i) => {
+      const d = document.createElement("button");
+      d.className = "egdot" + (i === 0 ? " on" : "");
+      d.type = "button";
+      d.setAttribute("aria-label", "Example " + (i + 1));
+      d.addEventListener("click", () => goTo(c, i));
+      dots.appendChild(d);
+    });
+
+    btn.addEventListener("click", () => {
+      const open = wrap.hasAttribute("hidden");
+      if (open) { wrap.removeAttribute("hidden"); btn.classList.add("open"); sync(c); }
+      else { wrap.setAttribute("hidden", ""); btn.classList.remove("open"); }
+    });
+
+    navs.forEach(n => n.addEventListener("click", () => goTo(c, c.idx + parseInt(n.dataset.dir, 10))));
+
+    let raf = null;
+    track.addEventListener("scroll", () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = null; sync(c); });
+    });
+    track.addEventListener("keydown", e => {
+      if (e.key === "ArrowRight") { e.preventDefault(); goTo(c, c.idx + 1); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); goTo(c, c.idx - 1); }
+    });
+
+    carousels.push(c);
+    sync(c);
+  }
+
+  function goTo(c, i) {
+    const n = Math.max(0, Math.min(c.slides.length - 1, i));
+    c.track.scrollTo({ left: n * c.track.clientWidth, behavior: "smooth" });
+    c.idx = n;
+    paint(c);
+  }
+  function sync(c) {
+    const w = c.track.clientWidth || 1;
+    c.idx = Math.max(0, Math.min(c.slides.length - 1, Math.round(c.track.scrollLeft / w)));
+    paint(c);
+  }
+  function paint(c) {
+    if (c.pos) c.pos.textContent = (c.idx + 1) + " / " + c.slides.length;
+    Array.from(c.dots.children).forEach((d, i) => d.classList.toggle("on", i === c.idx));
+    c.navs.forEach(n => {
+      const dir = parseInt(n.dataset.dir, 10);
+      n.disabled = dir < 0 ? c.idx === 0 : c.idx === c.slides.length - 1;
+    });
+  }
+  function syncAllCarousels() { carousels.forEach(sync); }
+  document.querySelectorAll("[data-eg]").forEach(initCarousel);
+  window.addEventListener("resize", syncAllCarousels);
+
+  /* ------------------------ fillable artifacts --------------------------- */
+  const WEEKS = [7, 8, 9, 10];
+  const idt = (typeof window.FDE_getIdentity === "function" && window.FDE_getIdentity()) || null;
+  const CODE = (idt && idt.code) || "anon";
+  const state = { pm: 7, bc: 7 };
+
+  function keyFor(group, field) { return "fde_dt:" + CODE + ":" + state[group] + ":" + field; }
+  function groupOf(el) {
+    const f = el.dataset.f || "";
+    return (f.indexOf("bc.") === 0 || f.indexOf("cal") === 0) ? "bc" : "pm";
+  }
+  function fields(group) {
+    return Array.from(document.querySelectorAll("[data-f]")).filter(el => groupOf(el) === group);
+  }
+  function load(group) {
+    fields(group).forEach(el => {
+      const v = localStorage.getItem(keyFor(group, el.dataset.f));
+      if (el.type === "checkbox") el.checked = v === "1";
+      else el.value = v || "";
+    });
+  }
+  function save(el) {
+    const group = groupOf(el);
+    const k = keyFor(group, el.dataset.f);
+    const v = el.type === "checkbox" ? (el.checked ? "1" : "") : el.value;
+    if (v) localStorage.setItem(k, v); else localStorage.removeItem(k);
+    flash(group, "Saved");
+  }
+  const timers = {};
+  function flash(group, msg) {
+    const n = document.getElementById(group === "pm" ? "pmSaved" : "bcSaved");
+    if (!n) return;
+    n.innerHTML = "<b>✓</b> " + msg + " · week " + state[group] + " · " +
+      (CODE === "anon" ? "this browser only" : CODE);
+    clearTimeout(timers[group]);
+    timers[group] = setTimeout(() => { n.textContent = ""; }, 2600);
+  }
+  function buildWeeks(group, host) {
+    WEEKS.forEach(w => {
+      const b = document.createElement("button");
+      b.className = "dt-wk" + (w === state[group] ? " on" : "");
+      b.textContent = "W" + w;
+      b.addEventListener("click", () => {
+        state[group] = w;
+        host.querySelectorAll(".dt-wk").forEach(x => x.classList.toggle("on", x.textContent === "W" + w));
+        load(group);
+        flash(group, "Loaded");
+      });
+      host.appendChild(b);
+    });
+  }
+  buildWeeks("pm", document.getElementById("pmWeeks"));
+  buildWeeks("bc", document.getElementById("bcWeeks"));
+
+  document.querySelectorAll("[data-f]").forEach(el => {
+    el.addEventListener("change", () => save(el));
+    if (el.tagName !== "SELECT" && el.type !== "checkbox") {
+      let t; el.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => save(el), 500); });
+    }
+  });
+  load("pm"); load("bc");
+
+  /* --------------------------- markdown export --------------------------- */
+  const val = f => {
+    const el = document.querySelector('[data-f="' + f + '"]');
+    if (!el) return "";
+    return el.type === "checkbox" ? (el.checked ? "x" : " ") : (el.value || "");
+  };
+  const row = arr => "| " + arr.map(x => (x || "").replace(/\|/g, "\\|")).join(" | ") + " |";
+
+  function premortemMd() {
+    const L = [];
+    L.push("# Demo Pre-Mortem — " + CODE + ", Week " + state.pm, "");
+    L.push("## 1 · The obituary", "", row(["#", "It died because…", "P/R/A", "Closed"]), row(["---", "---", "---", "---"]));
+    for (let i = 1; i <= 5; i++) L.push(row([String(i), val("pm.ob" + i + ".t"), val("pm.ob" + i + ".c"), val("pm.ob" + i + ".k") === "x" ? "☑" : "☐"]));
+    L.push("", "## 2 · The three checks", "");
+    L.push("- [" + val("pm.ck1") + "] On `main` — `git log origin/main` shows it");
+    L.push("- [" + val("pm.ck2") + "] A person can click to it, cold, from the login screen");
+    L.push("- [" + val("pm.ck3") + "] The number reproduces — re-run Friday, not Tuesday");
+    L.push("", "## 3 · The failure script", "", row(["If this breaks", "I say (≤8 words)", "I go to"]), row(["---", "---", "---"]));
+    for (let i = 1; i <= 3; i++) L.push(row([val("pm.fs" + i + ".a"), val("pm.fs" + i + ".b"), val("pm.fs" + i + ".c")]));
+    L.push("", "## 4 · The golden path", "", row(["#", "Screen", "The data", "What I say", "Watch-for"]), row(["---", "---", "---", "---", "---"]));
+    for (let i = 1; i <= 3; i++) L.push(row([String(i), val("pm.gp" + i + ".a"), val("pm.gp" + i + ".b"), val("pm.gp" + i + ".c"), val("pm.gp" + i + ".d")]));
+    L.push("", "## 5 · The claims audit", "", row(["Claim", "Number", "Baseline", "Source", "Who could dispute"]), row(["---", "---", "---", "---", "---"]));
+    for (let i = 1; i <= 3; i++) L.push(row([val("pm.cl" + i + ".a"), val("pm.cl" + i + ".b"), val("pm.cl" + i + ".c"), val("pm.cl" + i + ".d"), val("pm.cl" + i + ".e")]));
+    L.push("", "## 6 · The one question I hope they don't ask", "", "**Q:** " + val("pm.q"), "", "**A:** " + val("pm.a"), "");
+    return L.join("\n");
+  }
+
+  function blockerMd() {
+    const L = [];
+    L.push("# Blocker Card — " + CODE + ", Week " + state.bc, "");
+    L.push("**Item:** " + val("bc.item"), "");
+    L.push(row(["Field", "Value"]), row(["---", "---"]));
+    L.push(row(["What's blocked", val("bc.what")]));
+    L.push(row(["Why", val("bc.why")]));
+    L.push(row(["Likely", val("bc.likely")]));
+    L.push(row(["Bad case", val("bc.bad")]));
+    L.push(row(["Unblocking action", val("bc.action")]));
+    L.push(row(["Who owns it", val("bc.owner")]));
+    L.push(row(["Meanwhile", val("bc.meanwhile")]));
+    L.push(row(["Conversion date", val("bc.convert")]));
+    L.push("", "## Calibration", "", row(["Item", "Estimated", "Actual", "Off by", "Why"]), row(["---", "---", "---", "---", "---"]));
+    for (let i = 1; i <= 3; i++) L.push(row([val("cal" + i + ".a"), val("cal" + i + ".b"), val("cal" + i + ".c"), val("cal" + i + ".d"), val("cal" + i + ".e")]));
+    return L.join("\n");
+  }
+
+  function copy(text, btn) {
+    const done = () => { const o = btn.textContent; btn.textContent = "✓ Copied"; setTimeout(() => { btn.textContent = o; }, 1600); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, () => fallback(text, done));
+    } else fallback(text, done);
+  }
+  function fallback(text, done) {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) { window.prompt("Copy:", text); }
+    document.body.removeChild(ta);
+  }
+
+  document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
+    copy(b.dataset.copy === "premortem" ? premortemMd() : blockerMd(), b);
+  }));
+  document.querySelectorAll("[data-copyprompt]").forEach(b => b.addEventListener("click", () => {
+    const pre = document.getElementById(b.dataset.copyprompt);
+    if (pre) copy(pre.textContent.trim(), b);
+  }));
+  document.querySelectorAll("[data-clear]").forEach(b => b.addEventListener("click", () => {
+    const g = b.dataset.clear;
+    if (!window.confirm("Clear your week " + state[g] + " " + (g === "pm" ? "pre-mortem" : "blocker card") + "? This cannot be undone.")) return;
+    fields(g).forEach(el => {
+      localStorage.removeItem(keyFor(g, el.dataset.f));
+      if (el.type === "checkbox") el.checked = false; else el.value = "";
+    });
+    flash(g, "Cleared");
+  }));
+
+  /* ------------------------------ boot ----------------------------------- */
+  const qw = parseInt(new URLSearchParams(location.search).get("w"), 10);
+  if (WEEKS.indexOf(qw) !== -1) {
+    ["pm", "bc"].forEach(g => {
+      state[g] = qw;
+      const host = document.getElementById(g === "pm" ? "pmWeeks" : "bcWeeks");
+      host.querySelectorAll(".dt-wk").forEach(x => x.classList.toggle("on", x.textContent === "W" + qw));
+      load(g);
+    });
+  }
+  show("contract", { keepHash: true });
+  routeFromHash(true);
+})();
+</script>
+</body>
+</html>
