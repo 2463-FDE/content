@@ -180,11 +180,7 @@
         push, or manually via <code>@claude review</code> — and it runs about 20 minutes and $15–25 per review, so
         it's a real stage with a real budget line.</p>
         <p>And it is a <strong>configuration surface, not a prayer</strong>. A review policy file at the repository root is
-        "injected directly into every agent in the review pipeline as highest priority." Teams use it to redefine what
-        Important means for their codebase, cap noise by asking for at most five nits, skip generated code and lock
-        files, add repo-specific always-checks such as requiring an integration test for every new API route, set an
-        evidence bar so behaviour claims need a file-and-line citation, and control re-review convergence by
-        suppressing new nits after the first pass. Even the project instruction file is enforced in both directions:
+        "injected directly into every agent in the review pipeline as highest priority." Teams use it to redefine what Important means for their codebase, to cap noise by asking for at most five nits, and to skip generated code and lock files. It also carries repo-specific always-checks — a new API route needs an integration test — plus an evidence bar that makes behaviour claims cite a file and line, and a convergence rule that suppresses new nits after the first pass. Even the project instruction file is enforced in both directions:
         code that violates it surfaces as a nit, and so does code that leaves the docs stale.</p>
         <p>Prefer to self-host the stage? Anthropic's GitHub Action runs the full Claude Code runtime on GitHub runners,
         in either mention mode — where someone writes <code>@claude</code> in a comment — or automation mode with a

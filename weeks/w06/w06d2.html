@@ -210,14 +210,15 @@
         toward required approvals and <em>never</em> blocks a merge. AI review complements human review; it doesn't
         replace it.</p>
         <p><strong>Claude Code Review</strong> — Anthropic's managed pull-request reviewer, currently a research preview for
-        Team and Enterprise plans — shows you what the deluxe version looks like: "a fleet of specialized agents
-        examine the code changes in the context of your full codebase," then "a verification step checks candidates
-        against actual code behavior to filter out false positives." Surviving findings are deduplicated,
+        Team and Enterprise plans — shows you what the deluxe version looks like. "A fleet of specialized
+        agents examine the code changes in the context of your full codebase," then "a verification step checks
+        candidates against actual code behavior to filter out false positives." Surviving findings are deduplicated,
         severity-ranked as Important, Nit or Pre-existing, and posted inline — and again, findings "don't approve or
-        block your PR." It is tunable through a review-policy file injected as highest-priority instructions:
-        redefine severities, cap nits, add skip rules, raise the verification bar. It triggers on pull-request open,
-        on every push, or on an explicit mention — and it is not free, at roughly <strong>$15–25 per review</strong>,
-        averaging about twenty minutes, billed on token usage. For pre-push feedback without any GitHub App, the local
+        block your PR."</p>
+        <p>It is tunable through a review-policy file injected as highest-priority instructions: redefine severities,
+        cap nits, add skip rules, raise the verification bar. It triggers on pull-request open, on every push, or on
+        an explicit mention. And it is not free — roughly <strong>$15–25 per review</strong>, averaging about twenty
+        minutes, billed on token usage. For pre-push feedback without any GitHub App, the local
         <code>/code-review</code> command "reviews a diff in your terminal," with a fix flag to apply findings and
         effort levels that trade confidence for coverage.</p>
         <p>Two cautions keep review loops honest. First, the <strong>adversarial-reviewer trap</strong>: the docs

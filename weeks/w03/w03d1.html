@@ -133,8 +133,7 @@
         <strong>evaluator-optimizer</strong> (one model generates, another critiques in a loop). All of these have
         predictable, developer-authored paths — which means they're cheaper, faster, and far easier to test and debug.</p>
         <p>Agents earn their keep only when you <strong>cannot hardcode the path but can still verify progress</strong>.
-        That trade — flexibility bought with predictability — is exactly why Anthropic's core guidance is
-        anti-complexity: "Start with simple prompts, optimize them with comprehensive evaluation, and add multi-step
+        That trade — flexibility bought with predictability — is why Anthropic's core guidance is anti-complexity: "Start with simple prompts, optimize them with comprehensive evaluation, and add multi-step
         agentic systems only when simpler solutions fall short." And whichever you build, the same grounding principle
         from ReAct applies — it's "crucial for the agents to gain 'ground truth' from the environment at each step (such
         as tool call results or code execution) to assess its progress." The FDE takeaway is blunt: a dynamic agent is
@@ -164,11 +163,7 @@
         provider guarantee the emitted arguments conform to your schema, which retires a whole category of defensive
         JSON parsing.</p>
         <p>This is a cross-vendor pattern, not a Claude quirk. OpenAI's Responses API calls it <strong>function
-        calling</strong>: tools carry a name, a description and a parameters block in the same JSON-Schema shape, and
-        the documentation is equally blunt — "OpenAI's model does not execute your function — it only decides which
-        function should be called and what arguments to pass." The model returns a function call with a name and a
-        JSON argument payload; your code executes it and returns an output object carrying the matching call
-        identifier. Same contract, different nouns. Once you see the shape, every provider's tool API stops being a
+        calling</strong>: tools carry a name, a description and a parameters block in the same JSON-Schema shape, and the documentation is equally blunt: "OpenAI's model does not execute your function — it only decides which function should be called and what arguments to pass." The model returns a function call with a name and a JSON argument payload. Your code executes it and returns an output object carrying the matching call identifier. Same contract, different nouns. Once you see the shape, every provider's tool API stops being a
         new thing to learn.</p>
       </section>
 
