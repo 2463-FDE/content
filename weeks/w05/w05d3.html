@@ -44,7 +44,9 @@
         machine-readable knowledge artifacts — constitutions, decision logs, <code>AGENTS.md</code> — that agents now
         consume instead of tribal knowledge. Underneath the logos there is exactly one design axis:
         <strong>where does each tool lock a decision, and where does it let you defer?</strong> Scroll the reading; the
-        panel on the right assembles the landscape one layer at a time, then places every tool on that axis.</p>
+        panel on the right assembles the landscape one layer at a time, then places every tool on that axis — and the
+        closing section covers why current practice is to <strong>steal parts of these kits rather than adopt one
+        whole</strong>.</p>
         <div class="ix-legend"></div>
       </div>
 
@@ -262,8 +264,42 @@
         How much process will this team actually follow? A gate the team resents becomes a gate the team routes
         around. Whatever you choose, two moves are near-universal: start an ADR log (the middle path costs almost
         nothing and pays compound interest), and write the knowledge layer down — <code>AGENTS.md</code>, a
-        constitution, conventions — so agents and humans inherit the same context. Tomorrow we take a locked spec and
-        decompose it into phased, executable plans.</p>
+        constitution, conventions — so agents and humans inherit the same context.</p>
+
+        <div class="callout">
+          <div class="k">Practice note · as of August 2026</div>
+          <p><strong>Know these tools cold. Steal their parts. Do not adopt one wholesale.</strong> That is not a
+          swipe at spec-kit, Kiro or OpenSpec — it is where the practice has landed, and there are four reasons
+          worth being able to say out loud in front of a client.</p>
+          <p><strong>1 · The harness ate the packaging.</strong> What these kits actually shipped was a directory of
+          prompt templates plus a command set. Coding agents now have native equivalents of every piece —
+          <code>CLAUDE.md</code> / <code>AGENTS.md</code> for project context, slash commands, skills, hooks, plan
+          mode, subagents. A vendored template directory becomes a fork you have to keep in sync with a harness that
+          changes every few months.</p>
+          <p><strong>2 · The leverage moved.</strong> These kits were built when models needed to be told what a spec
+          contains. Current models produce that structure unprompted. What they cannot produce is <em>your client's
+          constraints, your prior art, and a stopping condition a machine can check</em> — so the value moved from
+          document schema to <strong>context plus verification</strong>. A generic template cannot express "cite a
+          page-ID from their Confluence, or declare that no prior art exists." A repo-local command can, and that one
+          rule does more work than any template.</p>
+          <p><strong>3 · Portability never happened.</strong> Kiro's specs are excellent and live inside Kiro's IDE.
+          That is precisely why <code>requirements.md / design.md / tasks.md</code> never became a cross-tool
+          standard the way <code>AGENTS.md</code> did.</p>
+          <p><strong>4 · Follow the money.</strong> Tessl raised roughly $125M on the premise that the spec is the
+          primary artifact, then repositioned around registry, governance and evals. When the best-funded pure play
+          moves off spec-as-product, that tells you the durable value sits in <em>enforcement</em>, not in the
+          document format.</p>
+          <p><strong>So what do you steal?</strong> EARS notation and the requirements/design/tasks separation from
+          Kiro. <code>[NEEDS CLARIFICATION]</code> markers and the constitution idea from spec-kit. Per-change
+          folders and capture-what-exists from OpenSpec. The supersede lifecycle from ADRs. Then put them in the
+          client's own repo, as their own commands and conventions, versioned with their code.</p>
+          <p><strong>And know the failure mode of going fully custom:</strong> teams drop the spec entirely, keep the
+          automation, and end up with agents that have no stopping condition — the token furnace from Week 1,
+          rebuilt on purpose. Whatever you assemble, it still needs a written statement of intent and a definition of
+          done that something other than your own code can check.</p>
+        </div>
+
+        <p>Tomorrow we take a locked spec and decompose it into phased, executable plans.</p>
 
         <div class="callout mindset">
           <div class="k">FDE mindset</div>
@@ -288,6 +324,7 @@
           <li><a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions" target="_blank" rel="noopener">Documenting Architecture Decisions — Cognitect (Nygard, 2011)</a> — the original five-section format and the small-modular-documents rationale.</li>
           <li><a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/architectural-decision-records/adr-process.html" target="_blank" rel="noopener">ADR process — AWS Prescriptive Guidance</a> — Proposed → Accepted/Rejected → Superseded lifecycle, immutability, decision log enforced at code review.</li>
           <li><a href="https://agents.md/" target="_blank" rel="noopener">AGENTS.md</a> — the open format for agent-facing project knowledge; 60k+ projects, nested monorepo files.</li>
+          <li><a href="https://tessl.io/" target="_blank" rel="noopener">Tessl</a> — the ~$125M spec-centric bet, now positioned around registry, governance and evals; read it as the market's verdict on spec-as-product vs spec-as-enforcement.</li>
           <li><a href="../../client-delivery.html?w=5" target="_blank" rel="noopener">Client Delivery — Week 5 packet</a> — your project's ask and handover artifacts; the decision your ADR captures comes from here.</li>
         </ul>
       </section>
@@ -510,6 +547,15 @@ window.QUIZ = {
         { l: "OpenSpec propose → apply → archive", r: "defer and iterate — fluid artifacts, no gates" },
         { l: "ADR discipline", r: "lock with an escape hatch — immutable but supersedable" } ],
       explain: "Spec-kit forces decisions to the surface and freezes principles up front; Kiro locks at phase boundaries (with Quick Plan as the valve); OpenSpec keeps everything fluid per-change; ADRs lock decisions hard but make reversal explicit and history-preserving. One axis, four bets." },
+    { type: "scq",
+      stem: "A client asks whether they should adopt spec-kit across their engineering org. Which answer matches current (2026) practice?",
+      options: [
+        "Yes — install it org-wide; the constitution will standardize how every team works",
+        "No — spec-driven development was a fad and these tools are obsolete",
+        "Port the parts that fit into their own repo — EARS, clarification markers, ADR supersede — as their own commands and conventions",
+        "Wait for whichever vendor wins, then adopt the standard" ],
+      answer: 2,
+      explain: "The pattern won; the packaging lost. Coding agents now ship native equivalents of what these kits packaged (project-context files, commands, skills, hooks), so a vendored template directory becomes a fork you maintain against a harness that keeps moving. Meanwhile models produce spec STRUCTURE unprompted — what they can't produce is the client's constraints and a machine-checkable stopping condition. Steal the parts, put them in the client's repo, keep the enforcement." },
     { type: "open",
       stem: "In one or two sentences: what does /speckit.converge do, and why does a 'spec as source of truth' methodology need a command like it at all?",
       hint: "Think about what happens to real codebases over time, even disciplined ones.",
