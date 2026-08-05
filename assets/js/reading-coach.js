@@ -69,6 +69,7 @@
   function logKey() { return "rc-log-" + scopeKey(); }
   function sidKey() { return "rc-sid-" + scopeKey(); }
   function promptKey() { return "rc-prompt-" + S.id; }
+  function digestKey() { return "rc-digest-" + S.week; }
 
   function loadSession() {
     try {
@@ -461,7 +462,56 @@
     el("rcPNote").textContent = note || "";
   }
 
+  // The rail belongs to whichever mode is open. A week session must never show
+  // the day-mode "Delivery prompt" heading — and never its "Loading…" either,
+  // which is what a replayed week session used to sit on forever.
+  function resetRail() {
+    var kind = el("rcKind");
+    kind.textContent = "";
+    el("rcCustomWrap").hidden = true;
+    el("rcPNote").textContent = "";
+    if (S.mode === "week") {
+      el("rcPh").textContent = "Week recap ";
+      el("rcPh").appendChild(kind);
+      el("rcPhSub").textContent = "What the assistant is grounded in.";
+      el("rcPromptBox").textContent = "";
+      el("rcCopy").textContent = "Copy recap";
+      el("rcCopy").hidden = true;         // nothing to copy until the recap lands
+      el("rcCustom").hidden = true;       // custom prompts are a day-page thing
+      el("rcInput").placeholder = "Ask anything about this week — what it argued, how two days connect, what to review.";
+      el("rcFoot").textContent = "Enter sends · Shift+Enter for a new line · grounded in the whole week";
+    } else {
+      el("rcPh").textContent = "Delivery prompt ";
+      el("rcPh").appendChild(kind);
+      el("rcPhSub").textContent = "Paste this into Claude Code inside a project you already have open.";
+      el("rcCopy").textContent = "Copy prompt";
+      el("rcCopy").hidden = false;
+      el("rcCustom").hidden = false;
+    }
+  }
+
+  // The recap, from cache when we have it. A replayed session never calls
+  // /reading/week/start, so without this the rail had no source at all.
+  function loadDigest() {
+    var cached = null;
+    try { cached = JSON.parse(lsGet(digestKey()) || "null"); } catch (e) {}
+    if (cached && cached.digest && cached.week) { renderDigest(cached.digest, cached.week); return; }
+    el("rcPromptBox").textContent = "Reading the week…";
+    var idt = ident();
+    if (!idt || !idt.code) { el("rcPromptBox").textContent = "Sign in with your cohort access code to load the week."; return; }
+    // Cached server-side per week, so this costs a KV read and no model call.
+    // Keeps whatever session is already live — this call is only for the recap.
+    post("/reading/week/start", { passcode: idt.code, week: S.week }).then(function (r) {
+      var d = r.data || {};
+      if (d.ok && d.digest) { renderDigest(d.digest, d.week); if (!S.sessionId) { S.sessionId = d.sessionId; saveSession(d.sessionId); } }
+      else el("rcPromptBox").textContent = "Couldn't load the week recap. The assistant still works.";
+    }).catch(function () {
+      el("rcPromptBox").textContent = "Couldn't load the week recap. The assistant still works.";
+    });
+  }
+
   function renderDigest(digest, week) {
+    try { lsSet(digestKey(), JSON.stringify({ digest: digest, week: week })); } catch (e) {}
     var kind = el("rcKind");
     el("rcPh").textContent = "Week recap ";
     el("rcPh").appendChild(kind);
@@ -469,6 +519,7 @@
     el("rcPhSub").textContent = "What the assistant is grounded in. Ask it for the detail behind any line — it pulls the full day.";
     el("rcPromptBox").textContent = digest;
     el("rcCopy").textContent = "Copy recap";
+    el("rcCopy").hidden = false;
     el("rcCustom").hidden = true;
     el("rcPNote").innerHTML = '<div class="rc-daylist-k">The five days</div>' + week.days.map(function (d) {
       return '<a class="rc-daylink" href="' + d.path + '">' + d.id + " — " + d.title + "</a>";
@@ -480,7 +531,7 @@
   }
 
   function loadPrompt() {
-    if (S.mode === "week") return;              // the rail shows the week recap
+    if (S.mode === "week") return;              // week mode uses loadDigest()
     if (S.prompt) return;                       // already painted this visit
     var cached = lsGet(promptKey());
     if (cached) renderPrompt(cached, "generic");
@@ -560,10 +611,11 @@
     }
     el("rcModal").hidden = false;
     document.body.style.overflow = "hidden";
+    resetRail();
     showPane(tab || "chat");
-    // Wide viewports show both panes at once and hide the tab bar, so the prompt
-    // rail would sit on "Loading…" forever if it only filled on a tab click.
-    loadPrompt();
+    // Wide viewports show both panes at once and hide the tab bar, so the rail
+    // would sit on "Loading…" forever if it only filled on a tab click.
+    if (S.mode === "week") loadDigest(); else loadPrompt();
 
     if (S.started) return;
     S.started = true;

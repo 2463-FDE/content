@@ -68,6 +68,36 @@ ok("copy button relabelled", (await p2.locator("#rcCopy").textContent()).include
 ok("customize hidden in week mode", !(await p2.locator("#rcCustom").isVisible()));
 ok("budget shown here too", (await p2.locator("#rcTurns").textContent()).includes("87 messages"));
 await p2.screenshot({ path: OUT + "wk-2-modal.png" });
+// The bug this suite missed: a replayed week session never called
+// /reading/week/start, so the rail kept the day-mode "Delivery prompt" heading
+// and its "Loading…" placeholder forever.
+await p2.keyboard.press("Escape");
+await p2.reload({ waitUntil: "domcontentloaded" });
+await p2.waitForSelector(".rc-weekask");
+await p2.locator(".rc-weekask").nth(2).click();
+await p2.waitForSelector(".rc-assistant");
+await p2.waitForFunction(() => document.getElementById("rcPromptBox").textContent.includes("abridged week"));
+ok("replayed session shows the recap, not 'Delivery prompt'", (await p2.locator("#rcPh").textContent()).includes("Week recap"));
+ok("replayed session never shows 'Loading…'", !(await p2.locator("#rcPromptBox").textContent()).includes("Loading"));
+ok("replayed transcript is there", await p2.locator(".rc-assistant").count() >= 1);
+
+// Same again with the local recap cache dropped — the rail must refetch, not
+// fall back to the day-mode heading.
+await p2.keyboard.press("Escape");
+await p2.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith("rc-digest-")).forEach(k => localStorage.removeItem(k)));
+await p2.reload({ waitUntil: "domcontentloaded" });
+await p2.waitForSelector(".rc-weekask");
+await p2.locator(".rc-weekask").nth(2).click();
+await p2.waitForFunction(() => document.getElementById("rcPromptBox").textContent.includes("abridged week"), null, { timeout: 15000 });
+ok("recap refetches when the local cache is gone", (await p2.locator("#rcPh").textContent()).includes("Week recap"));
+
+// Switching weeks must not leave the previous week's recap on screen.
+await p2.keyboard.press("Escape");
+await p2.locator(".rc-weekask").nth(0).click();
+await p2.waitForSelector("#rcModal:not([hidden])");
+ok("switching weeks re-labels the rail", (await p2.locator("#rcPh").textContent()).includes("Week recap"));
+ok("no delivery-prompt affordances in week mode", !(await p2.locator("#rcCustom").isVisible()));
+
 ok("composer copy is week-scoped", (await p2.locator("#rcInput").getAttribute("placeholder")).includes("about this week"));
 ok("footer names the week grounding", (await p2.locator("#rcFoot").textContent()).includes("5 readings from this week"));
 ok("no page errors", errs.length === 0, errs.join(" | "));
