@@ -1,10 +1,11 @@
-# The per-reading study assistant
+# The reading study assistant (per day + per week)
 
 **Date:** 2026-08-05 · **Status:** LIVE — Worker deployed, merged to `main`, all 33 prompts pre-warmed
 **Ships in:** `assets/js/reading-coach.js` + the `.rc-*` block in `assets/css/style.css`
 **Backend:** `backend/src/reading.js`, `backend/src/reading-index.js` (generated), wired into `index.js` dispatch
 
-Every daily reading page (33 of them, W1–W6) now carries two things.
+Every daily reading page (33 of them, W1–W6) carries two things, and the curriculum page carries a
+third: a **week-level** assistant grounded in an abridged digest of all five days.
 
 ## 1. The delivery prompt — "use this today"
 
@@ -64,6 +65,7 @@ Same modal grammar as the coding-prep thinking partner (`coding-coach.js`), and 
 | Generic delivery prompt | **one Haiku call per page, ever** (cohort-wide KV cache) |
 | Custom delivery prompt | one Haiku call, per learner |
 | Page text | one GitHub Pages fetch per reading per week |
+| Week digest | **one Haiku call per week, ever** (~35s to generate, cohort-wide cache) |
 
 Rails, outermost first:
 
@@ -80,6 +82,26 @@ Practice identities (trainers) are exempt from both, same as everywhere else. Co
 interviews/day and System Design's 1 attempt/day are deliberately NOT in this pot — those are
 attempt limits, not cost rails.
 
+## The week assistant (curriculum page)
+
+Each week header on `index.html` gets an "Ask about this week" button. It opens the same modal
+against a whole week.
+
+Five readings is ~33k tokens of prose — wasteful to carry on every turn — so a week session is
+grounded in an **abridged digest**: one section per day (claims, named techniques, numbers, strong
+opinions) plus a THREAD section on how the days build. ~9.5k chars, about a quarter of the raw text.
+Generated once per week by Haiku, cached cohort-wide under a hash of the five days' combined text,
+and the model still has `load_reading` to pull any single day at **full fidelity** when the
+conversation needs the detail — cheap by default, precise on demand. Verified live: a "what was this
+week arguing" question answered from the digest alone; "what exactly are the MCP transports" pulled
+`w03d2` and answered from the real text.
+
+The right rail shows the digest as a **Week recap** (with links to the five days) instead of a
+delivery prompt — day-level prompts stay on the day pages, and the week assistant will write a
+week-level one on request.
+
+The load horizon is the end of that week, so a week session can't reach into unread material either.
+
 ## Routes
 
 | Route | Body | Notes |
@@ -87,7 +109,8 @@ attempt limits, not cost rails.
 | `POST /reading/start` | `{passcode, reading}` | mints the session, returns the curated opening. No model call. |
 | `POST /reading/message` | `{sessionId, text}` | one reply, including any `load_reading` round-trips |
 | `POST /reading/prompt` | `{passcode, reading}` | the generic prompt; cache hit is free and bypasses the cap |
-| `POST /reading/prompt/custom` | `{sessionId, note}` | written from the conversation |
+| `POST /reading/prompt/custom` | `{sessionId, note}` | written from the conversation (day sessions only) |
+| `POST /reading/week/start` | `{passcode, week}` | the week assistant; generates/serves the digest |
 
 ## Regenerating the catalog
 
@@ -100,6 +123,13 @@ node backend/tools/reading-index/gen_reading_index.js
 Ids follow the page path: the filename stem, prefixed with its week directory when the stem doesn't
 already carry one (`w01/d2a.html` → `w01d2a`; `w05/w05d3.html` → `w05d3`). The client derives the
 same id from `location.pathname`, so the two can't drift.
+
+## What the UI shows for the rail
+
+The modal header shows **"N messages left today"**, not a session turn count. The session cap (40
+turns) was never the real limit — reloading the page mints a fresh session — so advertising it was
+misleading. The number shown is the shared cross-assistant daily budget, which nothing resets, and
+it goes amber under 10 left. Practice identities are uncapped and see nothing.
 
 ## Tests
 
@@ -121,7 +151,7 @@ npm i playwright && node docs/reading-assistant-qa.mjs
 1. Worker deployed (`npx wrangler deploy`). Note: give it ~30s before smoke-testing — new routes
    404 intermittently while the version propagates across colos.
 2. `feat/reading-assistant` merged to `main`, Pages redeployed (~30s).
-3. All 33 delivery prompts pre-warmed, so no learner is ever the one who waits ~8s for a
+3. All 33 delivery prompts and all 6 week digests pre-warmed, so no learner is ever the one who waits ~8s for a
    generation. Re-run after rewriting a reading (the cache keys on the page's content hash, so a
    rewrite silently invalidates and the next learner pays for it):
 

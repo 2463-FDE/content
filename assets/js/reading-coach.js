@@ -15,18 +15,25 @@
  *      it can pull an earlier reading into context when the question reaches
  *      back ("how does this relate to the chunking stuff in week 2?").
  *
+ * The same file also powers the WEEK assistant on the curriculum page: each week
+ * header there gets an "Ask about this week" button, which opens this modal
+ * against a whole week instead of one day. The Worker grounds that session in an
+ * abridged digest of the week's five readings and pulls any single day at full
+ * text when the conversation needs the detail.
+ *
  * Sibling of coding-coach.js and the same shape: server-side context, curated
- * (free) opening, per-session + per-day caps enforced by the Worker, transcript
- * replayed from localStorage.
+ * (free) opening, per-day budget enforced by the Worker, transcript replayed
+ * from localStorage.
  *
  * Dependencies: none. roster.js for window.FDE_RUN_URL, auth.js for the identity.
  * Load AFTER day-summary.js — the delivery block inserts itself above the
  * "Summarize Your Day" section, which day-summary.js appends on DOM ready.
  *
- * Persistence (localStorage, per reading id):
- *   rc-log-<id>      transcript [{role,text}]
- *   rc-sid-<id>      {id, at} — dropped after 6h to match the Worker's TTL
- *   rc-prompt-<id>   the generic delivery prompt (paints instantly on a revisit)
+ * Persistence (localStorage, per scope key — "w05d3" for a day, "week:w05" for a
+ * week):
+ *   rc-log-<key>      transcript [{role,text}]
+ *   rc-sid-<key>      {id, at} — dropped after 6h to match the Worker's TTL
+ *   rc-prompt-<id>    the generic delivery prompt (paints instantly on a revisit)
  */
 (function () {
   "use strict";
@@ -35,7 +42,9 @@
   var SESSION_MAX_AGE = 6 * 60 * 60 * 1000; // matches READING_TTL_SECONDS
 
   var S = {
+    mode: "reading", // "reading" (a day's page) or "week" (the curriculum page)
     id: "",          // reading id, e.g. "w05d3" / "w01d2a"
+    week: "",        // week id in week mode, e.g. "w05"
     title: "",
     concepts: [],
     sessionId: null,
@@ -56,8 +65,9 @@
     catch (e) { return null; }
   }
 
-  function logKey() { return "rc-log-" + S.id; }
-  function sidKey() { return "rc-sid-" + S.id; }
+  function scopeKey() { return S.mode === "week" ? "week:" + S.week : S.id; }
+  function logKey() { return "rc-log-" + scopeKey(); }
+  function sidKey() { return "rc-sid-" + scopeKey(); }
   function promptKey() { return "rc-prompt-" + S.id; }
 
   function loadSession() {
@@ -198,6 +208,7 @@
     b.className = "rc-fab";
     b.type = "button";
     b.innerHTML = '<span aria-hidden="true">✳</span> Ask about this reading';
+    b.title = "Talk to an assistant grounded in this page";
     b.addEventListener("click", function () { open("chat"); });
     document.body.appendChild(b);
   }
@@ -230,8 +241,8 @@
             '<div class="rc-foot" id="rcFoot">Enter sends · Shift+Enter for a new line · grounded in this page\'s text</div>' +
           "</section>" +
           '<section class="rc-pane rc-prompt" data-pane="prompt">' +
-            '<div class="rc-ph">Delivery prompt <span class="rc-kind" id="rcKind"></span></div>' +
-            '<p class="rc-phsub">Paste this into Claude Code inside a project you already have open.</p>' +
+            '<div class="rc-ph" id="rcPh">Delivery prompt <span class="rc-kind" id="rcKind"></span></div>' +
+            '<p class="rc-phsub" id="rcPhSub">Paste this into Claude Code inside a project you already have open.</p>' +
             '<pre class="rc-promptbox" id="rcPromptBox">Loading…</pre>' +
             '<div class="rc-prow">' +
               '<button class="rc-copy" id="rcCopy">Copy prompt</button>' +
@@ -311,8 +322,18 @@
     el("rcSend").disabled = on || S.capped;
     el("rcInput").disabled = S.capped;
   }
-  function turnsLabel(left) {
-    el("rcTurns").textContent = left == null ? "" : left + " turn" + (left === 1 ? "" : "s") + " left";
+  // The session turn count is NOT the rail — a reload mints a fresh session, so
+  // showing "39 turns left" advertised a limit that wasn't real. What actually
+  // limits a learner is their shared daily budget across every assistant, which
+  // the Worker reports on each turn. Practice identities get null (uncapped) and
+  // see nothing at all.
+  function budgetLabel(left, total) {
+    var t = el("rcTurns");
+    if (left == null) { t.textContent = ""; t.title = ""; return; }
+    t.textContent = left + " message" + (left === 1 ? "" : "s") + " left today";
+    t.title = "Shared across every assistant on the site" + (total ? " — " + total + " a day" : "") +
+      ". Reloading doesn't reset it.";
+    t.classList.toggle("is-low", left <= 10);
   }
   function lockChat(msg) {
     S.capped = true;
@@ -328,7 +349,9 @@
       lockChat("Sign in to start a conversation.");
       return Promise.resolve(false);
     }
-    return post("/reading/start", { passcode: idt.code, reading: S.id }).then(function (r) {
+    var path = S.mode === "week" ? "/reading/week/start" : "/reading/start";
+    var payload = S.mode === "week" ? { passcode: idt.code, week: S.week } : { passcode: idt.code, reading: S.id };
+    return post(path, payload).then(function (r) {
       if (!r.data || !r.data.ok) {
         var msg = r.data && r.data.error === "bad_passcode"
           ? "That access code isn't recognized — sign in again from the top-right of the page."
@@ -339,6 +362,12 @@
       }
       S.sessionId = r.data.sessionId;
       saveSession(S.sessionId);
+      if (r.data.week && r.data.digest) {
+        S.title = r.data.week.label || S.title;
+        el("rcName").textContent = S.title;
+        el("rcWeek").textContent = r.data.week.days.length + " readings";
+        renderDigest(r.data.digest, r.data.week);
+      }
       if (r.data.reading) {
         S.title = r.data.reading.title || S.title;
         el("rcName").textContent = S.title;
@@ -346,7 +375,7 @@
           ? "Week " + parseInt(String(r.data.reading.week).slice(1), 10) + " · " + r.data.reading.weekTitle : "";
       }
       pushMsg("assistant", r.data.opening);
-      turnsLabel(r.data.messagesLeft);
+      budgetLabel(r.data.budgetLeft, r.data.budgetTotal);
       return true;
     }).catch(function () {
       pushMsg("assistant", "Couldn't reach the assistant (network). The delivery prompt tab still works.", { transient: true, sys: true });
@@ -396,7 +425,7 @@
       }
       pushMsg("assistant", d.reply);
       noteLoaded(d.loaded);
-      turnsLabel(d.messagesLeft);
+      budgetLabel(d.budgetLeft, d.budgetTotal);
       if (d.capped) lockChat("Conversation cap reached for this reading.");
     }).catch(function () {
       thinking.remove();
@@ -414,7 +443,26 @@
     el("rcPNote").textContent = note || "";
   }
 
+  function renderDigest(digest, week) {
+    var kind = el("rcKind");
+    el("rcPh").textContent = "Week recap ";
+    el("rcPh").appendChild(kind);
+    kind.textContent = "· abridged, " + week.days.length + " days";
+    el("rcPhSub").textContent = "What the assistant is grounded in. Ask it for the detail behind any line — it pulls the full day.";
+    el("rcPromptBox").textContent = digest;
+    el("rcCopy").textContent = "Copy recap";
+    el("rcCustom").hidden = true;
+    el("rcPNote").innerHTML = '<div class="rc-daylist-k">The five days</div>' + week.days.map(function (d) {
+      return '<a class="rc-daylink" href="' + d.path + '">' + d.id + " — " + d.title + "</a>";
+    }).join("");
+    // The composer copy is written for a single page; a week session isn't that.
+    el("rcInput").placeholder = "Ask anything about this week — what it argued, how two days connect, what to do with it.";
+    el("rcFoot").textContent = "Enter sends · Shift+Enter for a new line · grounded in all " +
+      week.days.length + " readings from this week";
+  }
+
   function loadPrompt() {
+    if (S.mode === "week") return;              // the rail shows the week recap
     if (S.prompt) return;                       // already painted this visit
     var cached = lsGet(promptKey());
     if (cached) renderPrompt(cached, "generic");
@@ -511,7 +559,7 @@
       S.sessionId = sid;
       S.messages = stored;
       stored.forEach(function (m) { pushMsg(m.role, m.text, { transient: true }); });
-      turnsLabel(null);
+      budgetLabel(null);
     } else {
       S.sessionId = null;
       lsDel(logKey());
@@ -519,15 +567,70 @@
     }
   }
 
+  // The curriculum page: one button per week header, opening this same modal
+  // against the whole week. The grid is rendered by an inline script on that
+  // page, so wait for the cells to exist rather than assuming they do.
+  function mountWeekButtons() {
+    var cells = document.querySelectorAll(".cal-week");
+    if (!cells.length) return false;
+    var mounted = 0;
+    cells.forEach(function (cell) {
+      if (cell.querySelector(".rc-weekask")) return;
+      var m = (cell.querySelector(".ww") || {}).textContent || "";
+      var n = parseInt(String(m).replace(/[^0-9]/g, ""), 10);
+      if (!n) return;
+      var week = "w" + String(n).padStart(2, "0");
+      if (!WEEKS_WITH_READINGS[week]) return;   // future weeks have no readings yet
+      var b = document.createElement("button");
+      b.className = "rc-weekask";
+      b.type = "button";
+      b.innerHTML = '<span aria-hidden="true">✳</span> Ask about this week';
+      b.title = "Talk through the whole week with an assistant that has read all of it";
+      b.addEventListener("click", function () {
+        S.mode = "week";
+        S.week = week;
+        S.title = "Week " + n;
+        S.started = false;
+        S.sessionId = null;
+        S.messages = [];
+        var log = el("rcLog"); if (log) log.innerHTML = "";
+        open("chat");
+      });
+      cell.appendChild(b);
+      mounted++;
+    });
+    return mounted > 0;
+  }
+
+  // Weeks that actually have reading pages. Kept here rather than fetched so a
+  // future week on the calendar doesn't sprout a button that 400s.
+  var WEEKS_WITH_READINGS = { w01: 1, w02: 1, w03: 1, w04: 1, w05: 1, w06: 1 };
+
   function init() {
     S.id = readingIdFromPath();
-    if (!S.id || !document.querySelector(".reading-col")) return;   // not a reading page
-    var h1 = document.querySelector(".lede h1");
-    S.title = h1 ? h1.textContent.trim() : document.title;
-    S.concepts = (meta("fde-concepts") || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean);
-    buildDeliveryBlock();
-    buildFab();
-    window.FDE_openReading = open;
+    if (S.id && document.querySelector(".reading-col")) {
+      var h1 = document.querySelector(".lede h1");
+      S.title = h1 ? h1.textContent.trim() : document.title;
+      S.concepts = (meta("fde-concepts") || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+      buildDeliveryBlock();
+      buildFab();
+      window.FDE_openReading = open;
+      return;
+    }
+    // Curriculum page. Its grid is built by an inline script that may not have
+    // run yet; poll briefly rather than racing it.
+    if (document.getElementById("cal")) {
+      var tries = 0;
+      var tick = function () {
+        if (mountWeekButtons() || ++tries > 40) return;
+        setTimeout(tick, 100);
+      };
+      tick();
+      // The grid re-renders when server progress lands, which throws the buttons
+      // away with it. Put them back.
+      window.addEventListener("fde-progress-sync", function () { setTimeout(mountWeekButtons, 0); });
+      window.FDE_openReading = open;
+    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

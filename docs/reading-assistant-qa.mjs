@@ -38,11 +38,11 @@ await ctx.route("**/fde-backend.jestercharles.workers.dev/**", async (route) => 
   const send = (obj) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(obj) });
   if (url.endsWith("/reading/start")) {
     return send({ ok: true, sessionId: "sess-1", opening: "I've got today's reading open — The Spec-Driven Tooling Landscape. Ask me anything in it.",
-      reading: { id: "w05d3", title: "The Spec-Driven Tooling Landscape", week: "w05", weekTitle: "Spec-Driven Dev & Problem Scoping" }, messagesLeft: 39 });
+      reading: { id: "w05d3", title: "The Spec-Driven Tooling Landscape", week: "w05", weekTitle: "Spec-Driven Dev & Problem Scoping" }, messagesLeft: 39, budgetLeft: 87, budgetTotal: 100 });
   }
   if (url.endsWith("/reading/message")) {
     return send({ ok: true, reply: "Week 2 called it chunking. Same idea: `split(text)` then embed. Here's the shape:\n```py\nchunks = split(doc, size=800, overlap=120)\n```\nThe constitution plays the same role for decisions.",
-      loaded: ["w02d1"], openReadings: ["w02d1"], messagesLeft: 37 });
+      loaded: ["w02d1"], openReadings: ["w02d1"], messagesLeft: 37, budgetLeft: 86, budgetTotal: 100 });
   }
   if (url.endsWith("/reading/prompt")) return send({ ok: true, prompt: GEN_PROMPT, kind: "generic", cached: false });
   if (url.endsWith("/reading/prompt/custom")) return send({ ok: true, prompt: "CUSTOM: aimed at your FastAPI service.\n" + GEN_PROMPT, kind: "custom" });
@@ -99,7 +99,10 @@ await page.waitForSelector(".rc-assistant");
 ok("chat tab opens from the launcher", await page.locator(".rc-pane.rc-chat.on").count() === 1);
 ok("curated opening rendered", (await page.locator(".rc-assistant").first().textContent()).includes("Spec-Driven Tooling"));
 ok("header shows the week", (await page.locator("#rcWeek").textContent()).includes("Week 5"));
-ok("turn counter shown", (await page.locator("#rcTurns").textContent()).includes("39 turns"));
+// Deliberately NOT the session turn count: a reload mints a new session, so
+// that number never limited anything. The shared daily budget does.
+ok("shows the daily budget, not session turns", (await page.locator("#rcTurns").textContent()).includes("87 messages left today"));
+ok("session turn count is not advertised", !(await page.locator("#rcTurns").textContent()).includes("turns"));
 
 await page.fill("#rcInput", "how does this relate to chunking in week 2?");
 await page.press("#rcInput", "Enter");
