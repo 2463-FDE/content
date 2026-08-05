@@ -61,7 +61,7 @@ Same modal grammar as the coding-prep thinking partner (`coding-coach.js`), and 
 | Thing | Cost |
 |---|---|
 | Opening the assistant | **$0** — the opening line is composed server-side from the catalog |
-| A reply | one Haiku call, ≤700 output tokens; input is the page (~5k tokens) plus any open prior reading |
+| A reply | one Haiku call, ≤700 output tokens; input is the page (~5k tokens) plus any open prior reading — **prompt-cached**, so every turn after the first in a session re-reads the page at ~10% of the input rate ($0.10/MTok vs $1.00 on Haiku 4.5) |
 | Generic delivery prompt | **one Haiku call per page, ever** (cohort-wide KV cache) |
 | Custom delivery prompt | one Haiku call, per learner |
 | Page text | one GitHub Pages fetch per reading per week |
@@ -106,6 +106,22 @@ text rather than a summary.
 The right rail shows the digest as a **Week recap** with links to the five days.
 
 The load horizon is the end of that week, so a week session can't reach into unread material either.
+
+## Observability
+
+Every model call traces to Langfuse through `backend/src/langfuse-payload.js`:
+
+- **Input is a role-labelled message list**, with the system prompt as its own
+  `role: "system"` entry — the format Langfuse renders as a conversation, and the same
+  convention LangChain 1.0 encodes as a `SystemMessage`. (In the Anthropic request itself
+  `system` is a top-level parameter, which is where it belongs; only the trace needed fixing.)
+  Tool round-trips keep their `tool_use` / `tool_result` blocks instead of being flattened.
+- **`usageDetails`**, not the deprecated `usage` object. Buckets are mutually exclusive, so
+  `cache_read_input_tokens` and `cache_creation_input_tokens` are their own keys and the cost
+  figure reflects what caching actually saved. Anthropic's `input_tokens` already excludes
+  cache tokens, so no subtraction is needed (OpenAI's `prompt_tokens` would need it).
+
+Background: [[llm-trace-payload-conventions]] in the second brain.
 
 ## Routes
 
