@@ -327,6 +327,22 @@
   // limits a learner is their shared daily budget across every assistant, which
   // the Worker reports on each turn. Practice identities get null (uncapped) and
   // see nothing at all.
+  // A local, zero-cost heads-up at each 20% of the day's budget. Rendered as a
+  // system line, never added to the transcript — the assistant never sees it and
+  // no model call is made to produce it.
+  function usageNotice(left, total) {
+    if (!window.FDE_usageNotice) return;
+    var n = window.FDE_usageNotice(left, total);
+    if (!n) return;
+    var log = el("rcLog");
+    if (!log) return;
+    var d = document.createElement("div");
+    d.className = "rc-usage" + (n.pct >= 80 ? " is-low" : "");
+    d.textContent = n.text;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+  }
+
   function budgetLabel(left, total) {
     var t = el("rcTurns");
     if (left == null) { t.textContent = ""; t.title = ""; return; }
@@ -376,6 +392,7 @@
       }
       pushMsg("assistant", r.data.opening);
       budgetLabel(r.data.budgetLeft, r.data.budgetTotal);
+      usageNotice(r.data.budgetLeft, r.data.budgetTotal);
       return true;
     }).catch(function () {
       pushMsg("assistant", "Couldn't reach the assistant (network). The delivery prompt tab still works.", { transient: true, sys: true });
@@ -426,6 +443,7 @@
       pushMsg("assistant", d.reply);
       noteLoaded(d.loaded);
       budgetLabel(d.budgetLeft, d.budgetTotal);
+      usageNotice(d.budgetLeft, d.budgetTotal);
       if (d.capped) lockChat("Conversation cap reached for this reading.");
     }).catch(function () {
       thinking.remove();

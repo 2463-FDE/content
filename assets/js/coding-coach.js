@@ -357,8 +357,31 @@
     el("ccSend").disabled = on || S.capped;
     el("ccInput").disabled = S.capped;
   }
-  function turnsLabel(left) {
-    el("ccTurns").textContent = left == null ? "" : left + " turn" + (left === 1 ? "" : "s") + " left";
+  // The session turn count was never the real limit — a reload mints a new
+  // session. What actually runs out is the learner's shared daily budget across
+  // every assistant, which the Worker reports on each turn.
+  function turnsLabel(left, total) {
+    var t = el("ccTurns");
+    if (left == null) { t.textContent = ""; t.title = ""; return; }
+    t.textContent = left + " message" + (left === 1 ? "" : "s") + " left today";
+    t.title = "Shared across every assistant on the site" + (total ? " — " + total + " a day" : "") +
+      ". Reloading doesn't reset it.";
+  }
+
+  // Local, zero-cost heads-up at each 20% of the day's budget. No model call: the
+  // number came back with a reply the learner already paid for, and the line is
+  // never added to the transcript the partner sees.
+  function usageNotice(left, total) {
+    if (!window.FDE_usageNotice) return;
+    var n = window.FDE_usageNotice(left, total);
+    if (!n) return;
+    var log = el("ccLog");
+    if (!log) return;
+    var d = document.createElement("div");
+    d.className = "cc-usage";
+    d.textContent = n.text;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
   }
   function lockChat(msg) {
     S.capped = true;
@@ -420,7 +443,8 @@
       renderBrief(r.data.problem);
       applyStarter();
       pushMsg("coach", r.data.opening);
-      turnsLabel(r.data.messagesLeft);
+      turnsLabel(r.data.budgetLeft, r.data.budgetTotal);
+      usageNotice(r.data.budgetLeft, r.data.budgetTotal);
       return true;
     }).catch(function () {
       el("ccAsk").textContent = "Couldn't load the problem — open it on LeetCode in the meantime.";
@@ -475,7 +499,8 @@
         return;
       }
       pushMsg("coach", d.reply);
-      turnsLabel(d.messagesLeft);
+      turnsLabel(d.budgetLeft, d.budgetTotal);
+      usageNotice(d.budgetLeft, d.budgetTotal);
       if (d.capped) lockChat("Conversation cap reached for this problem.");
     }).catch(function () {
       thinking.remove();

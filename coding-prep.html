@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Coding Challenge Prep | 2463-FDE</title>
-<link rel="stylesheet" href="assets/css/style.css?v=20260805-rc2">
+<link rel="stylesheet" href="assets/css/style.css?v=20260805-rc3">
 <script src="assets/js/theme.js"></script>
 <style>
   /* ---- coding-prep page-specific layout (reuses site design language) ---- */
@@ -188,6 +188,9 @@
   .cc-who { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.11em; font-weight:800; color:var(--accent); margin-bottom:3px; }
   .cc-sys { opacity:.9; }
   .cc-thinking { opacity:.55; }
+  /* Budget heads-up — composed locally from the number the reply carried. No
+     model call, and never part of the transcript the partner sees. */
+  .cc-usage { align-self:stretch; font-size:12px; line-height:1.5; color:var(--ink-soft); background:var(--surface-2); border:1px dashed var(--line); border-radius:9px; padding:8px 11px; }
   .cc-composer { display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--line); flex-shrink:0; }
   .cc-composer textarea { flex:1; resize:none; font:inherit; font-size:14px; line-height:1.5; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:8px 11px; }
   .cc-composer textarea:focus { outline:none; border-color:var(--accent); }
@@ -608,6 +611,7 @@ activate(CP.some(t=>t.id===h)?h:"entry");
 </script>
 <script src="assets/js/roster.js?v=20260706"></script>
 <script src="assets/js/auth.js"></script>
-<script src="assets/js/coding-coach.js?v=20260803"></script>
+<script src="assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="assets/js/coding-coach.js?v=20260805-b1"></script>
 </body>
 </html>

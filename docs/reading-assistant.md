@@ -96,9 +96,14 @@ conversation needs the detail — cheap by default, precise on demand. Verified 
 week arguing" question answered from the digest alone; "what exactly are the MCP transports" pulled
 `w03d2` and answered from the real text.
 
-The right rail shows the digest as a **Week recap** (with links to the five days) instead of a
-delivery prompt — day-level prompts stay on the day pages, and the week assistant will write a
-week-level one on request.
+It is a **review** surface, not a build surface: someone opens it days or weeks later to get back
+into a week — what it covered, the through-line, what they forgot, whether they're ready to move on.
+It deliberately does **not** write delivery prompts. Asked for one, it names the day that owns the
+material and points at that page's button, then gives review-shaped orientation instead. Turning
+material into repo work belongs to the day pages, where the prompt is built from that day's full
+text rather than a summary.
+
+The right rail shows the digest as a **Week recap** with links to the five days.
 
 The load horizon is the end of that week, so a week session can't reach into unread material either.
 
@@ -123,6 +128,19 @@ node backend/tools/reading-index/gen_reading_index.js
 Ids follow the page path: the filename stem, prefixed with its week directory when the stem doesn't
 already carry one (`w01/d2a.html` → `w01d2a`; `w05/w05d3.html` → `w05d3`). The client derives the
 same id from `location.pathname`, so the two can't drift.
+
+## Budget reminders (zero cost)
+
+Every reply already carries the learner's remaining budget, so the reminder is composed **locally**
+from that number — `assets/js/usage-notice.js`. No model call, no extra request, no tokens. The line
+is rendered as a system notice and is never appended to the transcript, so it can't end up in a
+later prompt.
+
+It fires once per **20% threshold** per day (20/40/60/80), tracked in localStorage under the local
+date so it resets on its own and neither a reload nor switching assistants re-announces a threshold
+already seen. The 80% notice is styled as a warning and steers the remaining spend at what the
+learner is actually stuck on. Uncapped (practice) identities send `budgetLeft: null` and see
+nothing. Shared by the reading assistant and the coding-prep partner.
 
 ## What the UI shows for the rail
 
