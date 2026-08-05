@@ -99,19 +99,17 @@
       <section class="step" data-diagram="0" data-step="2">
         <div class="tag">Index time · construction</div>
         <h2>SimpleKGPipeline: docs in, graph out</h2>
-        <p>Neo4j's official Python package, <code>neo4j-graphrag</code> (v1.18.0 as of late June 2026 — the long-term
-        maintained successor to the deprecated <code>neo4j-genai</code>), wraps the entire index-time pipeline in one
-        orchestrator: <strong><code>SimpleKGPipeline</code></strong>. It chains four components, and each one maps to a
-        decision you'll defend at a client.</p>
-        <p>First, a <strong><code>FixedSizeSplitter</code></strong> chunks the documents — with <code>approximate=True</code>
-        by default so chunk boundaries land cleanly rather than mid-word. Second, a <strong><code>TextChunkEmbedder</code></strong>
-        computes an embedding for every chunk and stores it <em>as a property on the chunk node</em> — this is the hook
-        that lets vector search live inside the graph database later. Third, the star of the show: the
-        <strong><code>LLMEntityRelationExtractor</code></strong> reads each chunk and pulls out entities and relationships,
-        guided by a schema you supply. It uses structured output on providers that support it (OpenAI, VertexAI), and its
-        <code>on_error</code> setting decides per-chunk failure behavior — whether one malformed extraction kills the run
-        or gets skipped and logged. Fourth, a <strong><code>Neo4jWriter</code></strong> persists everything, batching
-        writes 1,000 rows at a time by default.</p>
+        <p>Neo4j's official Python package, <code>neo4j-graphrag</code> (version 1.18.0 as of late June 2026, and the
+        long-term maintained successor to the older GenAI package), wraps the entire index-time pipeline in one
+        orchestrator. It chains four components, and each one maps to a decision you will defend at a client.</p>
+        <p>First, a <strong>fixed-size splitter</strong> chunks the documents, approximating boundaries by default so
+        chunks end cleanly rather than mid-word. Second, a <strong>chunk embedder</strong> computes an embedding for
+        every chunk and stores it <em>as a property on the chunk node</em> — this is the hook that lets vector search
+        live inside the graph database later. Third, the star of the show: an <strong>entity and relation
+        extractor</strong> reads each chunk and pulls out entities and relationships, guided by a schema you supply.
+        It uses structured output on providers that support it, and its error setting decides per-chunk failure
+        behaviour — whether one malformed extraction kills the run, or gets skipped and logged. Fourth, a
+        <strong>writer</strong> persists everything, batching a thousand rows at a time by default.</p>
         <p>Read that chain again and you'll see something familiar: it's your Week 2 ingestion pipeline with one component
         swapped. Split, embed, store — but between "embed" and "store" now sits an LLM doing <em>information
         extraction</em>, upgrading a pile of chunks into a network of entities. That framing matters for cost
@@ -125,23 +123,22 @@
       <section class="step" data-diagram="0" data-step="3">
         <div class="tag">Index time · quality control</div>
         <h2>Schema guardrails and entity resolution</h2>
-        <p>Left unguided, an LLM extractor will happily invent forty entity types and a zoo of one-off relationships —
-        a graph that's technically populated and practically useless. <code>SimpleKGPipeline</code> takes a
-        <strong>schema</strong> for exactly this reason: you pass <code>node_types</code>, <code>relationship_types</code>,
-        and <code>patterns</code> — triples like <code>("Person", "PARENT_OF", "Person")</code> — that spell out which
-        relationships are allowed between which types. Set <code>additional_node_types: False</code> and the pipeline
-        <em>rejects</em> anything outside the schema instead of letting the graph drift. Skip properties on a type and a
-        <code>name: STRING</code> property is auto-added, so every entity is at least addressable. This is yesterday's
-        modeling lesson operationalized: the schema you designed on the whiteboard becomes the contract the extractor is
-        held to, chunk after chunk.</p>
+        <p>Left unguided, an LLM extractor will happily invent forty entity types and a zoo of one-off relationships — a
+        graph that is technically populated and practically useless. The pipeline takes a <strong>schema</strong> for
+        exactly this reason. You pass the node types, the relationship types, and the allowed patterns between them,
+        written as triples such as <code>("Person", "PARENT_OF", "Person")</code>. Turn off the flag that permits
+        additional node types and the pipeline <em>rejects</em> anything outside the schema instead of letting the
+        graph drift. Skip properties on a type and a name property is added automatically, so every entity is at least
+        addressable. This is yesterday's modeling lesson operationalized: the schema you designed on the whiteboard
+        becomes the contract the extractor is held to, chunk after chunk.</p>
         <p>The second quality problem is subtler. Chunk 12 mentions "Acme Corp", chunk 87 says "Acme Corporation", chunk
-        203 says "ACME" — and a naive pipeline writes three disconnected nodes, quietly shattering the connectivity that
-        makes graph retrieval worth anything. The fix is an <strong>entity resolution</strong> pass after writing, and the
-        package ships a ladder of resolvers: <code>SinglePropertyExactMatchResolver</code> merges nodes whose key property
-        matches exactly; <code>SpaCySemanticMatchResolver</code> merges on semantic similarity of names;
-        <code>FuzzyMatchResolver</code> handles the typo-and-abbreviation middle ground. Which rung you pick is a
-        precision/recall trade you should make consciously — over-merging is as destructive as under-merging, because
-        fusing two genuinely different "J. Smith"s poisons every traversal that passes through the merged node.</p>
+        203 says "ACME" — and a naive pipeline writes three disconnected nodes, quietly shattering the connectivity
+        that makes graph retrieval worth anything. The fix is an <strong>entity resolution</strong> pass after
+        writing, and the package ships a ladder of resolvers: exact match on a single key property, semantic
+        similarity of names, and a fuzzy matcher for the typo-and-abbreviation middle ground. Which rung you pick is a
+        precision-versus-recall trade you should make consciously — over-merging is as destructive as under-merging,
+        because fusing two genuinely different "J. Smith"s poisons every traversal that passes through the merged
+        node.</p>
         <p>The FDE habit here: <strong>inspect the graph before you build retrieval on it.</strong> A handful of Cypher
         spot-checks — how many entity types actually got created, which entities have suspicious duplicate near-names,
         what the degree distribution looks like — catches extraction drift on day one instead of after the demo.</p>
@@ -153,13 +150,13 @@
         <p>Here is the single most load-bearing design idea of the day. When <code>SimpleKGPipeline</code> runs with
         <code>create_lexical_graph=True</code>, it doesn't build one graph — it builds <strong>two coexisting layers</strong>
         in the same database.</p>
-        <p>The <strong>lexical graph</strong> preserves the documents themselves: <code>Document</code> and
-        <code>Chunk</code> nodes, wired with <code>FROM_DOCUMENT</code> relationships (which chunk came from which file)
-        and <code>NEXT_CHUNK</code> relationships (reading order). Its embeddings live on the chunk nodes. This layer is
-        the model's <em>evidence locker</em> — the actual source text, structure intact, that a grounded answer quotes
-        from. The <strong>entity graph</strong> is the schema-pruned domain layer the extractor produced: people,
-        systems, incidents, whatever your schema named, connected by typed relationships. It's the <em>map of what the
-        corpus is about</em>, abstracted away from any single passage.</p>
+        <p>The <strong>lexical graph</strong> preserves the documents themselves: document and chunk nodes, wired together
+        by relationships recording which chunk came from which file and what the reading order was. Its embeddings
+        live on the chunk nodes. This layer is the model's <em>evidence locker</em> — the actual source text,
+        structure intact, that a grounded answer quotes from. The <strong>entity graph</strong> is the schema-pruned
+        domain layer the extractor produced: people, systems, incidents, whatever your schema named, connected by
+        typed relationships. It is the <em>map of what the corpus is about</em>, abstracted away from any single
+        passage.</p>
         <p>Why insist on both? Because each one alone reproduces a failure you've already met. Entity graph only, and you
         can traverse beautifully but you've thrown away the source text — answers float free of quotable evidence, which
         is exactly the hallucination-adjacent behavior Week 1 taught you to fear. Lexical graph only, and you're back to
@@ -175,29 +172,31 @@
       <section class="step" data-diagram="0" data-step="5">
         <div class="tag">Query time · retrieval</div>
         <h2>The retriever ladder: vector entry, graph expansion</h2>
-        <p>The <code>neo4j-graphrag</code> package expresses query-time strategy as a family of first-party retrievers —
-        best understood as a ladder, each rung adding one capability. <strong><code>VectorRetriever</code></strong> is the
-        floor: pure vector-index similarity over chunk embeddings — your Week 2 pipeline living inside Neo4j.
-        <strong><code>VectorCypherRetriever</code></strong> is the day's headline: vector search finds the entry chunks,
-        then a <strong>Cypher traversal you write</strong> runs from each hit to enrich the result with connected-node
-        context — the cross-layer hop from the last section, made concrete in one class.
-        <strong><code>HybridRetriever</code></strong> widens the entry point instead: it searches a vector index <em>and</em>
-        a full-text index simultaneously and merges results, so exact keywords (error codes, product names, statute
-        numbers) can't slip past a purely semantic match. <strong><code>HybridCypherRetriever</code></strong> combines
-        both upgrades — hybrid entry plus follow-up graph traversal. And <strong><code>Text2CypherRetriever</code></strong>
-        steps off the ladder entirely: an LLM translates the natural-language question into Cypher, executes it, and
-        returns structured results — with a guardrail added in v1.16.0 that validates generated queries before execution
-        to block destructive operations.</p>
-        <p>Two composition notes that matter in real engagements. <strong><code>ToolsRetriever</code></strong> exposes
-        multiple retrievers to an LLM <em>as tools</em>, letting it pick per query and combine results with attribution —
-        Week 3's tool-routing pattern applied to retrieval. And the external-store retrievers
-        (<code>QdrantNeo4jRetriever</code>, <code>WeaviateNeo4jRetriever</code>, <code>PineconeNeo4jRetriever</code>) run
-        vector search in an external vector database and map hits back to Neo4j nodes — so a client's existing Qdrant
-        investment composes with the graph rather than competing with it.</p>
-        <p>Generation, after all that machinery, is one class:
-        <code>GraphRAG(retriever=..., llm=...)</code>, then
-        <code>rag.search(query_text=..., retriever_config={"top_k": 5}, return_context=True)</code> — retriever fetches
-        context, LLM answers against it, and <code>return_context</code> hands you the evidence for citation and evals.</p>
+        <p>The package expresses query-time strategy as a family of first-party retrievers, best understood as a ladder
+        where each rung adds one capability:</p>
+        <ul>
+          <li><strong>Vector retriever</strong> — the floor: pure similarity search over chunk embeddings. Your Week 2
+          pipeline, living inside Neo4j.</li>
+          <li><strong>Vector-plus-Cypher retriever</strong> — the day's headline. Vector search finds the entry
+          chunks, then <strong>a graph traversal you write</strong> runs from each hit to enrich the result with
+          connected-node context. The cross-layer hop from the last section, made concrete in one class.</li>
+          <li><strong>Hybrid retriever</strong> — widens the entry point instead: it searches a vector index
+          <em>and</em> a full-text index at once and merges the results, so exact keywords such as error codes,
+          product names or statute numbers cannot slip past a purely semantic match.</li>
+          <li><strong>Hybrid-plus-Cypher retriever</strong> — both upgrades together: hybrid entry, then traversal.</li>
+          <li><strong>Text-to-Cypher retriever</strong> — steps off the ladder entirely. An LLM translates the
+          question into a graph query, executes it, and returns structured results, with a guardrail that validates
+          generated queries before execution to block destructive operations.</li>
+        </ul>
+        <p>Two composition notes that matter in real engagements. A <strong>tools retriever</strong> exposes several
+        retrievers to an LLM <em>as tools</em>, letting it pick per query and combine results with attribution —
+        Week 3's tool-routing pattern applied to retrieval. And the external-store retrievers for Qdrant, Weaviate and
+        Pinecone run vector search in an outside vector database and map the hits back to Neo4j nodes, so a client's
+        existing vector-database investment composes with the graph rather than competing with it.</p>
+        <p>Generation, after all that machinery, is one class: you construct a <code>GraphRAG</code> object with a retriever
+        and a model, then call search with your question and a retriever configuration. The retriever fetches context,
+        the model answers against it, and asking it to return the context hands you the evidence for citation and for
+        evaluations.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: fire the same question at a
         <code>VectorRetriever</code> and a <code>VectorCypherRetriever</code> side by side and diff the retrieved
         context — see exactly what the graph hop added. Needs backend standup.</p></div>
@@ -247,11 +246,11 @@
         proposal. <strong>DRIFT</strong> blends the two — entity-centric local search with community context folded in —
         and <strong>Basic</strong> is plain vector similarity, kept around as the baseline (and as a quiet reminder that
         the baseline is sometimes enough).</p>
-        <p>The milestone, assembled: <code>SimpleKGPipeline</code> ingests your corpus into the two-layer graph on
-        yesterday's Neo4j instance; a vector index goes over the chunk embeddings; a <code>VectorCypherRetriever</code> or
-        <code>HybridCypherRetriever</code> does hybrid retrieval; <code>GraphRAG.search()</code> generates grounded
-        answers — with local-vs-global as the frame for explaining <em>why</em> the graph hop earns its complexity over
-        Week 2's pure-vector RAG.</p>
+        <p>The milestone, assembled: the ingestion pipeline loads your corpus into the two-layer graph on yesterday's Neo4j
+        instance; a vector index goes over the chunk embeddings; a Cypher-enriched retriever — hybrid, if exact
+        keywords matter — does the retrieval; and the generation class produces grounded answers. Local versus global
+        is the frame for explaining <em>why</em> the graph hop earns its complexity over Week 2's pure-vector
+        approach.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: ask one entity question and one
         "top themes" question against the same indexed corpus, toggling local vs global mode — watch local fan out from
         entities while global map-reduces over community summaries. Needs backend standup.</p></div>
@@ -323,12 +322,12 @@
     <button class="modal-close" type="button" aria-label="Close">✕</button>
     <h2>Deep dive: versions, Text2Cypher guardrails &amp; index-time cost</h2>
     <p class="quiz-sub">Optional. ~10 minutes. The production edges of today's pipeline.</p>
-    <p><strong>Pin your versions.</strong> As of 2026-07-01: <code>neo4j-graphrag</code> is at <strong>1.18.0</strong>
-    (released 2026-06-24), supporting Neo4j ≥ 5.18.1 / Aura ≥ 5.18.0 and Python 3.10–3.14. On Neo4j
-    <strong>2026.01+</strong> the package auto-detects the server and uses the Cypher 25 <code>SEARCH</code> clause for
-    vector queries (support landed in 1.16.0). Microsoft's reference <code>graphrag</code> library is at
-    <strong>v3.1.0</strong>. The Neo4j package replaced the deprecated <code>neo4j-genai</code> — if a client codebase
-    imports the old name, that's a migration item, not a style nit.</p>
+    <p><strong>Pin your versions.</strong> As of 2026-07-01 the Neo4j package <code>neo4j-graphrag</code> is at
+    <strong>1.18.0</strong>, released 2026-06-24, supporting Neo4j 5.18.1 and above, Aura 5.18.0 and above, and Python
+    3.10 through 3.14. On Neo4j 2026.01 and later the package auto-detects the server and uses the newer Cypher search
+    clause for vector queries. Microsoft's reference GraphRAG library is at <strong>v3.1.0</strong>. The Neo4j package
+    replaced a now-deprecated predecessor — if a client codebase still imports the old name, that is a migration item,
+    not a style nit.</p>
     <p><strong>Text2Cypher is powerful and sharp.</strong> An LLM writing Cypher against production data can also write
     <em>destructive</em> Cypher. Since 1.16.0 the package validates generated queries before execution to block
     destructive operations — but treat that as one layer, not the whole answer: run Text2Cypher through a read-only

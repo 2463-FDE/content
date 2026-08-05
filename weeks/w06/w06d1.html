@@ -105,15 +105,21 @@
         composes like any Unix tool. It accepts piped stdin: <code>tail -200 app.log | claude -p "what broke?"</code>
         sends the last 200 log lines in as context. It chains in shell scripts and CI pipelines. The agent stops being
         an app you sit inside and becomes a command you can wire into anything that can spawn a process.</p>
-        <p>CI needs auth without a browser, and there's a documented path: <code>claude setup-token</code> mints a
-        one-year OAuth token that you provide via the <code>CLAUDE_CODE_OAUTH_TOKEN</code> environment variable. And
-        once environment variables enter the picture, you need the <strong>credential precedence</strong> order,
-        because it's a documented failure mode: cloud-provider flags (Bedrock/Vertex/Foundry) beat
-        <code>ANTHROPIC_AUTH_TOKEN</code>, which beats <code>ANTHROPIC_API_KEY</code>, which beats the
-        <code>apiKeyHelper</code> script, which beats <code>CLAUDE_CODE_OAUTH_TOKEN</code>, which beats the
-        subscription login from <code>/login</code>. The classic gotcha: a stray <code>ANTHROPIC_API_KEY</code>
-        exported in someone's shell profile silently overrides their subscription — they burn metered API credits while
-        their paid plan sits unused. Diagnostic: run <code>/status</code> and read which credential won.</p>
+        <p>CI needs to authenticate without a browser, and there's a documented path: a setup command mints a
+        one-year token that you hand to the runner as an environment variable. Once environment variables enter the
+        picture you need the <strong>credential precedence order</strong>, because getting it wrong is a documented
+        failure mode. Highest wins:</p>
+        <ol>
+          <li>Cloud-provider flags — Bedrock, Vertex, or Foundry.</li>
+          <li>An auth token in the environment.</li>
+          <li>A plain API key in the environment.</li>
+          <li>A key-helper script.</li>
+          <li>The long-lived CI token.</li>
+          <li>The subscription login you did interactively.</li>
+        </ol>
+        <p>The classic gotcha: someone exported <code>ANTHROPIC_API_KEY</code> in a shell profile years ago, and it
+        silently outranks their subscription — so they burn metered credits while the plan they pay for sits unused.
+        The diagnostic is one command: run <code>/status</code> and read which credential actually won.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a sandboxed terminal that runs
         <code>claude -p</code> against a tiny demo repo — pipe a log file in, watch a headless answer come back, then
         chain two calls in a script. Needs backend standup.</p></div>
@@ -132,13 +138,11 @@
         <code>Bash(aws *)</code> and a narrower allow like <code>Bash(aws s3 ls)</code>, the deny matches first and the
         command is blocked. Deny rules cannot carry allowlist exceptions — this is not firewall-style
         "most-specific-rule-wins," and engineers who assume it is will ship rules that don't do what they think.</p>
-        <p>Rules live in settings files, and those have their own precedence: <strong>managed settings</strong>
-        (deployed by IT, highest) beat <strong>CLI arguments</strong>, which beat
-        <code>.claude/settings.local.json</code> (personal, gitignored), which beats
-        <code>.claude/settings.json</code> (project — shareable, checked in), which beats
-        <code>~/.claude/settings.json</code> (user-wide). And one property makes the whole scheme trustworthy for
-        security reviews: <strong>a deny at any level cannot be re-allowed at another</strong>. If the enterprise
-        managed policy denies something, no project file, local file, or CLI flag can resurrect it.</p>
+        <p>Rules live in settings files, and those have their own precedence. Highest wins: settings deployed by IT,
+        then command-line arguments, then your personal untracked settings file, then the project settings file that
+        is checked in and shared, then your user-wide file. One property makes the whole scheme trustworthy in a
+        security review: <strong>a deny at any level cannot be re-allowed at another</strong>. If the enterprise
+        policy denies something, no project file, local file, or flag can bring it back.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a permission-rule evaluator —
         paste a deny/ask/allow ruleset plus a candidate command, and step through which rule matches first and why the
         broad deny beats the narrow allow. Needs backend standup.</p></div>
@@ -150,66 +154,62 @@
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Permissions · syntax &amp; modes</div>
         <h2>Rule syntax, honest limits, and permission modes</h2>
-        <p>A rule is <code>Tool</code> or <code>Tool(specifier)</code>. Bash rules use <code>*</code> globs and are
-        shell-operator aware — a compound command like <code>a &amp;&amp; b</code> must match your rules for
-        <em>each</em> subcommand independently, so nothing sneaks through by riding after an <code>&amp;&amp;</code>.
-        Read and Edit rules use gitignore-style paths with anchors: <code>//</code> for absolute paths, <code>~/</code>
-        for home, <code>/</code> for project root. WebFetch rules match on <code>domain:</code>.</p>
+        <p>A rule is either a bare tool name or a tool name with a specifier in brackets. Shell rules understand shell
+        operators, so a compound command has to satisfy your rules for <em>each</em> subcommand independently —
+        nothing sneaks through by riding along after an <code>&amp;&amp;</code>. File rules use gitignore-style paths,
+        with anchors for absolute paths, your home directory, and the project root. Web-fetch rules match on domain.</p>
         <p>The docs are refreshingly honest about where patterns break down: <strong>argument-constraining Bash
         patterns are fragile</strong>. A rule trying to restrict <code>curl</code> to certain URLs can be bypassed with
         flag reordering, redirects, or shell variables. The documented recommendation is to not build load-bearing
         security out of Bash argument patterns at all — use deny rules on the command family plus WebFetch domain
         allows, or a PreToolUse hook (coming up in step 7) that inspects the real call. Knowing the limits of your own
         controls is exactly the kind of thing a client security team will probe you on.</p>
-        <p>Above individual rules sit <strong>permission modes</strong>, set via <code>defaultMode</code>:
-        <code>default</code> (prompt on first use of each tool), <code>acceptEdits</code> (auto-accept file edits),
-        <code>plan</code> (read-only analysis, no changes), <code>auto</code> (a research preview with background
-        safety checks), <code>dontAsk</code>, and <code>bypassPermissions</code>. That last one skips prompts entirely
-        — except explicit <code>ask</code> rules and a hard-coded circuit breaker on <code>rm -rf /</code> and
-        <code>rm -rf ~</code> — and the docs say plainly it's safe only in isolated containers or VMs with no
-        credentials worth stealing. The FDE translation: <code>bypassPermissions</code> on a developer laptop with
-        production AWS keys is malpractice; the same mode inside a throwaway CI container is a reasonable engineering
-        choice. Context decides.</p>
+        <p>Above individual rules sit <strong>permission modes</strong>, set once as a default. There are six:
+        <em>default</em> prompts the first time each tool is used; <em>accept edits</em> auto-accepts file changes;
+        <em>plan</em> is read-only analysis with no changes; <em>auto</em> is a research preview with background
+        safety checks; <em>don't ask</em> stops prompting; and <em>bypass permissions</em> skips prompts entirely.
+        That last one has two exceptions — explicit ask-rules still fire, and there is a hard-coded circuit breaker on
+        commands that would wipe the root or home directory — and the documentation says plainly that it is safe only
+        in an isolated container or virtual machine with no credentials worth stealing.</p>
+        <p>The FDE translation: bypass mode on a developer laptop holding production cloud keys is malpractice. The
+        same mode inside a throwaway CI container is a reasonable engineering choice. Context decides.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
         <div class="tag">Memory</div>
         <h2>CLAUDE.md: layered context, plus a memory that writes itself</h2>
         <p><strong>CLAUDE.md</strong> is the instruction file Claude Code reads at session start — project conventions,
-        commands, architecture notes. It's layered, loading broadest to most specific: a <strong>managed policy</strong>
-        file (e.g. <code>/Library/Application Support/ClaudeCode/CLAUDE.md</code> on macOS), your <strong>user</strong>
-        file (<code>~/.claude/CLAUDE.md</code>, all projects), the <strong>project</strong> file (<code>./CLAUDE.md</code>
-        or <code>./.claude/CLAUDE.md</code>, checked in), and a <strong>local</strong> overlay
-        (<code>./CLAUDE.local.md</code>, gitignored, personal). Discovery walks <em>up</em> the directory tree — so
-        launching from a subdirectory still finds the repo-root file — and CLAUDE.md files in subdirectories load
-        on demand when Claude reads files there. In a monorepo, <code>api/CLAUDE.md</code> costs nothing until the
-        agent actually works in <code>api/</code>.</p>
-        <p>Files compose via <strong>imports</strong>: an <code>@path/to/file</code> line pulls another file in (max
-        depth four hops, loaded at launch; the first import from outside the project prompts for approval). That's
-        also the documented interop answer for the landscape from step 1: Claude Code reads CLAUDE.md, <em>not</em>
-        AGENTS.md — so a repo serving multiple agents keeps one AGENTS.md and a CLAUDE.md containing
-        <code>@AGENTS.md</code>, or a symlink. Guidance: keep each file under ~200 lines, because imported files still
-        cost context on every session. For instructions only relevant to part of the tree, <strong>path-scoped
-        rules</strong> (<code>.claude/rules/*.md</code> with <code>paths:</code> frontmatter) load only when Claude
-        touches matching files.</p>
-        <p>Then there's the second memory system: <strong>auto memory</strong> (v2.1.59+, on by default). Claude writes
-        its own notes to <code>~/.claude/projects/&lt;project&gt;/memory/</code> — a <code>MEMORY.md</code> index whose
-        first 200 lines / 25KB load every session, with topic files loaded on demand. It's all plain markdown, and
-        <code>/memory</code> opens it for audit. Notice the design echo from Week 1: both systems are answers to "how
-        do we spend the window on standing knowledge?" — always-loaded index, on-demand detail.</p>
+        commands, architecture notes. It loads in layers, broadest first: a managed policy file installed by IT, then
+        your personal user-wide file, then the project file that is checked into the repository, then a local
+        gitignored overlay for your own preferences. Discovery walks <em>up</em> the directory tree, so launching from
+        a subdirectory still finds the file at the repository root, and instruction files inside subdirectories load
+        on demand when Claude actually reads files there. In a monorepo, an instruction file under
+        <code>api/</code> costs you nothing until the agent works in that folder.</p>
+        <p>Files compose through <strong>imports</strong>: a line beginning with <code>@</code> followed by a path pulls
+        another file in, up to four hops deep, resolved when the session launches. The first import from outside the
+        project asks for approval. That is also the documented answer to the interoperability problem from step 1 —
+        Claude Code reads its own instruction file, not the cross-tool <code>AGENTS.md</code> convention, so a
+        repository serving several agents keeps one shared file and imports it from the Claude-specific one. Keep each
+        file under roughly 200 lines, because imported files still cost context on every single session. For
+        instructions that only matter in part of the tree, path-scoped rule files load only when Claude touches
+        matching paths.</p>
+        <p>Then there's the second memory system: <strong>auto memory</strong>, on by default in recent versions. Claude
+        writes its own notes into a per-project memory folder — an index file whose first 200 lines load every
+        session, with topic files pulled in on demand. It is all plain markdown, and the <code>/memory</code> command
+        opens it for audit. Notice the design echo from Week 1: both memory systems are answers to the same question,
+        which is how to spend a limited window on standing knowledge. Always-loaded index, on-demand detail.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="6">
         <div class="tag">Extension · skills</div>
         <h2>Skills: procedures that load only when needed</h2>
-        <p>A <strong>skill</strong> is a folder containing a <code>SKILL.md</code> — YAML frontmatter with at minimum a
-        <code>name</code> and <code>description</code>, then markdown instructions. Skills live at four scopes:
-        personal (<code>~/.claude/skills/&lt;name&gt;/</code>), project (<code>.claude/skills/&lt;name&gt;/</code>),
-        plugin, and enterprise. The directory name becomes a slash command — <code>.claude/skills/deploy/</code> gives
-        you <code>/deploy</code> — and Claude will also <strong>auto-invoke</strong> a skill when its description
-        matches the task at hand. (The old <code>.claude/commands/</code> custom commands have been merged into skills;
-        one mechanism now.) Same-name collisions resolve enterprise &gt; personal &gt; project, and nested monorepo
-        skills get directory-qualified names like <code>apps/web:deploy</code>.</p>
+        <p>A <strong>skill</strong> is a folder containing a <code>SKILL.md</code> file — a short YAML header with a name
+        and a description, then markdown instructions. Skills live at four scopes: personal, project, plugin, and
+        enterprise. The folder name becomes the slash command, so a folder called "deploy" gives you a deploy command,
+        and Claude will also invoke a skill on its own when the description matches the task in front of it. Custom
+        commands used to be a separate mechanism; they have been merged into skills, so there is one concept now.
+        When two skills share a name, enterprise beats personal beats project, and skills nested inside a monorepo get
+        directory-qualified names so they stay distinguishable.</p>
         <p>The reason skills exist as a separate mechanism from CLAUDE.md is economics. Skills use <strong>three-stage
         progressive disclosure</strong>: at startup the agent loads <em>only each skill's name and description</em>;
         full instructions load when a task matches; and supporting files load only if the instructions call for them.
@@ -228,17 +228,16 @@
         <div class="tag">Extension · hooks</div>
         <h2>Hooks: deterministic code at lifecycle events</h2>
         <p>Skills are still instructions — the model reads them and <em>decides</em>. <strong>Hooks</strong> are the
-        opposite animal: user-defined shell commands (or HTTP endpoints, or LLM prompts) that <strong>fire at lifecycle
-        events</strong>, outside the model's control. The events span the session (<code>SessionStart</code>,
-        <code>SessionEnd</code>), the turn (<code>UserPromptSubmit</code>, <code>Stop</code>), and — most usefully —
-        every tool call (<code>PreToolUse</code>, <code>PostToolUse</code>). Hooks are configured under
-        <code>hooks</code> in the same settings files as permissions, with matchers targeting tool names: exact
-        matches, <code>|</code>-separated lists, regex, or MCP tools via <code>mcp__server__tool</code>.</p>
-        <p>A hook talks back through two channels. Exit codes: <strong>exit 2 blocks the action</strong> and feeds the
-        hook's stderr to Claude as feedback (exit 1 is non-blocking — a warning that doesn't stop anything). Or exit 0
-        with a JSON payload for fine-grained control: <code>permissionDecision</code> of allow/deny/ask,
-        <code>continue: false</code> to halt the turn, <code>additionalContext</code> to inject information. That means
-        a PreToolUse hook can implement policies no glob pattern can express — parse the actual command, check the
+        opposite animal: shell commands, HTTP endpoints, or prompts that <strong>fire at lifecycle events</strong>,
+        entirely outside the model's control. The events cover the session (start and end), the turn (prompt
+        submitted, turn stopped), and — most usefully — every tool call, both before and after. Hooks are configured
+        in the same settings files as permissions, with matchers that target tool names by exact match, by a list, by
+        regular expression, or by the naming pattern used for tools coming from external servers.</p>
+        <p>A hook talks back through two channels. The first is exit codes: <strong>exiting with status 2 blocks the
+        action</strong> and feeds whatever the hook printed to standard error back to Claude as feedback, while status
+        1 is a non-blocking warning. The second is exiting cleanly with a JSON payload for finer control — allow, deny
+        or ask for this specific call, halt the turn outright, or inject extra context. That means a hook running
+        before a tool call can enforce policies no glob pattern could express: parse the actual command, check the
         target path against a manifest, call your compliance API, and return a verdict.</p>
         <p>The interaction with permissions is precisely specified, and asymmetric in the safe direction: <strong>a
         blocking hook takes precedence over allow rules, but a hook's "allow" never bypasses deny or ask rules.</strong>
@@ -339,31 +338,31 @@
     <button class="modal-close" type="button" aria-label="Close">✕</button>
     <h2>Deep dive: the three precedence chains that bite in production</h2>
     <p class="quiz-sub">Optional. ~10 minutes. Three ordered lists that explain most "the agent isn't obeying my config" tickets.</p>
-    <p><strong>1 · Credentials.</strong> Highest wins: cloud-provider env flags (Bedrock / Vertex / Foundry) →
-    <code>ANTHROPIC_AUTH_TOKEN</code> → <code>ANTHROPIC_API_KEY</code> → <code>apiKeyHelper</code> →
-    <code>CLAUDE_CODE_OAUTH_TOKEN</code> → subscription OAuth from <code>/login</code>. The classic incident: an
-    <code>ANTHROPIC_API_KEY</code> left in a dotfile silently overrides the team's subscription, and the metered bill
-    climbs. First move: <code>/status</code>, read which credential is active.</p>
-    <p><strong>2 · Settings.</strong> Managed settings → CLI arguments → <code>.claude/settings.local.json</code> →
-    <code>.claude/settings.json</code> (project) → <code>~/.claude/settings.json</code> (user). The property to quote in
-    a security review: <strong>a deny at any level cannot be re-allowed at any other level.</strong> Enterprise policy
-    denies it → it is dead, everywhere, regardless of local files or flags.</p>
+    <p><strong>1 · Credentials.</strong> Highest wins: cloud-provider environment flags (Bedrock, Vertex, Foundry),
+    then an auth token, then a plain API key, then a key-helper script, then the long-lived CI token, then the
+    subscription login. The classic incident: an <code>ANTHROPIC_API_KEY</code> left in a dotfile silently overrides
+    the team's subscription and the metered bill climbs. First move: run <code>/status</code> and read which
+    credential is active.</p>
+    <p><strong>2 · Settings.</strong> Highest wins: settings deployed by IT, then command-line arguments, then your
+    personal untracked file, then the shared project file, then your user-wide file. The property to quote in a
+    security review: <strong>a deny at any level cannot be re-allowed at any other level.</strong> If enterprise
+    policy denies it, it is dead everywhere, regardless of local files or flags.</p>
     <p><strong>3 · Hooks × permissions.</strong> A blocking PreToolUse hook (exit 2, or JSON
     <code>permissionDecision: "deny"</code>) beats an allow rule. A hook returning "allow" never bypasses a deny or ask
     rule. Hooks tighten; they cannot loosen.</p>
     <div class="model-answer show">
       <div class="ma-k">Worked example — a guardrail that actually guarantees</div>
-      <p style="margin:8px 0 0">Requirement: "the agent must never modify <code>infra/prod/</code>." The layered
-      answer: <b>①</b> a line in CLAUDE.md ("never touch infra/prod — ask a human") so the model steers away by
-      default; <b>②</b> a deny rule <code>Edit(infra/prod/**)</code> in the checked-in <code>.claude/settings.json</code>
-      so the harness refuses even if the model tries; <b>③</b> optionally a PreToolUse hook that logs the blocked
-      attempt to the client's audit channel. Layer ① is steering, ② is enforcement, ③ is observability. If you can
-      label each layer of your own design this way, you're ready for the client's security architect.</p>
+      <p style="margin:8px 0 0">Requirement: "the agent must never modify the production infrastructure folder." The
+      layered answer: <b>①</b> a line in the instruction file telling the model to stay out of it and ask a human, so
+      it steers away by default; <b>②</b> a deny rule for that path in the checked-in project settings, so the harness
+      refuses even if the model tries; <b>③</b> optionally a hook that logs every blocked attempt to the client's
+      audit channel. Layer ① is steering, ② is enforcement, ③ is observability. If you can label each layer of your
+      own design that way, you are ready for the client's security architect.</p>
     </div>
-    <p style="margin-top:14px"><strong>Version floors worth noting</strong> (docs-referenced, as of this writing):
-    auto memory needs v2.1.59+, <code>/cd</code> needs v2.1.169+, the bundled <code>/run</code> and <code>/verify</code>
-    skills need v2.1.145+. The native installer auto-updates, so these mostly matter when diagnosing a client's pinned
-    or stale install.</p>
+    <p style="margin-top:14px"><strong>Version floors worth noting</strong> (documented, as of this writing): auto
+    memory, the directory-change command, and the bundled run and verify skills each require a recent minimum
+    version. The native installer auto-updates, so these mostly matter when you are diagnosing a client's pinned or
+    stale install.</p>
   </div>
 </div>
 

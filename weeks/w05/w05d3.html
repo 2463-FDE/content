@@ -80,29 +80,31 @@
       <section class="step" data-diagram="0" data-step="1">
         <div class="tag">Tool 1 · spec-kit</div>
         <h2>Spec-kit: a fixed artifact pipeline of slash commands</h2>
-        <p>Spec-kit's workflow is a fixed sequence of slash commands, each of which emits a Markdown artifact that
-        feeds the next. Note the naming — everything is namespaced <code>/speckit.*</code> (older writeups show bare
-        <code>/specify</code> and <code>/plan</code>; that's stale). The core pipeline:
-        <code>/speckit.constitution</code> establishes governing principles;
-        <code>/speckit.specify</code> captures the <em>what and why</em> — deliberately no tech stack;
-        <code>/speckit.plan</code> adds tech stack and architecture;
-        <code>/speckit.tasks</code> breaks the plan into an ordered task list;
-        <code>/speckit.taskstoissues</code> turns those tasks into GitHub issues; and
-        <code>/speckit.implement</code> executes. A seventh core command, <code>/speckit.converge</code>, closes the
-        loop: it assesses the actual codebase against the spec, plan, and tasks and appends the remaining work as new
-        tasks — the mechanism that keeps a living spec honest against a drifting repo.</p>
-        <p>Three more commands are <strong>optional</strong> validators, not mandatory pipeline steps:
-        <code>/speckit.clarify</code> runs structured de-ambiguation on a spec, <code>/speckit.analyze</code> checks
-        cross-artifact consistency (does the plan actually cover the spec? do the tasks cover the plan?), and
-        <code>/speckit.checklist</code> generates quality gates. The separation matters: the core pipeline is the
-        spine you always walk; the optional commands are inspection tools you reach for when the stakes or the
-        ambiguity justify them.</p>
+        <p>Spec-kit's workflow is a fixed sequence of commands, each one producing a Markdown document that feeds the
+        next. Every command is namespaced under <code>/speckit.*</code> — if you find a writeup using bare
+        <code>/specify</code>, it predates the rename. Seven commands make up the core pipeline:</p>
+        <ul>
+          <li><strong>constitution</strong> — establishes the governing principles for the project.</li>
+          <li><strong>specify</strong> — captures the <em>what and why</em>, deliberately with no tech stack in it.</li>
+          <li><strong>plan</strong> — adds the tech stack and the architecture.</li>
+          <li><strong>tasks</strong> — breaks the plan into an ordered task list.</li>
+          <li><strong>taskstoissues</strong> — turns those tasks into GitHub issues.</li>
+          <li><strong>implement</strong> — executes them.</li>
+          <li><strong>converge</strong> — closes the loop: it compares the real codebase against the spec, the plan
+          and the tasks, then appends whatever is still missing as new tasks. This is the mechanism that keeps a
+          living spec honest against a drifting repository.</li>
+        </ul>
+        <p>Three further commands are <strong>optional validators</strong> rather than mandatory steps. One runs
+        structured de-ambiguation on a spec, one checks that the artifacts agree with each other — does the plan
+        actually cover the spec, do the tasks cover the plan — and one generates quality checklists. The separation
+        matters: the core pipeline is the spine you always walk, and the validators are inspection tools you reach
+        for when the stakes or the ambiguity justify them.</p>
         <p>Why should an FDE care about the shape and not just the commands? Because the pipeline <em>is</em> the
         methodology. Each artifact is a checkpoint where a human can read, correct, and approve before the next stage
         compounds on it — which is precisely the anti-drift structure you already live inside with this program's own
         pipeline. Spec-kit is what it looks like when "review the plan before the code" gets industrialized into
         tooling that thirty different coding agents can plug into.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live spec-kit sandbox — type a one-line feature ask, watch <code>/speckit.specify</code> → <code>/speckit.plan</code> → <code>/speckit.tasks</code> generate the three artifacts side by side, then edit the spec and see the downstream artifacts regenerate. Needs backend standup.</p></div>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live spec-kit sandbox — type a one-line feature ask, watch the specify → plan → tasks commands generate the three artifacts side by side, then edit the spec and see the downstream artifacts regenerate. Needs backend standup.</p></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -136,10 +138,10 @@
         <div class="tag">Tool 2 · Kiro</div>
         <h2>Kiro specs: three files, approval gates, EARS</h2>
         <p><strong>Kiro</strong>, AWS's agentic IDE, is what spec-driven development looks like when it's built into
-        the editor rather than bolted on as a CLI. Every Kiro spec is the same three files:
-        <code>requirements.md</code> (user stories with acceptance criteria), <code>design.md</code> (architecture,
-        sequence diagrams, implementation strategy), and <code>tasks.md</code> (discrete, trackable tasks). The
-        workflow walks three phases — requirements → design → tasks — and in the standard workflows there are
+        the editor rather than bolted on as a command-line tool. Every Kiro spec is the same three files — a
+        requirements file holding user stories with acceptance criteria, a design file holding architecture, sequence
+        diagrams and implementation strategy, and a tasks file holding discrete trackable work. The
+        workflow walks those three phases in order, and in the standard workflows there are
         <strong>approval gates between phases</strong>: a human signs off on the requirements before design is
         generated, and on the design before tasks are. For well-understood features there's a "Quick Plan" mode that
         skips the gates — an explicit acknowledgment that the lock-vs-defer dial should be tunable per feature, not
@@ -163,13 +165,13 @@
         <h2>OpenSpec: per-change folders, no gates, brownfield-first</h2>
         <p>The third anchor, <strong>OpenSpec</strong> (Fission-AI, v1.5.0), is the deliberate counter-position — and
         it positions itself <em>explicitly against spec-kit's "rigid phase gates."</em> Where spec-kit and Kiro scope
-        specs at the project or feature-pipeline level, OpenSpec scopes them <strong>per change</strong>: every change
-        gets its own folder containing a <code>proposal.md</code> (why and what), a <code>specs/</code> directory of
-        requirements and scenarios, a <code>design.md</code>, and a <code>tasks.md</code>. The loop is
-        <strong>propose → apply → archive</strong> (driven by slash commands like <code>/opsx:propose</code>, working
-        across 20+ AI assistants): propose the change as artifacts, apply it to the codebase, then archive the folder
-        as a record of what happened. Recent releases add "Stores" — team-shared planning repos, in beta — so the
-        per-change folders can live in a shared space rather than one engineer's checkout.</p>
+        specs at the project or feature-pipeline level, OpenSpec scopes them <strong>per change</strong>. Every change
+        gets its own folder: a proposal covering the why and the what, a directory of requirements and scenarios, a
+        design document, and a task list. The loop is <strong>propose → apply → archive</strong> — propose the change
+        as artifacts, apply it to the codebase, then archive the folder as a record of what happened — driven by
+        commands such as <code>/opsx:propose</code> and working across twenty-plus AI assistants. Recent releases add
+        team-shared planning repositories, still in beta, so the per-change folders can live in a shared space rather
+        than in one engineer's checkout.</p>
         <p>The philosophical core is that artifacts are <strong>fluid</strong>: they can be updated at any time,
         "without ceremony." There is no gate where a requirements document gets frozen and signed. That's a trade,
         stated honestly — OpenSpec gives up upfront rigor to buy iteration speed. And it buys one more thing that
@@ -266,41 +268,6 @@
         nothing and pays compound interest), and write the knowledge layer down — <code>AGENTS.md</code>, a
         constitution, conventions — so agents and humans inherit the same context.</p>
 
-        <div class="callout">
-          <div class="k">Practice note · as of August 2026</div>
-          <p><strong>Know these tools cold. Steal their parts. Do not adopt one wholesale.</strong> That is not a
-          swipe at spec-kit, Kiro or OpenSpec — it is where the practice has landed, and there are four reasons
-          worth being able to say out loud in front of a client.</p>
-          <p><strong>1 · The harness ate the packaging.</strong> What these kits actually shipped was a directory of
-          prompt templates plus a command set. Coding agents now have native equivalents of every piece —
-          <code>CLAUDE.md</code> / <code>AGENTS.md</code> for project context, slash commands, skills, hooks, plan
-          mode, subagents. A vendored template directory becomes a fork you have to keep in sync with a harness that
-          changes every few months.</p>
-          <p><strong>2 · The leverage moved.</strong> These kits were built when models needed to be told what a spec
-          contains. Current models produce that structure unprompted. What they cannot produce is <em>your client's
-          constraints, your prior art, and a stopping condition a machine can check</em> — so the value moved from
-          document schema to <strong>context plus verification</strong>. A generic template cannot express "cite a
-          page-ID from their Confluence, or declare that no prior art exists." A repo-local command can, and that one
-          rule does more work than any template.</p>
-          <p><strong>3 · Portability never happened.</strong> Kiro's specs are excellent and live inside Kiro's IDE.
-          That is precisely why <code>requirements.md / design.md / tasks.md</code> never became a cross-tool
-          standard the way <code>AGENTS.md</code> did.</p>
-          <p><strong>4 · Follow the money.</strong> Tessl raised roughly $125M on the premise that the spec is the
-          primary artifact, then repositioned around registry, governance and evals. When the best-funded pure play
-          moves off spec-as-product, that tells you the durable value sits in <em>enforcement</em>, not in the
-          document format.</p>
-          <p><strong>So what do you steal?</strong> EARS notation and the requirements/design/tasks separation from
-          Kiro. <code>[NEEDS CLARIFICATION]</code> markers and the constitution idea from spec-kit. Per-change
-          folders and capture-what-exists from OpenSpec. The supersede lifecycle from ADRs. Then put them in the
-          client's own repo, as their own commands and conventions, versioned with their code.</p>
-          <p><strong>And know the failure mode of going fully custom:</strong> teams drop the spec entirely, keep the
-          automation, and end up with agents that have no stopping condition — the token furnace from Week 1,
-          rebuilt on purpose. Whatever you assemble, it still needs a written statement of intent and a definition of
-          done that something other than your own code can check.</p>
-        </div>
-
-        <p>Tomorrow we take a locked spec and decompose it into phased, executable plans.</p>
-
         <div class="callout mindset">
           <div class="k">FDE mindset</div>
           <p>Clients will ask "which spec tool should we use?" The FDE answer is a question back:
@@ -309,6 +276,64 @@
           pick the bet — and whatever you pick, leave behind a decision log and a written knowledge layer, because
           those outlive the tool.</p>
         </div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">The caveat · don't skip this one</div>
+        <h2>Steal the parts, not the kit</h2>
+
+        <div class="callout warn">
+          <div class="k">The rule for this whole day</div>
+          <p><strong>Know these three tools cold. Take the pieces that fit. Do not adopt one of them
+          wholesale.</strong> If you remember one sentence from today, that is the sentence.</p>
+        </div>
+
+        <p>That is not a swipe at any of them. It is where the practice actually landed by 2026, and there are four
+        reasons — each one you should be able to say out loud in front of a client without notes.</p>
+
+        <p><strong>One: the tool you already use ate the packaging.</strong> What these kits shipped was a folder of
+        prompt templates plus a set of commands. Every coding agent now has its own native version of each piece — a
+        project context file, custom commands, reusable skills, hooks, a planning mode. Once your agent has those
+        built in, a vendored template folder is just a copy you have to keep in sync with a tool that changes every
+        few months.</p>
+
+        <p><strong>Two: the hard part moved.</strong> These kits were designed when models had to be told what a spec
+        contains. Models now produce that structure unprompted. What a model cannot invent is your client's
+        constraints, the prior art buried in their wiki, and a definition of done that a machine can check — so the
+        value moved from <em>the shape of the document</em> to <em>the context you feed it and the gate you put at
+        the end</em>. No generic template can say "cite a page from their internal wiki, or state plainly that no
+        prior art exists." A rule written into the client's own repo can, and that single rule earns more than any
+        template.</p>
+
+        <p><strong>Three: portability never happened.</strong> Kiro's specs are genuinely good, and they live inside
+        Kiro's editor. That is exactly why its three-file layout never became a cross-tool standard the way the
+        <code>AGENTS.md</code> convention did.</p>
+
+        <p><strong>Four: follow the money.</strong> Tessl raised roughly $125M on the premise that the spec is the
+        primary artifact, then repositioned around registry, governance and evaluations. When the best-funded company
+        in the category moves off spec-as-product, it is telling you that the durable value sits in enforcement, not
+        in the file format.</p>
+
+        <p>So what do you actually take? Four things, and they travel to any client:</p>
+        <ul>
+          <li><strong>EARS notation and the requirements / design / tasks split</strong> — from Kiro. Testable
+          requirements and a clean separation between what, how, and in what order.</li>
+          <li><strong>Forced clarification markers and a written constitution</strong> — from spec-kit. Ambiguity
+          gets surfaced instead of quietly assumed, and non-negotiable principles get stated once.</li>
+          <li><strong>Per-change folders and capture-what-exists</strong> — from OpenSpec. The posture that actually
+          survives a fifteen-year brownfield system.</li>
+          <li><strong>The supersede lifecycle</strong> — from ADRs. Decisions are locked, reversal is explicit, and
+          the history stays readable.</li>
+        </ul>
+        <p>Then put those pieces in the client's own repository, as their commands and their conventions, versioned
+        alongside their code. That is a deliverable they own. A tool recommendation is not.</p>
+
+        <p>And know the failure mode of going fully custom, because it is the common one: teams drop the spec
+        entirely, keep the automation, and end up with agents that have no stopping condition — the token furnace
+        from Week 1, rebuilt on purpose. Whatever you assemble still needs two things: a written statement of intent,
+        and a definition of done that something other than your own code can check.</p>
+
+        <p>Tomorrow we take a locked spec and decompose it into phased, executable plans.</p>
       </section>
 
       <section class="reading-sources" aria-label="Sources and deeper dive">

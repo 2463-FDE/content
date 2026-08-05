@@ -81,13 +81,13 @@ agent = create_agent(
     system_prompt="You are a support agent. Always cite order IDs.",
 )
 result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 8812?"}]})</p>
-        <p>Read the signature like an FDE. <code>model</code> accepts either a <strong>provider-qualified string</strong>
-        (the reference page's own example is <code>"anthropic:claude-sonnet-4-5-20250929"</code>) or an already-initialized
-        model instance — so you can swap providers by editing one string, or pass a fully-configured client when you need
-        custom auth or a proxy. <code>tools</code> is your list of callables. <code>system_prompt</code> takes a string
-        or a <code>SystemMessage</code>. And then three arguments that separate a toy from a product:
-        <code>middleware</code>, <code>response_format</code>, and <code>checkpointer</code>/<code>store</code> for
-        persistence. Those first three lines make a demo. The rest of today is the other three arguments.</p>
+        <p>Read the signature like an FDE. The <strong>model</strong> argument accepts either a provider-qualified string —
+        the reference page's own example is <code>"anthropic:claude-sonnet-4-5-20250929"</code> — or an
+        already-initialized model instance, so you can swap providers by editing one string, or pass a fully
+        configured client when you need custom auth or a proxy. <strong>Tools</strong> is your list of callables, and
+        <strong>system prompt</strong> takes a string or a message object. Then come three arguments that separate a
+        toy from a product: <strong>middleware</strong>, <strong>response format</strong>, and the pair of
+        persistence arguments. Those first three lines make a demo. The rest of today is the other three.</p>
         <p>This is the FDE value in one factory call. A junior engineer wires a raw model-plus-tools loop by hand and
         reinvents retries, limits, and logging badly. You reach for the factory that already has the extension points and
         spend your time on the client's actual policy — what's allowed, what needs a human, what must be redacted.</p>
@@ -120,20 +120,23 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
       <section class="step" data-diagram="3" data-step="3">
         <div class="tag">The hooks</div>
         <h2>Six moments where you can intervene</h2>
-        <p>An <code>AgentMiddleware</code> intervenes at named moments in the loop. The verified hooks are:
-        <strong><code>before_agent</code></strong> (once, before the run starts),
-        <strong><code>before_model</code></strong> (every time, just before the LLM is called),
-        <strong><code>wrap_model_call</code></strong> (around the model call — you see the request and the response and
-        can modify either), <strong><code>after_model</code></strong> (right after the model responds),
-        <strong><code>wrap_tool_call</code></strong> (around each tool execution), and
-        <strong><code>after_agent</code></strong> (once, when the run ends).</p>
-        <p>The naming tells you the shape. <code>before_*</code> and <code>after_*</code> are one-way observation-and-edit
-        points: read the state, tweak it, move on. The <code>wrap_*</code> hooks are two-sided — they surround a call, so
-        they can short-circuit it, retry it, or transform both what goes in and what comes out. That's why the powerful
-        production behaviors live in the wrappers: a retry needs to <em>catch</em> the call and re-run it; a fallback
-        needs to <em>replace</em> a failed model with another; an approval gate needs to <em>pause</em> before the tool
-        actually fires. <code>before_model</code> is where history summarization slots in — trim the context right before
-        it's handed to the model.</p>
+        <p>A piece of middleware intervenes at named moments in the loop. The verified hooks are:</p>
+        <ul>
+          <li><strong>before agent</strong> — once, before the run starts.</li>
+          <li><strong>before model</strong> — every time, just before the model is called.</li>
+          <li><strong>wrap model call</strong> — around the model call, seeing the request and the response and able
+          to modify either.</li>
+          <li><strong>after model</strong> — right after the model responds.</li>
+          <li><strong>wrap tool call</strong> — around each tool execution.</li>
+          <li><strong>after agent</strong> — once, when the run ends.</li>
+        </ul>
+        <p>The naming tells you the shape. The before and after hooks are one-way observation-and-edit points: read the
+        state, tweak it, move on. The wrapping hooks are two-sided — they surround a call, so they can short-circuit
+        it, retry it, or transform both what goes in and what comes out. That is why the powerful production
+        behaviours live in the wrappers: a retry needs to <em>catch</em> the call and re-run it, a fallback needs to
+        <em>replace</em> a failed model with another, and an approval gate needs to <em>pause</em> before the tool
+        actually fires. The before-model hook is where history summarization slots in — trim the context right before
+        it is handed over.</p>
         <p>You rarely write these by hand at first, and that's the point of the next step: the framework ships the common
         ones already built. But knowing the six hook names means that when a client has a truly bespoke rule — "log every
         tool call to our SIEM with the tenant ID attached" — you know exactly which hook to reach for
@@ -145,22 +148,22 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         <h2>The production middleware you didn't have to write</h2>
         <p>Here's where the framework earns its keep. LangChain ships a shelf of built-in middleware for exactly the
         concerns that make agents scary in production. Three you'll reach for constantly:</p>
-        <p><strong><code>HumanInTheLoopMiddleware</code></strong> pauses the agent <em>before</em> a high-stakes tool call
-        and surfaces it to a person to <strong>approve, edit, or reject</strong>. This is the single most important
-        control for an agent that can spend money, email customers, or write to a database. "The agent can issue refunds,
-        but anything over $100 waits for a human click" is a one-line policy that turns an unshippable capability into a
-        shippable one. <strong><code>SummarizationMiddleware</code></strong> hooks <code>before_model</code> and
-        summarizes conversation history before it overflows the context window — the Week 1 eviction failure, prevented as
-        a component instead of a bug you find in production. <strong><code>PIIMiddleware</code></strong> detects sensitive
-        data and can <strong>mask, redact, or hash</strong> it across inputs, model outputs, <em>and</em> tool outputs —
-        so a customer's SSN never lands in a log or a downstream call.</p>
-        <p>Behind those sit the fault-tolerance and cost-control classes: <code>ModelCallLimitMiddleware</code> and
-        <code>ToolCallLimitMiddleware</code> cap how many times the loop can run (your runaway-bill insurance),
-        <code>ModelFallbackMiddleware</code> swaps to a backup model when the primary errors, and
-        <code>ToolRetryMiddleware</code> re-runs a flaky tool. There's more on the shelf — <code>TodoListMiddleware</code>,
-        <code>LLMToolSelectorMiddleware</code>, <code>ContextEditingMiddleware</code>, <code>ShellToolMiddleware</code>,
-        and others — but the reflex to build is this: <strong>before you write custom middleware, check whether the
-        concern already has a class.</strong> Most of the standard production worries do.</p>
+        <p><strong>Human-in-the-loop middleware</strong> pauses the agent <em>before</em> a high-stakes tool call and
+        surfaces it to a person to <strong>approve, edit, or reject</strong>. This is the single most important control
+        for an agent that can spend money, email customers, or write to a database. "The agent can issue refunds, but
+        anything over $100 waits for a human click" is a one-line policy that turns an unshippable capability into a
+        shippable one.</p>
+        <p><strong>Summarization middleware</strong> hooks the before-model moment and compresses conversation history
+        before it overflows the context window — the Week 1 eviction failure, prevented as a component instead of
+        discovered as a production bug. <strong>PII middleware</strong> detects sensitive data and can
+        <strong>mask, redact, or hash</strong> it across inputs, model outputs <em>and</em> tool outputs, so a
+        customer's national ID number never lands in a log or a downstream call.</p>
+        <p>Behind those sit the fault-tolerance and cost-control classes. Two limit middlewares cap how many times the model
+        or the tools can be called — your runaway-bill insurance. A fallback middleware swaps to a backup model when
+        the primary errors, and a retry middleware re-runs a flaky tool. There is more on the shelf: a to-do list
+        manager, an LLM-driven tool selector, a context editor, a shell tool, and others. But the reflex to build is
+        this: <strong>before you write custom middleware, check whether the concern already has a class.</strong> Most
+        of the standard production worries do.</p>
         <div class="ix-predict"
           data-q="A client wants to let their support agent process refunds, but Legal is terrified it'll refund $10,000 by mistake and email customers unprompted. Name the two built-in middleware you'd reach for first, and what each does."
           data-a="<b>HumanInTheLoopMiddleware</b> — pause before the high-stakes refund/email tool calls so a human can <b>approve, edit, or reject</b> them (small refunds can auto-pass; large ones wait for a click). And <b>ToolCallLimitMiddleware</b> (or ModelCallLimitMiddleware) — cap how many times the loop can fire so a runaway agent can't issue a hundred refunds or rack up a huge bill. Neither requires touching the tool code or the prompt: you snap them onto the middleware stack. That's the whole point of the primitive — governance as composable components.">
@@ -174,13 +177,13 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         on: <code>{ order_id, status, refund_approved, reason }</code>. The naive way to get that is a second LLM call
         after the agent finishes, asking it to reformat its answer as JSON. That's an extra round trip: more latency, more
         cost, more to break.</p>
-        <p><code>create_agent</code>'s <strong><code>response_format</code></strong> argument folds structured output
-        <em>into the main model-and-tools loop</em> instead. You pass it a <strong>Pydantic model</strong> (the usual
-        choice), or a <code>ToolStrategy</code> / <code>ProviderStrategy</code> when you need to control how the structure
-        is enforced; raw schemas get auto-wrapped based on what the model supports. Because it's part of the same loop,
-        the LangChain team's framing is precise: integrating structured output this way reduces latency and cost by
-        <strong>"eliminating extra LLM calls."</strong> You define the shape once, as a type, and the agent returns
-        something that already matches it.</p>
+        <p>The <strong>response format</strong> argument folds structured output <em>into the main model-and-tools
+        loop</em> instead. You pass it a <strong>Pydantic model</strong>, which is the usual choice, or one of two
+        strategy objects when you need to control how the structure is enforced; raw schemas get wrapped
+        automatically based on what the model supports. Because it is part of the same loop, the LangChain team's
+        framing is precise: integrating structured output this way reduces latency and cost by <strong>"eliminating
+        extra LLM calls."</strong> You define the shape once, as a type, and the agent returns something that already
+        matches it.</p>
         <p>The FDE angle: structured output is the seam between the agent and the rest of the system. A support agent whose
         answer is a validated object can drive a real workflow — flip a ticket status, trigger a refund, update a CRM —
         with no brittle string-parsing in between. Free text impresses in a demo; a typed contract is what lets the agent
@@ -203,19 +206,19 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         <p style="font-family:var(--mono,monospace);font-size:.86em;background:#0002;padding:12px 14px;border-radius:8px;white-space:pre-wrap;line-height:1.5;">client = MultiServerMCPClient({...})
 tools = await client.get_tools()          # → LangChain BaseTools
 agent = create_agent(model, tools)         # drop them straight in</p>
-        <p><code>get_tools()</code> returns ordinary <code>BaseTool</code>s, so they pass straight into
-        <code>create_agent</code> exactly like your hand-written ones — the agent can't tell the difference. One important
-        detail for reasoning about behavior and cost: the client is <strong>stateless by default</strong>. Each tool
-        invocation opens a <em>fresh</em> <code>ClientSession</code>, runs the call, and cleans up. That's simple and
-        robust, but if you need a persistent connection — a session that keeps state across several calls — you use
-        <code>client.session()</code> explicitly. Knowing that default is how you answer "why does each tool call
-        reconnect?" without guessing.</p>
-        <p>There's also error handling worth pinning down before an incident, not during one. By default, when an MCP tool
-        fails, the failure comes back to the model as a <code>ToolMessage</code> with <code>status="error"</code> — so the
-        agent can <em>read the error and retry or adapt</em>, which is usually what you want. If you'd rather a failure
-        raise an exception and stop the loop hard, set <code>handle_tool_errors=False</code>. That single flag is the
-        difference between "the agent gracefully recovers from a flaky tool" and "the run halts loudly so a human sees
-        it" — and which you want depends on the client's risk posture.</p>
+        <p>The client's tool-listing call returns ordinary LangChain tools, so they pass straight into
+        <code>create_agent</code> exactly like your hand-written ones — the agent cannot tell the difference. One
+        important detail for reasoning about behaviour and cost: the client is <strong>stateless by default</strong>.
+        Each tool invocation opens a <em>fresh</em> session, runs the call, and cleans up. That is simple and robust,
+        but if you need a persistent connection that keeps state across several calls, you open a session explicitly.
+        Knowing that default is how you answer "why does each tool call reconnect?" without guessing.</p>
+        <p>There is also error handling worth pinning down before an incident rather than during one. By default, when one
+        of these tools fails, the failure comes back to the model as a tool message marked with an error status — so
+        the agent can <em>read the error and retry or adapt</em>, which is usually what you want. If you would rather
+        a failure raise an exception and stop the loop hard, turn off the
+        <code>handle_tool_errors</code> flag. That single setting is the difference between "the agent gracefully
+        recovers from a flaky tool" and "the run halts loudly so a human sees it" — and which you want depends on the
+        client's risk posture.</p>
       </section>
 
       <section class="step" data-diagram="7" data-step="7">
@@ -230,15 +233,14 @@ agent = create_agent(model, tools)         # drop them straight in</p>
         <em>SHOULD</em> support stdio whenever possible — it's the natural fit for a tool server that runs on the same box
         as the agent: a local database adapter, a filesystem tool, a CLI wrapper. No network, no ports, no auth to
         misconfigure.</p>
-        <p><strong>Streamable HTTP</strong> targets a <em>remote</em> endpoint —
-        <code>{"transport": "http", "url": "http://localhost:8000/mcp"}</code> — a single URL that handles POST and GET
-        with optional SSE streaming. Use it when the tool server is a shared service other teams also call. But it comes
-        with security homework the spec makes normative: servers <strong>MUST validate the <code>Origin</code>
-        header</strong> and <strong>SHOULD bind to localhost</strong> when running locally, both to defend against
-        DNS-rebinding attacks, and can use an optional <code>Mcp-Session-Id</code> for stateful sessions. When a client
-        asks "is exposing this tool server over HTTP safe?", <em>that</em> is your checklist — Origin validation and
-        binding scope, not vibes. Local subprocess tool → stdio; shared network service → Streamable HTTP with the
-        security requirements actually met.</p>
+        <p><strong>Streamable HTTP</strong> targets a <em>remote</em> endpoint — a single URL, configured with a transport
+        of <code>http</code>, that handles both POST and GET with optional streaming. Use it when the tool server is a
+        shared service other teams also call. But it comes with security homework the specification makes normative:
+        servers <strong>must validate the origin header</strong> and <strong>should bind to localhost</strong> when
+        running locally, both to defend against DNS-rebinding attacks, and may use an optional session header for
+        stateful sessions. When a client asks "is exposing this tool server over HTTP safe?", <em>that</em> is your
+        checklist — origin validation and binding scope, not vibes. Local subprocess tool means standard I/O; shared
+        network service means streamable HTTP with the security requirements actually met.</p>
       </section>
 
       <section class="step extra" data-diagram="8" data-step="8">
@@ -319,11 +321,10 @@ agent = create_agent(model, tools)         # drop them straight in</p>
     <button class="modal-close" type="button" aria-label="Close">✕</button>
     <h2>Deep dive: the middleware stack, ordered</h2>
     <p class="quiz-sub">Optional. ~10 minutes. Why the same pieces in a different order behave differently.</p>
-    <p>Middleware "composes freely" — but composition has an order, and order has consequences. Because the
-    <code>wrap_*</code> hooks surround a call, the pieces form nested shells around the model-and-tools loop: the first
-    middleware on the stack is the outermost shell, the last is closest to the model. A request passes inward through
-    each <code>before</code> / <code>wrap</code> entry, hits the model or tool, then passes back outward through each
-    <code>after</code> / <code>wrap</code> exit.</p>
+    <p>Middleware "composes freely" — but composition has an order, and order has consequences. Because the wrapping
+    hooks surround a call, the pieces form nested shells around the model-and-tools loop: the first middleware on the
+    stack is the outermost shell, the last one sits closest to the model. A request passes inward through each entry
+    point, hits the model or the tool, then passes back outward through each exit point.</p>
     <div class="model-answer show">
       <div class="ma-k">Worked example — one support turn, four middleware</div>
       <ul class="deliv-list">
@@ -337,11 +338,11 @@ agent = create_agent(model, tools)         # drop them straight in</p>
       different guarantee. When you review a client's agent, read the stack top-to-bottom and ask, for each guardrail,
       "is this early enough to actually protect what it needs to?"</p>
     </div>
-    <p style="margin-top:14px"><strong>Human-in-the-loop is durable, not a blocking sleep.</strong> When
-    <code>HumanInTheLoopMiddleware</code> pauses, it does so through the LangGraph runtime's persistence — the run's state
-    is checkpointed and can wait minutes, hours, or across a process restart for the human's decision, then resume exactly
-    where it stopped. That's why the <code>checkpointer</code>/<code>store</code> arguments matter: durable pause-and-resume
-    is what makes approval gates practical instead of a socket held open.</p>
+    <p style="margin-top:14px"><strong>Human-in-the-loop is durable, not a blocking sleep.</strong> When the approval
+    middleware pauses, it does so through the LangGraph runtime's persistence — the run's state is checkpointed and
+    can wait minutes, hours, or across a process restart for the human's decision, then resume exactly where it
+    stopped. That is why the persistence arguments matter: durable pause-and-resume is what makes approval gates
+    practical instead of a socket held open.</p>
   </div>
 </div>
 

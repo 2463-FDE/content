@@ -94,11 +94,12 @@
         <div class="tag">ReAct · act &amp; observe</div>
         <h2>The Thought → Action → Observation cycle</h2>
         <p>Now close the loop. After a thought, the model emits an <strong>action</strong> — a call against an external
-        source, in the paper's canonical setup a Wikipedia API (<code>search[entity]</code>, <code>lookup[string]</code>,
-        <code>finish[answer]</code>). The environment runs that action and returns an <strong>observation</strong>: the
-        search result, the row, the error. That observation is fed back in, and it becomes the raw material for the
-        <em>next</em> thought. Thought → Action → Observation, repeated, until the model emits a <strong>finish</strong>
-        action. That cycle is the beating heart of every agent you'll ever touch.</p>
+        source. In the paper's canonical setup that source is a Wikipedia API with three verbs: search an entity, look
+        up a string, and finish with an answer. The environment runs that action and returns an
+        <strong>observation</strong>: the search result, the row, the error. That observation is fed back in, and it
+        becomes the raw material for the <em>next</em> thought. Thought → Action → Observation, repeated, until the
+        model emits a <strong>finish</strong> action. That cycle is the beating heart of every agent you'll ever
+        touch.</p>
         <p>The reason this beats pure chain-of-thought is one word: <strong>grounding</strong>. A chain-of-thought model
         reasons in a closed room — nothing checks its steps against reality, so a wrong turn on step two compounds into a
         confidently wrong answer by step five. The ReAct paper is explicit that interleaving actions "overcomes issues of
@@ -155,39 +156,41 @@
         radio, not a robot with hands. It says "please run <code>get_weather(city='SF')</code>"; something on
         <em>your</em> side actually runs it.</p>
         <p>The mechanics are worth memorizing because you'll debug them constantly. You <strong>define a tool</strong> by
-        three things: a <code>name</code>, a <code>description</code> (which is really a prompt — the model chooses tools
-        by reading these), and an <code>input_schema</code> expressed as JSON Schema. You send those alongside the user
-        message. Claude replies with <code>stop_reason: "tool_use"</code> and one or more <strong><code>tool_use</code>
-        blocks</strong>, each naming a tool and the arguments it wants. Your application runs the operation and returns
-        the result as a <strong><code>tool_result</code> block</strong> in the next request. Add <code>strict: true</code>
-        to a custom tool definition and the provider guarantees the emitted arguments conform to your schema — no more
-        defensively parsing malformed JSON.</p>
+        three things: a name, a description — which is really a prompt, because the model chooses tools by reading
+        these — and an input schema written in JSON Schema. You send those alongside the user message. Claude replies
+        with a tool-use stop reason and one or more <strong>tool-use blocks</strong>, each naming a tool and the
+        arguments it wants. Your application runs the operation and returns the outcome as a <strong>result
+        block</strong> in the next request. Adding <code>strict: true</code> to a custom tool definition makes the
+        provider guarantee the emitted arguments conform to your schema, which retires a whole category of defensive
+        JSON parsing.</p>
         <p>This is a cross-vendor pattern, not a Claude quirk. OpenAI's Responses API calls it <strong>function
-        calling</strong>: tools are <code>{"type": "function", "name", "description", "parameters"}</code> with the same
-        JSON-Schema shape, and the docs are equally blunt — "OpenAI's model does not execute your function — it only
-        decides which function should be called and what arguments to pass." The model returns a function call with a
-        <code>name</code> and JSON <code>arguments</code>; your code executes and returns a
-        <code>function_call_output</code> carrying the matching <code>call_id</code>. Same contract, different nouns.
-        Once you see the shape, every provider's tool API stops being a new thing to learn.</p>
+        calling</strong>: tools carry a name, a description and a parameters block in the same JSON-Schema shape, and
+        the documentation is equally blunt — "OpenAI's model does not execute your function — it only decides which
+        function should be called and what arguments to pass." The model returns a function call with a name and a
+        JSON argument payload; your code executes it and returns an output object carrying the matching call
+        identifier. Same contract, different nouns. Once you see the shape, every provider's tool API stops being a
+        new thing to learn.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
         <div class="tag">The loop, in code</div>
         <h2>The agentic loop is a <code>while</code> on <code>stop_reason</code></h2>
-        <p>The ReAct cycle, translated into the code you'll write, is a <strong><code>while</code> loop keyed on the
-        response's <code>stop_reason</code></strong>. That's the whole engine. Concretely, for client tools it's five
-        steps: <strong>(1)</strong> send the request with your <code>tools</code> and the user message; <strong>(2)</strong>
-        Claude returns <code>stop_reason: "tool_use"</code> with one or more <code>tool_use</code> blocks;
-        <strong>(3)</strong> your code executes each requested tool and formats the outputs as <code>tool_result</code>
-        blocks; <strong>(4)</strong> you send a <em>new</em> request containing the original messages, the assistant's
-        response, and your <code>tool_result</code> blocks; <strong>(5)</strong> repeat while
-        <code>stop_reason == "tool_use"</code>.</p>
-        <p>The loop <strong>exits</strong> the moment the model returns any other stop reason — <code>end_turn</code> (it's
-        done and has a final answer), <code>max_tokens</code> (it ran out of room), <code>stop_sequence</code>, or
-        <code>refusal</code>. Map this back onto ReAct and the correspondence is exact: <code>tool_use</code> is
-        Action + Observation (you run the action, the <code>tool_result</code> is the observation), the model's next
-        assistant turn is the Thought, and <code>end_turn</code> is the <code>finish</code> action. Same loop, one at the
-        research altitude and one at the API altitude.</p>
+        <p>The ReAct cycle, translated into the code you'll actually write, is a <code>while</code> loop keyed on the
+        response's stop reason. That's the whole engine. For client tools it runs in five steps:</p>
+        <ol>
+          <li>Send the request with your tool definitions and the user message.</li>
+          <li>Claude comes back with a tool-use stop reason and one or more tool-use blocks.</li>
+          <li>Your code executes each requested tool and formats the outputs as result blocks.</li>
+          <li>You send a <em>new</em> request containing the original messages, the assistant's response, and your
+          result blocks.</li>
+          <li>Repeat for as long as the stop reason keeps coming back as tool-use.</li>
+        </ol>
+        <p>The loop <strong>exits</strong> the moment the model returns any other stop reason: end-of-turn, meaning it is
+        done and has a final answer; max-tokens, meaning it ran out of room; a stop sequence; or a refusal. Map this
+        back onto ReAct and the correspondence is exact — a tool-use stop is the Action plus the Observation, since
+        you run the action and the result block is what comes back; the model's next assistant turn is the Thought;
+        and end-of-turn is the <code>finish</code> action from the paper. Same loop, one described at research
+        altitude and one at API altitude.</p>
         <p>Two failure modes fall straight out of this structure, and you'll see both in the wild. If your loop condition
         is wrong — say you only check for tool calls once instead of looping — the agent makes a single tool call and
         then silently stops, half-finished. And because <em>you</em> control the loop, you also control its safety rails:
@@ -203,22 +206,22 @@
         <div class="tag">Who runs the tool</div>
         <h2>Client tools vs. server tools</h2>
         <p>Not every tool runs on your machine, and knowing which is which saves you a category of confusion. Claude
-        splits tools into two kinds. <strong>Client tools</strong> are ones <em>your</em> code executes: your own
-        user-defined functions, plus Anthropic-schema tools like <code>bash</code>, <code>text_editor</code>,
-        <code>memory</code>, and <code>computer</code>. For these you run the exact five-step loop above — you receive the
-        <code>tool_use</code>, you do the work, you construct and return the <code>tool_result</code>.</p>
-        <p><strong>Server tools</strong> are different: <code>web_search</code>, <code>web_fetch</code>,
-        <code>code_execution</code>, and <code>tool_search</code> run on <em>Anthropic's</em> servers. When the model
-        calls one, the provider executes it and the <strong>server-side loop iterates internally</strong> — you never
-        construct a <code>tool_result</code> for a server tool, because the result never leaves Anthropic's side until
-        the model is ready to continue. This is a genuine trap for engineers: you go looking for the tool_result you're
-        "supposed" to return and there isn't one, because that tool was never yours to run.</p>
-        <p>One more piece of machinery to file away: a server-side loop that hits its internal iteration cap returns
-        <code>stop_reason: "pause_turn"</code>. That's not an error and not a completion — it's the provider saying "I
-        paused mid-work; hand the conversation back to me to continue." You resume by simply re-sending the conversation.
-        So your outer loop has to know about <em>three</em> shapes of "keep going," not one: <code>tool_use</code> (you
-        run something), <code>pause_turn</code> (the server wants to continue its own work), and everything else (exit).
-        Miss <code>pause_turn</code> and a perfectly healthy agent looks like it froze.</p>
+        splits tools into two kinds. <strong>Client tools</strong> are the ones <em>your</em> code executes: your own
+        user-defined functions, plus the Anthropic-schema tools for shell access, text editing, memory and computer
+        use. For these you run the exact five-step loop above — you receive the request, you do the work, and you
+        construct and return the result.</p>
+        <p><strong>Server tools</strong> are different. Web search, web fetch, code execution and tool search all run on
+        <em>Anthropic's</em> servers. When the model calls one, the provider executes it and the
+        <strong>server-side loop iterates internally</strong> — you never construct a result block for a server tool,
+        because the result never leaves Anthropic's side until the model is ready to continue. This is a genuine trap
+        for engineers: you go looking for the result you're "supposed" to return and there isn't one, because that
+        tool was never yours to run.</p>
+        <p>One more piece of machinery to file away: a server-side loop that hits its internal iteration cap comes back
+        with a <code>pause_turn</code> stop reason. That is neither an error nor a completion — it is the provider
+        saying "I paused mid-work; hand the conversation back so I can continue." You resume by simply re-sending the
+        conversation. So your outer loop has to recognise <em>three</em> shapes of "keep going," not one: the model
+        wants you to run something, the server wants to continue its own work, or everything else, which means exit.
+        Miss the paused case and a perfectly healthy agent looks like it froze.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -226,19 +229,17 @@
         <h2><code>tool_choice</code> — from "answer directly" to "always act"</h2>
         <p>The last piece is the knob that decides <em>whether and which</em> tool the model may call:
         <strong><code>tool_choice</code></strong>. It is small, it lives in one line of the request, and it quietly
-        determines whether your feature behaves like a chatbot or a machine. Claude offers four settings:
-        <strong><code>auto</code></strong> (the default — the model decides each turn whether to call a tool or just
-        answer), <strong><code>any</code></strong> (it <em>must</em> call some tool), <strong><code>tool</code></strong>
-        (it must call a <em>specific named</em> tool), and <strong><code>none</code></strong> (no tools this turn).
-        OpenAI mirrors this exactly with <code>auto</code>, <code>required</code>, a named function, and
-        <code>none</code>.</p>
-        <p>Read those as a spectrum from freedom to compulsion, and the design choices become obvious. Use
-        <code>auto</code> for an open-ended assistant that should answer trivia from its own knowledge but reach for
-        tools when a task demands it. Use <code>any</code> or <code>required</code> when the model has no business
-        answering from memory — a booking agent that must always check live availability, never guess it. Use the named
-        <code>tool</code> setting to force a single structured extraction — "always call <code>record_order</code>" — which,
-        combined with <code>strict: true</code>, turns the model into a reliable JSON emitter that cannot wander off and
-        write prose instead.</p>
+        determines whether your feature behaves like a chatbot or like a machine. Claude offers four settings:
+        <em>auto</em>, the default, where the model decides each turn whether to call a tool or just answer;
+        <em>any</em>, where it must call some tool; <em>tool</em>, where it must call one specific named tool; and
+        <em>none</em>, where tools are off for this turn. OpenAI mirrors all four, renaming only the second one to
+        "required."</p>
+        <p>Read those as a spectrum from freedom to compulsion and the design choices become obvious. Leave it on auto for
+        an open-ended assistant that should answer trivia from its own knowledge but reach for tools when a task
+        demands it. Force a tool call when the model has no business answering from memory — a booking agent must
+        always check live availability, never guess it. Force one <em>named</em> tool when you want a single
+        structured extraction, such as always recording an order; combined with <code>strict: true</code>, that turns
+        the model into a reliable JSON emitter that cannot wander off and write prose instead.</p>
         <p>This is the primary lever you'll reach for when steering an agent's behavior, and it's the fix for a whole
         class of complaints. "The AI sometimes answers from stale memory instead of checking our database" is usually not
         a smarter-model problem — it's <code>tool_choice: auto</code> where the task needed <code>any</code>. Set the
@@ -329,14 +330,13 @@
     the original messages + the assistant's turn + this block.</p>
     <p><strong>4 · Loop.</strong> If the model now has what it needs it returns <code>end_turn</code> with a final
     answer; if it needs another tool it returns <code>tool_use</code> again and you repeat.</p>
-    <p style="margin-top:12px"><strong>OpenAI, same dance, different nouns:</strong> the request block is a function call
-    with <code>name</code> + JSON <code>arguments</code> and a <code>call_id</code>; you reply with a
-    <code>function_call_output</code> carrying that same <code>call_id</code> and the <code>output</code>. Learn one
-    contract, read both docs.</p>
-    <p style="margin-top:12px"><strong>Why <code>strict: true</code> matters:</strong> without it, the model's
-    <code>input</code>/<code>arguments</code> are "usually" valid JSON matching your schema — which means "occasionally
-    not," and you're writing defensive parsers. With it, the provider guarantees conformance, and the named-tool
-    <code>tool_choice</code> setting turns the model into a dependable structured-output emitter.</p>
+    <p style="margin-top:12px"><strong>OpenAI, same dance, different nouns:</strong> the request block is a function
+    call carrying a name, a JSON argument payload, and a call identifier; you reply with a function-call output that
+    carries the same identifier and the result. Learn one contract, read both sets of docs.</p>
+    <p style="margin-top:12px"><strong>Why <code>strict: true</code> matters:</strong> without it, the arguments the
+    model emits are "usually" valid JSON matching your schema — which means occasionally not, and you end up writing
+    defensive parsers. With it, the provider guarantees conformance, and pairing it with a named tool choice turns the
+    model into a dependable structured-output emitter.</p>
   </div>
 </div>
 

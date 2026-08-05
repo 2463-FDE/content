@@ -76,12 +76,12 @@
         <div class="tag">The data model</div>
         <h2>Property graphs: nodes, relationships, properties</h2>
         <p>Neo4j's model is called the <strong>property graph</strong>, and it has exactly three moving parts.
-        <strong>Nodes</strong> are your entities, and each carries one or more <strong>labels</strong> that say what kind
-        of thing it is — <code>(:Person)</code>, <code>(:Movie)</code>, <code>(:Incident)</code>.
-        <strong>Relationships</strong> connect exactly two nodes, always with a <em>direction</em> and a single
-        <em>type</em> — <code>(:Person)-[:ACTED_IN]-&gt;(:Movie)</code>. And <strong>properties</strong> are key/value
-        pairs that can sit on both nodes <em>and</em> relationships — a <code>Person</code> has a <code>name</code>, and
-        the <code>ACTED_IN</code> relationship itself can carry <code>role: "Trinity"</code>.</p>
+        <strong>Nodes</strong> are your entities, and each carries one or more <strong>labels</strong> saying what kind
+        of thing it is — a person, a movie, an incident. <strong>Relationships</strong> connect exactly two nodes,
+        always with a <em>direction</em> and a single <em>type</em>. And <strong>properties</strong> are key-value
+        pairs that can sit on both nodes <em>and</em> relationships: a person has a name, and the relationship that
+        connects them to a film can itself carry the role they played. One line of Cypher shows all three at once:</p>
+        <p style="margin-top:6px"><code>(:Person {name:"Keanu"})-[:ACTED_IN {role:"Neo"}]-&gt;(:Movie {title:"The Matrix"})</code></p>
         <p>Two things make this model different from the tables you're used to. First, relationships are
         <strong>first-class data</strong>, not something you reconstruct at query time with JOINs — the connection is
         stored, typed, directed, and can hold its own attributes. Second, the model is <strong>schema-flexible</strong>:
@@ -104,18 +104,18 @@
         <em>test the model against every one of those questions</em>, then refactor. A graph schema isn't right in the
         abstract; it's right <em>for a set of questions</em>.</p>
         <p>The translation rules are pleasingly mechanical. <strong>The dominant nouns in your use case become node
-        labels</strong>, written in CamelCase: <code>Customer</code>, <code>SupportTicket</code>. The <strong>verbs
-        become relationship types</strong>, written in all-capitals with underscores: <code>REPORTED</code>,
-        <code>DEPENDS_ON</code>. The attributes become <strong>properties</strong>, camelCase and not capitalized:
-        <code>createdAt</code>, <code>severity</code>. Every relationship gets an explicit direction, and relationship
-        properties are where you record <em>how</em> two nodes relate — the role in the film, the date of the approval.</p>
+        labels</strong>, written in CamelCase — customer, support ticket. The <strong>verbs become relationship
+        types</strong>, written in capitals with underscores, as in <code>REPORTED</code> or <code>DEPENDS_ON</code>.
+        The attributes become <strong>properties</strong>, in camelCase and not capitalized. Every relationship gets
+        an explicit direction, and relationship properties are where you record <em>how</em> two nodes relate — the
+        role in the film, the date of the approval.</p>
         <p>The rule that will pay your salary later: make relationship types <strong>as specific as possible</strong>,
-        never generic. A graph full of <code>-[:RELATED_TO]-&gt;</code> edges is a graph that can answer no precise
-        question — every traversal drags in every kind of connection at once. <code>ACTED_IN</code> versus
-        <code>DIRECTED</code> versus <code>PRODUCED</code> is the difference between a query that returns the cast and a
-        query that returns noise. And enforce <strong>unique identifiers with uniqueness constraints</strong>, so the
-        same real-world entity can't sneak in twice as two nodes — duplicate entities silently split your graph's
-        connectivity, and every downstream traversal pays for it.</p>
+        never generic. A graph full of edges that all say "related to" is a graph that can answer no precise question,
+        because every traversal drags in every kind of connection at once. Acted-in versus directed versus produced is
+        the difference between a query that returns the cast and a query that returns noise. And enforce
+        <strong>unique identifiers with uniqueness constraints</strong>, so the same real-world entity cannot sneak in
+        twice as two nodes — duplicates silently split your graph's connectivity, and every downstream traversal pays
+        for it.</p>
         <div class="ix-future">
           <div class="k">Interactive — future goal</div>
           <p>Planned: a schema-builder panel — paste three sentences describing a client domain, highlight the nouns and
@@ -140,24 +140,22 @@
         one concrete answer. Write <code>MATCH (p:Person)-[:ACTED_IN]-&gt;(m:Movie) RETURN p.name, m.title</code> and
         you've declared a shape; the engine finds every path in the graph that fits it.</p>
         <p>Patterns scale up in expressive power. Fixed-length patterns chain hops explicitly. <strong>Variable-length
-        (quantified) patterns</strong> say "follow this relationship one to five times" — which is how you ask
-        transitive questions like "everything downstream of this service" without knowing the depth in advance. And
-        <code>SHORTEST</code> path patterns find the minimal route between two nodes. Cypher 25 adds match modes like
-        <code>REPEATABLE ELEMENTS</code> and <code>ACYCLIC</code> for finer control over how paths may revisit the
-        graph. You don't need to memorize the full grammar today — you need to be able to read a traversal query and,
-        crucially, recognize that <em>the query is only writable because the schema gave the relationships specific
-        types and directions</em>. Vague schema, unwritable query.</p>
+        patterns</strong> say "follow this relationship one to five times," which is how you ask transitive questions
+        such as "everything downstream of this service" without knowing the depth in advance. Shortest-path patterns
+        find the minimal route between two nodes, and the newest language version adds match modes for finer control
+        over how a path may revisit the graph. You do not need to memorize the full grammar today. You need to be able
+        to read a traversal query and, crucially, to recognise that <em>the query is only writable because the schema
+        gave the relationships specific types and directions</em>. Vague schema, unwritable query.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Version trap</div>
         <h2>Cypher 5 vs Cypher 25 — the stale-tutorial hazard</h2>
         <p>A short section that will save you real debugging time. Two Cypher language versions currently coexist.
-        <strong>Cypher 25</strong> is the evolving version — all new features land there. <strong>Cypher 5</strong> is
-        frozen as of Neo4j 2025.06; per the docs, no new features will be added to it. Which one you're speaking is
-        selected per-database (the <code>db.query.default_language</code> setting, or
-        <code>DEFAULT LANGUAGE CYPHER 25</code> when creating the database) or per-query, by literally prepending
-        <code>CYPHER 25</code> or <code>CYPHER 5</code> to the statement.</p>
+        <strong>Cypher 25</strong> is the evolving one, where all new features land. <strong>Cypher 5</strong> is
+        frozen as of Neo4j 2025.06; per the documentation, no new features will be added to it. Which one you are
+        speaking is selected per database, through a default-language setting when the database is created, or per
+        query, by literally prepending <code>CYPHER 25</code> to the statement.</p>
         <p>The trap: from Neo4j 2026.02, <strong>new deployments explicitly set
         <code>db.query.default_language=CYPHER_25</code></strong> — but if the setting is absent, the default is still
         Cypher 5. Meanwhile, most of the tutorials, blog posts, and Stack Overflow answers you'll find online were
@@ -208,15 +206,15 @@
         similar to the question, then traverse to the affected systems, the on-call engineer who resolved it, and the
         three earlier incidents linked to the same root cause. The retrieved context arrives in the window already
         <em>structured</em> — entities and their relations, not a bag of prose.</p>
-        <p>You don't have to hand-roll this. <strong>neo4j-graphrag-python</strong> is Neo4j's first-party GraphRAG
-        package (successor to the deprecated <code>neo4j-genai</code>, offered with long-term support; it wants Python
-        3.10–3.14 and Neo4j 5.18.1 or newer). Its retriever taxonomy is a menu of exactly the patterns you'd want:
-        <code>VectorRetriever</code> does plain similarity search over a vector index. <strong><code>VectorCypherRetriever</code></strong>
-        is the star — after finding similar nodes, it "executes a Cypher query to traverse the graph based on these
-        nodes," enriching the result with connected context <em>you</em> specify. <code>HybridRetriever</code> and
-        <code>HybridCypherRetriever</code> add a full-text index alongside the vector index, optionally with the same
-        traversal step. And if the client's embeddings already live in Weaviate, Pinecone, or Qdrant, external-retriever
-        variants join those hits back to Neo4j nodes.</p>
+        <p>You do not have to hand-roll this. <strong>neo4j-graphrag-python</strong> is Neo4j's first-party GraphRAG
+        package — the long-term-support successor to an earlier GenAI package, wanting Python 3.10 to 3.14 and Neo4j
+        5.18.1 or newer. Its retriever taxonomy is a menu of exactly the patterns you would want. A plain
+        <strong>vector retriever</strong> does similarity search over a vector index. The
+        <strong>vector-plus-Cypher retriever</strong> is the star: after finding similar nodes it "executes a Cypher
+        query to traverse the graph based on these nodes," enriching the result with connected context <em>you</em>
+        specify. The <strong>hybrid</strong> variants add a full-text index alongside the vector index, optionally
+        with the same traversal step. And if the client's embeddings already live in Weaviate, Pinecone or Qdrant,
+        external retriever variants join those hits back to Neo4j nodes.</p>
         <p>One naming caution for client conversations: "GraphRAG" covers <strong>two different mechanics</strong>. What
         we just described — vector entry point plus Cypher traversal — is <em>local</em> and entity-anchored: great for
         "tell me everything connected to X." The GraphRAG <em>paper's</em> flagship mode is <em>global</em>: community
@@ -238,13 +236,13 @@
         with precise semantics ("which engineers worked on incidents affecting systems owned by this team?") compile
         naturally to a traversal pattern. The results are <strong>exact and structured</strong>, straight from the
         graph, not paraphrased from similar-sounding text.</p>
-        <p>And here is the day's throughline landing: <strong>Text2Cypher is only as good as the schema it's prompted
-        with.</strong> The LLM can only write <code>-[:ACTED_IN]-&gt;</code> into a query if your schema has an
-        <code>ACTED_IN</code> relationship to name — a graph of vague <code>RELATED_TO</code> edges gives the model
-        nothing precise to compile the question into. The same is true of <code>VectorCypherRetriever</code>: its
-        traversal query is only <em>writable</em> because your relationships are specific and directed. Every hour you
-        spent on schema design in section three was retrieval engineering in disguise. <strong>Schema quality determines
-        retrieval quality.</strong> That's the sentence to carry out of today.</p>
+        <p>And here is the day's throughline landing: <strong>text-to-Cypher is only as good as the schema it is prompted
+        with.</strong> The model can only write <code>-[:ACTED_IN]-&gt;</code> into a query if your schema has that
+        relationship to name — a graph of vague "related to" edges gives it nothing precise to compile the question
+        into. The same is true of the traversal retriever: its query is only <em>writable</em> because your
+        relationships are specific and directed. Every hour you spent on schema design in section three was retrieval
+        engineering in disguise. <strong>Schema quality determines retrieval quality.</strong> That is the sentence to
+        carry out of today.</p>
         <div class="ix-future">
           <div class="k">Interactive — future goal</div>
           <p>Planned: a Text2Cypher playground — type a natural-language question, see the LLM-generated Cypher and the
@@ -352,9 +350,9 @@
     returns confidently wrong <em>exactness</em>. Vector-entry + fixed traversal is the safer default when the question
     is fuzzy; Text2Cypher shines when the question is precise and the schema is clean.</p>
     <p><strong>Version footnote.</strong> If a generated or pasted query misbehaves on a 2026-era server, check the
-    Cypher language version first — new 2026.02+ deployments set <code>db.query.default_language=CYPHER_25</code>, while
-    most online examples are Cypher 5–era. Prepending <code>CYPHER 25</code> or <code>CYPHER 5</code> to the query makes
-    the version explicit while you diagnose.</p>
+    Cypher language version first — new deployments from 2026.02 onward default to the newer language, while most
+    examples online are still written for the frozen one. Prepending <code>CYPHER 25</code> or <code>CYPHER 5</code>
+    to the query makes the version explicit while you diagnose.</p>
   </div>
 </div>
 

@@ -125,13 +125,12 @@
       <section class="step" data-diagram="0" data-step="3">
         <div class="tag">LangGraph, packaged</div>
         <h2>Supervisor and swarm — the two archetypes as libraries</h2>
-        <p>LangChain ships the two Day-1 archetypes as official prebuilt libraries.
-        <strong><code>langgraph-supervisor-py</code></strong> packages the hierarchical pattern:
-        <code>create_supervisor([agent1, agent2], model=model)</code> builds a central supervisor that delegates to
-        workers via tool-based handoffs — the same <code>Command</code> machinery you just met, pre-wired into a
-        coordinator shape. <strong><code>langgraph-swarm-py</code></strong> (latest release 0.1.0, 2025-12-04)
-        packages the peer-to-peer shape: "agents dynamically hand off control to one another based on their
-        specializations," with no boss node at all.</p>
+        <p>LangChain ships the two Day-1 archetypes as official prebuilt libraries. The <strong>supervisor</strong> package
+        wraps the hierarchical pattern: hand it a list of agents and a model and it builds a central supervisor that
+        delegates to workers through tool-based handoffs — the same command machinery you just met, pre-wired into a
+        coordinator shape. The <strong>swarm</strong> package, at release 0.1.0 from December 2025, packages the
+        peer-to-peer shape: "agents dynamically hand off control to one another based on their specializations," with
+        no boss node at all.</p>
         <p>Swarm has one genuinely clever detail: an <strong><code>active_agent</code> state variable persisted via the
         checkpointer</strong>, so "on subsequent interactions, the conversation resumes with that agent." If the user
         was mid-conversation with the refund specialist yesterday, they land back with the refund specialist today —
@@ -148,14 +147,14 @@
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">CrewAI</div>
         <h2>CrewAI: orchestration is an enum and a manager</h2>
-        <p>CrewAI comes at the same problem from the opposite end. Its multi-agent unit is the <strong>Crew</strong> —
-        a role-based team of agents — with <strong>Flows</strong> alongside for deterministic, event-driven control.
-        And where LangGraph hands you nodes and edges, CrewAI hides orchestration behind a <strong><code>Process</code>
-        enum with exactly two implementations</strong>. <code>Process.sequential</code>: "task execution follows the
+        <p>CrewAI comes at the same problem from the opposite end. Its multi-agent unit is the <strong>Crew</strong> — a
+        role-based team of agents — with <strong>Flows</strong> alongside for deterministic, event-driven control. And
+        where LangGraph hands you nodes and edges, CrewAI hides orchestration behind a <strong>process setting with
+        exactly two implementations</strong>. The <em>sequential</em> process means "task execution follows the
         predefined order in the task list, with the output of one task serving as context for the next" — a pipeline,
-        no routing decisions at all. <code>Process.hierarchical</code>: a <strong>manager</strong> runs the show —
+        with no routing decisions at all. The <em>hierarchical</em> process puts a <strong>manager</strong> in charge:
         "the manager allocates tasks to agents based on their capabilities, reviews outputs, and assesses task
-        completion." Tasks are not pre-assigned; they're dynamically delegated at runtime.</p>
+        completion." Tasks are not pre-assigned; they are delegated dynamically at runtime.</p>
         <p>Standing up hierarchical mode requires one of two things: set <strong><code>manager_llm</code></strong> and
         CrewAI auto-creates the manager agent for you, or supply a custom <strong><code>manager_agent</code></strong>
         when you want to shape its behavior. Either way, the manager "coordinates the workflow, delegates tasks, and
@@ -163,21 +162,19 @@
         no graph to inspect — the routing logic lives inside an LLM's judgment about who's capable of what. That is
         the sharpest single contrast with LangGraph's explicit node/edge control, and it cuts both ways: dramatically
         less code to get a working team, dramatically less to point at when the manager delegates somewhere strange.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a crew-run inspector — define
-        a three-agent crew, toggle between <code>Process.sequential</code> and <code>Process.hierarchical</code> with a
-        <code>manager_llm</code>, and watch the task-allocation decisions the manager makes (and re-makes) on the same
-        input. Needs backend standup.</p></div>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a crew-run inspector — define a three-agent crew, toggle between the sequential and hierarchical
+        processes with a manager model, and watch the task-allocation decisions the manager makes, and re-makes, on
+        the same input. Needs backend standup.</p></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
         <div class="tag">CrewAI, sideways</div>
         <h2>Peer collaboration is a flag, not a graph</h2>
-        <p>What about the swarm shape — peers handing work sideways without a boss? In CrewAI that's not an
-        architecture, it's a <strong>flag</strong>. Set <code>allow_delegation=True</code> on an agent and CrewAI
-        automatically injects <strong>two tools</strong> into it: <code>Delegate work to coworker(task, context,
-        coworker)</code> and <code>Ask question to coworker(question, context, coworker)</code>. Any agent so equipped
-        can hand a subtask to any teammate, or query one for information, mid-task — no edges drawn, no
-        <code>Command</code> objects, no parent graph.</p>
+        <p>What about the swarm shape — peers handing work sideways without a boss? In CrewAI that is not an architecture,
+        it is a <strong>flag</strong>. Set <code>allow_delegation=True</code> on an agent and CrewAI automatically
+        injects <strong>two tools</strong> into it: one that delegates work to a named coworker, and one that asks a
+        coworker a question. Any agent so equipped can hand a subtask to any teammate, or query one for information,
+        mid-task — no edges drawn, no command objects, no parent graph.</p>
         <p>The docs carry a piece of role-design advice worth stealing regardless of framework: enable delegation for
         <strong>coordinators and generalists</strong>, disable it for <strong>focused specialists</strong>. A
         specialist that can delegate is a specialist that can wander — you gave it an escape hatch from its own job.
@@ -197,17 +194,17 @@
         AutoGen "started as a research project at Microsoft Research and pioneered several concepts in multi-agent
         orchestration, such as GroupChat and event-driven agent runtime." <strong>Agent Framework</strong>, built by
         the core AutoGen and Semantic Kernel teams, is the designated new foundation. The migration guide maps
-        AutoGen's <code>RoundRobinGroupChat</code> and <code>GraphFlow</code> onto Agent Framework
-        <strong>Workflows</strong>, with Swarm and <code>SelectorGroupChat</code> listed as roadmap items still in
-        development — so the mapping isn't even complete yet. If a client is on AutoGen today, they're on a framework
-        whose own vendor has published its exit path.</p>
+        AutoGen's round-robin group chat and graph flow onto Agent Framework <strong>Workflows</strong>, and lists the
+        swarm and selector-based group chats as roadmap items still in development — so the mapping is not even
+        complete yet. If a client is on AutoGen today, they are on a framework whose own vendor has published its
+        exit path.</p>
         <p>The migration guide also concedes a gap LangGraph had first — and this should sound familiar from Day 2.
         "AutoGen's <code>Team</code> abstraction runs continuously once started and doesn't provide built-in
         mechanisms to pause execution for human input." Agent Framework closes it with a workflow-level
-        request/response API: <code>ctx.request_info()</code> plus a <code>@response_handler</code>. Durable
-        pause-for-a-human, the thing LangGraph's checkpointer gave you natively, was important enough that Microsoft
-        rebuilt its stack partly to get it. When you argue for LangGraph's persistence layer in a design review,
-        that's your corroborating witness.</p>
+        request-and-response API: the workflow asks for information, and a registered handler supplies it. Durable
+        pause-for-a-human — the thing LangGraph's checkpointer gave you natively — was important enough that Microsoft
+        rebuilt its stack partly to get it. When you argue for LangGraph's persistence layer in a design review, that
+        is your corroborating witness.</p>
         <p>What does the new stack actually ship? <strong>Five built-in multi-agent orchestrations</strong>:
         <strong>Sequential</strong>, <strong>Concurrent</strong>, <strong>Handoff</strong> ("agents transfer control
         to each other based on context"), <strong>Group Chat</strong> ("agents collaborate in a shared conversation"),
@@ -228,13 +225,13 @@
         loop? is progress being made? who should speak next?</p>
         <p>That ledger is what separates Magentic from CrewAI's hierarchical manager. Both are LLM coordinators — but
         Magentic's is instrumented against its own failure modes. When the ledger detects a stall, the manager
-        <strong>auto-replans</strong>, and the whole loop runs under configurable limits —
-        <code>max_round_count</code>, <code>max_stall_count</code>, <code>max_reset_count</code> — with optional
-        <strong>human review of the plan</strong> before execution. Every Day-1 fear about agent loops ("what if they
-        just talk in circles, burning tokens?") has a named knob here. The pedigree is real, too: the underlying
-        Magentic-One paper (Microsoft, Nov 2024) describes an Orchestrator that "plans, tracks progress, and re-plans
-        to recover from errors" using task and progress ledgers, hitting statistically competitive results with
-        state-of-the-art systems on the GAIA, AssistantBench, and WebArena benchmarks.</p>
+        <strong>auto-replans</strong>, and the whole loop runs under configurable limits on rounds, stalls and
+        resets, with optional <strong>human review of the plan</strong> before execution. Every Day-1 fear about
+        agent loops — what if they just talk in circles, burning tokens? — has a named knob here. The pedigree is
+        real, too: the underlying Magentic-One paper from Microsoft in November 2024 describes an Orchestrator that
+        "plans, tracks progress, and re-plans to recover from errors" using task and progress ledgers, hitting
+        statistically competitive results with state-of-the-art systems on the GAIA, AssistantBench and WebArena
+        benchmarks.</p>
         <p>The FDE takeaway isn't "use Magentic." It's that <strong>an LLM coordinator is trustworthy roughly in
         proportion to how observable and bounded it is</strong>. Magentic is what CrewAI-style manager routing looks
         like after someone added instrumentation, budgets, and a recovery policy. If you ever build a supervisor by
@@ -353,9 +350,9 @@
         <li>Is <strong>progress being made</strong>? → no progress also counts toward stall.</li>
         <li>Who should <strong>speak next</strong>, and what should they do?</li>
       </ul>
-      <p style="margin:8px 0 0">On stall detection the manager <strong>auto-replans</strong> — it doesn't just retry
-      harder. The whole thing runs under explicit budgets: <code>max_round_count</code>, <code>max_stall_count</code>,
-      <code>max_reset_count</code>, plus optional <strong>human plan review</strong> before execution begins.</p>
+      <p style="margin:8px 0 0">On stall detection the manager <strong>auto-replans</strong> — it does not just retry
+      harder. The whole thing runs under explicit budgets: a maximum round count, a maximum stall count and a maximum
+      reset count, plus optional <strong>human plan review</strong> before execution begins.</p>
     </div>
     <p style="margin-top:14px"><strong>Why this matters beyond Microsoft's stack.</strong> Compare it to CrewAI's
     hierarchical manager, which delegates, reviews, and validates — but whose docs describe no self-monitoring ledger
