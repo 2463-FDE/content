@@ -1,6 +1,6 @@
 # The per-reading study assistant
 
-**Date:** 2026-08-05 · **Status:** built on `feat/reading-assistant`, not deployed
+**Date:** 2026-08-05 · **Status:** LIVE — Worker deployed, merged to `main`, all 33 prompts pre-warmed
 **Ships in:** `assets/js/reading-coach.js` + the `.rc-*` block in `assets/css/style.css`
 **Backend:** `backend/src/reading.js`, `backend/src/reading-index.js` (generated), wired into `index.js` dispatch
 
@@ -65,9 +65,20 @@ Same modal grammar as the coding-prep thinking partner (`coding-coach.js`), and 
 | Custom delivery prompt | one Haiku call, per learner |
 | Page text | one GitHub Pages fetch per reading per week |
 
-Rails: 40 messages per session (6h TTL), **50 billable calls per learner per day**
-(`attempts:reading:<date>:<name>`), 2 tool round-trips per turn, 2 prior readings held open.
-Practice identities (trainers) are exempt from the daily cap, same as everywhere else.
+Rails, outermost first:
+
+- **The learner's shared daily budget — 100 LLM calls (`attempts:chat:<date>:<name>`).** One pot
+  across every free-form chat surface, so the coding-prep partner and this assistant draw from the
+  same counter. It's keyed on learner + date, never on the session, so a reload, a new window, a
+  different device or a different assistant never resets it. Lives in `backend/src/chat-budget.js`;
+  a 429 from this rail reports `scope: "all_assistants"`.
+- **This surface's sub-cap — 50 calls/day** (`attempts:reading:<date>:<name>`), so one assistant
+  can't eat the whole pot in a sitting. Reports `scope: "reading"`.
+- 40 messages per session (6h TTL), 2 tool round-trips per turn, 2 prior readings held open.
+
+Practice identities (trainers) are exempt from both, same as everywhere else. Collab's 4
+interviews/day and System Design's 1 attempt/day are deliberately NOT in this pot — those are
+attempt limits, not cost rails.
 
 ## Routes
 
@@ -105,10 +116,18 @@ python3 -m http.server 8123 &
 npm i playwright && node docs/reading-assistant-qa.mjs
 ```
 
-## Rollout
+## Rollout — done 2026-08-05
 
-1. Deploy the Worker from `backend/` (`npx wrangler deploy`) — the routes are inert until then, and
-   the button falls back to the offline template.
-2. Merge `feat/reading-assistant` and let Pages redeploy.
-3. Optionally pre-warm: pressing the button once per reading fills the cohort-wide prompt cache, so
-   no learner is ever the one who waits for a generation.
+1. Worker deployed (`npx wrangler deploy`). Note: give it ~30s before smoke-testing — new routes
+   404 intermittently while the version propagates across colos.
+2. `feat/reading-assistant` merged to `main`, Pages redeployed (~30s).
+3. All 33 delivery prompts pre-warmed, so no learner is ever the one who waits ~8s for a
+   generation. Re-run after rewriting a reading (the cache keys on the page's content hash, so a
+   rewrite silently invalidates and the next learner pays for it):
+
+```bash
+node -e 'const {READINGS}=await import("./src/reading-index.js");
+for (const r of READINGS) await fetch("https://fde-backend.jestercharles.workers.dev/reading/prompt",
+  {method:"POST",headers:{"content-type":"application/json"},
+   body:JSON.stringify({passcode:"<a practice code>",reading:r.id})});' --input-type=module
+```
