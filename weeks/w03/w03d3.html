@@ -156,13 +156,13 @@
         control with precise state management and conditional branching. The README says it plainly — "the true power of
         CrewAI emerges when combining Crews and Flows." Crews for the parts where you want judgement; Flows for the parts
         where you want guarantees.</p>
-        <p>The Flows machinery is concrete enough to picture. A Flow is built from <strong><code>@start()</code></strong>
-        entry-point methods and <strong><code>@listen()</code></strong> methods that fire when a prior method produces
-        output, with <code>or_</code>/<code>and_</code> operators to wait on multiple upstream steps, router-based
-        conditional branching, and per-execution state that can be either unstructured (a plain dict) or structured (a
-        Pydantic model). If that reads like an event-driven workflow engine, that's exactly right — and the payoff is
-        that you can embed an autonomous Crew as a <em>step</em> inside a deterministic Flow, getting model judgement
-        where you want it and hard control everywhere else.</p>
+        <p>The Flows machinery is concrete enough to picture. A Flow is built from decorated entry-point methods and
+        listener methods that fire when a prior method produces output, with <code>or</code> and <code>and</code>
+        operators to wait on multiple upstream steps, router-based conditional branching, and per-execution state that
+        is either unstructured, as a plain dictionary, or structured, as a Pydantic model. If that reads like an
+        event-driven workflow engine, that is exactly right — and the payoff is that you can embed an autonomous Crew
+        as a <em>step</em> inside a deterministic Flow, getting model judgement where you want it and hard control
+        everywhere else.</p>
         <p>One grounding fact that changes how you position CrewAI to a client: it is a <strong>standalone
         framework</strong>. The current PyPI release (<strong>1.15.1, 2026-06-27</strong>) describes CrewAI as "built
         entirely from scratch — completely independent of LangChain or other agent frameworks," and it requires Python

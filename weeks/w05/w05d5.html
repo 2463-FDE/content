@@ -130,13 +130,13 @@
         <h2>Hand off clean: fresh context, self-contained spec</h2>
         <p>Gates passed — now the actual handoff. There are two production-grade patterns to know, and they agree on the
         essentials.</p>
-        <p><strong>Kiro's three-artifact model</strong> (AWS's spec-driven agentic IDE) hands off exactly what you built
-        this week: <code>requirements.md</code> (user stories + acceptance criteria), <code>design.md</code> (technical
-        architecture, sequence diagrams, implementation considerations), and <code>tasks.md</code> — "discrete,
-        trackable tasks" with clear outcomes. Execution runs through a real-time task interface with in-progress and
-        completed status, and "Run all Tasks" builds a <strong>dependency graph and executes in waves</strong> —
-        independent tasks concurrently, dependent tasks sequentially after their prerequisites. Your task decomposition
-        from Day 4 isn't just a to-do list; it's the execution schedule.</p>
+        <p><strong>Kiro's three-artifact model</strong>, from AWS's spec-driven agentic IDE, hands off exactly what you
+        built this week: a requirements file holding user stories and acceptance criteria, a design file holding
+        technical architecture, sequence diagrams and implementation considerations, and a tasks file holding
+        "discrete, trackable tasks" with clear outcomes. Execution runs through a real-time task interface showing
+        in-progress and completed status, and running all tasks builds a <strong>dependency graph and executes in
+        waves</strong> — independent tasks concurrently, dependent tasks sequentially after their prerequisites. Your
+        task decomposition from Day 4 is not just a to-do list; it is the execution schedule.</p>
         <p><strong>Claude Code's recommended workflow</strong> is the four-phase
         <strong>Explore → Plan → Implement → Commit</strong>: explore in plan mode (read-only), produce a detailed
         implementation plan you can edit before proceeding, then switch modes and implement <em>verifying against the

@@ -109,10 +109,10 @@ resp = model.call(prompt)"
         <div class="tag">Lens ① · structured</div>
         <h2>What must be structured?</h2>
         <p>Anything a downstream system consumes has to come back as data with a known shape, not prose. "Pull out the
-        solicitation number, agency, and due date" is a screaming signal for a JSON schema: <code>solicitation_number</code>
-        (string), <code>agency</code> (string), <code>due_date</code> (date or null), <code>estimated_value_usd</code>
-        (number or null). The moment you write that schema, half the ambiguity in the original ask evaporates — you've
-        forced "the important stuff" to become a finite, named, typed list.</p>
+        solicitation number, agency, and due date" is a screaming signal for a JSON schema: a solicitation number as a
+        string, an agency as a string, a due date as a date or null, an estimated value as a number or null. The
+        moment you write that schema, half the ambiguity in the original ask evaporates — you have forced "the
+        important stuff" to become a finite, named, typed list.</p>
         <p>The deciding question behind this lens is the one from Part 1's tooling discussion: <em>who or what consumes the
         output?</em> A triage dashboard the analysts sort and filter? Then the output must be structured data — you're
         building an extractor, not a summarizer. Had the answer been "an analyst reads it over coffee," prose might have
@@ -330,11 +330,11 @@ resp = model.call(prompt)"
     </div>
 
     <p style="margin-top:14px"><strong>Read what the schema is doing for you.</strong> Every fact field is
-    <em>nullable</em> — that's the sanctioned "not found in the document" that kills hallucinated values. The high-stakes
-    fields (<code>solicitation_number</code>, <code>due_date</code>, <code>set_aside</code>) are <em>required</em>, forcing
-    the model to commit to a value or an explicit null rather than silently omitting them. <code>set_aside</code> is an
-    <em>enum</em>, so it physically cannot come back as freeform prose. The schema has already encoded half your rules
-    before you wrote a line of system prompt.</p>
+    <em>nullable</em> — that is the sanctioned "not found in the document" that kills hallucinated values. The
+    high-stakes fields, meaning the solicitation number, the due date and the set-aside, are <em>required</em>, which
+    forces the model to commit to a value or an explicit null rather than silently omitting them. The
+    <code>set_aside</code> field is an <em>enum</em>, so it physically cannot come back as freeform prose. The schema
+    has already encoded half your rules before you wrote a line of system prompt.</p>
 
     <p><strong>And now the system prompt practically writes itself:</strong> "You are a solicitation-extraction assistant.
     Extract the fields in the schema <em>only</em> from the document provided below. If a field is not present in the

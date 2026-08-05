@@ -119,12 +119,12 @@
       <section class="step" data-diagram="0" data-step="3">
         <div class="tag">The hard gate</div>
         <h2>Branch protection: where output meets non-negotiable pass/fail</h2>
-        <p>Now the wall the PR must climb. GitHub's merge gate is refreshingly deterministic: "Required status checks
-        must have a <code>successful</code>, <code>skipped</code>, or <code>neutral</code> status before collaborators
-        can make changes to a protected branch." Add required reviews and "collaborators can only push changes to a
-        protected branch via a pull request that is approved by the required number of reviewers." Checks can be
-        <strong>strict</strong> (the branch must be up to date with the base before merging) or loose. That's the whole
-        mechanism — and it's exactly the mechanism you want, because it is immune to persuasion.</p>
+        <p>Now the wall the pull request must climb. GitHub's merge gate is refreshingly deterministic: required status
+        checks must come back successful, skipped or neutral "before collaborators can make changes to a protected
+        branch." Add required reviews and "collaborators can only push changes to a protected branch via a pull
+        request that is approved by the required number of reviewers." Checks can be <strong>strict</strong>, meaning
+        the branch must be up to date with the base before merging, or loose. That is the whole mechanism — and it is
+        exactly the mechanism you want, because it is immune to persuasion.</p>
         <p>This layer matters more with agents than it ever did with humans. An agent can write a confident PR
         description, summarize its own diff flatteringly, and assert that tests pass. Branch protection doesn't read
         prose. Tests, lint, and build become <strong>gates the agent must satisfy, not suggestions</strong> — the
@@ -139,24 +139,28 @@
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Agents in CI</div>
         <h2>Agents can run inside the gate, too</h2>
-        <p>The pipeline isn't just something agents pass through — agents can be <em>stages of it</em>. Claude Code's
-        headless mode, <code>claude -p</code>, is the non-interactive interface built for "CI pipelines, pre-commit
-        hooks, or any automated workflow." The flags are the interesting part, because each one answers a question an
-        unattended run raises. <code>--output-format json</code> returns structured results — including
-        <code>total_cost_usd</code>, so every CI invocation is billed and visible. <code>--json-schema</code>
-        constrains the output shape so downstream steps can parse it. And <code>--allowedTools "Bash,Read,Edit"</code>
-        plus permission rules like <code>Bash(git commit *)</code> scope exactly what an unattended agent may touch —
-        least-privilege for a process that writes code.</p>
+        <p>The pipeline is not just something agents pass through — agents can be <em>stages of it</em>. Claude Code's
+        headless mode, invoked with <code>claude -p</code>, is the non-interactive interface built for "CI pipelines,
+        pre-commit hooks, or any automated workflow." The flags are the interesting part, because each one answers a
+        question an unattended run raises:</p>
+        <ul>
+          <li><strong>JSON output format</strong> — returns structured results, including the total cost in dollars,
+          so every CI invocation is billed and visible.</li>
+          <li><strong>An output schema</strong> — constrains the shape of that result so downstream steps can parse
+          it.</li>
+          <li><strong>An allowed-tools list, plus permission rules</strong> — scopes exactly what an unattended agent
+          may touch. Least privilege, for a process that writes code.</li>
+        </ul>
         <p>One flag deserves special attention for CI: <code>--bare</code> skips auto-discovery of hooks, skills, and
         MCP servers — "for CI and scripts where you need the same result on every machine." The docs note it's
         recommended for scripted and SDK calls and "will become the default for <code>-p</code> in a future release."
         Reproducibility is the whole point of a pipeline stage; an agent that behaves differently depending on which
         engineer's dotfiles happen to be on the runner isn't a stage, it's a liability.</p>
-        <p>The docs' own example shows the pattern at its smallest: pipe <code>git diff main</code> into
-        <code>claude -p</code> as a project-specific typo linter wired into <code>package.json</code>. Diff in,
-        structured verdict out, exit code gates the pipeline. Once you see that shape, you can put a scoped agent
-        anywhere a deterministic check would go — with the agent held to the same standard: parseable output,
-        bounded permissions, same result on every machine.</p>
+        <p>The documentation's own example shows the pattern at its smallest: pipe a diff against the main branch into
+        <code>claude -p</code> as a project-specific typo linter, wired in as an npm script. Diff in, structured
+        verdict out, exit code gates the pipeline. Once you see that shape, you can put a scoped agent anywhere a
+        deterministic check would go — with the agent held to the same standard: parseable output, bounded
+        permissions, and the same result on every machine.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live headless run — paste a
         small diff, we pipe it through <code>claude -p --bare --output-format json</code> with a lint prompt, and you
         inspect the structured verdict and the <code>total_cost_usd</code> it reports. Needs backend standup.</p></div>
@@ -175,21 +179,21 @@
         correctness: bugs that would break production, not formatting preferences." It triggers on PR open, on every
         push, or manually via <code>@claude review</code> — and it runs about 20 minutes and $15–25 per review, so
         it's a real stage with a real budget line.</p>
-        <p>And it's a <strong>config surface, not a prayer</strong>. A <code>REVIEW.md</code> at repo root is
+        <p>And it is a <strong>configuration surface, not a prayer</strong>. A review policy file at the repository root is
         "injected directly into every agent in the review pipeline as highest priority." Teams use it to redefine what
-        Important means for their codebase, cap noise ("report at most five nits"), skip generated code and lockfiles,
-        add repo-specific always-checks ("new API routes must have an integration test"), set an evidence bar
-        ("behavior claims need a <code>file:line</code> citation"), and control re-review convergence ("after the first
-        review, suppress new nits and post Important findings only"). Even <code>CLAUDE.md</code> is enforced
-        bidirectionally — code that violates it surfaces as a nit, and so does code that makes the docs stale.</p>
-        <p>Prefer to self-host the stage? <code>anthropics/claude-code-action@v1</code> runs the full Claude Code
-        runtime on GitHub runners — <code>@claude</code> mention mode or automation mode with a <code>prompt</code> on
-        <code>pull_request: [opened, synchronize]</code>, auto-detected. It respects your <code>CLAUDE.md</code>,
-        supports skills and plugins in the prompt, and <code>claude_args</code> passes any CLI flag
-        (<code>--max-turns</code>, <code>--allowedTools</code>, <code>--model</code>). Setup is
-        <code>/install-github-app</code>; enterprises auth via Bedrock/Vertex with OIDC — no static keys. The security
-        guidance is worth quoting because it's the theme of the day: GitHub Secrets only, minimal permissions, and
-        "Review Claude's suggestions before merging."</p>
+        Important means for their codebase, cap noise by asking for at most five nits, skip generated code and lock
+        files, add repo-specific always-checks such as requiring an integration test for every new API route, set an
+        evidence bar so behaviour claims need a file-and-line citation, and control re-review convergence by
+        suppressing new nits after the first pass. Even the project instruction file is enforced in both directions:
+        code that violates it surfaces as a nit, and so does code that leaves the docs stale.</p>
+        <p>Prefer to self-host the stage? Anthropic's GitHub Action runs the full Claude Code runtime on GitHub runners,
+        in either mention mode — where someone writes <code>@claude</code> in a comment — or automation mode with a
+        standing prompt on pull-request events, which it auto-detects. It respects your project instruction file,
+        supports skills and plugins inside the prompt, and passes through any command-line flag, so turn limits,
+        allowed tools and model choice all remain yours. Setup is a single install command, and enterprises
+        authenticate through Bedrock or Vertex with OIDC, so there are no static keys. The security guidance is worth
+        quoting because it is the theme of the day: secrets stay in GitHub Secrets, permissions stay minimal, and
+        "review Claude's suggestions before merging."</p>
         <p>One caveat travels with any adversarial review, managed or the fresh-context subagent flavor from the
         best-practices docs (a reviewer that "sees only the diff and the criteria you give it, not the reasoning that
         produced the change"): "A reviewer prompted to find gaps will usually report some, even when the work is
@@ -199,15 +203,15 @@
       <section class="step" data-diagram="0" data-step="6">
         <div class="tag">Wiring review into the gate</div>
         <h2>Blocking on AI findings is a decision you build</h2>
-        <p>Here's a subtlety that separates people who read the docs from people who assume. The Code Review check run
+        <p>Here is a subtlety that separates people who read the docs from people who assume. The Code Review check run
         "always completes with a <strong>neutral</strong> conclusion so it never blocks merging through branch
-        protection rules." By default, the AI reviewer <em>advises</em> — it does not gate. That's a deliberate vendor
+        protection rules." By default the AI reviewer <em>advises</em>; it does not gate. That is a deliberate vendor
         choice, and the escape hatch is explicit: "If you want to gate merges on Code Review findings, read the
-        severity breakdown from the check run output in your own CI." The check's Details text ends with a
-        machine-readable comment — <code>bughunter-severity: {"normal": 2, "nit": 1, "pre_existing": 0}</code> —
-        where a non-zero <code>normal</code> count means at least one bug worth fixing before merge. Parse it with
-        <code>gh</code> and <code>jq</code>, fail your own required check on it, and now branch protection enforces
-        the AI's findings deterministically.</p>
+        severity breakdown from the check run output in your own CI." The check's details text ends with a
+        machine-readable comment carrying a severity breakdown — counts of normal findings, nits and pre-existing
+        issues — where a non-zero normal count means at least one bug worth fixing before merge. Parse it in your own
+        pipeline, fail your own required check on it, and now branch protection enforces the AI's findings
+        deterministically.</p>
         <div class="ix-predict"
           data-q="Your client enables Claude Code Review, sees it post a 🔴 Important finding, and is shocked the PR merged anyway. What happened — and what's the fix?"
           data-a="Nothing malfunctioned. The review check run <b>always completes neutral</b> so it never blocks merges through branch protection — advisory by default. Blocking on AI findings is an <b>explicit team decision you build</b>: parse the machine-readable <code>bughunter-severity:</code> JSON from the check-run output in your own CI (<code>gh</code> + <code>jq</code>), fail your check when <code>normal &gt; 0</code>, and mark <i>that</i> check required in branch protection. The vendor gives you the signal; the gate is yours to wire.">
@@ -343,12 +347,12 @@
     merge on its own. But its Details text ends with a machine-readable comment:
     <code>bughunter-severity: {"normal": 2, "nit": 1, "pre_existing": 0}</code>. A non-zero <code>normal</code> means
     at least one bug the reviewer judged worth fixing before merge.</p>
-    <p><strong>The gate.</strong> In your own CI, fetch the check run with <code>gh api</code>, extract the JSON tail
-    with <code>jq</code>, and exit non-zero when <code>normal &gt; 0</code>. Mark <em>that</em> job as a required
-    status check in branch protection. Now the deterministic GitHub gate — which only cares about
-    successful/skipped/neutral — enforces the AI's findings, on your policy: maybe <code>normal</code> blocks, nits
-    warn, and a <em>missing</em> review run fails closed (remember: review runs are best-effort, "a failed run never
-    blocks your PR" — deciding what absence means is your job).</p>
+    <p><strong>The gate.</strong> In your own CI, fetch the check run with the GitHub CLI, extract the JSON tail with
+    <code>jq</code>, and exit non-zero when the normal-severity count is above zero. Mark <em>that</em> job as a
+    required status check in branch protection. Now the deterministic GitHub gate — which only cares about
+    successful, skipped or neutral — enforces the AI's findings on your policy: maybe normal findings block, nits
+    warn, and a <em>missing</em> review run fails closed. Remember that review runs are best-effort and "a failed run
+    never blocks your PR," so deciding what absence means is your job.</p>
     <div class="model-answer show">
       <div class="ma-k">Worked cost check — does the review stage pay for itself?</div>
       <p style="margin:8px 0 0">A managed review averages <strong>~20 minutes and $15–25 per review</strong>. Say your
@@ -359,9 +363,9 @@
       stage. Budget it like a stage, tune it like a stage.</p>
     </div>
     <p style="margin-top:14px"><strong>Reproducibility footnote.</strong> Any agent you put <em>inside</em> the gate
-    should run <code>claude -p --bare</code>: <code>--bare</code> skips auto-discovery of hooks, skills, and MCP
-    servers so the check behaves identically on every runner — and the docs flag it as the future default for
-    <code>-p</code>. A gate that depends on whatever configuration happens to be lying around isn't a gate.</p>
+    should run in bare mode, which skips auto-discovery of hooks, skills and external tool servers so the check
+    behaves identically on every runner — the docs flag it as the future default for headless runs. A gate that
+    depends on whatever configuration happens to be lying around is not a gate.</p>
   </div>
 </div>
 

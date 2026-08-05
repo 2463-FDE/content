@@ -104,12 +104,12 @@
         irrelevant chunk ranked lower down. This is deliberate — it mirrors reality, where junk at the top of the context
         does the most damage to both cost and answer quality. A high-precision retriever puts the wheat first and the
         chaff last (or, ideally, leaves the chaff out entirely).</p>
-        <p>Ragas ships this metric in a few flavors you'll choose between on real work. <code>LLMContextPrecisionWithReference</code>
-        scores chunks against a ground-truth reference; <code>LLMContextPrecisionWithoutReference</code> is reference-free
-        and instead compares each chunk to the generated response (useful when you don't have labeled answers); and
-        <code>IDBasedContextPrecision</code> is a non-LLM variant that matches retrieved chunk IDs against known-relevant
-        IDs — cheap and deterministic when you have that labeling. The reference-free variant is the one you reach for
-        first on a client engagement where nobody has built a labeled test set yet.</p>
+        <p>Ragas ships this metric in a few flavours you will choose between on real work. One scores chunks against a
+        ground-truth reference. A second is reference-free and instead compares each chunk to the generated response,
+        which is useful when you have no labelled answers. A third is a non-LLM variant that matches retrieved chunk
+        ids against known-relevant ids — cheap and deterministic when you have that labelling. The reference-free
+        variant is the one you reach for first on a client engagement where nobody has built a labelled test set
+        yet.</p>
         <div class="ix-precision"></div>
       </section>
 
@@ -128,12 +128,11 @@
         <strong>(number of supported claims) / (total claims in the response)</strong>. A faithfulness of 1.0 means every
         single statement in the answer can be traced back to the source material; 0.7 means roughly a third of the
         answer's claims are floating free of any grounding.</p>
-        <p>DeepEval computes faithfulness the same way and makes the operational details concrete: it requires the
-        <code>input</code>, the <code>actual_output</code>, and the <code>retrieval_context</code>, and it applies a
-        <strong>default pass threshold of 0.5</strong> — with a <code>strict_mode</code> option that forces binary scoring
-        at a threshold of 1, meaning anything less than perfectly grounded fails. That threshold is a policy decision you
-        make with the client: a customer-facing medical or financial bot might demand strict mode, while an internal
-        brainstorming assistant can tolerate a softer bar.</p>
+        <p>DeepEval computes faithfulness the same way and makes the operational details concrete: it requires the input,
+        the actual output and the retrieval context, and it applies a <strong>default pass threshold of 0.5</strong>.
+        A strict mode forces binary scoring at a threshold of 1, meaning anything less than perfectly grounded fails.
+        That threshold is a policy decision you make with the client: a customer-facing medical or financial assistant
+        might demand strict mode, while an internal brainstorming tool can tolerate a softer bar.</p>
         <div class="ix-faith" data-scenario="refund" data-live="1"></div>
       </section>
 

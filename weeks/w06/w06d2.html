@@ -209,17 +209,17 @@
         leaves a 'Comment' review, not an 'Approve' review or a 'Request changes' review" — it <em>never</em> counts
         toward required approvals and <em>never</em> blocks a merge. AI review complements human review; it doesn't
         replace it.</p>
-        <p><strong>Claude Code Review</strong> — Anthropic's managed PR reviewer, currently a research preview for
-        Team/Enterprise plans — shows you what the deluxe version looks like: "a fleet of specialized agents examine
-        the code changes in the context of your full codebase," then "a verification step checks candidates against
-        actual code behavior to filter out false positives." Surviving findings are deduplicated, severity-ranked
-        (🔴 Important / 🟡 Nit / 🟣 Pre-existing), and posted inline — and again, findings "don't approve or block your
-        PR." It's tunable via a <code>REVIEW.md</code> file injected as highest-priority instructions: redefine
-        severities, cap nits, add skip rules, raise the verification bar. It triggers on PR open, every push, or an
-        <code>@claude review</code> mention — and it isn't free: roughly <strong>$15–25 per review</strong>, averaging
-        ~20 minutes, billed on token usage. For pre-push feedback without any GitHub App, the local
-        <code>/code-review</code> command "reviews a diff in your terminal," with <code>--fix</code> to apply findings
-        and effort levels that trade confidence for coverage.</p>
+        <p><strong>Claude Code Review</strong> — Anthropic's managed pull-request reviewer, currently a research preview for
+        Team and Enterprise plans — shows you what the deluxe version looks like: "a fleet of specialized agents
+        examine the code changes in the context of your full codebase," then "a verification step checks candidates
+        against actual code behavior to filter out false positives." Surviving findings are deduplicated,
+        severity-ranked as Important, Nit or Pre-existing, and posted inline — and again, findings "don't approve or
+        block your PR." It is tunable through a review-policy file injected as highest-priority instructions:
+        redefine severities, cap nits, add skip rules, raise the verification bar. It triggers on pull-request open,
+        on every push, or on an explicit mention — and it is not free, at roughly <strong>$15–25 per review</strong>,
+        averaging about twenty minutes, billed on token usage. For pre-push feedback without any GitHub App, the local
+        <code>/code-review</code> command "reviews a diff in your terminal," with a fix flag to apply findings and
+        effort levels that trade confidence for coverage.</p>
         <p>Two cautions keep review loops honest. First, the <strong>adversarial-reviewer trap</strong>: the docs
         recommend having "a subagent review the diff in a fresh context and report gaps" — but warn that "a reviewer
         prompted to find gaps will usually report some, even when the work is sound... Chasing every finding leads to
@@ -235,24 +235,23 @@
         <div class="tag">Agents in CI/CD</div>
         <h2>Pipeline citizens: @claude, headless mode, and guardrails</h2>
         <p>The last stage of the loop removes the human terminal entirely: agents as first-class citizens of the CI
-        pipeline. The GA GitHub Action, <code>anthropics/claude-code-action@v1</code>, works two ways and figures out
-        which you meant: "With a simple <code>@claude</code> mention in any PR or issue, Claude can analyze your code,
-        create pull requests, implement features, and fix bugs" (interactive mode), or it "runs immediately with a
-        prompt" when triggered by a workflow event (automation mode) — the action "automatically detects" which.
-        Prompts can invoke repo or plugin skills, so a team can, say, run a <code>code-review</code> skill on every
-        <code>pull_request: [opened, synchronize]</code> event.</p>
-        <p>Outside GitHub, the primitive is <strong>headless mode</strong>: <code>claude -p "prompt"</code> runs
-        non-interactively — the docs call it "how you integrate Claude into CI pipelines, pre-commit hooks, or any
-        automated workflow" — with <code>--output-format json|stream-json</code> for programmatic parsing and
-        <code>--allowedTools</code> to scope exactly what the agent may touch. That unlocks the <strong>fan-out
-        pattern</strong> for batch work: generate a task list, then loop something like
-        <code>claude -p "Migrate $file... Return OK or FAIL" --allowedTools "Edit,Bash(git commit *)"</code> — test it
-        on two or three files first, then run at scale. Note the prompt shape: autonomous tasks "can't ask clarifying
-        questions," so the prompt must be self-contained — explicit success criteria, explicit result handling.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a headless fan-out lab — point
-        <code>claude -p</code> at a batch of seeded files with <code>--output-format json</code> and
-        <code>--allowedTools</code> scoping, watch OK/FAIL results stream back, and tighten the prompt until the batch
-        goes clean. Needs backend standup.</p></div>
+        pipeline. Anthropic's generally-available GitHub Action works two ways and figures out which you meant. "With
+        a simple <code>@claude</code> mention in any PR or issue, Claude can analyze your code, create pull requests,
+        implement features, and fix bugs" — that is interactive mode. Or it "runs immediately with a prompt" when
+        triggered by a workflow event, which is automation mode; the action "automatically detects" which one applies.
+        Prompts can invoke repository or plugin skills, so a team can run a code-review skill on every pull request
+        that is opened or updated.</p>
+        <p>Outside GitHub, the primitive is <strong>headless mode</strong>: running <code>claude -p</code> with a prompt
+        executes non-interactively — the docs call it "how you integrate Claude into CI pipelines, pre-commit hooks,
+        or any automated workflow" — with JSON output formats for programmatic parsing and an allowed-tools flag to
+        scope exactly what the agent may touch. That unlocks the <strong>fan-out pattern</strong> for batch work:
+        generate a task list, then loop the same headless command over each file, asking it to return a plain OK or
+        FAIL and permitting only the tools the job needs. Test it on two or three files first, then run at scale. Note
+        the prompt shape: autonomous tasks "can't ask clarifying questions," so the prompt must be self-contained,
+        with explicit success criteria and explicit result handling.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a headless fan-out lab — point a headless run at a batch of seeded files with JSON output and scoped
+        tool permissions, watch OK and FAIL results stream back, and tighten the prompt until the batch goes clean.
+        Needs backend standup.</p></div>
         <p>An unattended agent with write access is a production system, so the official guardrails read like security
         engineering — because they are. Never commit API keys; use GitHub Secrets. "Limit action permissions to only
         what's necessary." "Review Claude's suggestions before merging" — the human gate survives even here. Cap

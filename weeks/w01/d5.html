@@ -253,14 +253,14 @@ def ask(prompt):
         of prompts, and the temptation is to leave them as string literals jammed into the calling code. Resist it. A
         prompt is a piece of engineering: it has a job, it can be wrong, it gets revised — so when you change it you want
         to know what changed and why. That earns it the same care as any versioned asset.</p>
-        <p>A prompt library is just prompts pulled into named, reusable templates with clear slots for the variable
-        parts — <code>classify_ticket</code>, <code>extract_invoice_fields</code>, <code>summarize_with_citations</code> —
-        each documented with what it's for, which model it was tuned against, and an example of good input and output.
-        The benefits compound: prompts get reused instead of re-invented in five places; a partner can improve one
-        without grepping the codebase; and the few-shot examples and format rules you fought for on Days 3 and 4 are
-        captured where the next person finds them. Your Friday submission is a small library like this — a handful of your
-        best prompts, organized so someone else could pick them up and run them without you in the room. That "someone
-        else" mindset is the entire job.</p>
+        <p>A prompt library is just prompts pulled into named, reusable templates with clear slots for the variable parts —
+        one for classifying a ticket, one for extracting invoice fields, one for summarizing with citations — each
+        documented with what it is for, which model it was tuned against, and an example of good input and output. The
+        benefits compound: prompts get reused instead of re-invented in five places; a partner can improve one without
+        grepping the codebase; and the few-shot examples and format rules you fought for on Days 3 and 4 are captured
+        where the next person will find them. Your Friday submission is a small library like this — a handful of your
+        best prompts, organized so someone else could pick them up and run them without you in the room. That
+        "someone else" mindset is the entire job.</p>
 
         <div class="callout mindset">
           <div class="k">FDE mindset</div>

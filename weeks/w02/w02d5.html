@@ -83,11 +83,11 @@
         recursing down to finer separators (line breaks, then spaces, then raw characters) when a piece is still larger
         than the target <code>chunk_size</code>. The effect is that it tries hard to keep paragraphs, then sentences,
         intact before it resorts to chopping mid-word.</p>
-        <p>The second knob is <code>chunk_overlap</code>: it repeats the trailing characters of one chunk at the start of
-        the next, so a fact that straddles a boundary isn't orphaned — context flows across the seam. In the library's
-        base defaults, <code>chunk_size</code> is 4000 and <code>chunk_overlap</code> is 200 characters, though those are
-        starting points you'll tune per corpus, not laws. The FDE instinct: when retrieval quality is mysteriously bad,
-        the chunker is one of the first places to look, because every downstream stage inherits the boundaries it drew.</p>
+        <p>The second knob is <strong>chunk overlap</strong>: it repeats the trailing characters of one chunk at the start
+        of the next, so a fact that straddles a boundary is not orphaned and context flows across the seam. In the
+        library's base defaults, chunk size is 4000 characters and overlap is 200, though those are starting points
+        you will tune per corpus, not laws. The FDE instinct: when retrieval quality is mysteriously bad, the chunker
+        is one of the first places to look, because every downstream stage inherits the boundaries it drew.</p>
         <div class="ix-chunk"></div>
       </section>
 
@@ -99,23 +99,20 @@
         nearest-neighbor (ANN) index</strong>. The dominant one is <strong>HNSW</strong> — Hierarchical Navigable Small
         World — a graph structure that lets a query "navigate" toward its nearest neighbors in roughly logarithmic hops
         instead of scanning everything.</p>
-        <p>HNSW has knobs, and they encode a recall-versus-cost trade you'll set deliberately. In <strong>pgvector</strong>
-        (Postgres' vector extension, 0.8.3), you create one like
-        <code>CREATE INDEX ON items USING hnsw (embedding vector_l2_ops) WITH (m = 16, ef_construction = 64)</code>. The
-        build-time parameters <code>m</code> (default 16) and <code>ef_construction</code> (default 64) govern how rich
-        the graph is: <strong>higher values raise recall but cost more build time and memory.</strong> At query time,
-        <code>ef_search</code> (default 40) trades the other way — <strong>raise it for better recall at the cost of query
-        latency.</strong> That's the whole tuning story in one sentence: graph quality is paid for at build time, search
-        thoroughness is paid for at query time.</p>
-        <p>pgvector earns its keep with two more things you'll reach for on real engagements: <strong>iterative index
-        scans</strong> (since 0.8.0) that keep filtered queries accurate when a <code>WHERE</code> clause prunes the
-        candidate set, and <strong>hybrid search</strong> that combines vector similarity with Postgres' built-in
-        full-text search — fused via Reciprocal Rank Fusion or a cross-encoder. If you'd rather not run Postgres, a
-        lighter option is <strong>Chroma</strong> (1.5.9): a
-        <code>chromadb.PersistentClient(path=...)</code>, a <code>get_or_create_collection</code>, then
-        <code>collection.add(documents=..., metadatas=..., ids=...)</code> which embeds automatically, and
-        <code>collection.query(query_texts=..., n_results=...)</code> to search — vector, hybrid, and full-text all
-        supported. Same shape, smaller footprint.</p>
+        <p>HNSW has knobs, and they encode a recall-versus-cost trade you will set deliberately. In
+        <strong>pgvector</strong>, Postgres' vector extension, you create an index and pass two build-time parameters:
+        the number of neighbour links per node, which defaults to 16, and the construction effort, which defaults to
+        64. Both govern how rich the graph is — <strong>higher values raise recall but cost more build time and
+        memory.</strong> At query time, the search-effort parameter trades the other way, defaulting to 40:
+        <strong>raise it for better recall at the cost of query latency.</strong> That is the whole tuning story in
+        one sentence — graph quality is paid for at build time, search thoroughness is paid for at query time.</p>
+        <p>pgvector earns its keep with two more things you will reach for on real engagements: <strong>iterative index
+        scans</strong>, which keep filtered queries accurate when a <code>WHERE</code> clause prunes the candidate set,
+        and <strong>hybrid search</strong>, which combines vector similarity with Postgres' built-in full-text search,
+        fused with Reciprocal Rank Fusion or a cross-encoder. If you would rather not run Postgres, a lighter option
+        is <strong>Chroma</strong>: open a persistent client against a path, get or create a collection, add documents
+        with their metadata and ids — embedding happens automatically — then query with text and a result count.
+        Vector, hybrid and full-text search are all supported. Same shape, smaller footprint.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -289,11 +286,11 @@
     <button class="modal-close" type="button" aria-label="Close">✕</button>
     <h2>Deep dive: HNSW tuning &amp; the two-stage cost trade</h2>
     <p class="quiz-sub">Optional. ~10 minutes. The numbers behind the picture.</p>
-    <p><strong>HNSW is a recall/cost dial, in three parts.</strong> Two parameters are paid at build time and one at query
-    time. In pgvector 0.8.3 the build-time defaults are <code>m = 16</code> and <code>ef_construction = 64</code>; raising
-    either makes a richer graph that retrieves more of the true neighbors (higher recall) but costs more build time and
-    memory. The query-time parameter <code>ef_search</code> defaults to 40; raising it explores more of the graph per
-    query — higher recall, higher latency. Build quality and search thoroughness are separate budgets.</p>
+    <p><strong>HNSW is a recall-versus-cost dial, in three parts.</strong> Two parameters are paid at build time and one
+    at query time. In pgvector the build-time defaults are 16 neighbour links and a construction effort of 64; raising
+    either makes a richer graph that retrieves more of the true neighbours — higher recall — but costs more build time
+    and memory. The query-time search effort defaults to 40; raising it explores more of the graph per query, buying
+    recall with latency. Build quality and search thoroughness are separate budgets.</p>
     <p><strong>Why two stages instead of one.</strong> A cross-encoder is more accurate than a bi-encoder because it
     encodes the query and document jointly — but that's also why it can't be precomputed and can't scale to a whole
     corpus. The pattern resolves the tension: let the cheap bi-encoder reduce, say, a million chunks to ~100 candidates,

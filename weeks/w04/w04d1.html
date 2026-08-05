@@ -82,14 +82,12 @@
         of the LangGraph reference, "makes decisions about which agent to invoke based on the current context and task
         requirements." A worker does its slice, hands its result back up, and the supervisor decides what happens
         next — another worker, a follow-up, or a final answer to the user.</p>
-        <p>This is such a common shape that LangGraph ships it prebuilt: the <code>langgraph-supervisor</code> package
-        gives you <code>create_supervisor()</code> to wire the hub, <code>create_handoff_tool()</code> for delegation,
-        and plumbing helpers like <code>create_forward_message_tool()</code> and
-        <code>create_handoff_back_messages()</code> for moving messages between hub and workers. LangChain 1.0's docs
-        describe the same shape under the name <strong>subagents</strong> — "a main agent coordinates specialized agents
-        as tools, with all routing flowing through the primary coordinator." Notice that phrasing: workers <em>as
-        tools</em>. To the supervisor, delegating to the billing agent looks exactly like calling any other tool. That's
-        a preview of today's biggest punchline.</p>
+        <p>This is such a common shape that LangGraph ships it prebuilt: the supervisor package gives you a constructor for
+        the hub, a factory for handoff tools, and plumbing helpers for moving messages between the hub and its
+        workers. LangChain 1.0's documentation describes the same shape under the name <strong>subagents</strong> — "a
+        main agent coordinates specialized agents as tools, with all routing flowing through the primary
+        coordinator." Notice that phrasing: workers <em>as tools</em>. To the supervisor, delegating to the billing
+        agent looks exactly like calling any other tool. That is a preview of today's biggest punchline.</p>
         <p>The supervisor's virtues are control and observability. There is exactly one place where routing happens, so
         there's one prompt to debug, one trace to read, one throat to choke. The cost is that the hub becomes a
         bottleneck — every worker result round-trips through the supervisor, burning latency and tokens — and the
@@ -136,22 +134,20 @@
         the refund agent is literally a call to <code>transfer_to_refund_agent</code>. Everything you learned in Week 3
         about tool calling — schemas, the loop, failure handling — applies unchanged. Multi-agent is tool calling with
         agents on the other end.</p>
-        <p>Because it's a tool, you can customize it like one. The SDK's <code>handoff()</code> function takes the
-        target <code>agent</code> plus <code>tool_name_override</code> and <code>tool_description_override</code> (what
-        the routing model sees), <code>on_handoff</code> (a callback to fire when the transfer happens — log it, prefetch
-        data), <code>input_type</code> (a schema for structured handoff arguments, so the escalation agent receives a
-        typed <em>reason</em>, not vibes), and <code>is_enabled</code> to switch routes on and off. The consequential one
-        is <code>input_filter</code>: it controls <strong>what conversation history the receiving agent sees</strong>.
-        By default the new agent sees the entire prior conversation; a filter can prune it — the SDK ships prebuilt
-        filters in <code>agents.extensions.handoff_filters</code>, like one that strips old tool calls. That single
-        parameter is context engineering applied to agent boundaries, and it foreshadows today's failure section:
-        what the next agent <em>can't see</em>, it can't respect.</p>
-        <p>Two more production details. Agents route better when they're told handoffs exist — the SDK ships
-        <code>RECOMMENDED_PROMPT_PREFIX</code> and <code>prompt_with_handoff_instructions()</code> in
-        <code>agents.extensions.handoff_prompt</code> precisely so you don't hand-roll that boilerplate. And there's an
-        opt-in beta, <code>nest_handoff_history</code> on <code>RunConfig</code>, that collapses the prior transcript
-        into a summary block on transfer instead of forwarding it raw — the framework authors converging on the same
-        window discipline you learned in Week 1.</p>
+        <p>Because it is a tool, you can customize it like one. The SDK's handoff constructor takes the target agent, plus
+        overrides for the tool's name and description — which is what the routing model actually reads — a callback
+        that fires when the transfer happens so you can log it or prefetch data, an input type so the receiving agent
+        gets a typed <em>reason</em> rather than vibes, and a switch to enable or disable the route.</p>
+        <p>The consequential one is the <strong>input filter</strong>: it controls <strong>what conversation history
+        the receiving agent sees</strong>. By default the new agent sees the entire prior conversation, and a filter
+        can prune it — the SDK ships prebuilt filters, including one that strips old tool calls. That single parameter
+        is context engineering applied to agent boundaries, and it foreshadows today's failure section: what the next
+        agent <em>cannot see</em>, it cannot respect.</p>
+        <p>Two more production details. Agents route better when they are told handoffs exist, so the SDK ships a
+        recommended prompt prefix and a helper that appends handoff instructions for you — no hand-rolled
+        boilerplate needed. And there is an opt-in beta that collapses the prior transcript into a summary block on
+        transfer instead of forwarding it raw: the framework authors converging on the same window discipline you
+        learned in Week 1.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: wire two OpenAI Agents SDK
         agents with a <code>transfer_to_refund_agent</code> handoff, send one message, and inspect the raw tool call —
         then re-run with an <code>input_filter</code> attached and diff exactly what history the receiving agent saw
@@ -355,11 +351,10 @@
         <li><code>is_enabled</code> — turn a route on/off without rewiring the graph</li>
         <li><code>nest_handoff_history</code> — with <code>RunConfig</code>, the opt-in beta that collapses prior transcript into a summary block on transfer</li>
       </ul>
-      <p style="margin:8px 0 0">The one to remember under pressure is <code>input_filter</code>: it is the context-window
-      lever at the agent boundary. Cognition's principle — share full traces, not fragments — is a policy you implement
-      (or violate) with exactly this parameter. And don't hand-roll routing prompts: use
-      <code>prompt_with_handoff_instructions()</code> / <code>RECOMMENDED_PROMPT_PREFIX</code> from
-      <code>agents.extensions.handoff_prompt</code>.</p>
+      <p style="margin:8px 0 0">The one to remember under pressure is the <strong>input filter</strong>: it is the
+      context-window lever at the agent boundary. Cognition's principle — share full traces, not fragments — is a
+      policy you implement, or violate, with exactly this parameter. And do not hand-roll routing prompts; use the
+      handoff-instruction helpers the SDK ships.</p>
     </div>
     <p style="margin-top:14px"><strong>How young is this stack? Check the version numbers.</strong> As of mid-2026:
     <code>langgraph-supervisor</code> is at <strong>0.0.31</strong> (2025-11-19) and <code>langgraph-swarm</code> at

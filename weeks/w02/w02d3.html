@@ -218,15 +218,15 @@
         cheaply with single-vector search, then re-rank the candidates with the late-interaction model</strong> — getting
         ColBERT's nuance without scanning the whole corpus token-by-token. Qdrant supports exactly this as a
         late-interaction rerank stage.</p>
-        <p>Finally, a grounding fact for the many clients who'd rather not add another database: <strong>you can do hybrid
-        natively in Postgres.</strong> The <strong>pgvector</strong> extension ships a <code>sparsevec</code> type for
-        keyword/lexical sparse vectors alongside the <code>halfvec</code> half-precision type — both introduced in pgvector
-        0.7.0 — which means you can keep a dense vector column and a sparse vector column <em>in the same table</em> and
-        run both halves of hybrid retrieval inside one database. pgvector 0.8.0 also added <strong>iterative index
-        scans</strong>, which prevent over-filtering by continuing to scan an HNSW or IVFFlat index until enough rows pass
-        your <code>WHERE</code>-clause filters — a real fix for the classic "my metadata filter starved the vector search"
-        bug. (Version hygiene matters: the current stable release as of mid-2026 is <strong>pgvector 0.8.3</strong>, so any
-        "we're on a current version" claim should point past 0.8.0.)</p>
+        <p>Finally, a grounding fact for the many clients who would rather not add another database: <strong>you can do
+        hybrid natively in Postgres.</strong> The <strong>pgvector</strong> extension ships a sparse-vector type for
+        keyword and lexical vectors alongside a half-precision type — both introduced in version 0.7.0 — which means
+        you can keep a dense vector column and a sparse vector column <em>in the same table</em> and run both halves
+        of hybrid retrieval inside one database. Version 0.8.0 also added <strong>iterative index scans</strong>,
+        which prevent over-filtering by continuing to scan the index until enough rows pass your
+        <code>WHERE</code>-clause filters — a real fix for the classic "my metadata filter starved the vector search"
+        bug. Version hygiene matters: the current stable release as of mid-2026 is <strong>0.8.3</strong>, so any
+        "we're on a current version" claim should point past 0.8.0.</p>
         <p>Step back and you have a portable mental model that survives whichever vendor a client has chosen. Whether it's
         Pinecone's cascading retrieval, Weaviate's rankedFusion, Qdrant's server-side hybrid with ColBERT rerank, or
         pgvector columns in plain Postgres, the <em>shape</em> is identical: <strong>run dense and sparse, fuse them into a

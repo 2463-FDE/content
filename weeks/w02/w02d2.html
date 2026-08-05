@@ -135,15 +135,13 @@
         errors out. Second, in most vector stores the metric is <strong>fixed at index creation</strong> and cannot be
         changed afterward. Choosing it is a one-way door; switching later means rebuilding the index. So this is a
         decision you make deliberately on day one, not something you tune later.</p>
-        <p>Every store exposes its own menu. <strong>Pinecone</strong> offers cosine, Euclidean (squared), and dotproduct,
-        chosen at index creation. <strong>Chroma</strong> supports <code>l2</code> (squared Euclidean), <code>cosine</code>,
-        and <code>ip</code> (inner product) — and its <em>default space is <code>l2</code></em>, which cannot be changed
-        after the index is created, so if you wanted cosine you had to say so up front. <strong>pgvector</strong> is the
-        most generous, exposing six distance operators: <code>&lt;-&gt;</code> (L2), <code>&lt;#&gt;</code> (negative
-        inner product), <code>&lt;=&gt;</code> (cosine), <code>&lt;+&gt;</code> (L1), and the binary
-        <code>&lt;~&gt;</code> (Hamming) and <code>&lt;%&gt;</code> (Jaccard). The defaults differ across stores, so
-        "we used cosine in dev, why are the results different in the new database?" usually means somebody accepted a
-        different default metric without noticing.</p>
+        <p>Every store exposes its own menu of distance metrics. <strong>Pinecone</strong> offers cosine, squared Euclidean
+        and dot product, chosen when the index is created. <strong>Chroma</strong> supports squared Euclidean, cosine
+        and inner product — and its <em>default is squared Euclidean</em>, which cannot be changed after the index
+        exists, so if you wanted cosine you had to say so up front. <strong>pgvector</strong> is the most generous,
+        exposing six distance operators: L2, negative inner product, cosine, L1, and binary Hamming and Jaccard. The
+        defaults differ across stores, so "we used cosine in dev, why are the results different in the new database?"
+        usually means somebody accepted a different default metric without noticing.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -155,14 +153,13 @@
         Navigable Small World. It builds a multilayer graph you can navigate quickly, giving <strong>high recall and fast
         queries</strong>. The price: it is <strong>slower to build</strong> and uses <strong>more memory</strong> than the
         alternatives.</p>
-        <p>HNSW behavior is governed by three knobs worth memorizing because they show up in every store. <code>m</code>
-        is how many neighbor links each node keeps (graph density). <code>ef_construction</code> is how hard the index
-        works while building (higher = better graph, slower build). <code>ef_search</code> is how hard it works at query
-        time (higher = better recall, slower queries). In <strong>pgvector</strong> the defaults are <code>m = 16</code>
-        and <code>ef_construction = 64</code>, with query-time <code>hnsw.ef_search</code> defaulting to
-        <strong>40</strong>. <strong>Chroma</strong> uses the same family of knobs with different names and defaults:
-        <code>ef_construction</code> defaults to <strong>100</strong>, <code>ef_search</code> to <strong>100</strong>, and
-        <code>max_neighbors</code> (its <code>m</code>) to <strong>16</strong>.</p>
+        <p>HNSW behaviour is governed by three knobs worth memorizing, because they show up in every store. The first is
+        how many neighbour links each node keeps, which sets graph density. The second is how hard the index works
+        while building — higher means a better graph and a slower build. The third is how hard it works at query time
+        — higher means better recall and slower queries. In <strong>pgvector</strong> the build defaults are 16 links
+        and a construction effort of 64, with query-time effort defaulting to <strong>40</strong>.
+        <strong>Chroma</strong> uses the same family of knobs with different names: construction effort defaults to
+        <strong>100</strong>, search effort to <strong>100</strong>, and maximum neighbours to <strong>16</strong>.</p>
         <p>The practical reading: these are your recall-versus-speed dials. If a client's retrieval is "fast but
         occasionally misses the obvious document," raising <code>ef_search</code> trades a little query latency for better
         recall <em>without</em> re-embedding anything. If index <em>builds</em> are painfully slow on a large corpus,
@@ -202,11 +199,10 @@
         indexes for semantic search, sparse indexes for lexical search, and document records that mix dense + sparse +
         full-text ranking.</p>
         <p>Now the gotcha that connects today's first choice to its last. In pgvector there are <em>two different
-        limits</em> and they're far apart. The <strong>storage</strong> limit — how many dimensions a column can hold —
-        is generous: a <code>vector</code> column holds up to 16,000 dimensions (and <code>halfvec</code> likewise to
-        16,000). But the <strong>index</strong> limit — the max dimensions HNSW or IVFFlat can actually index — is much
-        lower: a <code>vector</code> column can only be indexed up to <strong>2,000</strong> dimensions, while
-        <code>halfvec</code> (half-precision) can be indexed up to <strong>4,000</strong>.</p>
+        limits</em> and they are far apart. The <strong>storage</strong> limit — how many dimensions a column can hold
+        — is generous at 16,000, for both full-precision and half-precision columns. But the <strong>index</strong>
+        limit, the maximum number of dimensions the index types can actually cover, is much lower: 2,000 dimensions
+        for a full-precision <code>vector</code> column, and 4,000 for a half-precision one.</p>
         <p>Put those together with a <strong>high-dimensional model</strong> — say a raw 3,072-dim embedding — and you get
         the classic trap: the vector is <strong>fully storable</strong> in a <code>vector</code> column (3,072 is well under
         16,000), so inserts succeed and everything looks fine — but it <strong>exceeds the 2,000-dim index limit</strong>,
@@ -331,10 +327,10 @@ CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
     alone. A Titan V2 vector cut to <b>512</b> dims keeps ~<b>99%</b> of its 1,024-dim accuracy, and <b>256</b> dims
     ~<b>97%</b> — a 4× smaller vector with no extra inference cost. Caveat: request the size via the
     <code>dimensions</code> parameter, or <b>re-normalize</b> if you cut the vector by hand.</p>
-    <p style="margin-top:14px"><strong>HNSW defaults to keep handy.</strong> pgvector: <code>m = 16</code>,
-    <code>ef_construction = 64</code>, <code>ef_search = 40</code>. Chroma: <code>ef_construction = 100</code>,
-    <code>ef_search = 100</code>, <code>max_neighbors = 16</code>. Higher <code>ef_search</code> = better recall, slower
-    queries — tunable at query time without re-embedding.</p>
+    <p style="margin-top:14px"><strong>HNSW defaults to keep handy.</strong> pgvector builds with 16 links per node
+    and a construction effort of 64, and searches with an effort of 40. Chroma builds with a construction effort of
+    100 and 16 maximum neighbours, and searches with an effort of 100. Raising the search effort buys recall at the
+    cost of query latency — and it is tunable at query time, without re-embedding anything.</p>
   </div>
 </div>
 

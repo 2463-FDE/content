@@ -56,31 +56,29 @@
         wrong problem, or solves the right problem as one monolithic change nobody can review. The fix is not a better
         spec. It's recognizing that between spec and code there is a <strong>pipeline of intermediate artifacts</strong>,
         and each artifact is a checkpoint where a human reviews and redirects before more work piles on top.</p>
-        <p>GitHub's <strong>Spec Kit</strong> makes the pipeline explicit: <strong>Spec → Plan → Tasks →
-        Implement</strong>, driven by <code>/speckit.specify</code>, <code>/speckit.plan</code>,
-        <code>/speckit.tasks</code>, and <code>/speckit.implement</code>. The plan step reads the feature requirements,
-        user stories, and acceptance criteria and converts business needs into concrete technical decisions — with the
-        <em>rationale documented</em>, not just the decision. In Spec Kit's own framing, decomposing this way "creates
-        checkpoints where humans review and redirect."</p>
-        <p>AWS's <strong>Kiro</strong> arrives at exactly the same shape from a different direction. A Kiro spec is
-        three files: <code>requirements.md</code> captures user stories and acceptance criteria in structured notation;
-        <code>design.md</code> documents the technical architecture, sequence diagrams, and implementation
-        considerations; <code>tasks.md</code> is a detailed implementation plan of discrete, trackable tasks. Two
-        independent tools, one convergent lesson: <strong>requirements, design, and tasks are separate artifacts with
-        separate review moments</strong>. When you see the same structure emerge independently in competing tools, treat
-        it as a signal about the shape of the underlying problem — not a vendor quirk. Your job today is to internalize
-        that shape so you can produce it with any tool, or with none.</p>
+        <p>GitHub's <strong>Spec Kit</strong> makes the pipeline explicit — <strong>Spec → Plan → Tasks →
+        Implement</strong> — with one command per stage. The plan step reads the feature requirements, the user
+        stories and the acceptance criteria, and converts business needs into concrete technical decisions, with the
+        <em>rationale documented</em> rather than just the decision. In Spec Kit's own framing, decomposing this way
+        "creates checkpoints where humans review and redirect."</p>
+        <p>AWS's <strong>Kiro</strong> arrives at exactly the same shape from a different direction. A Kiro spec is three
+        files: a requirements file capturing user stories and acceptance criteria in structured notation, a design
+        file documenting the technical architecture, sequence diagrams and implementation considerations, and a tasks
+        file laying out discrete, trackable work. Two independent tools, one convergent lesson: <strong>requirements,
+        design, and tasks are separate artifacts with separate review moments</strong>. When the same structure emerges
+        independently in competing tools, treat it as a signal about the shape of the underlying problem, not a vendor
+        quirk. Your job today is to internalize that shape so you can produce it with any tool, or with none.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="1">
         <div class="tag">Structure</div>
         <h2>A plan has phases — and gates at the boundaries</h2>
-        <p>So what does the "Plan" artifact actually contain? Not a flat to-do list. Spec Kit's plan template structures
-        it as ordered phases: <strong>Phase 0 — Research</strong> (unknowns get resolved into <code>research.md</code>
-        before anything is designed), <strong>Phase 1 — Design &amp; contracts</strong> (the data model, API contracts,
-        and a quickstart land as <code>data-model.md</code>, <code>contracts/</code>, <code>quickstart.md</code>), and
-        <strong>Phase 2 — Task generation</strong> (the design is decomposed into <code>tasks.md</code>). Research
-        before design, design before tasks — each phase produces artifacts the next phase consumes.</p>
+        <p>So what does the "Plan" artifact actually contain? Not a flat to-do list. Spec Kit's plan template structures it
+        as ordered phases. <strong>Phase 0 — Research:</strong> unknowns get resolved into a research document before
+        anything is designed. <strong>Phase 1 — Design and contracts:</strong> the data model, the API contracts and a
+        quickstart all land as their own files. <strong>Phase 2 — Task generation:</strong> the design is decomposed
+        into the task list. Research before design, design before tasks — each phase produces artifacts the next phase
+        consumes.</p>
         <p>The part beginners skip is the <strong>gate</strong>. The template's Constitution Check — the project's
         standing engineering rules — is phrased as a hard gate: <em>"GATE: Must pass before Phase 0 research. Re-check
         after Phase 1 design."</em> A gate is a named moment where the plan must demonstrate something before the next

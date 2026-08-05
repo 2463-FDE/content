@@ -235,12 +235,12 @@ resp = model.call(prompt)"
         types, required fields, allowed enum values. When the API can enforce the schema, a whole class of "the model
         returned something weird" bugs moves from runtime surprise to impossible.</p>
         <p>A <strong>schema</strong> is just a precise, machine-readable description of the output shape — usually JSON
-        Schema. It says: there is a field <code>category</code> that must be one of
-        <code>["billing","technical","account"]</code>; a field <code>confidence</code> that's a number; and
-        <code>category</code> is required. Writing the schema first is a powerful design act, because <strong>it forces you
-        to decide exactly what you need before you write a word of prompt.</strong> A good schema does half the
-        prompt-engineering for you: an enum field can't come back as freeform text, a required field forces the model to
-        commit, a nullable field gives it a sanctioned way to say "missing" instead of inventing.</p>
+        Schema. It says: there is a category field that must be one of billing, technical or account; a confidence
+        field that is a number; and the category is required. Writing the schema first is a powerful design act,
+        because <strong>it forces you to decide exactly what you need before you write a word of prompt.</strong> A
+        good schema does half the prompt engineering for you: an enum field cannot come back as freeform text, a
+        required field forces the model to commit, and a nullable field gives it a sanctioned way to say "missing"
+        instead of inventing something.</p>
         <p>Two FDE cautions. First, <strong>structured does not mean correct.</strong> The schema guarantees the
         <em>shape</em> — that you got a valid date string — not the <em>truth</em> — that it's the right date. You still
         need grounding and eval for correctness; schema only kills the parsing failures. Second, even with strong schema

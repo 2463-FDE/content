@@ -119,19 +119,19 @@
         <div class="tag">Tool invocation</div>
         <h2>Discover with tools/list, act with tools/call</h2>
         <p>Because tools are model-controlled, the model first has to <em>know what exists</em>. Discovery is a single
-        JSON-RPC method: the client sends a <code>tools/list</code> request (paginated with a cursor, so a server
-        exposing hundreds of tools returns them in pages) and gets back an array of <strong>Tool objects</strong>. Each
-        Tool carries a <code>name</code> (its unique id), a <code>description</code> (which the model reads to decide
-        when to use it — write it like a prompt, because it is one), and an <code>inputSchema</code> that "MUST be a
-        valid JSON Schema object" (defaulting to JSON Schema 2020-12). Optionally it carries a human-friendly
-        <code>title</code>, an <code>outputSchema</code>, and <code>annotations</code> (hints like "read-only" or
-        "destructive"). If the available tools change at runtime, a server that declared <code>listChanged</code>
-        <em>should</em> send a <code>notifications/tools/list_changed</code> so the client re-fetches.</p>
-        <p>To actually run one, the client sends <code>tools/call</code> with the tool's <code>name</code> and an
-        <code>arguments</code> object that satisfies the input schema. That's the whole loop: list to discover, call to
-        act. The Tool's schema is what makes this safe-ish to automate — the model can only fill in arguments the schema
-        allows, and a client can validate the arguments before anything executes. The description and schema together
-        are your primary lever on tool <em>quality</em>: a vague description gets a tool called at the wrong moment; a
+        JSON-RPC method: the client sends a <code>tools/list</code> request — paginated with a cursor, so a server
+        exposing hundreds of tools returns them in pages — and gets back an array of <strong>Tool objects</strong>.
+        Each one carries three required fields: a unique name, a description that the model reads to decide when to
+        use it, and an input schema that "MUST be a valid JSON Schema object." Write the description like a prompt,
+        because that is exactly what it is. Optional extras include a human-friendly title, an output schema, and
+        annotations that hint at behaviour such as read-only or destructive. If the available tools change at runtime,
+        a server that declared support for change notifications <em>should</em> tell the client to re-fetch the
+        list.</p>
+        <p>To actually run one, the client sends a <code>tools/call</code> request with the tool's name and an arguments
+        object that satisfies the input schema. That is the whole loop: list to discover, call to act. The schema is
+        what makes this safe-ish to automate — the model can only fill in arguments the schema allows, and a client
+        can validate those arguments before anything executes. The description and the schema together are your
+        primary lever on tool <em>quality</em>: a vague description gets a tool called at the wrong moment, and a
         loose schema gets it called with garbage. Both are FDE tuning surface.</p>
         <div class="ix-mcp"></div>
       </section>
@@ -139,12 +139,12 @@
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Results &amp; errors</div>
         <h2>Two kinds of error, and why the difference matters</h2>
-        <p>A tool result carries a <code>content</code> array — one or more typed items: text, image, audio, a
-        <code>resource_link</code>, or an embedded resource. For machine-readable results, a tool can also return
-        <code>structuredContent</code> as a JSON object; if it declared an <code>outputSchema</code>, then servers
-        "MUST provide structured results that conform to this schema" and clients "SHOULD validate structured results
-        against this schema." (For backwards compatibility, a tool returning structured content should <em>also</em>
-        serialize it into a text block, so older clients still see something.)</p>
+        <p>A tool result carries a <strong>content array</strong> — one or more typed items: text, an image, audio, a link
+        to a resource, or an embedded resource. For machine-readable results a tool can also return a structured
+        content object, and if it declared an output schema then servers "MUST provide structured results that conform
+        to this schema" while clients "SHOULD validate structured results against this schema." For backwards
+        compatibility, a tool returning structured content should <em>also</em> serialize it into a text block, so
+        older clients still see something.</p>
         <p>Now the part that trips up everyone the first time, and the reason it's worth a whole step: MCP has
         <strong>two distinct error channels</strong>, and choosing the wrong one quietly breaks agent behavior.
         <strong>Protocol errors</strong> — unknown tool, malformed request, server crash — are standard JSON-RPC
@@ -191,11 +191,11 @@
         "uses a capability-based negotiation system where clients and servers explicitly declare their supported
         features during initialization. Capabilities determine which protocol features and primitives are available."
         The rule is strict and simple: <strong>a feature is only usable if it was declared.</strong></p>
-        <p>Concretely: a server that wants to offer tools declares the <code>tools</code> capability at
-        <code>initialize</code> time — for example <code>{"capabilities":{"tools":{"listChanged":true}}}</code>, which
-        also promises it will send list-changed notifications. A server that wants clients to subscribe to resource
-        updates must declare subscription support. A client that will honor <em>sampling</em> requests must declare that
-        it can. If it wasn't declared in the handshake, the other side must not use it — no probing, no surprises.</p>
+        <p>Concretely: a server that wants to offer tools declares the tools capability during initialization, and if it
+        also promises to send list-changed notifications it says so in that same declaration. A server that wants
+        clients to subscribe to resource updates must declare subscription support. A client that will honour
+        <em>sampling</em> requests must declare that it can. If it was not declared in the handshake, the other side
+        must not use it — no probing, no surprises.</p>
         <p>Why is this the quietly brilliant part? Because it means "features can be added to servers and clients
         progressively" without breaking anyone. A brand-new server capability that an old client never declared support
         for simply doesn't get exercised against that client; both sides degrade gracefully to the intersection of what
@@ -233,16 +233,16 @@
       <section class="step extra" data-diagram="0" data-step="8">
         <div class="tag">Roadmap · not yet stable</div>
         <h2>Where MCP is heading — and the mindset that outlasts it</h2>
-        <p>Teach today against <strong>2025-11-25</strong>, but know what's coming so you don't design into a corner. The
-        next revision — an RC locked 2026-05-21, publishing <strong>2026-07-28</strong> — reorients MCP around a
-        <strong>stateless HTTP core</strong>. The roadmap's top priority is transport scalability: today's "stateful
-        sessions fight with load balancers, horizontal scaling requires workarounds," so the RC moves toward statelessness
-        plus <code>.well-known</code> capability discovery. It also adds an <strong>Extensions</strong> framework,
-        <strong>Tasks</strong> for long-running work (with retry/expiry semantics under an "Agent Communication" banner),
-        and <strong>MCP Apps</strong> (server-rendered UI). A tell that this is already in motion: even the 2025-11-25 Tool
-        object carries an optional <code>execution.taskSupport</code> field (<code>forbidden</code> default /
-        <code>optional</code> / <code>required</code>), foreshadowing Tasks. Treat all of it as roadmap, not shippable
-        API — pin your code to a dated revision and flag the RC as "coming, not yet stable."</p>
+        <p>Teach today against the <strong>2025-11-25</strong> revision, but know what is coming so you do not design into
+        a corner. The next revision — a release candidate locked in May 2026, publishing <strong>2026-07-28</strong> —
+        reorients the protocol around a <strong>stateless HTTP core</strong>. The roadmap's top priority is transport
+        scalability: today's "stateful sessions fight with load balancers, horizontal scaling requires workarounds,"
+        so the candidate moves toward statelessness plus well-known-URL capability discovery. It also adds an
+        <strong>Extensions</strong> framework, <strong>Tasks</strong> for long-running work with retry and expiry
+        semantics, and <strong>MCP Apps</strong> for server-rendered UI. A tell that this is already in motion: even
+        the current Tool object carries an optional task-support field, foreshadowing Tasks. Treat all of it as
+        roadmap rather than shippable API — pin your code to a dated revision and flag the candidate as coming, not
+        yet stable.</p>
         <p>The through-line from yesterday holds. Day 1 said: diagnose the <em>window</em> before you blame the model.
         Today says: diagnose the <em>protocol boundary</em> before you blame the tool. Who controls this primitive — model,
         app, or user? Was this capability actually declared at init? Is this an <code>isError</code> the model can
@@ -327,8 +327,9 @@
         <li><code>&nbsp;"capabilities":{"tools":{"listChanged":true}}}}</code></li>
       </ul>
     </div>
-    <p style="margin-top:14px"><strong>2 · Discover, then call.</strong> <code>tools/list</code> returns Tool objects
-    (name + <code>inputSchema</code>); <code>tools/call</code> runs one with <code>arguments</code>.</p>
+    <p style="margin-top:14px"><strong>2 · Discover, then call.</strong> A <code>tools/list</code> request returns
+    Tool objects, each with a name and an input schema; a <code>tools/call</code> request runs one with an arguments
+    object.</p>
     <div class="model-answer show">
       <div class="ma-k">tools/call — the request</div>
       <ul class="deliv-list">

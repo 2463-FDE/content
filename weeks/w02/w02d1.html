@@ -192,21 +192,21 @@
         potentially millions of entries. That's a <strong>vector store</strong>, and you'll meet two common shapes of it
         in the field: a vector extension on a database you already run, and a purpose-built vector database.</p>
         <p><strong>pgvector</strong> turns Postgres into a vector store — attractive because the client already operates
-        Postgres and doesn't want a new system to babysit. It offers two approximate-nearest-neighbour index types:
-        <strong>HNSW</strong>, which gives a better speed/recall tradeoff, needs no training step, and can even be built
-        on an empty table; and <strong>IVFFlat</strong>. You create one like
-        <code>CREATE INDEX ON items USING hnsw (embedding vector_l2_ops) WITH (m = 16, ef_construction = 64);</code>, and
-        you choose a distance operator to match your embeddings — <code>&lt;-&gt;</code> for L2, <code>&lt;=&gt;</code>
-        for cosine, <code>&lt;#&gt;</code> for negative inner product. Crucially, <strong>without an index pgvector falls
-        back to exact search</strong> — correct, but slow at scale; the ANN index is what makes it fast. That distinction
-        — exact vs approximate — is one you'll explain to clients often.</p>
-        <p><strong>Chroma</strong> represents the purpose-built option, and it's notable for how much it does for you. You
-        attach an <strong>embedding function to a collection</strong>, and Chroma applies it transparently on
-        <code>add</code>, <code>update</code>, <code>upsert</code>, and <code>query</code> — you hand it text, it handles
-        the vectors. If you don't specify a function it uses a sensible default: <code>DefaultEmbeddingFunction</code>,
-        which is Sentence Transformers <strong>all-MiniLM-L6-v2</strong>, a <strong>384-dimension</strong> model that
-        runs locally with no API key. That makes it excellent for prototyping — but note the dimension gap with Titan V2
-        above, and remember the don't-mix-embedders rule when you graduate from prototype to production.</p>
+        Postgres and does not want a new system to babysit. It offers two approximate-nearest-neighbour index types:
+        <strong>HNSW</strong>, which gives a better speed-versus-recall tradeoff, needs no training step, and can even
+        be built on an empty table; and <strong>IVFFlat</strong>. You create one with a single statement, and you
+        choose a distance operator to match your embeddings — one each for L2, cosine and negative inner product:</p>
+        <p style="margin:6px 0 0"><code>CREATE INDEX ON items USING hnsw (embedding vector_l2_ops) WITH (m = 16, ef_construction = 64);</code></p>
+        <p>Crucially, <strong>without an index pgvector falls back to exact search</strong> — correct, but slow at
+        scale. The approximate index is what makes it fast, and that distinction, exact versus approximate, is one you
+        will explain to clients often.</p>
+        <p><strong>Chroma</strong> represents the purpose-built option, and it is notable for how much it does for you. You
+        attach an <strong>embedding function to a collection</strong>, and Chroma applies it transparently on every
+        add, update, upsert and query — you hand it text, it handles the vectors. If you do not specify a function it
+        uses a sensible default: Sentence Transformers' <strong>all-MiniLM-L6-v2</strong>, a
+        <strong>384-dimension</strong> model that runs locally with no API key. That makes it excellent for
+        prototyping — but note the dimension gap with the Titan model above, and remember the don't-mix-embedders rule
+        when you graduate from prototype to production.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -291,12 +291,12 @@
     <p><strong>When NOT to build RAG.</strong> If your whole corpus fits the window — Anthropic's rule of thumb is under
     ~200,000 tokens, roughly 500 pages — skip retrieval and paste it all in. RAG and chunking earn their complexity only
     once the corpus outgrows the window. Always size the corpus before you build a pipeline.</p>
-    <p><strong>The pgvector index, decoded.</strong>
-    <code>CREATE INDEX ON items USING hnsw (embedding vector_l2_ops) WITH (m = 16, ef_construction = 64);</code> — HNSW is
-    the ANN index type (better speed/recall than IVFFlat, no training step, buildable on an empty table); <code>m</code>
-    and <code>ef_construction</code> trade build time and memory for recall. Match the operator class to your distance:
-    <code>&lt;-&gt;</code> L2, <code>&lt;=&gt;</code> cosine, <code>&lt;#&gt;</code> negative inner product. With no index,
-    pgvector does exact (slow) search.</p>
+    <p><strong>The pgvector index, decoded.</strong> HNSW is the approximate index type — better speed and recall than
+    IVFFlat, no training step, and buildable on an empty table. The two build parameters, the neighbour-link count and
+    the construction effort, trade build time and memory for recall. Match the operator class in the index to the
+    distance you actually query with, whether that is L2, cosine or negative inner product. And with no index at all,
+    pgvector falls back to exact — that is, slow — search.</p>
+    <p style="margin:6px 0 0"><code>CREATE INDEX ON items USING hnsw (embedding vector_l2_ops) WITH (m = 16, ef_construction = 64);</code></p>
     <div class="model-answer show">
       <div class="ma-k">Worked example — chunk + overlap math</div>
       <ul class="deliv-list">

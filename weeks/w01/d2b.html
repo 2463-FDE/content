@@ -345,13 +345,13 @@ except Exception:
 def backoff(attempt, base, cap):
     raw = min(cap, base * (2 ** attempt))    # exponential: 1,2,4,8...
     return random.uniform(0, raw)            # full jitter — spread the herd</code></pre>
-    <p style="margin:8px 0 0">Five things make it production-grade: it retries <strong>only transient</strong> errors
-    (4xx falls straight through); it honors the server's <code>Retry-After</code> when given; backoff is
-    <strong>exponential with jitter</strong> so simultaneous failures don't re-spike together; the same
-    <strong>idempotency key</strong> rides every attempt so at most one real execution happens; and every path that isn't
-    a clean result lands in <code>fallback()</code>. Worst-case wait ≈ <code>timeout × max_tries</code> plus the backoff
-    delays — set those two numbers together, with the user's experience in mind. This is the seam from Part 1: swap the
-    model inside <code>model.call</code> and the whole resilient wrapper keeps working.</p>
+    <p style="margin:8px 0 0">Five things make it production-grade: it retries <strong>only transient</strong> errors,
+    so client errors fall straight through; it honours the server's <code>Retry-After</code> header when one is given;
+    backoff is <strong>exponential with jitter</strong>, so simultaneous failures do not re-spike together; the same
+    <strong>idempotency key</strong> rides every attempt, so at most one real execution happens; and every path that
+    is not a clean result lands in the fallback. Worst-case wait is roughly the timeout times the retry count, plus
+    the backoff delays — set those two numbers together, with the user's experience in mind. This is the seam from
+    Part 1: swap the model inside the call and the whole resilient wrapper keeps working.</p>
   </div>
 </div>
 

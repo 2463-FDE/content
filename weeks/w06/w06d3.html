@@ -167,12 +167,12 @@
         <div class="tag">The venue play</div>
         <h2>Copilot CLI, and GitHub hosting its rivals</h2>
         <p>Copilot's second front is the terminal. <strong>Copilot CLI</strong> is, structurally, a Claude Code-shaped
-        product: conversational and autonomous modes, a plan mode, <code>@</code> file references, image and PDF
-        attachments, scheduled prompts (<code>/every</code>, <code>/after</code>), custom instructions and custom agents.
-        Its permission posture is explicit: the agent "may attempt to read, modify, and execute files" only after you
-        grant explicit folder trust, with one-time versus session-wide approvals per action. It ships pre-configured with
-        GitHub's MCP server and extends via <code>/mcp add</code>. Meanwhile in VS Code, agent sessions do multi-file
-        work, run multiple sessions in parallel, and a dedicated Agents window orchestrates tasks across projects.</p>
+        product: conversational and autonomous modes, a plan mode, file references with <code>@</code>, image and PDF
+        attachments, scheduled prompts, custom instructions and custom agents. Its permission posture is explicit —
+        the agent "may attempt to read, modify, and execute files" only after you grant explicit folder trust, with
+        one-time versus session-wide approvals per action. It ships pre-configured with GitHub's own tool server and
+        extends with a command for adding more. Meanwhile in VS Code, agent sessions do multi-file work, run several
+        sessions in parallel, and a dedicated Agents window orchestrates tasks across projects.</p>
         <p>Then comes the move that should make you sit up: GitHub now hosts <em>competitors' agents</em> as first-class
         citizens. From GitHub's Agents tab — and from issues, PR comments via <code>@AGENT_NAME</code>, and mobile — you
         can assign work to <strong>Anthropic Claude</strong> or <strong>OpenAI Codex</strong>, not just Copilot. Their

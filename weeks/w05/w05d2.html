@@ -57,12 +57,12 @@
         doing that?"</em> If you're on Meridian, it's <em>"Customers want to pay online — card and ACH. Let's just add
         a payment form so they can self-serve. We've had a few 'I was charged twice' complaints, but I think people are
         just confused."</em> Both are friendly, specific, and actionable. Both name the fix. Everyone nods.</p>
-        <p>Now open what came attached. Riverbend's export has two rows with <code>slot_id=88231</code>, both
-        <code>status=confirmed</code>, created <strong>400 milliseconds apart</strong> for different patients. The
-        server log shows a <code>POST /appointments</code> that took 2.11 seconds, then a second POST for the same slot
-        — both returned 201. The booking handler reads <code>if not slot_taken(slot_id): insert_appointment(...)</code>
-        with no transaction, and the DDL has no <code>UNIQUE</code> on <code>slot_id</code>. Meridian's pile is the
-        same story in a different currency: one retried <code>POST /payments</code>, two rows.</p>
+        <p>Now open what came attached. Riverbend's export has two rows for the same slot id, both marked confirmed,
+        created <strong>400 milliseconds apart</strong> for different patients. The server log shows a booking request
+        that took 2.11 seconds, then a second request for the same slot — both returned success. The booking handler
+        checks whether the slot is taken and then inserts, with no transaction around the pair, and the table
+        definition has no uniqueness constraint on the slot. Meridian's pile is the same story in a different
+        currency: one retried payment request, two rows.</p>
         <p>Nothing in either pile is a calendar bug or a missing form. The artifacts describe a <strong>retry that
         produced a duplicate</strong>, and the client has already told you the cause. Here is the day's whole game: the
         ask is <em>data about what the client believes</em>, and the handover is <em>data about what is true</em>. When
@@ -252,13 +252,13 @@
         <em>Then</em> exactly one succeeds. Write those and the double-book cannot silently regress. If you can't write
         the Gherkin, your EARS rule wasn't verifiable; if you can't state the rule, your scenarios are anecdotes.
         Checking each against the other is the cheapest requirements review you will ever run.</p>
-        <p>Tomorrow you'll meet the tools that encode this chain — Spec Kit's
-        <code>specify → clarify → plan</code>, Kiro's <code>requirements.md → design.md → tasks.md</code> — enforcing
-        the same gate this reading does: clarify <em>before</em> plan. But notice the one thing none of them does for
-        you. <code>/speckit.clarify</code> finds the ambiguities <em>in the spec you wrote</em>. It will never tell you
-        the spec is about a calendar widget when the defect is a race in the booking handler. Reframing stays yours.
-        Everyone at the client has the tooling now; the edge is being the person who notices the ask and the evidence
-        disagree, and says so with a smaller proposal in hand.</p>
+        <p>Tomorrow you'll meet the tools that encode this chain — Spec Kit's specify-then-clarify-then-plan sequence,
+        Kiro's requirements-design-tasks trio — enforcing the same gate this reading does: clarify <em>before</em>
+        plan. But notice the one thing none of them does for you. A clarification command finds the ambiguities
+        <em>in the spec you wrote</em>. It will never tell you the spec is about a calendar widget when the defect is
+        a race condition in the booking handler. Reframing stays yours. Everyone at the client has the tooling now;
+        the edge is being the person who notices that the ask and the evidence disagree, and says so with a smaller
+        proposal in hand.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a reframe-to-spec sandbox —
         feed in this week's client ask plus its handover artifacts and watch an agent propose a reframe, draft EARS
         requirements with <code>[NEEDS CLARIFICATION]</code> markers, and regenerate the Gherkin as you answer its
@@ -337,12 +337,12 @@
     <p><strong>The ask.</strong> <em>"Our scheduling keeps double-booking the same slot… the team's pretty sure it's a
     glitch in the calendar widget, so could you just fix the calendar?"</em> Friendly, specific, and it names the fix.
     Run the ladder.</p>
-    <p><strong>1 · Reframe (XY).</strong> The attached export has two <code>status=confirmed</code> rows for
-    <code>slot_id=88231</code>, 400 ms apart, different patients. The server log shows a 2.11-second
-    <code>POST /appointments</code> followed by a second POST for the same slot — both 201. The handler is
-    <code>if not slot_taken(slot_id): insert_appointment(...)</code>: no transaction, and the DDL has no
-    <code>UNIQUE</code>. So Y is "the calendar widget renders a stale slot"; X is "a retried request created a second
-    booking, and two concurrent requests can both pass the check." Nothing in the evidence points at the UI.</p>
+    <p><strong>1 · Reframe (XY).</strong> The attached export has two confirmed rows for the same slot, 400 ms apart,
+    different patients. The server log shows a 2.11-second booking request followed by a second request for that slot,
+    both succeeding. The handler checks whether the slot is taken and then inserts, with no transaction and no
+    uniqueness constraint behind it. So Y is "the calendar widget renders a stale slot"; X is "a retried request
+    created a second booking, and two concurrent requests can both pass the check." Nothing in the evidence points at
+    the UI.</p>
     <p><strong>2 · Name it in their currency.</strong> Not "a concurrency defect in the booking path" — that sentence
     is correct and useless in the room. Say: <em>double-books sell the same clinician hour twice, bill two patients for
     one appointment, and cost more trust than they cost money.</em> Then the proposal, deliberately smaller than the
@@ -360,12 +360,12 @@
       <b>MUST/SHALL</b> — not preferences. A companion "the booking UI SHOULD disable the confirm button after first
       submit" is genuinely a SHOULD: helpful, and no longer load-bearing once the constraint exists.</p>
       <div class="ma-k" style="margin-top:12px">5 · Gherkin (the two test vectors the packet asks for)</div>
-      <p style="margin:6px 0 0"><code>Given</code> a confirmed booking for slot 88231 with idempotency key K<br>
-      <code>When</code> the identical request is received again<br>
-      <code>Then</code> the original confirmation is returned <code>And</code> no second appointment row exists.</p>
-      <p style="margin:6px 0 0"><code>Given</code> two booking requests for slot 88231 arriving 400 ms apart<br>
-      <code>When</code> both are processed<br>
-      <code>Then</code> exactly one is confirmed <code>And</code> the other receives a slot-unavailable response.</p>
+      <p style="margin:6px 0 0"><b>Given</b> a confirmed booking for slot 88231 with idempotency key K<br>
+      <b>When</b> the identical request is received again<br>
+      <b>Then</b> the original confirmation is returned <b>And</b> no second appointment row exists.</p>
+      <p style="margin:6px 0 0"><b>Given</b> two booking requests for slot 88231 arriving 400 ms apart<br>
+      <b>When</b> both are processed<br>
+      <b>Then</b> exactly one is confirmed <b>And</b> the other receives a slot-unavailable response.</p>
     </div>
     <p style="margin-top:14px"><strong>What it cost, and what it bought.</strong> The reframe took one careful read of
     the handover. It replaced a calendar rewrite with two constraints, and it turned an unfalsifiable complaint into

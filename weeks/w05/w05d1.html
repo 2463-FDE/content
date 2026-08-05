@@ -130,28 +130,25 @@
         Kit</strong>, the open-source toolkit that has become the reference implementation (v0.12.3 as of this writing,
         with 30+ agent integrations — Claude Code, Copilot, Gemini CLI, Cursor, and friends). Spec Kit structures work
         as <strong>four gated phases</strong>, each with one job:</p>
-        <p><strong>Specify</strong> captures goals and user journeys — the <em>what</em> and the <em>why</em>, no
-        technology choices. <strong>Plan</strong> turns that into architecture: stack, constraints, integration points,
-        the <em>how</em>. <strong>Tasks</strong> decomposes the plan into small, individually reviewable units of work.
-        <strong>Implement</strong> is the only phase where the agent writes production code — one task at a time.
-        Each phase emits a Markdown artifact (<code>spec.md</code> → <code>plan.md</code> → <code>tasks.md</code>), and
-        that artifact is the structured context handed to the next phase. The rule that makes it <em>gated</em> rather
-        than decorative: <strong>"you don't move to the next one until the current task is fully validated"</strong> —
-        validated by a human, reading the artifact.</p>
+        <p><strong>Specify</strong> captures goals and user journeys — the <em>what</em> and the <em>why</em>, with no
+        technology choices in it. <strong>Plan</strong> turns that into architecture: stack, constraints, integration
+        points, the <em>how</em>. <strong>Tasks</strong> decomposes the plan into small, individually reviewable units
+        of work. <strong>Implement</strong> is the only phase where the agent writes production code, one task at a
+        time. Each phase emits a Markdown artifact — a spec, then a plan, then a task list — and that artifact is the
+        structured context handed to the next phase. The rule that makes it <em>gated</em> rather than decorative:
+        <strong>"you don't move to the next one until the current task is fully validated"</strong> — validated by a
+        human, reading the artifact.</p>
         <p>This changes where the human sits. You are a <strong>steward, not a doer</strong>: you steer, verify each
         artifact, spot the gaps, and refine before advancing. And it changes what review means. Instead of
         reverse-engineering a "thousand-line code dump" at the end — exactly the bottleneck the paradox data caught —
         you review a two-page spec, then a plan, then focused per-task diffs. Each gate is cheap to inspect and cheap
-        to fix, because errors are caught in the artifact where they were introduced, not three phases downstream in
-        generated code. Spec Kit exposes this as slash commands — <code>/speckit.specify</code>,
-        <code>/speckit.plan</code>, <code>/speckit.tasks</code>, <code>/speckit.implement</code>, plus a
-        <code>/speckit.constitution</code> for standing project principles and helpers like
-        <code>/speckit.clarify</code> and <code>/speckit.analyze</code> — but the commands are incidental. The shape is
-        the lesson: <strong>artifact, gate, artifact, gate.</strong></p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: walk one real feature request
-        through all four Spec Kit gates live — draft the <code>spec.md</code>, watch <code>plan.md</code> and
-        <code>tasks.md</code> get generated from it, reject one artifact at a gate and see the correction ripple
-        forward instead of surfacing as broken code three phases later. Needs backend standup.</p></div>
+        to fix, because errors are caught in the artifact where they were introduced rather than three phases
+        downstream in generated code. Spec Kit exposes all of this as slash commands, one per phase, plus a
+        constitution command for standing project principles and a couple of optional helpers. But the commands are
+        incidental. The shape is the lesson: <strong>artifact, gate, artifact, gate.</strong></p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: walk one real feature request through all four Spec Kit gates live — draft the spec, watch the plan
+        and the task list get generated from it, reject one artifact at a gate, and see the correction ripple forward
+        instead of surfacing as broken code three phases later. Needs backend standup.</p></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -193,15 +190,14 @@
         nothing verifies that code actually works." A long agent session slowly fills its window with stale
         exploration, half-decisions, and dead ends — and quality quietly sags. Sound familiar? It's history eviction
         and signal-burial from Week 1, wearing project clothes.</p>
-        <p>GSD's fix is spec-shaped: a set of <strong>persistent Markdown artifacts</strong> —
-        <code>PROJECT.md</code>, <code>ROADMAP.md</code>, <code>PLAN.md</code>, <code>SUMMARY.md</code>,
-        <code>STATE.md</code> — that live in the repo and survive session boundaries. Decisions get locked into
-        artifacts once, then <em>reloaded</em> into fresh contexts instead of being re-litigated in a bloated one. Its
-        five-step loop per milestone — <strong>Discuss</strong> (lock decisions upfront) → <strong>Plan</strong>
-        (research and decompose, verifying each plan fits within context limits) → <strong>Execute</strong> (parallel
-        waves, each executor starting with a clean context) → <strong>Verify</strong> (validate the built code,
-        generate remediation plans) → <strong>Ship</strong> — is the same spec-before-code spine as Spec Kit, tuned for
-        context-window economics.</p>
+        <p>GSD's fix is spec-shaped: a set of <strong>persistent Markdown artifacts</strong> — a project file, a roadmap, a
+        plan, a summary and a state file — that live in the repository and survive session boundaries. Decisions get
+        locked into artifacts once, then <em>reloaded</em> into fresh contexts instead of being re-litigated inside a
+        bloated one. Its five-step loop per milestone — <strong>Discuss</strong> to lock decisions upfront,
+        <strong>Plan</strong> to research and decompose while verifying each plan fits within context limits,
+        <strong>Execute</strong> in parallel waves with each executor starting clean, <strong>Verify</strong> to
+        validate the built code and generate remediation plans, then <strong>Ship</strong> — is the same
+        spec-before-code spine as Spec Kit, tuned for context-window economics.</p>
         <p>Here is the unifying insight: <strong>a spec is context engineering.</strong> The same artifact that gives
         humans a reviewable gate gives agents a curated, high-signal window. Instead of an agent inheriting 150K tokens
         of meandering conversation, it gets a two-page plan containing only the decisions that survived review. Specs
@@ -330,25 +326,24 @@
     <button class="modal-close" type="button" aria-label="Close">✕</button>
     <h2>Deep dive: the 2026 SDD tooling landscape</h2>
     <p class="quiz-sub">Optional. ~10 minutes. Names, versions, and command surfaces you'll actually see at clients.</p>
-    <p><strong>GitHub Spec Kit</strong> (v0.12.3, MIT, 106K+ stars) is the reference implementation. Install with
-    <code>uv tool install specify-cli --from git+https://github.com/github/spec-kit.git@vX.Y.Z</code> — pin the version;
-    it moves fast. It's agent-agnostic across 30+ integrations (Claude Code, Copilot, Gemini CLI, Codex, Cursor…), so
-    you can switch agents without changing the artifacts. Core commands: <code>/speckit.constitution</code> (standing
-    project principles), then <code>/speckit.specify</code> → <code>/speckit.plan</code> → <code>/speckit.tasks</code> →
-    <code>/speckit.implement</code>. Optional helpers: <code>/speckit.clarify</code> (probe underspecified areas),
-    <code>/speckit.analyze</code> (cross-artifact consistency), <code>/speckit.checklist</code>,
-    <code>/speckit.taskstoissues</code>, and <code>/speckit.converge</code> (assess an existing codebase against its
-    specs — the brownfield entry point). Three usage modes: 0-to-1 greenfield, creative exploration (parallel
-    implementations across stacks from one spec), and iterative enhancement of brownfield systems.</p>
+    <p><strong>GitHub Spec Kit</strong> (v0.12.3, MIT licensed, 106K+ stars) is the reference implementation. Install
+    it as a command-line tool from its repository and <strong>pin the version</strong>, because it moves fast. It is
+    agent-agnostic across thirty-plus integrations — Claude Code, Copilot, Gemini CLI, Codex, Cursor and more — so you
+    can switch agents without changing the artifacts. The core commands walk the four phases in order, preceded by a
+    constitution command for standing project principles. Optional helpers probe underspecified areas, check
+    cross-artifact consistency, generate checklists, push tasks out as GitHub issues, and assess an existing codebase
+    against its specs — that last one being the brownfield entry point. Three usage modes are documented: greenfield
+    from zero, creative exploration where one spec produces parallel implementations across stacks, and iterative
+    enhancement of brownfield systems.</p>
     <p><strong>GSD</strong> is the cautionary tale about tool churn: the famous <code>gsd-build/get-shit-done</code>
     repo (64.6K stars) was archived on 2026-06-26 at v1.42.3, and active development moved to
     <code>open-gsd/gsd-core</code> (v1.6.1). If a client's internal wiki still points at the archived repo, that's
     your first PR. It runs on Claude Code, OpenCode, Gemini CLI, Kimi CLI, Kilo, Codex, Copilot, Cursor, and
     Windsurf.</p>
-    <p><strong>Kiro</strong> (AWS) bakes the workflow into an IDE: three artifacts per feature
-    (<code>requirements.md</code> / <code>design.md</code> / <code>tasks.md</code>), EARS acceptance criteria, approval
-    gates between phases — plus a "Quick Plan" variant that auto-generates all three <em>without</em> gates, which is
-    the built-in acknowledgment that not every change deserves full ceremony.</p>
+    <p><strong>Kiro</strong>, from AWS, bakes the workflow into an IDE: three artifacts per feature — requirements,
+    design and tasks — written with EARS acceptance criteria and approval gates between phases. It also ships a "Quick
+    Plan" variant that auto-generates all three <em>without</em> gates, which is the built-in acknowledgment that not
+    every change deserves full ceremony.</p>
     <div class="model-answer show">
       <div class="ma-k">What to actually remember</div>
       <p style="margin:8px 0 0">Three vendors, one converged shape: <strong>artifact chain + human gates + spec as
