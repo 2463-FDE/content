@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estimating Delivery | 2463-FDE</title>
+<link rel="stylesheet" href="assets/css/style.css?v=20260805-rc">
+<script src="assets/js/theme.js"></script>
+<style>
+  /* ---- estimating-delivery page (reuses the site design language) ---- */
+  .es-wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px 80px; }
+  .es-hero { padding: 36px 0 6px; }
+  .es-hero h1 { font-size: 40px; margin: 0 0 8px; letter-spacing: -.5px; }
+  .es-hero h1 b { color: var(--accent); }
+  .es-hero .tag { display:inline-block; font-size:11.5px; text-transform:uppercase; letter-spacing:.12em; font-weight:800; color:var(--accent); margin-bottom:6px; }
+  .es-hero p { color: var(--ink-soft); font-size:17.5px; max-width:840px; margin:0; line-height:1.55; }
+
+  .es-cols { display:grid; grid-template-columns:minmax(0,1fr) 240px; gap:28px; align-items:start; margin-top:26px; }
+  .es-main { min-width:0; }
+  .es-rail { position:sticky; top:76px; display:grid; gap:4px; font-size:13.5px; }
+  .es-rail .rk { font-size:11px; text-transform:uppercase; letter-spacing:.12em; font-weight:800; color:var(--ink-soft); margin-bottom:4px; }
+  .es-rail a { display:block; padding:6px 10px; border-radius:8px; color:var(--ink-soft); text-decoration:none; border-left:2px solid transparent; }
+  .es-rail a:hover { background:var(--surface); color:var(--accent); }
+  .es-rail a.on { color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); font-weight:650; }
+  @media (max-width:1000px){ .es-cols { grid-template-columns:1fr; } .es-rail { display:none; } }
+
+  .es-sec { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:26px 28px; box-shadow:0 6px 24px var(--shadow); margin:0 0 22px; scroll-margin-top:80px; }
+  .es-sec > .k { font-size:12px; text-transform:uppercase; letter-spacing:.12em; font-weight:800; color:var(--accent); }
+  .es-sec > h2 { font-size:26px; margin:3px 0 6px; line-height:1.2; }
+  .es-sec > .lede { color:var(--ink-soft); font-size:15.5px; margin:0 0 14px; max-width:840px; line-height:1.55; }
+  .es-sec h3 { font-size:18px; margin:22px 0 6px; }
+  .es-sec p { font-size:15.5px; line-height:1.62; }
+  .es-sec code { font-family:var(--mono); font-size:.82em; background:var(--code-bg); padding:1px 5px; border-radius:4px; }
+  .es-note { font-size:14.5px; color:var(--ink-soft); line-height:1.55; }
+
+  .cite { font-size:11px; font-weight:800; letter-spacing:.03em; text-decoration:none; vertical-align:super;
+    border:1px solid var(--info-line); background:var(--info-soft); color:var(--info);
+    border-radius:5px; padding:0 5px; margin-left:3px; white-space:nowrap; }
+  .cite:hover { background:var(--info); color:#fff; }
+
+  .es-rule { background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:12px; padding:15px 18px; font-size:16px; line-height:1.55; margin:14px 0; }
+  .es-rule b { color:var(--accent-ink); }
+  .es-say { background:var(--surface-2); border-left:3px solid var(--accent); border-radius:8px; padding:13px 17px; font-size:16.5px; font-style:italic; line-height:1.6; margin:12px 0; }
+  .es-warn { background:var(--bad-soft); border:1px solid var(--bad-line); border-radius:12px; padding:13px 16px; font-size:15px; line-height:1.55; margin:14px 0; }
+  .es-warn b { color:var(--bad-ink); }
+
+  .es-tbl { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface); margin:12px 0; }
+  .es-tbl .th, .es-tbl .tr { display:grid; }
+  .es-tbl .th { background:var(--surface-2); font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; color:var(--ink-soft); }
+  .es-tbl .th > div, .es-tbl .tr > div { padding:10px 13px; font-size:14.5px; line-height:1.5; }
+  .es-tbl .tr { border-top:1px solid var(--line); }
+  .g3 { grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) minmax(0,.9fr); }
+  .g4 { grid-template-columns:minmax(0,1.4fr) 90px 90px minmax(0,1.2fr); }
+  .g2 { grid-template-columns:minmax(0,1fr) minmax(0,1.7fr); }
+  @media (max-width:820px){ .es-tbl .th { display:none; } .es-tbl .tr { grid-template-columns:1fr !important; }
+    .es-tbl .tr > div { border-top:1px dashed var(--line); } .es-tbl .tr > div:first-child { border-top:none; } }
+
+  .es-steps { counter-reset:s; display:grid; gap:9px; margin:10px 0 4px; }
+  .es-step { counter-increment:s; display:grid; grid-template-columns:30px minmax(0,1fr); gap:12px;
+    border:1px solid var(--line); border-radius:12px; padding:12px 15px; background:var(--surface-2); }
+  .es-step::before { content:counter(s); font-weight:800; color:var(--accent); font-size:16px; }
+  .es-step .sb { font-size:14.5px; line-height:1.55; }
+  .es-step.key { border-color:var(--accent); background:var(--accent-soft); }
+
+  .es-two { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin:12px 0; }
+  @media (max-width:820px){ .es-two { grid-template-columns:1fr; } }
+  .es-card { border:1px solid var(--line); border-radius:12px; padding:15px 17px; background:var(--surface-2); font-size:14.5px; line-height:1.6; }
+  .es-card.good { border-color:var(--good-line); background:var(--good-soft); }
+  .es-card.bad { border-color:var(--bad-line); background:var(--bad-soft); }
+  .es-card .ek { font-size:11.5px; text-transform:uppercase; letter-spacing:.1em; font-weight:800; margin-bottom:7px; }
+  .es-card.good .ek { color:var(--good-ink); } .es-card.bad .ek { color:var(--bad-ink); }
+
+  /* buffer diagram */
+  .es-bars { display:grid; gap:12px; margin:14px 0 6px; }
+  .es-bar { }
+  .es-bar .lab { font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-bottom:5px; }
+  .es-bar .track { display:flex; height:30px; border-radius:9px; overflow:hidden; border:1px solid var(--line); }
+  .es-bar .seg { display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; color:var(--ink); }
+  .es-bar .work { background:var(--surface-2); border-right:1px solid var(--line); }
+  .es-bar .pad { background:var(--bad-soft); color:var(--bad-ink); border-right:1px solid var(--bad-line); }
+  .es-bar .buf { background:var(--good-soft); color:var(--good-ink); }
+  .es-bar .cap { font-size:12.5px; color:var(--ink-soft); margin-top:5px; line-height:1.5; }
+
+  .es-src { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface); }
+  .es-src .row { display:grid; grid-template-columns:210px minmax(0,1fr); border-top:1px solid var(--line); }
+  .es-src .row:first-child { border-top:none; }
+  .es-src .nm { padding:11px 14px; background:var(--surface-2); font-size:13.5px; font-weight:700; border-right:1px solid var(--line); }
+  .es-src .nm a { color:var(--accent); text-decoration:none; }
+  .es-src .nm a:hover { text-decoration:underline; }
+  .es-src .wh { padding:11px 14px; font-size:14px; color:var(--ink-soft); line-height:1.55; }
+  @media (max-width:820px){ .es-src .row { grid-template-columns:1fr; } .es-src .nm { border-right:none; border-bottom:1px solid var(--line); } }
+
+  @media print { .topbar, .es-rail, footer.foot { display:none !important; } .es-cols { grid-template-columns:1fr; } .es-sec { box-shadow:none; break-inside:avoid; } }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="delivery-track.html">Delivery Track</a>
+    <a class="topnav" href="gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right"></div>
+</div>
+
+<div class="es-wrap">
+  <div class="es-hero">
+    <span class="tag">Reading · supports the Delivery Track</span>
+    <h1>Estimating <b>Delivery</b>, Not Effort</h1>
+    <p>The blocker card teaches you to put two numbers on something that is stuck. This reading is the
+    other half: how to size a whole feature with Claude, turn that into a <b>date you hand a client</b>,
+    and carry enough buffer that hitting it doesn't cost you your evenings. Every claim here traces to
+    a source listed at the bottom.</p>
+  </div>
+
+  <div class="es-cols">
+  <div class="es-main">
+
+  <!-- ===================== 1 · THE STARTING POSITION ===================== -->
+  <section class="es-sec" id="wrong">
+    <div class="k">Start here</div>
+    <h2>Your first number is wrong in a direction you can predict</h2>
+    <p class="lede">This is not a character flaw and it does not improve with seniority. It is the
+    most consistently measured finding in estimation research, so you may as well plan around it.</p>
+
+    <div class="es-tbl">
+      <div class="th g3"><div>What's measured</div><div>The finding</div><div>What it means for you</div></div>
+      <div class="tr g3">
+        <div><b>How teams estimate</b></div>
+        <div>Expert judgement is the dominant strategy in practice, estimates are typically
+        over-optimistic, and there is strong over-confidence in their accuracy. <b>Mean effort overrun
+        is about 30%, and it is not decreasing over time.</b><a class="cite" href="#s-swest">S1</a></div>
+        <div>Assume roughly a third more than your gut, before you know anything else.</div>
+      </div>
+      <div class="tr g3">
+        <div><b>Your own confidence</b></div>
+        <div>Asked for dates they were 50%, 75% and 99% sure of, people finished by those dates
+        <b>13%, 19% and 45%</b> of the time.<a class="cite" href="#s-pf">S2</a></div>
+        <div>"I'm sure" is worth about 45%. Your certainty is not evidence.</div>
+      </div>
+      <div class="tr g3">
+        <div><b>Somebody else's estimate of your work</b></div>
+        <div>The same bias <b>reverses</b> for outside observers — they are pessimistic about other
+        people's tasks.<a class="cite" href="#s-pf">S2</a></div>
+        <div>This is the seat Claude sits in. Its number usually runs high, and for a structural
+        reason rather than a random one.</div>
+      </div>
+      <div class="tr g3">
+        <div><b>What AI does to the duration</b></div>
+        <div>Isolated greenfield task: <b>55.8% faster</b>.<a class="cite" href="#s-copilot">S3</a>
+        Complex enterprise task: <b>about 21% faster</b>.<a class="cite" href="#s-google">S4</a>
+        Experienced maintainers on large mature repos: <b>19% slower</b>.<a class="cite" href="#s-metr">S5</a></div>
+        <div>There is no single multiplier to apply. The effect depends on how well you and the
+        codebase already know each other.</div>
+      </div>
+    </div>
+
+    <div class="es-rule">Two numbers pull in opposite directions: <b>you under-estimate your own
+      work, and the model over-estimates it.</b> Averaging them is not a method. The method is to use
+      your own recorded history as the correction — the outside view, built from your outcomes rather
+      than anyone's feelings.<a class="cite" href="#s-rcf">S6</a></div>
+  </section>
+
+  <!-- ===================== 2 · LET CLAUDE ENUMERATE ===================== -->
+  <section class="es-sec" id="enumerate">
+    <div class="k">Division of labour</div>
+    <h2>Claude lists the work. You price it.</h2>
+    <p class="lede">The model is genuinely good at the part humans are worst at — remembering that a
+    feature has fourteen pieces, not four. It is unreliable at the part you can measure — how long
+    <i>you</i> take. Split the job along that line.</p>
+
+    <h3>When to make it plan first, and when not to bother</h3>
+    <p>Anthropic's own guidance is specific about this, and it cuts both ways. Planning is most useful
+    "when you're uncertain about the approach, when the change modifies multiple files, or when you're
+    unfamiliar with the code being modified." And plainly: <b>"If you could describe the diff in one
+    sentence, skip the plan."</b><a class="cite" href="#s-ccbp">S7</a> Planning has real overhead;
+    spending it on a one-line change is how estimation ceremony gets a bad name at a client.</p>
+
+    <h3>No runnable check, no estimable end</h3>
+    <p>The same guidance: <b>"Give Claude a check it can run: tests, a build, a screenshot to
+    compare."</b> Without one, "looks done" is the only signal available and you become the
+    verification loop yourself.<a class="cite" href="#s-ccbp">S7</a> That is an estimating problem
+    before it is an engineering one — <b>a task whose finish line only exists in your head cannot be
+    given a duration</b>, because "done" keeps moving.</p>
+
+    <h3>Keep the estimating session small</h3>
+    <p>Context "fills up fast, and performance degrades as it fills," and a single exploration
+    "might generate and consume tens of thousands of tokens."<a class="cite" href="#s-ccbp">S7</a> So
+    do the enumeration in a focused session, hand it your own history deliberately, and take the list
+    out rather than letting it drift into implementation.</p>
+
+    <div class="es-two">
+      <div class="es-card bad">
+        <div class="ek">✗ Asking the model to price it</div>
+        <p style="margin:0"><i>"How long will the reply feature take?"</i> → "Roughly two to three
+        weeks."</p>
+        <p style="margin:9px 0 0;color:var(--ink-soft)">A stranger's estimate of a generic team, with
+        review cycles you may not have and knowledge you do have. Passing it to a client makes it your
+        commitment.</p>
+      </div>
+      <div class="es-card good">
+        <div class="ek">✓ Asking the model to enumerate it</div>
+        <p style="margin:0"><i>"List every piece of work this needs, including merge, review and
+        deploy. For each, name what would make it take longer. Do not give me durations."</i></p>
+        <p style="margin:9px 0 0;color:var(--ink-soft)">Now you have a checklist you can price against
+        your own record — and the risks are named, which is what the client actually needs to hear.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3 · COUNT ALL THE TIME ===================== -->
+  <section class="es-sec" id="alltime">
+    <div class="k">The commonest omission</div>
+    <h2>Count all the time, not just the interesting time</h2>
+    <p class="lede">Evidence-based scheduling rests on two ideas, and the first one is the one people
+    skip: <b>include all time spent, regardless of relevance</b>. The second is to run a Monte Carlo
+    simulation over your history to produce a <b>probability distribution of completion dates</b>
+    rather than a single date.<a class="cite" href="#s-ebs">S8</a></p>
+
+    <p>You do not need the simulation to get most of the benefit. You need the honesty. The hours that
+    vanish from estimates are always the same ones:</p>
+    <ul style="font-size:15px;line-height:1.65;padding-left:22px">
+      <li>Waiting on a review, and the round trip after it.</li>
+      <li>The release window — if deploys go out Thursdays, work that finishes Friday ships next week.</li>
+      <li>The client meeting the work exists to be shown in, and preparing for it.</li>
+      <li>Environment and access problems that are nobody's feature.</li>
+      <li>The second attempt, after the first approach turned out to be wrong.</li>
+    </ul>
+    <p class="es-note">An agent makes the writing faster. It does not make any of the five lines above
+    faster, which is exactly why AI-era estimates miss: the part that got quicker was never the part
+    that dominated.</p>
+  </section>
+
+  <!-- ===================== 4 · WHERE THE BUFFER GOES ===================== -->
+  <section class="es-sec" id="buffer">
+    <div class="k">The core idea</div>
+    <h2>Aggregate the buffer. Never pad the tasks.</h2>
+    <p class="lede">Most people's instinct for "be realistic with a client" is to add a bit to every
+    estimate. That instinct produces a schedule that is <b>both later and still late</b>. Here is the
+    documented alternative.</p>
+
+    <p>Critical chain project management exists to solve exactly this. It <b>"aggregates the large
+    amounts of safety time added to tasks within a project into the buffers"</b> — a project buffer at
+    the end, feeding buffers where side paths join the main one, and resource buffers — and then
+    monitors progress by <b>"the consumption rate of the buffers rather than individual task
+    performance to schedule."</b><a class="cite" href="#s-ccpm">S9</a></p>
+
+    <p>The reason it does that is named outright in the same source: safety left inside individual
+    tasks gets wasted through <b>bad multitasking, student syndrome, Parkinson's Law, and poorly
+    synchronized integration.</b><a class="cite" href="#s-ccpm">S9</a> Two of those are worth knowing
+    by name, because you will watch them happen to you:</p>
+
+    <div class="es-two">
+      <div class="es-card">
+        <div class="ek">Parkinson's Law</div>
+        <p style="margin:0">"Work expands to fill its available time."<a class="cite" href="#s-park">S10</a></p>
+        <p style="margin:9px 0 0;color:var(--ink-soft)">Give a two-day task four days and it takes
+        four. The padding is not saved for later; it is spent quietly on polish nobody asked for.</p>
+      </div>
+      <div class="es-card">
+        <div class="ek">Student syndrome</div>
+        <p style="margin:0">Planned procrastination — people apply themselves "at the last moment
+        before the deadline," making real progress only once urgency appears.<a class="cite" href="#s-student">S11</a></p>
+        <p style="margin:9px 0 0;color:var(--ink-soft)">The padded task starts late, so the padding is
+        gone before the work begins — and any real problem now lands with no slack left.</p>
+      </div>
+    </div>
+
+    <div class="es-bars">
+      <div class="es-bar">
+        <div class="lab">Padding every task — what it feels like you're doing</div>
+        <div class="track">
+          <div class="seg work" style="flex:2">work</div><div class="seg pad" style="flex:1">+pad</div>
+          <div class="seg work" style="flex:2">work</div><div class="seg pad" style="flex:1">+pad</div>
+          <div class="seg work" style="flex:2">work</div><div class="seg pad" style="flex:1">+pad</div>
+        </div>
+        <div class="cap">Every task carries its own safety — and consumes it, because of the two
+        mechanisms above. You quoted the longest possible date <i>and</i> you can still miss it.</div>
+      </div>
+      <div class="es-bar">
+        <div class="lab">Aggregating the buffer — what actually protects the date</div>
+        <div class="track">
+          <div class="seg work" style="flex:2">work</div>
+          <div class="seg work" style="flex:2">work</div>
+          <div class="seg work" style="flex:2">work</div>
+          <div class="seg buf" style="flex:2.2">shared buffer</div>
+        </div>
+        <div class="cap">Tasks carry honest middle estimates. The safety lives in one visible block at
+        the end, and only the tasks that actually go wrong consume it. Same total, far better odds —
+        and you can <i>report</i> how much is left.</div>
+      </div>
+    </div>
+
+    <div class="es-rule"><b>The buffer belongs to the date, not to the task.</b> That single move is
+      the difference between "we padded everything and still slipped" and "two things went wrong, we
+      spent half the buffer, and the date held."</div>
+  </section>
+
+  <!-- ===================== 5 · SIZING IT ===================== -->
+  <section class="es-sec" id="sizing">
+    <div class="k">How big</div>
+    <h2>Size the buffer from your own record, not from a feeling</h2>
+    <p class="lede">You already have the raw material if you have been keeping the calibration log on
+    the <a href="delivery-track.html#calibration">Delivery Track</a>: what you estimated, what it
+    actually took, and why it missed.</p>
+
+    <div class="es-steps">
+      <div class="es-step"><div class="sb"><b>Estimate each part honestly</b> — the middle number, no
+        padding. Aim for something you would beat about half the time.</div></div>
+      <div class="es-step"><div class="sb"><b>Add the parts up.</b> That total is the work, and it is
+        not the date.</div></div>
+      <div class="es-step key"><div class="sb"><b>Multiply your overrun ratio.</b> If your last three
+        items ran at 2.5×, 2.0× and 1.3× your estimate, your history says roughly <b>2×</b>. The buffer
+        is the difference between the raw total and the corrected one. With no history yet, the
+        research default is <b>about 30% overrun</b> as a floor<a class="cite" href="#s-swest">S1</a> —
+        and it is a floor, not a ceiling.</div></div>
+      <div class="es-step"><div class="sb"><b>Hold it at the end, as one block.</b> Never distribute
+        it back into the tasks. Distributing it is the mistake this whole section exists to
+        prevent.<a class="cite" href="#s-ccpm">S9</a></div></div>
+      <div class="es-step"><div class="sb"><b>Report consumption, not percentage.</b> "Two of five
+        buffer days used, three left" is a status a client can act on. "About 60% done" is not.<a class="cite" href="#s-ccpm">S9</a></div></div>
+    </div>
+
+    <h3>Worked example</h3>
+    <p class="es-note" style="margin-bottom:8px">Generic scenario, not a live project: letting a
+    support-ticket assistant post its suggested reply back into the ticket system.</p>
+    <div class="es-tbl">
+      <div class="th g4"><div>Part</div><div>Honest</div><div>Risk</div><div>What could make it worse</div></div>
+      <div class="tr g4"><div>Access scope agreed with IT</div><div>3d</div><div>high</div><div>Goes to the monthly security review instead of a direct sign-off</div></div>
+      <div class="tr g4"><div>Write path plus retries</div><div>1d</div><div>low</div><div>Their API rejects formatted text</div></div>
+      <div class="tr g4"><div>Audit trail on every post</div><div>1d</div><div>med</div><div>Compliance wants a field nobody stores yet</div></div>
+      <div class="tr g4"><div>Merge, review, deploy</div><div>1d</div><div>med</div><div>Release window is weekly</div></div>
+    </div>
+    <p><b>Raw total: 6 days.</b> History says this shape of work runs about 2× when access is
+    involved, so the corrected figure is 12 days, and <b>the buffer is 6 days held at the end</b> —
+    not one extra day sprinkled onto each row. You quote the work as six days, you commit to the
+    twelve-day date, and every Monday you say how much of the six is left.</p>
+  </section>
+
+  <!-- ===================== 6 · WHAT YOU SAY ===================== -->
+  <section class="es-sec" id="saying">
+    <div class="k">The client conversation</div>
+    <h2>How to say it without sounding like you're hedging</h2>
+    <p class="lede">The fear is that a buffered date sounds slow, or worse, sounds padded. It reads as
+    the opposite when the buffer is <b>named, sized and reported</b> — because hiding it is what
+    actually looks evasive.</p>
+
+    <div class="es-say">"The work itself is about six days. I'm committing to the 19th, which carries
+    six days of buffer, and I'll tell you every Monday how much of it is left. The two things most
+    likely to eat it are the access approval and the weekly release window. If neither bites, you get
+    this early."</div>
+
+    <p>Four things that sentence does. It gives the <b>work estimate</b> and the <b>committed date</b>
+    as different numbers, so nobody confuses effort with delivery. It names the buffer instead of
+    burying it. It names the <b>specific risks</b>, which turns the client into someone who can go
+    unblock one. And it promises a <b>weekly signal</b>, which is the thing that stops a date slipping
+    silently until the week it is due.</p>
+
+    <div class="es-two">
+      <div class="es-card bad">
+        <div class="ek">✗ Hidden buffer</div>
+        <p style="margin:0"><i>"Should be about two weeks."</i></p>
+        <p style="margin:9px 0 0;color:var(--ink-soft)">Padded internally, unexplained externally. If
+        it lands early you look like you sandbagged; if it lands late you have no story. Either way the
+        client learns nothing about the risks.</p>
+      </div>
+      <div class="es-card good">
+        <div class="ek">✓ Declared buffer</div>
+        <p style="margin:0"><i>"Six days of work, committed for the 19th, six days of buffer against
+        the access approval and the release window."</i></p>
+        <p style="margin:9px 0 0;color:var(--ink-soft)">Early delivery is a win you predicted. A late
+        one has a named cause you flagged on day one. The buffer is protection for <b>their</b> date,
+        and that is how you should say it.</p>
+      </div>
+    </div>
+
+    <div class="es-rule">If a client pushes back on the buffer, do not delete it — <b>trade it</b>.
+      "I can commit to the 15th if the access approval is pre-cleared, because that's the risk the
+      buffer is mostly covering." Now the date and the risk move together, which is the honest
+      relationship between them.</div>
+  </section>
+
+  <!-- ===================== 7 · CRUNCH ===================== -->
+  <section class="es-sec" id="crunch">
+    <div class="k">The alternative, and why it fails</div>
+    <h2>"We'll just work late to make the date"</h2>
+    <p class="lede">This is the plan that replaces a buffer, and it is worth knowing the evidence
+    because you will be in a room where somebody proposes it — possibly you.</p>
+
+    <p><b>Output does not scale with hours.</b> Pencavel's analysis of munition workers found the
+    relationship is nonlinear: <b>below an hours threshold, output is proportional to hours; above it,
+    output rises at a decreasing rate as hours increase</b> — and the findings connect to research on
+    long working hours and accidents and injuries.<a class="cite" href="#s-pencavel">S12</a> Past the
+    threshold you are buying progressively less work per hour, and buying error alongside it.</p>
+
+    <p><b>The product suffers, not only the person.</b> Sustained crunch "leads to negative health
+    impacts for game developers and a decrease in the quality of their work, which drives developers
+    out of the industry temporarily or permanently."<a class="cite" href="#s-crunch">S13</a> That is
+    three costs — health, quality, and the person leaving — against one benefit that the previous
+    paragraph says you do not fully receive.</p>
+
+    <div class="es-warn"><b>And it is usually nobody's decision.</b> One studio head has argued the
+    drive to crunch often comes from developers themselves, wanting to hit a milestone, which then
+    pressures peers into matching hours or looking like they are slacking — the reason the term
+    "crunch culture" exists.<a class="cite" href="#s-crunch">S13</a> Nobody has to mandate it. A
+    schedule with no declared buffer produces it on its own.</div>
+
+    <p class="es-note">Which is the real argument for the buffer, and it is not a comfort argument. A
+    declared buffer is the mechanism that keeps a date honest <i>without</i> spending the one resource
+    that gets worse the more of it you spend.</p>
+  </section>
+
+  <!-- ===================== 8 · WEEKLY ===================== -->
+  <section class="es-sec" id="weekly">
+    <div class="k">Making it a habit</div>
+    <h2>The weekly loop that keeps all of this true</h2>
+    <p class="lede">None of the above works once. It works because the numbers feed back. This is the
+    same Monday rhythm as the <a href="delivery-track.html#calibration">calibration log</a>, seen from
+    the delivery side.</p>
+
+    <div class="es-tbl">
+      <div class="th g2"><div>When</div><div>What you do</div></div>
+      <div class="tr g2"><div><b>Monday</b></div><div>Report buffer consumed and buffer left, not percent complete.<a class="cite" href="#s-ccpm">S9</a> Report last week's estimate against what it actually took, and why it missed.</div></div>
+      <div class="tr g2"><div><b>When new work lands</b></div><div>Have Claude enumerate the parts, including merge, review and deploy. Price them yourself.<a class="cite" href="#s-ccbp">S7</a></div></div>
+      <div class="tr g2"><div><b>Before you commit a date</b></div><div>Apply your own overrun ratio, hold the difference as one buffer, and name the two risks it covers.<a class="cite" href="#s-ccpm">S9</a></div></div>
+      <div class="tr g2"><div><b>Every task you finish</b></div><div>Log all the time it took — including the waiting.<a class="cite" href="#s-ebs">S8</a> That log is next month's estimate.</div></div>
+    </div>
+
+    <div class="es-rule">Four weeks of this and you have something rare and quietly valuable: <b>a
+      personal overrun ratio, and a date nobody has to discount.</b> Being believable about time is
+      worth more to a client than being fast.</div>
+  </section>
+
+  <!-- ===================== SOURCES ===================== -->
+  <section class="es-sec" id="sources">
+    <div class="k">Receipts</div>
+    <h2>Sources, and what each one backs</h2>
+    <p class="lede">Every claim above is tied to one of these. If you are going to repeat any of it in
+    front of a client, this is where to check it first.</p>
+
+    <div class="es-src">
+      <div class="row" id="s-swest">
+        <div class="nm">S1 · <a href="https://en.wikipedia.org/wiki/Software_development_effort_estimation" target="_blank" rel="noopener">Software development effort estimation</a></div>
+        <div class="wh">Expert estimation is the dominant strategy; estimates are typically over-optimistic with strong over-confidence; <b>mean effort overrun about 30%, not decreasing over time</b>. Backs the opening table and the buffer floor.</div>
+      </div>
+      <div class="row" id="s-pf">
+        <div class="nm">S2 · <a href="https://en.wikipedia.org/wiki/Planning_fallacy" target="_blank" rel="noopener">Planning fallacy</a></div>
+        <div class="wh">The 50/75/99% confidence study (13%, 19%, 45% finished by their own dates), and the fact that the bias <b>reverses for outside observers</b>. Backs "your certainty isn't evidence" and why a model's estimate runs high.</div>
+      </div>
+      <div class="row" id="s-copilot">
+        <div class="nm">S3 · <a href="https://arxiv.org/abs/2302.06590" target="_blank" rel="noopener">Peng et al. 2023 — GitHub Copilot RCT</a></div>
+        <div class="wh">55.8% faster on an isolated greenfield task. The optimistic end of the AI-speedup range.</div>
+      </div>
+      <div class="row" id="s-google">
+        <div class="nm">S4 · <a href="https://arxiv.org/abs/2410.12944" target="_blank" rel="noopener">Paradis et al. 2024 — enterprise RCT</a></div>
+        <div class="wh">About 21% faster on a complex enterprise task with 96 engineers. The middle of the range.</div>
+      </div>
+      <div class="row" id="s-metr">
+        <div class="nm">S5 · <a href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/" target="_blank" rel="noopener">METR 2025 RCT</a> · <a href="https://metr.org/blog/2026-02-24-uplift-update/" target="_blank" rel="noopener">Feb 2026 update</a></div>
+        <div class="wh">Experienced maintainers on large mature repositories were <b>19% slower</b> with AI while believing they were 20% faster; the 2026 follow-up finds speedups again but reports its own measurement problems. Backs "there is no single multiplier."</div>
+      </div>
+      <div class="row" id="s-rcf">
+        <div class="nm">S6 · <a href="https://en.wikipedia.org/wiki/Reference_class_forecasting" target="_blank" rel="noopener">Reference class forecasting</a></div>
+        <div class="wh">Taking the outside view from the distribution of past similar cases. Backs "your calibration log is the correction factor."</div>
+      </div>
+      <div class="row" id="s-ccbp">
+        <div class="nm">S7 · <a href="https://www.anthropic.com/engineering/claude-code-best-practices" target="_blank" rel="noopener">Best practices for Claude Code</a></div>
+        <div class="wh">Plan mode is for uncertainty, multi-file changes and unfamiliar code — "if you could describe the diff in one sentence, skip the plan"; "give Claude a check it can run"; context "fills up fast, and performance degrades as it fills." Backs the whole enumerate-versus-price section.</div>
+      </div>
+      <div class="row" id="s-ebs">
+        <div class="nm">S8 · <a href="https://en.wikipedia.org/wiki/Evidence-based_scheduling" target="_blank" rel="noopener">Evidence-based scheduling</a></div>
+        <div class="wh">Include all time spent regardless of relevance; Monte Carlo the completion date into a probability distribution. Backs "count all the time" and the weekly logging habit.</div>
+      </div>
+      <div class="row" id="s-ccpm">
+        <div class="nm">S9 · <a href="https://en.wikipedia.org/wiki/Critical_chain_project_management" target="_blank" rel="noopener">Critical chain project management</a></div>
+        <div class="wh">Aggregating task safety into project and feeding buffers; monitoring <b>buffer consumption</b> rather than task-level schedule; and the named causes of wasted per-task safety — bad multitasking, student syndrome, Parkinson's Law, poor integration. Backs the entire buffer section.</div>
+      </div>
+      <div class="row" id="s-park">
+        <div class="nm">S10 · <a href="https://en.wikipedia.org/wiki/Parkinson%27s_law" target="_blank" rel="noopener">Parkinson's Law</a></div>
+        <div class="wh">"Work expands to fill its available time." Backs why per-task padding gets consumed.</div>
+      </div>
+      <div class="row" id="s-student">
+        <div class="nm">S11 · <a href="https://en.wikipedia.org/wiki/Student_syndrome" target="_blank" rel="noopener">Student syndrome</a></div>
+        <div class="wh">Planned procrastination — real effort arrives only with urgency, at the last moment before the deadline. Backs why padded tasks start late and lose their safety before the work begins.</div>
+      </div>
+      <div class="row" id="s-pencavel">
+        <div class="nm">S12 · <a href="https://docs.iza.org/dp8129.pdf" target="_blank" rel="noopener">Pencavel, <i>The Productivity of Working Hours</i> (IZA DP 8129)</a></div>
+        <div class="wh">Output is proportional to hours below a threshold and rises at a decreasing rate above it; the findings link to research on long hours, accidents and injuries. Backs "output does not scale with hours."</div>
+      </div>
+      <div class="row" id="s-crunch">
+        <div class="nm">S13 · <a href="https://en.wikipedia.org/wiki/Crunch_(video_games)" target="_blank" rel="noopener">Crunch (video games)</a></div>
+        <div class="wh">Negative health impacts, a decrease in work quality, and attrition from the industry; plus the argument that crunch is often peer- and self-driven rather than mandated. Backs the crunch section.</div>
+      </div>
+    </div>
+
+    <p class="es-note" style="margin-top:14px">Full scrapes of all thirteen live in the team's research
+    vault alongside a synthesis note, so the quotes above can be checked against the originals rather
+    than taken on faith — which is the same standard the delivery rubric holds you to.</p>
+  </section>
+
+  </div><!-- /es-main -->
+
+  <nav class="es-rail" id="rail" aria-label="On this page">
+    <div class="rk">On this page</div>
+    <a href="#wrong">1 · Your first number</a>
+    <a href="#enumerate">2 · Claude lists, you price</a>
+    <a href="#alltime">3 · Count all the time</a>
+    <a href="#buffer">4 · Aggregate the buffer</a>
+    <a href="#sizing">5 · Sizing it</a>
+    <a href="#saying">6 · What you say</a>
+    <a href="#crunch">7 · Why not crunch</a>
+    <a href="#weekly">8 · The weekly loop</a>
+    <a href="#sources">Sources</a>
+    <div style="margin-top:10px"><a class="dt-btn" href="delivery-track.html#estimate" style="display:block;text-align:center;border:1.5px solid var(--line);background:var(--surface);border-radius:9px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--ink);text-decoration:none">← Delivery Track</a></div>
+  </nav>
+  </div><!-- /es-cols -->
+</div>
+
+<footer class="foot">2463-FDE · Estimating Delivery — the buffer belongs to the date, not the task</footer>
+
+<script src="assets/js/roster.js?v=20260706"></script>
+<script src="assets/js/auth.js"></script>
+<script>
+/* Scroll-spy for the section rail. Nothing else on this page needs JS. */
+(function () {
+  const links = Array.from(document.querySelectorAll("#rail a[href^='#']"));
+  const secs = links.map(a => document.getElementById(a.getAttribute("href").slice(1))).filter(Boolean);
+  if (!("IntersectionObserver" in window) || !secs.length) return;
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      links.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
+    });
+  }, { rootMargin: "-80px 0px -65% 0px", threshold: 0 });
+  secs.forEach(s => io.observe(s));
+})();
+</script>
+</body>
+</html>
