@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w07d4">
+<meta name="fde-concepts" content="golden-signals-for-llm-paths,slo-as-negotiated-promise,error-budget-policy,burn-rate-alerting,otel-genai-metric-conventions,llm-cost-as-reliability-signal">
+<title>W7·D4 — SRE for AI Systems: SLOs, Error Budgets &amp; OTel GenAI | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>SRE for AI Systems: SLOs, Error Budgets, and the OTel GenAI Conventions</h1>
+        <div class="meta">
+          <span><b>Week 7</b> · Day 4</span>
+          <span>Observability &amp; Reliability</span>
+          <span><b>~23 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Traces tell you what happened inside one request. Today you turn telemetry into a <strong>promise you can defend
+        in a room with the client</strong>. The four golden signals — latency, traffic, errors, saturation — are 2016
+        SRE doctrine, and they cover an LLM path without a single new idea, because the SRE Book already defined an
+        error to include "an HTTP 200 success response, but coupled with the wrong content." From there: an
+        <strong>SLI</strong> is a proportion of good events, an <strong>SLO</strong> is a number three parties agree to,
+        and the <strong>error budget</strong> is how you say "not this sprint" without saying no. Then you alert on
+        <strong>burn rate</strong> instead of spikes, and give <strong>cost</strong> its own budget — because a cache
+        regression is a 10× bill that latency never sees.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">Golden signals</div>
+        <h2>Four metrics, and the definition that already fits AI</h2>
+        <p>Start from the canonical sentence: "The four golden signals of monitoring are <strong>latency, traffic,
+        errors, and saturation</strong>. If you can only measure four metrics of your user-facing system, focus on
+        these four." The claim is coverage — measure all four and page when one goes bad, and "your service will be at
+        least decently covered."</p>
+        <p>Two details do the heavy lifting. First, <strong>latency must be split by outcome</strong>: "a slow error is
+        even worse than a fast error," but folding 500s into overall latency produces misleading numbers. Second — the
+        line that makes the framework fit AI without new theory — an <strong>error</strong> is a request that failed
+        "either explicitly (e.g., HTTP 500s), <em>implicitly</em> (for example, an HTTP 200 success response, but
+        coupled with the wrong content), or <em>by policy</em> (for example, 'If you committed to one-second response
+        times, any request over one second is an error')."</p>
+        <p>Read that with a hallucination in mind. A confidently wrong summary returns HTTP 200 and is, by the SRE Book's
+        own 2016 definition, an <strong>error</strong>. AI reliability isn't a new discipline — it's the
+        existing one, pointed at a token-metered, nondeterministic dependency.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Instantiation</div>
+        <h2>The four signals on an LLM path</h2>
+        <p>Here is the translation — the first thing to write down when a client hands you an AI feature. <strong>Latency</strong> is not one number: end-to-end duration <em>plus</em> time-to-first-token
+        and time-per-output-token, because a streaming UI that starts in 400 ms feels fast even if the whole answer
+        takes eight seconds, while a batch job cares nothing about first-token. <strong>Traffic</strong> is requests
+        per second <em>and</em> tokens per second — rate limits are token-denominated, so a request count alone won't
+        predict the ceiling.</p>
+        <p><strong>Errors</strong> are provider 429s, 500s and 529s, plus every by-policy error you declare:
+        schema-validation failure, a length-capped truncation, a refusal, an empty output, a failed groundedness check.
+        <strong>Saturation</strong> — "how 'full' your service is" — has no CPU gauge here; the proxies are rate-limit
+        headroom, the 429/529 rate as an upstream signal, and context-window utilization. The SRE Book's tip applies directly: "measuring your 99th percentile response time over some small
+        window… can give a very early signal of saturation." Creeping p99 is usually the first symptom of a provider
+        under load.</p>
+        <p>None of that is speculative: every one has a defined home in the OpenTelemetry GenAI conventions, in step 8.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">SLI</div>
+        <h2>Write the indicator before you pick a number</h2>
+        <p>A <strong>service level indicator</strong> is the measurement. Split it into two halves people constantly
+        collapse: the <em>specification</em> ("the ratio of intake requests served successfully within 3 seconds") and
+        the <em>implementation</em> (at the load balancer? in the client? from synthetic probes?). "A single SLI
+        specification might have multiple SLI implementations, each with its own set of pros and cons in terms of
+        quality, coverage, and cost." Write both down — arguments about whether a service is healthy are almost always
+        arguments about implementation.</p>
+        <p>Prefer the ratio form — <strong>proportion of good events over valid events</strong>, where "the SLI ranges
+        from 0% to 100%." That form makes the error budget fall out arithmetically later.</p>
+        <p>You don't have to invent one, either. The Workbook publishes a catalogue by system type:
+        <strong>request-driven</strong> systems get availability, latency and quality ("the proportion of responses
+        served in an undegraded state"); <strong>pipelines</strong> get freshness, correctness and coverage.
+        <strong>Correctness</strong> — "the proportion of records coming into the pipeline that resulted in the correct
+        value coming out" — is the closest published analogue to an LLM output-quality SLI, and exactly the shape a
+        nightly reconciliation job needs.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">SLO</div>
+        <h2>An SLO is a promise, and promises are negotiated</h2>
+        <p>The objective is a target on the indicator. One question separates it from an SLA: "what happens if the SLOs
+        aren't met? If there is no explicit consequence, then you are almost certainly looking at an SLO." An SLA
+        carries credits, penalties, a contract. Don't let a client blur the two.</p>
+        <p>What makes an SLO real is not analysis, it is <strong>three-party agreement</strong>. Product managers must
+        "agree that this threshold is good enough for users." Developers must "agree that if the error budget has been
+        exhausted, they will take some steps to reduce risk to users." Whoever carries the pager must agree "that it is
+        defensible without Herculean effort, excessive toil, and burnout." Then the test: approval of the error budget
+        policy by all three "is a good test for whether the SLOs are fit for purpose." Each objection maps to a fix —
+        too much toil or unacceptable velocity means relax; users suffering before the policy fires means "the SLOs are
+        likely not tight enough."</p>
+        <p>So when a stakeholder says "make it 100%," you have four documented answers: component failure probability is
+        never zero; "even if you could achieve 100% reliability within your system, your customers would not experience
+        100% reliability"; a 100%-reliable service can never change, and "the number one source of outages is change";
+        and "an SLO of 100% means you only have time to be reactive." Keep a <strong>safety margin</strong> — "users
+        build on the reality of what you offer, rather than what you say you'll supply" — and if the right target isn't
+        reachable yet, declare an <strong>aspirational SLO</strong>: tracked, explicitly not requiring action.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Error budget</div>
+        <h2>"Not this sprint" without saying no</h2>
+        <p>The error budget is <strong>100% minus the SLO</strong>, a spendable quantity. The worked example: at a 99.9%
+        SLO, a service taking 3 million requests over four weeks has a budget of 3,000 errors, so "if a single outage
+        is responsible for 1,500 errors, that error costs 50% of the error budget." An incident now has a price tag everyone shares.</p>
+        <p>That currency is the point. The budget <strong>depoliticizes</strong>: it "removes the politics from
+        negotiations between the SREs and the product developers when deciding how much risk to allow." The loop is
+        mechanical — while the SLO is met, releases continue; spend the budget and releases halt while engineering goes
+        to resilience work. The elegant part is that it makes the other side argue your case: "when the budget is
+        nearly drained, the product developers themselves will push for more testing or slower push velocity… the
+        product development team becomes self-policing."</p>
+        <p>Three honest caveats. The precondition is blunt: "this outcome relies on an SRE team having the authority to
+        actually stop launches if the SLO is broken" — as a consultant you rarely have that authority, which is why the
+        policy must be signed by someone who does. Infrastructure and third-party failures <em>count</em>: "such events
+        also eat into the error budget… everyone shares the responsibility for uptime." And the legitimate escape valve
+        is renegotiation, not evasion — a struggling team "may elect to loosen the SLO… in order to increase
+        innovation." What you're steering away from is the named failure mode: <strong>an SLO without teeth</strong>.</p>
+        <button class="code-cta" type="button" data-modal="code-w07d4"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· llm_span.py</span></button>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Burn rate</div>
+        <h2>Alert on the rate you're spending, not the spike</h2>
+        <p><strong>Burn rate</strong> is a multiple of budget-neutral consumption: a burn rate of 1 "means that it's
+        consuming error budget at a rate that leaves you with exactly 0 budget at the end of the SLO's time window."
+        At 99.9% over 30 days, a constant 0.1% error rate is burn rate 1. Burn rate 2 exhausts in 15 days, 10 exhausts
+        in 3 days, and 1,000 — a total outage — exhausts the month in <strong>43 minutes</strong>. The arithmetic fits
+        on one line: <strong>budget consumed = burn rate × alerting window ÷ period</strong>.</p>
+        <p>Why not one threshold? A single burn-rate alert has terrible <strong>recall</strong>, and the Workbook names
+        the hole: "a 35x burn rate never alerts, but consumes all of the 30-day error budget in 20.5 hours." Fast enough to hurt, slow enough to slip under a spike alarm. The fix is <strong>multiple</strong> burn rates at
+        several windows. Google's recommended starting configuration: <strong>2% of budget over 1 hour
+        (burn rate 14.4) → page</strong>; <strong>5% over 6 hours (burn rate 6) → page</strong>; <strong>10% over 3 days
+        (burn rate 1) → ticket</strong>. Add a short confirmation window so the page stops when the burn stops — require
+        14.4× over the previous hour <em>and</em> the previous five minutes, giving "a better reset time by ceasing to
+        fire five minutes later, rather than one hour later."</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a burn-rate calculator — set an
+        SLO, a window and an outage duration, and watch which of the 14.4× / 6× / 1× rules fire and how much budget is
+        gone. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">The trap</div>
+        <h2>Low traffic breaks the table outright</h2>
+        <p>Copy that 14.4/6/1 table onto a low-volume path and you ship an alarm that is useless in both directions.
+        The Workbook is explicit: "if a system receives 10 requests per hour, then a single failed request results in an
+        hourly error rate of 10%. For a 99.9% SLO, this request constitutes a <strong>1,000x burn rate</strong> and
+        would page immediately, as it consumed 13.9% of the 30-day error budget. This scenario allows for only
+        <strong>seven failed requests in 30 days</strong>."</p>
+        <p>That is the shape of a pilot AI feature, or a clinical intake queue at 2 a.m. — one retryable blip pages a
+        human, someone silences the alert, and the real outage becomes invisible. The mitigations are boring: widen the
+        window, aggregate across a bigger surface, set a minimum-volume precondition, or accept a looser SLO honestly
+        rather than a tight one you mute. <strong>Check request volume before you pick thresholds</strong> — that check
+        is the difference between a dashboard and an instrument.</p>
+        <p>Severity routing follows the same logic: "if an issue will exhaust the error budget within hours or a few
+        days, sending an active notification is appropriate. Otherwise, a ticket-based notification… the next working
+        day is more appropriate." A slow reconciliation drift is a ticket, not a 3 a.m. page — and now you have a
+        principled reason rather than a preference.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a low-traffic simulator — dial
+        requests/hour from 10,000 down to 10 and watch one failure swing from invisible to a 1,000× page. Needs backend
+        standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">OTel GenAI</div>
+        <h2>The metric names, and a currency check you must run</h2>
+        <p>Names matter: a client dashboard built on invented metric names can't be handed to anyone. OpenTelemetry's
+        GenAI conventions define the instruments. On the <strong>client</strong> side —
+        <code>gen_ai.client.operation.duration</code> is a histogram in seconds;
+        <code>gen_ai.client.token.usage</code> is a histogram in <code>{token}</code> with a required
+        <code>gen_ai.token.type</code> of <code>input</code> or <code>output</code>;
+        <code>gen_ai.client.operation.time_to_first_chunk</code> is streaming-only. Self-hosted inference adds
+        <code>gen_ai.server.time_to_first_token</code> (queue + prefill) and
+        <code>gen_ai.server.time_per_output_token</code> (decode). Client and server measure the same idea from
+        different vantage points — the client one includes network and proxy transport, so the delta between them
+        <em>is</em> your infrastructure overhead. <strong>Never mix them in one SLO.</strong></p>
+        <p>On the span: kind SHOULD be <code>CLIENT</code>, name SHOULD be
+        <code>{gen_ai.operation.name} {gen_ai.request.model}</code>, and — the rule that keeps your latency SLI honest —
+        a retried request's span "SHOULD cover the duration of the logical operation with all retries."
+        <code>error.type</code> is conditionally required on failure and is <strong>Stable</strong>, inherited from core
+        semconv: the one attribute your error-rate SLI can lean on today.</p>
+        <p>Now the currency check — the FDE habit this day is really teaching. These conventions <strong>moved
+        repos</strong>: the old <code>opentelemetry.io/docs/specs/semconv/gen-ai/</code> pages now render only "this
+        page has moved and is no longer maintained in this repository." The live home is
+        <code>open-telemetry/semantic-conventions-genai</code>: status <strong>Development</strong>, no tagged release,
+        README Schema URL literally "TODO." Names can still change. Pin your instrumentation version and read the
+        source before quoting a convention — anything citing the old URLs is stale.</p>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="8">
+        <div class="tag">Cost</div>
+        <h2>Cost is a reliability signal, and nobody emits it</h2>
+        <p>The second thing to discover for yourself: <strong>there is no cost metric</strong>. The conventions define no
+        <code>gen_ai.*.cost</code> instrument or attribute — the registry carries token counts only. Cost is
+        <strong>derived downstream</strong>: tokens × price, sliced by model and token type. One trap: OTel's cache
+        attributes are <em>inclusive</em> — cache-read and cache-creation counts "SHOULD be included in
+        <code>gen_ai.usage.input_tokens</code>" — while Anthropic's <code>usage</code> object decomposes the other way.
+        Sum all three and you double-count.</p>
+        <p>Cost deserves its own SLO because of the price asymmetry. Five-minute cache writes cost 1.25× base input,
+        one-hour writes 2×, and <strong>cache reads 10% of base input</strong>. A cache-hit-ratio collapse therefore
+        multiplies the cost of your cached prefix by roughly <strong>ten times while latency and error rate look
+        perfectly healthy</strong>. Nothing pages. Nothing is "down." You find out at month end. Detection is cheap —
+        "if both <code>cache_creation_input_tokens</code> and <code>cache_read_input_tokens</code> are 0, the prompt was
+        not cached" — so a daily hit-ratio check catches it. Give cost a dollars-per-day budget and the same burn-rate
+        machinery.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a cost-burn panel — toggle the
+        cache-hit ratio on a week of token usage and watch derived spend cross its budget while latency and errors stay
+        flat green. Needs backend standup.</p></div>
+        <p>One last discipline. The conventions are default-private: instructions, messages and outputs "SHOULD NOT" be
+        captured by default, and every content attribute is <strong>Opt-In</strong>, flagged as likely PII. That's a
+        gift — metrics and spans <em>without payloads</em> give you every golden signal plus token cost, with no
+        regulated data leaving the boundary. Ship the rollout now; content capture is a separate decision.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>"Give me visibility" is not a spec, and a dashboard is not an answer. The deliverable is a
+          <strong>promise with a consequence</strong>: an SLI whose valid events you can name out loud, an SLO three
+          people signed, and one alert that fires on burn rate. When the provider melts down — the 529, the payer
+          outage — the user failed either way, so the SLI counts it; the policy response is a dependency clause with a
+          fallback, <em>not</em> an exemption. That turns "the vendor was down" into a design requirement.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" target="_blank" rel="noopener">Monitoring Distributed Systems — Google SRE Book, Ch. 6</a> — the four golden signals; explicit / implicit / by-policy errors.</li>
+          <li><a href="https://sre.google/workbook/implementing-slos/" target="_blank" rel="noopener">Implementing SLOs — Google SRE Workbook, Ch. 2</a> — SLI spec vs implementation, the three-party agreement, why 100% is wrong, the SLI catalogue.</li>
+          <li><a href="https://sre.google/sre-book/service-level-objectives/" target="_blank" rel="noopener">Service Level Objectives — Google SRE Book, Ch. 4</a> — SLI/SLO/SLA distinction; safety margin.</li>
+          <li><a href="https://sre.google/sre-book/embracing-risk/" target="_blank" rel="noopener">Embracing Risk — Google SRE Book, Ch. 3</a> — the budget as a depoliticized control loop; the authority precondition.</li>
+          <li><a href="https://sre.google/workbook/alerting-on-slos/" target="_blank" rel="noopener">Alerting on SLOs — Google SRE Workbook, Ch. 5</a> — burn-rate math, 14.4 / 6 / 1, multiwindow alerts, the low-traffic caveat.</li>
+          <li><a href="https://sre.google/workbook/error-budget-policy/" target="_blank" rel="noopener">Example Error Budget Policy — SRE Workbook, Appendix B</a> — the copyable policy template.</li>
+          <li><a href="https://github.com/open-telemetry/semantic-conventions-genai" target="_blank" rel="noopener">open-telemetry/semantic-conventions-genai</a> — the canonical home; Development status, no tagged release.</li>
+          <li><a href="https://opentelemetry.io/docs/specs/semconv/gen-ai/" target="_blank" rel="noopener">Moved: GenAI semantic conventions — opentelemetry.io</a> — the notice proving the repo move.</li>
+          <li><a href="https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-metrics.md" target="_blank" rel="noopener">GenAI metrics semantic conventions</a> — instrument names, units, the billable-token rule.</li>
+          <li><a href="https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md" target="_blank" rel="noopener">GenAI model spans semantic conventions</a> — span name/kind, the retry rule, content-capture privacy guidance.</li>
+          <li><a href="https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/registry/attributes/gen-ai.md" target="_blank" rel="noopener">gen_ai.* attribute registry</a> — token attributes and the token attributes, the cache-inclusion rule, and the <code>gen_ai.provider.name</code> enum (<code>aws.bedrock</code>, <code>anthropic</code>, <code>openai</code>, …) — read the enum before you type the string.</li>
+          <li><a href="https://docs.claude.com/en/api/errors" target="_blank" rel="noopener">Claude API errors</a> — 429, 500 and 529 semantics.</li>
+          <li><a href="https://docs.claude.com/en/docs/build-with-claude/prompt-caching" target="_blank" rel="noopener">Prompt caching — Claude Platform Docs</a> — write/read price asymmetry and cache-miss detection.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">The 20-minute freeze, priced in burn rate</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 questions on signals, SLOs, burn rate &amp; cost</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 7 Day 4</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the 20-minute freeze, priced in burn rate</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. Take the incident note from your client's materials — "intake froze ~20 min, no alert fired" — and turn it into arithmetic you can put on a slide.</p>
+    <p><strong>Step 1 — the budget.</strong> A 99.9% SLO over 30 days. Thirty days is 43,200 minutes, so the error
+    budget is 0.1% of that: <b>43.2 minutes</b> of total unavailability per month. That single number is usually the
+    most persuasive thing in the room — most stakeholders have never seen "three nines" expressed as forty-three
+    minutes.</p>
+    <p><strong>Step 2 — price the incident.</strong> A 20-minute total outage spends 20 / 43.2 = <b>46% of the entire
+    monthly budget in one event</b>. Nearly half the year's-worth-of-risk-per-month, gone before lunch.</p>
+    <p><strong>Step 3 — would the alert have caught it?</strong> Over a one-hour window, 20 minutes down is a 33.3%
+    error rate. Budget-neutral is 0.1%, so the burn rate is <b>333×</b> — far past the 14.4× page threshold. Check it
+    with the formula: consumed = burn × window ÷ period = 333 × (1 ÷ 720) = 46%. The two numbers agree. And because the
+    14.4×/1h rule fires at 2% of budget, it would have paged after roughly <b>52 seconds</b> of full outage, not twenty
+    minutes. The freeze went unnoticed because there was no SLO to breach — not because it was hard to detect.</p>
+    <div class="model-answer show">
+      <div class="ma-k">The published rule you can paste into Prometheus</div>
+      <p style="margin:8px 0 0"><code>0.001</code> below <em>is</em> the 99.9% SLO's budget — change the SLO, change
+      that constant:</p>
+      <pre style="white-space:pre-wrap;margin:8px 0 0"># page
+expr: (
+        job:slo_errors_per_request:ratio_rate1h{job="myjob"} &gt; (14.4*0.001)
+      or
+        job:slo_errors_per_request:ratio_rate6h{job="myjob"} &gt; (6*0.001)
+      )
+severity: page
+
+# ticket
+expr: job:slo_errors_per_request:ratio_rate3d{job="myjob"} &gt; 0.001
+severity: ticket</pre>
+      <p style="margin:8px 0 0">Then add the short confirmation window — require the 14.4× condition over the previous
+      <b>five minutes</b> as well as the previous hour — so the page clears five minutes after the burn stops instead
+      of an hour later.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Now the sanity check that saves you.</strong> Before you ship those rules, count
+    the requests. If the path runs at 10 req/hour overnight, one failure is a 1,000× burn and pages instantly — the
+    Workbook's own example allows only seven failed requests in 30 days at that volume. Widen the window, aggregate
+    across a larger surface, or add a minimum-volume precondition. Shipping the table unchecked is the single most
+    common way a good SLO becomes a muted alert.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Week 7 · Day 4 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Instantiate the four golden signals on an LLM path — TTFT vs total duration, tokens/sec as traffic, 429/529 as saturation proxies — and classify a hallucination as an <em>implicit</em> error using the SRE Book's own definition</li>
+      <li>Write an SLI as a specification/implementation pair in "proportion of good events" form, and say out loud what counts as a valid event</li>
+      <li>Run the three-party SLO negotiation and defend a target below 100% with the four documented reasons</li>
+      <li>Compute a burn rate, pick multiwindow thresholds (14.4×/1h, 6×/6h page; 1×/3d ticket), and check request volume before shipping them</li>
+      <li>Name the OTel GenAI client metrics correctly, flag their Development status, and derive cost that the conventions don't emit</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your brownfield project repo</div>
+    <ul class="deliv-list check">
+      <li>In <code>2463-FDE/riverbend-portal</code> (healthcare) or <code>2463-FDE/meridian-lending</code> (finance): today's slice of the <a href="../../client-delivery.html?w=7">Week 7 client ask</a> — the observability artifact the packet wants (structured tracing on the critical span, a golden-signals dashboard spec, and <b>one working alert</b>). Days 1–3 gave you the traces on the intake/eligibility call or the payment authorize/capture call; today you add the promise and the alert on top of <em>that same span</em></li>
+      <li><code>SLO.md</code> in that same repo: one SLI written as specification + implementation, the valid-event definition (does a provider 529 count? a truncation? a guardrail rejection?), the target, and the measurement window</li>
+      <li>An <code>ERROR_BUDGET_POLICY.md</code> adapted from SRE Workbook Appendix B — including a <b>dependency clause</b> for third-party failures that specifies a fallback or degraded mode rather than an exemption, and the name of the person empowered to halt launches</li>
+      <li>One alert rule checked into the repo, multiwindow, with the burn-rate math shown in a comment — plus the <b>request-volume check</b> that justifies your window choice on <em>this</em> path</li>
+      <li>A token-cost SLI derived from <code>gen_ai.client.token.usage</code> sliced by model, with a stated budget and the cache-hit-ratio check that detects a silent 10× regression</li>
+    </ul>
+    <p class="goals-foot">Bring the policy, not just the number — tomorrow is the ★ milestone day, where these pieces
+    become the single artifact you hand the client.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "W7 · Day 5 →", href: "w07d5.html" };
+window.DIAGRAM = {
+  title: "Signals → promise → alert",
+  width: 500, height: 668,
+  nodes: [
+    { id:"scene", step:0, kind:"example", x:14, y:12, w:472, h:62,
+      label:"CLIENT · \"it's flaky and I'm always the last to know\"\n  incident note: froze ~20 min · no alert fired\n  no SLO to breach = nothing to page on" },
+
+    { id:"lat", step:0, x:26,  y:88, w:106, h:50, label:"LATENCY",
+      detail:"Split by outcome: successful vs failed. 'A slow error is even worse than a fast error,' but folding 500s into overall latency gives misleading numbers." },
+    { id:"trf", step:0, x:144, y:88, w:106, h:50, label:"TRAFFIC",
+      detail:"Demand on the system. On an LLM path it is requests/sec AND tokens/sec, because provider rate limits are token-denominated." },
+    { id:"err", step:0, x:262, y:88, w:106, h:50, label:"ERRORS",
+      detail:"Explicit (HTTP 500), implicit ('an HTTP 200 success response, but coupled with the wrong content'), or by policy (over your stated latency = an error). Hallucination is an implicit error." },
+    { id:"sat", step:0, x:380, y:88, w:106, h:50, label:"SATURATION",
+      detail:"'How full your service is.' No CPU gauge here: use rate-limit headroom, 429/529 rate, context-window use. p99 latency over a small window is an early saturation signal." },
+
+    { id:"path", step:1, x:26, y:152, w:460, h:56, label:"THE LLM PATH · signals instantiated\nTTFT + duration · tokens/sec · 429/529 + by-policy · headroom",
+      detail:"By-policy errors you declare yourself: schema-validation failure, length-capped truncation, refusal, empty output, failed groundedness check. Naming them is the design work." },
+
+    { id:"sli", step:2, x:26, y:222, w:460, h:52, label:"SLI · proportion of good events\nspecification + implementation",
+      detail:"'A single SLI specification might have multiple SLI implementations,' trading quality, coverage and cost. Catalogue: request-driven = availability/latency/quality; pipeline = freshness/correctness/coverage." },
+
+    { id:"slo", step:3, x:26, y:288, w:460, h:58, label:"SLO · a promise, negotiated\nPM + developers + on-call must all agree",
+      detail:"Never 100%: components fail, users can't perceive it, change causes outages, and 100% leaves only reactive time. SLA test: 'what happens if it isn't met?' Keep a safety margin; use an aspirational SLO when the real target isn't reachable yet." },
+
+    { id:"eb", step:4, x:26, y:360, w:460, h:56, label:"ERROR BUDGET = 100% − SLO\nspendable · depoliticized · self-policing",
+      detail:"'Removes the politics from negotiations… when deciding how much risk to allow.' Budget drained = releases pause. Infra and vendor failures count too. Requires someone with authority to actually halt launches, or it's an SLO without teeth." },
+
+    { id:"burn", step:5, x:26, y:430, w:460, h:60, label:"BURN RATE ALERTS\n14.4× / 1h page · 6× / 6h page · 1× / 3d ticket",
+      detail:"consumed = burn rate × window ÷ period. Burn 1 = exactly empty at the window's end; burn 1,000 = 43 minutes. One threshold has low recall: '35x never alerts, but consumes all of the 30-day budget in 20.5 hours.'" },
+
+    { id:"lowq", step:6, x:26, y:504, w:222, h:56, label:"⚠ low-traffic trap\n10 req/hr → 1 failure = 1,000×",
+      detail:"At 10 req/hour a single failure is a 10% hourly error rate — a 1,000× burn that pages immediately and allows only seven failed requests in 30 days. Check volume before you copy the table." },
+    { id:"otel", step:7, x:264, y:504, w:222, h:56, label:"OTel GenAI · status: Development\ngen_ai.client.*",
+      detail:"operation.duration (s), token.usage ({token}, type input/output), operation.time_to_first_chunk (streaming only). Server-side: time_to_first_token, time_per_output_token. error.type is Stable. Conventions moved repos; no tagged release; pin your version." },
+
+    { id:"cost", step:8, x:26, y:574, w:460, h:62, label:"COST · derived, never emitted\ncache-hit collapse = ~10× bill, latency stays green",
+      detail:"No gen_ai.*.cost exists — derive tokens × price. Cache reads cost 10% of base input; writes 1.25× (5-min) or 2× (1-hour). OTel counts cache tokens INSIDE input_tokens; Anthropic's usage object decomposes them — summing both double-counts." }
+  ],
+  edges: [
+    { id:"e_inst", step:1, from:"err",  to:"path", label:"instantiate", lx:-4 },
+    { id:"e_sli",  step:2, from:"path", to:"sli",  label:"good / valid" },
+    { id:"e_slo",  step:3, from:"sli",  to:"slo",  label:"negotiate" },
+    { id:"e_eb",   step:4, from:"slo",  to:"eb",   label:"100% − SLO" },
+    { id:"e_burn", step:5, from:"eb",   to:"burn", label:"spend rate" },
+    { id:"e_low",  step:6, from:"burn", to:"lowq", label:"volume check", lx:-6 },
+    { id:"e_ot",   step:7, from:"otel", to:"burn", label:"emits the numbers", bend:22 },
+    { id:"e_cost", step:8, from:"otel", to:"cost", label:"derive $", lx:6 }
+  ],
+  captions: [
+    "The <b>four golden signals</b> — latency, traffic, errors, saturation. Measure all four and page on one, and your service is 'at least decently covered.' <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Instantiated on an <b>LLM path</b>: TTFT alongside total duration, tokens/sec as the real traffic unit, 429/529 as saturation proxies, and by-policy errors you declare. <span style='opacity:.7'>(tap)</span>",
+    "An <b>SLI</b> is a proportion of good events over valid events — written as a <b>specification plus an implementation</b>, because most health arguments are implementation arguments.",
+    "The <b>SLO</b> is only real when three parties agree: product, developers, and whoever carries the pager. <b>100% is the wrong target</b>, for four documented reasons. <span style='opacity:.7'>(tap)</span>",
+    "<b>Error budget = 100% − SLO</b>, spendable. It depoliticizes the tradeoff — and once it's draining, the feature team argues for the reliability work themselves. <span style='opacity:.7'>(tap)</span>",
+    "Alert on <b>burn rate</b>, multiwindow: 14.4×/1h and 6×/6h page, 1×/3d tickets. One threshold has low recall — a 35× burn never fires and empties the month in 20.5 hours.",
+    "The trap: on a <b>low-traffic path</b>, one failure at 10 req/hour is a 1,000× burn. Count requests before you copy the thresholds. <span style='opacity:.7'>(tap)</span>",
+    "Name the instruments properly — <b>OTel GenAI</b> client metrics — and run the currency check: the conventions <b>moved repos</b> and are still <b>Development</b> status. <span style='opacity:.7'>(tap)</span>",
+    "Last signal: <b>cost</b>. Nothing emits it, so derive it from tokens — and give it a budget, because a cache-hit collapse is a <b>10× bill that latency never sees</b>. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w07-d4",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "Your summarization endpoint returns HTTP 200 with a confidently wrong clinical summary. Under the SRE Book's golden-signals definition, what is it?",
+      options: [
+        "Not an error — the request succeeded; quality is a separate concern from reliability",
+        "An implicit error: 'an HTTP 200 success response, but coupled with the wrong content'",
+        "A saturation event, because the model was overloaded",
+        "A latency error, since correctness problems come from rushed generation" ],
+      answer: 1,
+      explain: "The 2016 definition already covers it. Errors are failures explicitly (HTTP 500s), implicitly ('an HTTP 200 success response, but coupled with the wrong content'), or by policy. AI reliability doesn't need new theory — it needs the existing framework pointed at a nondeterministic dependency." },
+    { type: "scq",
+      stem: "A stakeholder insists the SLO for the intake path should be 100%. What's the strongest documented pushback?",
+      options: [
+        "100% is fine if you add enough retries",
+        "100% is unachievable and counterproductive: components fail, users on imperfect devices can't perceive the difference, a 100%-reliable service can never change, and '100% means you only have time to be reactive'",
+        "Set 100% but exempt third-party failures from the calculation",
+        "Use 100% as the SLA and something lower as the SLI" ],
+      answer: 1,
+      explain: "All four reasons are published. Add the user-experience argument — 'a user on a 99% reliable smartphone cannot tell the difference between 99.99% and 99.999% service reliability' — and the note that 'the number one source of outages is change.' If the right target isn't reachable yet, track it as an aspirational SLO instead." },
+    { type: "tf",
+      stem: "The OpenTelemetry GenAI semantic conventions define a gen_ai.client.cost metric you can export directly.",
+      answer: false,
+      explain: "No cost metric or attribute exists. The registry carries token counts only, so cost must be derived downstream as tokens × per-token price, sliced by response model and token type. The conventions do require that instrumentation report billable tokens when both used and billable counts are available." },
+    { type: "mcq",
+      stem: "Which of these are real problems with shipping the 14.4×/1h + 6×/6h + 1×/3d table unchanged onto a low-volume pilot path? (select all that apply)",
+      options: [
+        "A single failed request at 10 req/hour is a 1,000× burn rate and pages immediately",
+        "The path allows only about seven failed requests in 30 days at that volume",
+        "The burn-rate formula stops being arithmetically valid below 1,000 req/hour",
+        "Constant nuisance pages get the alert muted, so the real outage goes unnoticed",
+        "Multiwindow alerting is only defined for latency SLOs, not availability" ],
+      answer: [0, 1, 3],
+      explain: "The Workbook's own example: at 10 requests/hour one failure is a 10% hourly error rate, a 1,000× burn against a 99.9% SLO, consuming 13.9% of the monthly budget and allowing only seven failures in 30 days. The formula stays valid — it's the signal-to-noise that collapses. Mitigations: widen the window, aggregate across a bigger surface, add a minimum-volume precondition, or loosen the SLO honestly." },
+    { type: "match",
+      stem: "Match each artifact or claim to what it actually is.",
+      pairs: [
+        { l: "A target with no stated consequence for missing it", r: "an SLO" },
+        { l: "A contract with credits or penalties attached", r: "an SLA" },
+        { l: "100% minus the objective, spent by every failure including the vendor's", r: "the error budget" },
+        { l: "A target that exists but nobody enforces or reasons with", r: "an SLO without teeth" } ],
+      explain: "The test is one question: 'what happens if the SLOs aren't met?' No explicit consequence means it's an SLO, not an SLA. The budget is spendable and infra/third-party failures count against it deliberately — 'everyone shares the responsibility for uptime.' The named failure mode is an SLO that exists 'without a common understanding about its importance.'" },
+    { type: "open",
+      stem: "Your client's LLM feature shows flat p99 latency and a 0.02% error rate all month, but the bill tripled. In two or three sentences, name the most likely cause and the daily check that would have caught it.",
+      hint: "Think about which token prices are asymmetric, and what the conventions do and don't emit.",
+      model: "Most likely a prompt-cache regression: cache reads cost 10% of base input price, so when the cached prefix stops hitting, that portion of every request jumps roughly 10× while latency and error rate stay perfectly healthy — nothing pages because no reliability signal moved. The check is a daily cache-hit ratio, cache_read / (cache_read + cache_creation + input); if both cache_creation_input_tokens and cache_read_input_tokens are 0, the prompt wasn't cached at all. The durable fix is to derive cost from gen_ai.client.token.usage, give it its own budget in dollars/day, and run the same multiwindow burn-rate alerting over it — and to be careful not to double-count, since OTel includes cache tokens inside input_tokens while Anthropic's usage object decomposes them." }
+  ]
+};
+</script>
+
+<div id="code-w07d4" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: the instrumented call your SLO is measured from</h2>
+    <p class="cv-cap">Metrics only, no payload — every golden signal, nothing regulated leaving the boundary. The names are the OTel GenAI ones so the dashboard is portable.</p>
+    <div class="cv" data-file="llm_span.py" data-lang="python"><pre class="cv-raw"># Emit OTel GenAI client metrics around one Bedrock call. No prompt/output captured.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import time, boto3
+from opentelemetry import metrics
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+m = metrics.get_meter(&quot;llm.client&quot;)      # one meter per service, not per domain
+DUR = m.create_histogram(&quot;gen_ai.client.operation.duration&quot;, unit=&quot;s&quot;)
+TOK = m.create_histogram(&quot;gen_ai.client.token.usage&quot;, unit=&quot;{token}&quot;)
+
+MODEL = &quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;
+
+# Wrap the ONE span the week's packet named: Riverbend's intake/eligibility
+# summarizer, or Meridian's payment authorize/capture reconciliation call.
+def call_model(messages, model=MODEL):
+    attrs = {&quot;gen_ai.operation.name&quot;: &quot;chat&quot;,
+             &quot;gen_ai.provider.name&quot;: &quot;aws.bedrock&quot;,
+             &quot;gen_ai.request.model&quot;: model}
+    t0 = time.monotonic()                      # one logical op -- retries included
+    try:
+        resp = bedrock.converse(
+            modelId=model, messages=messages,
+            inferenceConfig={&quot;maxTokens&quot;: 400, &quot;temperature&quot;: 0},
+        )
+    except Exception as e:
+        attrs[&quot;error.type&quot;] = type(e).__name__  # Stable attr: the error-rate SLI leans here
+        DUR.record(time.monotonic() - t0, attrs)
+        raise
+    DUR.record(time.monotonic() - t0, attrs)
+    u = resp[&quot;usage&quot;]
+    TOK.record(u[&quot;inputTokens&quot;],  {**attrs, &quot;gen_ai.token.type&quot;: &quot;input&quot;})
+    TOK.record(u[&quot;outputTokens&quot;], {**attrs, &quot;gen_ai.token.type&quot;: &quot;output&quot;})
+    # No cost metric exists -- derive it downstream: tokens x list price, by model.
+    return resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;]</pre></div>
+    <p class="cv-foot">Three instruments and one Stable attribute give you latency, traffic, errors, and the token counts cost is derived from — and the SLI you negotiate tomorrow is measured from exactly this call site.</p>
+  </div>
+</div>
+
+<script src="../../assets/js/roster.js?v=20260706"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
+</body>
+</html>

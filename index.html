@@ -60,7 +60,7 @@ window.PHASES = {
   sdlc:   { label:"AI-Native SDLC",            c:"#7048e8" },
   obs:    { label:"AI Observability",          c:"#0ca678" },
   sec:    { label:"Production & Security",      c:"#e03131" },
-  cap:    { label:"Specialization & Capstone", c:"#f08c00" }
+  cap:    { label:"Delivery & Handover",       c:"#f08c00" }
 };
 window.WEEKS = [
   { w:1, phase:"found", title:"LLM Engineering for Production", days:[
@@ -100,29 +100,29 @@ window.WEEKS = [
     { t:"Brownfield & LEGMOD with agents", s:"strangler-fig · characterization tests · incremental", href:"weeks/w06/w06d4.html" },
     { t:"AI-augmented delivery E2E", s:"spec → PR → gates → merge · milestone", star:true, href:"weeks/w06/w06d5.html" } ]},
   { w:7, phase:"obs", title:"Observability, SRE & Guardrails", days:[
-    { t:"Probabilistic vs deterministic", s:"monitoring LLMs · latency/cost/hallucination rate" },
-    { t:"Model drift + structured logging", s:"distribution/embedding shift" },
-    { t:"Distributed tracing + CI/CD for AI", s:"eval runs · staged rollouts · gates" },
-    { t:"Reliability guardrails", s:"input validation · circuit breakers · graceful degr." },
-    { t:"Observability stack review", s:"instrumentation · assessment", star:true } ]},
+    { t:"Traces, spans & LangSmith", s:"run trees · cost/latency attribution · a shareable URL, not an adjective", href:"weeks/w07/w07d1.html" },
+    { t:"Evals in production", s:"offline sets · online eval · LLM-as-judge bias", href:"weeks/w07/w07d2.html" },
+    { t:"Alt research: tracing platforms", s:"Langfuse · Phoenix · Helicone vs LangSmith", href:"weeks/w07/w07d3.html" },
+    { t:"SRE for AI — SLOs & OTel GenAI", s:"error budgets · burn-rate alerting · cost as a signal", href:"weeks/w07/w07d4.html" },
+    { t:"Guardrails + observability E2E", s:"the demo is the guardrail refusing", href:"weeks/w07/w07d5.html", star:true } ]},
   { w:8, phase:"sec", title:"Security, Governance & Responsible AI", days:[
-    { t:"AI threats", s:"prompt injection · jailbreak · data leakage · tool misuse" },
-    { t:"Secure LLM design + data privacy", s:"RBAC · least-privilege · PII masking" },
-    { t:"Compliance + AI governance", s:"SOX/HIPAA/GDPR/EU-AI-Act · audit · oversight" },
-    { t:"AI security in CI/CD", s:"scanning · secrets · LLM Guard/Presidio" },
-    { t:"Security audit + technical exam", s:"milestone + assessment", star:true } ]},
-  { w:9, phase:"cap", title:"Client Specialization Track", days:[
-    { t:"Capstone track kickoff", s:"advanced track-specific foundation" },
-    { t:"Project implementation", s:"build" },
-    { t:"Project implementation", s:"track-relevant model" },
-    { t:"Project impl + cert selection", s:"build · choose certification" },
-    { t:"Project review + cert prep", s:"review" } ]},
-  { w:10, phase:"cap", title:"Project Work & Client Showcase", days:[
-    { t:"Project brief + data comprehension", s:"tech stack mapping · requirement synthesis" },
-    { t:"Spec package + estimation", s:"6R · system mapping · NFRs · architecture" },
-    { t:"AI-augmented implementation", s:"cloud · devops · database thinking" },
-    { t:"Complete build", s:"security · observability · remediation" },
-    { t:"Client showcase", s:"architecture defense · assessment", star:true } ]}
+    { t:"OWASP Top 10 for LLM Apps", s:"the framework that makes a finding boring", href:"weeks/w08/w08d1.html" },
+    { t:"Prompt injection & jailbreaks", s:"direct vs indirect · the lethal trifecta", href:"weeks/w08/w08d2.html" },
+    { t:"Alt research: guardrail frameworks", s:"NeMo · Guardrails AI · LLM Guard · Presidio", href:"weeks/w08/w08d3.html" },
+    { t:"Governance, PII & responsible AI", s:"the PHI/PII boundary · saying no with an alternative", href:"weeks/w08/w08d4.html" },
+    { t:"Red-team + secure agent deploy E2E", s:"triage by client consequence, not CVSS", href:"weeks/w08/w08d5.html", star:true } ]},
+  { w:9, phase:"cap", title:"Client Delivery — Handover & Continuity", days:[
+    { t:"Client steering + burn-down opens", s:"present · receive · no new scope this week" },
+    { t:"Close what is open", s:"every Path B item converts or gets a dated card" },
+    { t:"Estimate vs actual", s:"report the gap and say why it moved" },
+    { t:"Handover draft", s:"what someone inheriting this repo needs Monday" },
+    { t:"CODE FREEZE", s:"nothing merges after today except a demo-blocking bug", star:true } ]},
+  { w:10, phase:"cap", title:"Final Delivery & Team Onboarding", days:[
+    { t:"Demo script + rehearsal", s:"which screens · what data · what you say when it breaks" },
+    { t:"Handover package", s:"README that is true · runbook that runs · citations resolve" },
+    { t:"Traceability pass", s:"every claim ties to a commit on main" },
+    { t:"Dry run, unrescued", s:"hostile questions · the number said aloud" },
+    { t:"Client showcase", s:"final delivery · architecture defense · assessment", star:true } ]}
 ];
 (function () {
   function render() {

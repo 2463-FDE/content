@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w07d5">
+<meta name="fde-concepts" content="grounding-check-thresholds,refusal-as-telemetry,guardrail-tripwire-pipeline,shadow-then-enforce-rollout,guardrail-cost-of-check">
+<title>W7·D5 — Guardrails and Observability, End to End | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Guardrails and Observability, End to End</h1>
+        <div class="meta">
+          <span><b>Week 7</b> · Day 5 · ★ milestone</span>
+          <span>Observability &amp; Guardrails</span>
+          <span><b>~22 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">This week you instrumented one path, built an eval harness, stood up your own tracing
+        backend, and drew golden signals around it. Today you assemble all four into one artifact: an <strong>output
+        guardrail on that same instrumented path</strong>, wired so a refusal is itself an <strong>observable,
+        queryable event</strong>. Three layers — strict schema, a grounding check with a threshold, a refuse-unknown
+        contract — one tripwire, one span, one number. And what you demo is the guardrail <strong>refusing</strong>,
+        not succeeding; the happy path proves nothing.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The premise</div>
+        <h2>A guardrail that isn't recorded didn't happen</h2>
+        <p>Start with the sentence the rest of the day hangs on: <strong>a guardrail with a 0% observed refusal rate is
+        a broken guardrail, or an unexercised one — not a clean system.</strong> It is never evidence of safety; it is
+        an unanswered question, and the only way to answer it is to have been measuring.</p>
+        <p>The platform vendors already treat a decline as a first-class outcome rather than an error. OpenAI lists
+        "<em>Explicit refusals: safety-based model refusals are now programmatically detectable</em>" as a headline
+        benefit of Structured Outputs, and the refusal payload carries <code>"status": "completed"</code>. Not a
+        failure, not a timeout — a distinct terminal state you branch on.</p>
+        <p>You need the measurement because the vendor posture is not the observed behaviour. A 2026 study of commercial
+        guardrails against manipulated medical notes found "<em>substantial weaknesses and inconsistencies in
+        contemporary commercial LLM guardrails, including low refusal rates for several model families</em>." That
+        finding exists only because someone counted refusals instead of assuming them.</p>
+        <p>So the milestone inverts the usual demo order. You feed the seeded bad case, show the user-facing decline,
+        then the trace, the guardrail span, the score against the threshold, the counter ticking on yesterday's
+        dashboard. <em>Then</em>, for contrast, one happy path. A guardrail you can only demo succeeding is one nobody
+        has proven fires.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Layers 1 &amp; 3</div>
+        <h2>Shape is cheap; truth is not</h2>
+        <p>Three layers go on one output, catching completely different failures. The cheapest is <strong>strict schema
+        validation</strong>. Structured Outputs "ensures the model will always generate responses
+        that adhere to your supplied JSON Schema, so you don't need to worry about the model omitting a required key,
+        or hallucinating an invalid enum value" — with <code>strict: true</code> and
+        <code>additionalProperties: false</code>. The subset is richer than people expect: string <code>pattern</code>
+        and <code>format</code>, numeric <code>minimum</code>/<code>multipleOf</code>, array
+        <code>minItems</code>/<code>maxItems</code>, enums and <code>anyOf</code>, defined in code with Pydantic or
+        Zod. And it adds <strong>zero model latency</strong>.</p>
+        <p>It also catches nothing that matters clinically: a perfectly-shaped summary object that invents a medication
+        passes strict validation. The docs are candid — "Structured Outputs can still contain mistakes." Schema
+        enforces <em>shape</em>, and falsehood is well-formed.</p>
+        <p>The third layer is the <strong>refuse-unknown contract</strong> — the prompt-side half, and documented vendor
+        guidance rather than folklore. Anthropic's hallucination page leads with "<em>Allow Claude to say 'I don't
+        know': explicitly give Claude permission to admit uncertainty</em>," and adds the pattern worth stealing
+        wholesale: make the response auditable by citing a quote per claim, and "<strong>if it can't find a quote, it
+        must retract the claim</strong>." For long documents, extract word-for-word quotes <em>first</em>, and restrict
+        the model to the provided documents. That page closes honestly — these techniques "don't eliminate them
+        entirely." Which is why layer two is a measurement, not a prompt.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Grounding · the number</div>
+        <h2>Three vendors, three shapes of "is this true?"</h2>
+        <p>A <strong>grounding check</strong> turns the unanswerable question into a tunable number: how much of this
+        output is supported by the sources you gave it? Three vendors, three shapes of that number — and the shape
+        decides how you set the dial. <strong>Azure AI Content Safety</strong> returns <code>ungroundedDetected</code> (boolean),
+        <code>ungroundedPercentage</code> — "the proportion of the text identified as ungrounded… <em>this is not a
+        confidence level</em>" — and <code>ungroundedDetails[].text</code>, the offending span itself. It takes a
+        <code>domain</code> of <code>MEDICAL</code> or <code>GENERIC</code> and a <code>task</code> of <code>QnA</code>
+        or <code>Summarization</code>. Its two modes map onto your environments: non-reasoning is "fast detection for
+        online applications," reasoning explains "during development and debugging."</p>
+        <p><strong>Google's check-grounding API</strong> is claim-level: a support score from 0 to 1 plus citations to
+        the facts supporting each claim. Two rules matter. "A sentence is considered a single claim," and
+        <em>partial</em> entailment is not grounding — their example, "Google was founded by Larry Page and Sergey
+        Brin in 1975," is entirely ungrounded on the strength of one wrong date. It is built for the critical path:
+        latency "less than 500ms… this speed allows chat bots to call the check grounding API during each
+        inference."</p>
+        <p><strong>Bedrock</strong> splits the question in two: <em>grounding</em> ("any new information introduced in
+        the response will be considered un-grounded") and <em>relevance</em> to the query, each with its own threshold.
+        Set both at 0.7 and anything below on either is blocked. The range is 0 to 0.99, and the docs say why the top
+        is fenced off: "a threshold of 1 is invalid as that will block all content."</p>
+        <p>Moving the dial is a precision/recall trade you state out loud, not a default you inherit: raise it and you
+        catch subtler fabrications while declining more benign answers. Write down the number and what it cost.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a threshold dial — score a
+        seeded summary against a chart, drag the threshold, and watch pass flip to block (and benign answers start
+        getting declined). Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">The seam</div>
+        <h2>The tripwire is where the telemetry hangs</h2>
+        <p>Where does the event get emitted? Every framework converges on the same seam. The OpenAI Agents SDK runs an
+        output guardrail in three steps: take the agent's output, run the guardrail function producing a
+        <code>GuardrailFunctionOutput</code> inside an <code>OutputGuardrailResult</code>, then "check if
+        <code>.tripwire_triggered</code> is true. If true, an <code>OutputGuardrailTripwireTriggered</code> exception is
+        raised." <strong>That <code>except</code> block is your instrumentation point</strong> — the one place that
+        knows a guardrail decided something.</p>
+        <p>Execution mode is a real cost decision. Input guardrails default to parallel execution, which "provides the
+        best latency… however, if the guardrail fails, the agent may have already consumed tokens and executed tools
+        before being cancelled"; blocking execution runs the check first, "preventing token consumption and tool
+        execution." The constraint that matters for the milestone: <strong>output guardrails always run after the
+        agent completes, so they have no parallel mode.</strong> Their latency is unavoidably additive.</p>
+        <p>Nobody hand-rolls all of it. <code>openai-guardrails</code> is a drop-in client doing pipeline-based
+        validation across input, output and pre-flight stages; NeMo Guardrails organizes the same idea as
+        <em>rails</em> (input, retrieval, dialog, execution, output) in YAML; Guardrails AI composes Guards from Hub
+        validators. And Bedrock's standalone <code>ApplyGuardrail</code> decouples the check from the model call, so
+        you can guard output from a model that isn't Bedrock's.</p>
+        <p>One caveat costs you the whole guarantee: on streaming, an ungrounded response "is only marked as irrelevant
+        after the whole response is streamed." A post-hoc check on a stream has already leaked. So you buffer.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Refusal as telemetry</div>
+        <h2>Publish your own attribute contract</h2>
+        <p>Now make the refusal queryable. The OpenTelemetry GenAI semantic conventions have <strong>moved</strong> — the
+        old page is a stub pointing at the <code>semantic-conventions-genai</code> repo, on core semconv v1.44.0. And there is <strong>no <code>gen_ai.guardrail.*</code> convention</strong>. None. The Tracing API spec says
+        what to do: "for operations not covered by the semantic conventions, Instrumentation
+        Libraries SHOULD publish their own conventions." Your attribute contract is a deliverable, not a nicety.</p>
+        <p>Ours: five attributes on the guardrail span, on the <em>same trace</em> as the model call —
+        <code>guardrail.name</code>, <code>guardrail.outcome</code> ∈ {<code>pass</code>, <code>block</code>,
+        <code>model_refusal</code>}, <code>guardrail.score</code>, <code>guardrail.threshold</code>, and
+        <code>guardrail.latency_ms</code>. Score and threshold together, always — a score without its threshold is
+        unreadable six weeks later, after someone retuned the dial. Two conventional surfaces come free:
+        <code>gen_ai.response.finish_reasons</code> carries <code>content_filter</code>, and <code>error.type</code> is
+        the one <strong>Stable</strong> dimension on <code>gen_ai.client.operation.duration</code>.</p>
+        <p>Which sets up the rule that keeps yesterday's work honest: <strong>do not set span status <code>Error</code> on
+        an intentional refusal.</strong> The spec says instrumentation "SHOULD leave the status code as
+        <code>Unset</code> unless there is an error." A guardrail firing is the system <em>working</em>. Mark it
+        <code>Error</code> and you spend Thursday's error budget on your own safety control, and the burn-rate alert
+        pages someone for correct behaviour.</p>
+        <p>And keep the event durable rather than in application logs — the Traccia work proposes a "hashed trace
+        ledger" mapped to EU AI Act articles. A refusal you can't produce in six months is not evidence.</p>
+        <button class="code-cta" type="button" data-modal="code-w07d5"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· guardrail_span.py</span></button>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a trace inspector — fire a
+        seeded ungrounded summary and watch the guardrail span appear beside the model call, with its five attributes,
+        <code>Unset</code> status, and the counter incrementing. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">The wiring bug</div>
+        <h2>Four terminal states, and the branch that never fires</h2>
+        <p>The most likely bug of the day is a silent one, and it lives in the <code>model_refusal</code> branch you
+        just added. On the <strong>Responses API</strong> a refusal is a <em>typed content item</em>: find the message
+        item in <code>response.output</code>, take <code>content[0]</code>, branch on <code>type === "refusal"</code>.
+        It is not a top-level string.</p>
+        <p>The same documentation page also carries a Chat Completions variant of that example, branching on
+        <code>choices[0].finish_reason</code> and <code>choices[0].message.refusal</code> — and both variants sit under
+        the page's legacy <strong>JSON mode</strong> heading, which the page itself deprecates. Copy the wrong one and
+        your refusal branch reads <code>None</code> on every Responses call — invisibly: the demo shows
+        <code>pass</code> on a call that was refused, and every dashboard downstream agrees.</p>
+        <p>While you are in there, branch on all four terminal states — three of which live on the response envelope,
+        not the message: <code>incomplete</code> with reason <code>max_output_tokens</code> is truncated JSON; a
+        <code>refusal</code>-typed item is a safety refusal; <code>incomplete</code> with reason
+        <code>content_filter</code> is a halted generation; <code>completed</code> is success. Four states, four
+        operator responses — and truncation is emphatically not a refusal.</p>
+        <p>Keeping these apart is not pedantry. A 2026 black-box study separated guardrail blocks from model rejections on
+        unseen prompts at an average <strong>F1 of 98%</strong>, precisely because "the techniques used to bypass
+        guardrails can differ substantially from those used to bypass LLM safety alignment." If an outsider can tell
+        your two decline types apart from behaviour alone, your traces have no excuse for blurring them.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Rollout</div>
+        <h2>Shadow first, enforce second</h2>
+        <p>You cannot claim an improvement without a before-number, and it does not exist yet — nobody was measuring
+        ungrounded output. So deploy twice.</p>
+        <p>Google's Model Armor names the two modes cleanly. <strong>Inspect only</strong>: "Model Armor analyzes the
+        content against the configured… policies… it logs the details to Cloud Logging… However, it doesn't stop the
+        request or response. This is useful for testing new policies, <em>understanding potential violation rates</em>,
+        and auditing without affecting live traffic." With the footnote that decides it: "to gain value from this mode,
+        Cloud Logging must be enabled." Shadow without a sink is a no-op. Then
+        <strong>inspect and block</strong>, which "prevents the offending content from proceeding."</p>
+        <p>Run shadow over a slice of real or seeded traffic and you get the baseline violation rate — the number that
+        was always true and never visible. Flip to enforce and you get the pair that makes the deliverable: refusal
+        rate, added p95 latency, alert threshold. Same instrument, two readings, one honest claim.</p>
+        <p>One detail worth copying: Model Armor "sends a detailed description of triggered <em>and untriggered</em>
+        filters." Log the untriggered ones — that resolves step one's ambiguity. A 0% refusal rate with
+        untriggered-filter records means the check ran and found nothing; a 0% rate with silence means the check is
+        off. (Its <strong>floor settings</strong> are worth stealing too: guardrail policy as an org-level governable
+        artifact, not per-app config a team can quietly weaken.)</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a shadow-mode replay — run 200
+        seeded summaries in inspect-only, watch the ungrounded rate accumulate into a before-number, then flip to
+        enforce. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="7">
+        <div class="tag">★ Milestone</div>
+        <h2>The cost of the check, and the line you deliver</h2>
+        <p>The guardrail is now a critical-path dependency, so it gets its own golden signals. OpenAI's published
+        hallucination-detection benchmark — 300 statements, 50% positive prevalence — gives you numbers to argue with:
+        ROC AUC 0.876 for <code>gpt-4.1-mini</code>, 0.934 for <code>gpt-5-mini</code>, 0.854 for <code>gpt-5</code>.
+        <strong>Bigger is not better here.</strong> The latency spread is starker: a File-Search-backed check runs
+        P50 ≈ 7.1 s / P95 ≈ 43 s on <code>gpt-4.1-mini</code>, and P50 ≈ 34 s / P95 ≈ 526 s on <code>gpt-5</code> —
+        against <strong>under 500 ms</strong> for a purpose-built grounding API — the difference between a check you can
+        run inline and one you can't. Two knobs with measured effect: start <code>confidence_threshold</code>
+        at 0.7, and disable reasoning in production, which "reduces median latency by 40% on average."</p>
+        <p>Say the limits out loud or the milestone teaches overconfidence. RAG does not fix hallucination — RAGTruth's
+        ~18,000 annotated responses exist because "despite the integration of RAG, LLMs may still present unsupported
+        or contradictory claims to the retrieved contents." Commercial guardrails under-refuse on exactly the
+        medical-note class you are simulating. And the check's own p95 belongs beside the path it protects.</p>
+        <p>Then land the week. The client asked for visibility, and for the AI summary not to "say anything crazy." You
+        hand over one instrumented path plus one guardrail on it, and the outcome line takes this shape:
+        <em>of N summaries replayed from last week's traffic, X contained a claim not supported by the source; the
+        guardrail now blocks that class and returns a logged decline; refusal rate is R%, added p95 latency is Y ms,
+        and an alert fires if refusal rate crosses Z% or drops to 0%.</em> That last clause marks an engineer: you page
+        on the guardrail going <em>quiet</em>, not only on it going loud.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>A control is a check that produces an observable, alertable event when it fires. An LLM refusal and a
+          month-end reconciliation break are the same artifact: a deterministic assertion, a threshold, a distinct
+          event type, a rate, an alert. Never tell a client "the feature is safe now." Tell them <strong>what you
+          measured, what it was before, what it is now, and what will page you when that changes</strong> — then show
+          the refusal.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://developers.openai.com/api/docs/guides/structured-outputs" target="_blank" rel="noopener">Structured model outputs — OpenAI API</a> — schema, refusals, terminal states.</li>
+          <li><a href="https://github.com/open-telemetry/semantic-conventions-genai" target="_blank" rel="noopener">OpenTelemetry — GenAI semantic conventions (new repo)</a>; <a href="https://opentelemetry.io/docs/specs/semconv/gen-ai/" target="_blank" rel="noopener">the old page</a> is a stub.</li>
+          <li><a href="https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md" target="_blank" rel="noopener">GenAI spans</a> · <a href="https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-metrics.md" target="_blank" rel="noopener">GenAI metrics</a> — Stable <code>error.type</code>.</li>
+          <li><a href="https://opentelemetry.io/docs/specs/otel/trace/api/" target="_blank" rel="noopener">Tracing API — OpenTelemetry spec</a> — <code>Unset</code> unless error.</li>
+          <li><a href="https://learn.microsoft.com/en-us/azure/ai-services/content-safety/concepts/groundedness" target="_blank" rel="noopener">Groundedness detection — Azure AI Content Safety</a> · <a href="https://learn.microsoft.com/en-us/azure/ai-services/content-safety/quickstart-groundedness" target="_blank" rel="noopener">quickstart</a>.</li>
+          <li><a href="https://docs.cloud.google.com/generative-ai-app-builder/docs/check-grounding" target="_blank" rel="noopener">Check grounding with RAG — Google Cloud</a> — &lt;500 ms.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-contextual-grounding-check.html" target="_blank" rel="noopener">Contextual grounding check — Amazon Bedrock</a> — <code>ApplyGuardrail</code>.</li>
+          <li><a href="https://cloud.google.com/security-command-center/docs/model-armor-overview" target="_blank" rel="noopener">Model Armor overview — Google Cloud</a> — inspect-only vs block.</li>
+          <li><a href="https://docs.claude.com/en/docs/test-and-evaluate/strengthen-guardrails/reduce-hallucinations" target="_blank" rel="noopener">Reduce hallucinations — Claude Platform Docs</a> — cite-per-claim.</li>
+          <li><a href="https://openai.github.io/openai-agents-python/guardrails/" target="_blank" rel="noopener">Guardrails — OpenAI Agents SDK</a> — tripwires.</li>
+          <li><a href="https://openai.github.io/openai-guardrails-python/ref/checks/hallucination_detection/" target="_blank" rel="noopener">Hallucination detection — OpenAI Guardrails</a> — ROC AUC / TTC.</li>
+          <li><a href="https://docs.nvidia.com/nemo/guardrails/latest/index.html" target="_blank" rel="noopener">NVIDIA NeMo Guardrails</a> · <a href="https://www.guardrailsai.com/docs" target="_blank" rel="noopener">Guardrails AI</a>.</li>
+          <li><a href="https://arxiv.org/abs/2607.24859" target="_blank" rel="noopener">The Mirage of LLM Guardrails — arXiv 2607.24859</a> · <a href="https://arxiv.org/abs/2607.02121" target="_blank" rel="noopener">Behind the Refusal — 2607.02121</a> · <a href="https://arxiv.org/abs/2401.00396" target="_blank" rel="noopener">RAGTruth — 2401.00396</a> · <a href="https://arxiv.org/abs/2607.14309" target="_blank" rel="noopener">Traccia — 2607.14309</a>.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Setting the threshold, and the two alerts a guardrail needs</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on guardrails, refusals &amp; telemetry</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 7 Day 5</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: setting the threshold, and the two alerts a guardrail needs</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. How to pick the number, and how to alert on it in both directions.</p>
+    <p><strong>1 · Pick the threshold from shadow data, not from a blog post.</strong> Run inspect-only over a slice of
+    real traffic, log every score, and plot the distribution. Your candidate threshold is wherever the seeded bad cases
+    sit <em>below</em> and the bulk of legitimate summaries sit <em>above</em>. If those two populations overlap, no
+    threshold saves you and you need a better check (or better retrieval) before you enforce anything. Remember the
+    vendor semantics differ: Azure's <code>ungroundedPercentage</code> is a proportion of text and explicitly
+    <em>not</em> a confidence; Google's support score is claim-level with sentence granularity; Bedrock gives you two
+    independent scores and caps both at 0.99.</p>
+    <p><strong>2 · Alert in both directions.</strong> The obvious alert is refusal rate crossing a ceiling — the
+    guardrail suddenly blocking 15% of summaries means an upstream regression (retrieval broke, a prompt changed, the
+    model was swapped). The alert people forget is the <em>floor</em>: refusal rate hitting exactly 0% for a full day
+    on a path that previously refused. That is almost never a quality win. It is a config flag flipped, a deploy that
+    dropped the check, or an exception being swallowed. Log untriggered filters so you can tell "ran and passed" from
+    "never ran."</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked example — the three-layer decision on one summary</div>
+      <p style="margin:8px 0 0">A summary comes back naming a medication. <b>①</b> Strict schema: the object has
+      <code>medications: string[]</code> with <code>minItems: 0</code> — valid, passes, 0 ms. <b>②</b> Grounding check
+      against the chart: the medication string appears in no source document, grounding score 0.41 against a threshold
+      of 0.75 — <code>guardrail.outcome = "block"</code>, span attributes written, span status left
+      <code>Unset</code>. <b>③</b> The refuse-unknown contract was supposed to catch this first by requiring a quote
+      per clinical claim; that it didn't is a finding for the eval set, not a reason to distrust layer ②. The user sees
+      a logged decline. The trace shows the score, the threshold, and 380 ms of added latency.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Streaming footnote.</strong> If the endpoint streams tokens to the browser, an
+    output guardrail is post-hoc by construction — the ungrounded sentence has already rendered. Either buffer the
+    response and guard before first byte (and take the perceived-latency hit honestly), or move the check earlier in
+    the pipeline. "We stream and we guard the output" is not a coherent claim.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Week 7 · Day 5 — ★ milestone goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Compose the three output-guardrail layers on one response — strict schema (shape), grounding check (content), refuse-unknown contract (behaviour) — and say what each one cannot catch</li>
+      <li>Set a grounding threshold from shadow data and defend it in vendor-correct terms (Azure proportion vs Google support score vs Bedrock grounding + relevance, capped at 0.99)</li>
+      <li>Emit a refusal as a first-class span event under your own published attribute contract — and leave span status <code>Unset</code> so the error budget stays honest</li>
+      <li>Distinguish <code>guardrail_block</code>, <code>model_refusal</code>, truncation and error — and wire refusal detection to the Responses API shape so the branch actually fires</li>
+    </ul>
+    <div class="ma-k">★ Milestone — the week's packet deliverable, committed to your brownfield repo</div>
+    <ul class="deliv-list check">
+      <li>One output guardrail on the <b>already-instrumented path</b> in <code>2463-FDE/riverbend-portal</code> (or <code>2463-FDE/meridian-lending</code>) — the <a href="../../client-delivery.html?w=7">Week 7 client ask</a>. One path, one guardrail. Do not add a second</li>
+      <li><code>GUARDRAIL.md</code> in the repo: your attribute contract (<code>guardrail.name</code> / <code>outcome</code> / <code>score</code> / <code>threshold</code> / <code>latency_ms</code>), the threshold you chose, and why — there is no <code>gen_ai.guardrail.*</code> convention to inherit</li>
+      <li>The recorded demo, in this order: the seeded bad case (Riverbend's invented medication / Meridian's wrong fee figure) → the user-facing decline → the trace, the guardrail span, score vs threshold, the counter moving → <em>then</em> one happy path</li>
+      <li>The shadow/enforce pair: the before-number from inspect-only mode over replayed traffic, and the after-numbers — refusal rate, added p95 latency, alert thresholds in <b>both</b> directions</li>
+      <li><b>The outcome line:</b> "Of N summaries replayed from last week's traffic, X contained a claim not supported by the source. The guardrail now blocks that class and returns a logged decline; refusal rate is R%, added p95 latency is Y ms, and an alert fires if refusal rate crosses Z% or drops to 0%." — what changes for Maya or Dana, and the number that proves it</li>
+    </ul>
+    <p class="goals-foot">This is the week's ★ integration milestone: d1–d4's tracing, evals, backend and SLOs
+    assembled into one guarded, observable path. Bring the recorded refusal — not the happy path — to the review.</p>
+  </div>
+</div>
+
+<div id="code-w07d5" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: the refusal, emitted as telemetry</h2>
+    <p class="cv-cap">The guardrail decision lands on the same trace as the model call, under attributes you published yourself — and the span status stays <code>Unset</code>, because a refusal is the system working.</p>
+    <div class="cv" data-file="guardrail_span.py" data-lang="python"><pre class="cv-raw"># Draft the summary, then guard it. A refusal is an EVENT, not an error.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import time, boto3
+from opentelemetry import trace
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+tracer  = trace.get_tracer(&quot;riverbend.summary&quot;)
+THRESHOLD = 0.75   # from shadow-mode data. Bedrock caps at 0.99 -- 1.0 blocks everything.
+CONTRACT  = (&quot;Summarize ONLY from the chart below. Quote the chart for every clinical &quot;
+             &quot;claim; if you cannot find a supporting quote, drop the claim and say so.&quot;)
+
+def guarded_summary(chart: str, question: str) -&gt; dict:
+    with tracer.start_as_current_span(&quot;guardrail.grounding&quot;) as span:
+        draft = bedrock.converse(
+            modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+            system=[{&quot;text&quot;: CONTRACT}],                       # layer 3: refuse-unknown
+            messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: f&quot;{chart}\n\n{question}&quot;}]}],
+            inferenceConfig={&quot;maxTokens&quot;: 400, &quot;temperature&quot;: 0},
+        )[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;]
+
+        t0 = time.perf_counter()
+        res = bedrock.apply_guardrail(                          # layer 2: grounding check
+            guardrailIdentifier=GUARDRAIL_ID, guardrailVersion=&quot;1&quot;, source=&quot;OUTPUT&quot;,
+            content=[{&quot;text&quot;: {&quot;text&quot;: chart,    &quot;qualifiers&quot;: [&quot;grounding_source&quot;]}},
+                     {&quot;text&quot;: {&quot;text&quot;: question, &quot;qualifiers&quot;: [&quot;query&quot;]}},
+                     {&quot;text&quot;: {&quot;text&quot;: draft}}],
+        )
+        blocked = res[&quot;action&quot;] == &quot;GUARDRAIL_INTERVENED&quot;
+        span.set_attributes({          # no gen_ai.guardrail.* exists -- publish your own
+            &quot;guardrail.name&quot;: &quot;clinical_grounding&quot;,
+            &quot;guardrail.outcome&quot;: &quot;block&quot; if blocked else &quot;pass&quot;,
+            &quot;guardrail.threshold&quot;: THRESHOLD,
+            &quot;guardrail.latency_ms&quot;: (time.perf_counter() - t0) * 1000,
+        })
+        # Status stays Unset -- never spend the w07d4 error budget on a working guardrail.
+        if blocked:
+            return {&quot;summary&quot;: None, &quot;decline&quot;: &quot;I can&#x27;t verify that against the chart.&quot;}
+        return {&quot;summary&quot;: draft}</pre></div>
+    <p class="cv-foot">Same trace, five attributes, no <code>Error</code> status. That is the difference between a guardrail you can demo and a guardrail you can prove.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "W8 · Day 1 →", href: "../w08/w08d1.html" };
+window.DIAGRAM = {
+  title: "One guardrail on one traced path",
+  width: 500, height: 700,
+  nodes: [
+    { id:"scene", step:0, kind:"example", x:14, y:14, w:472, h:66,
+      label:"CLIENT · \"make sure that AI summary thing can't say anything crazy\"\n  seeded case: a transcript where the summary invented a medication\n  the patient isn't on — the endpoint has no output validation" },
+
+    { id:"path", step:0, x:28,  y:94, w:206, h:52, label:"TRACED INTAKE PATH\n(w07d1 spans · w07d4 SLOs)",
+      detail:"The one path you already instrumented this week. The guardrail goes here, on the same trace — not on a second path, and not in a separate log file." },
+    { id:"sum",  step:0, x:250, y:94, w:236, h:52, label:"LLM SUMMARY · draft\nno output validation today",
+      detail:"A refusal is a completed response, not an error: OpenAI's Structured Outputs docs report status 'completed' with incomplete_details null on a refusal. Branch on it." },
+
+    { id:"sch",  step:1, x:28,  y:164, w:206, h:52, label:"① strict JSON Schema\nshape · 0 ms added",
+      detail:"strict:true + additionalProperties:false. Enforces required keys, enums, pattern/format, min/max. Adds no model latency — and a well-formed summary can still be false." },
+    { id:"ref",  step:1, x:250, y:164, w:236, h:52, label:"③ refuse-unknown contract\nquote-first · retract unsupported",
+      detail:"Anthropic: allow the model to say 'I don't know'; cite a quote per claim and 'if it can't find a quote, it must retract the claim'. Reduces, never eliminates." },
+
+    { id:"grd",  step:2, x:28,  y:234, w:458, h:58, label:"② GROUNDING CHECK — score vs threshold\nAzure ungroundedPercentage · Google support score · Bedrock grounding + relevance",
+      detail:"Azure returns a proportion (explicitly not a confidence) plus the offending span, with MEDICAL/GENERIC domains. Google: 0–1 support score, sentence = one claim, partial entailment = ungrounded, <500 ms. Bedrock: two scores, thresholds 0–0.99 (1.0 blocks everything)." },
+
+    { id:"trip", step:3, x:118, y:310, w:264, h:52, label:"TRIPWIRE\ntripwire_triggered → exception",
+      detail:"Agents SDK: GuardrailFunctionOutput → OutputGuardrailResult → OutputGuardrailTripwireTriggered. That except block is the emit site. Output guardrails run after completion — no parallel mode, latency is additive. Streaming? Buffer, or it already leaked." },
+
+    { id:"span", step:4, x:28, y:380, w:458, h:62, label:"GUARDRAIL SPAN — same trace as the model call\nguardrail.name · outcome · score · threshold · latency_ms   |   status: Unset",
+      detail:"No gen_ai.guardrail.* convention exists; the Tracing API spec says publish your own. Free surfaces you already have: content_filter in gen_ai.response.finish_reasons, and Stable error.type on gen_ai.client.operation.duration. Never mark an intentional refusal Error." },
+
+    { id:"pass", step:5, x:28,  y:460, w:138, h:46, label:"pass",
+      detail:"Score at or above threshold, schema valid. Log it anyway — untriggered filters are evidence the check actually ran." },
+    { id:"blk",  step:5, x:178, y:460, w:138, h:46, label:"block",
+      detail:"The guardrail intervened. Different event and different fix from a model refusal — a black-box study separates the two at 98% F1, so your traces can too." },
+    { id:"mrf",  step:5, x:328, y:460, w:158, h:46, label:"model_refusal",
+      detail:"Responses API: a refusal-typed item in response.output[].content[]. NOT message.refusal and NOT finish_reason — those are the Chat Completions shape and read None, so the branch silently never fires." },
+
+    { id:"shad", step:6, x:28,  y:524, w:206, h:52, label:"SHADOW · inspect-only\n→ the before-number",
+      detail:"Model Armor's inspect-only logs violations without stopping traffic — 'useful for … understanding potential violation rates'. Only works if the log sink is enabled." },
+    { id:"enf",  step:6, x:250, y:524, w:236, h:52, label:"ENFORCE · inspect-and-block\n→ refusal rate R% · +p95 Y ms",
+      detail:"Flip the mode, keep the instrument. Floor settings make the policy an org-level governable artifact rather than per-app config." },
+
+    { id:"dash", step:7, x:86, y:594, w:328, h:62, label:"GOLDEN-SIGNAL DASHBOARD (w07d4)\nalert if R > Z%  ·  alert if R = 0%\nthe check's own p95 sits here too",
+      detail:"The check is a critical-path dependency: <500 ms for a purpose-built grounding API vs P50 ~7 s / P95 ~43 s for a File-Search-backed one. Disabling reasoning output cuts median latency ~40%." }
+  ],
+  edges: [
+    { id:"e_tr", step:0, from:"path", to:"sum",  label:"traced", ly:-2 },
+    { id:"e_s1", step:1, from:"sum",  to:"sch",  label:"① shape", lx:-6 },
+    { id:"e_s2", step:2, from:"sch",  to:"grd",  label:"② content", lx:-6 },
+    { id:"e_s3", step:3, from:"grd",  to:"trip", label:"score < threshold" },
+    { id:"e_s4", step:4, from:"trip", to:"span", label:"emit here" },
+    { id:"e_s5", step:5, from:"span", to:"blk",  label:"outcome" },
+    { id:"e_s6", step:6, from:"shad", to:"enf",  label:"flip", ly:-2 },
+    { id:"e_s7", step:7, from:"enf",  to:"dash", label:"R% · p95", lx:6 }
+  ],
+  captions: [
+    "The setup: <b>one already-traced path</b> and one unguarded LLM summary. The seeded bad case is the invented medication. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Two cheap layers: <b>strict schema</b> (shape, zero added latency) and a <b>refuse-unknown contract</b> (quote-first, retract unsupported). Neither one can tell you the summary is <i>false</i>.",
+    "<b>The grounding check</b> turns 'is this true?' into a score against a threshold — three vendors, three shapes of the number. <span style='opacity:.7'>(tap)</span>",
+    "<b>The tripwire</b> is the instrumentation seam: the exception path is the one place that knows a guardrail decided something. <span style='opacity:.7'>(tap)</span>",
+    "Emit on the <b>same trace</b> as the model call, under an attribute contract you publish — and leave span status <b>Unset</b>, or you burn yesterday's error budget on a working guardrail.",
+    "Three outcomes, kept apart: <b>pass · block · model_refusal</b>. Wire the refusal branch to the Responses API shape or it never fires. <span style='opacity:.7'>(tap)</span>",
+    "<b>Shadow first</b> for the before-number nobody was measuring, <b>enforce second</b> for the after-numbers. Same instrument, two readings.",
+    "It all lands on yesterday's dashboard — including <b>the check's own p95</b>, and an alert in <b>both</b> directions: too many refusals, or suddenly none."
+  ]
+};
+window.QUIZ = {
+  id: "w07-d5",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "Your guardrail has been live in production for a week and the refusal rate is 0.0%. What is the correct reading?",
+      options: [
+        "The feature is safe — report it as a clean result",
+        "It's an unanswered question: the check may be disabled, unexercised, or silently erroring. Verify the check ran (untriggered-filter logs) before claiming anything",
+        "The threshold is too high and should be raised further",
+        "Refusal rate is not a meaningful metric for output guardrails" ],
+      answer: 1,
+      explain: "A 0% observed refusal rate is a broken or unexercised guardrail until proven otherwise. Research on commercial guardrails found low refusal rates on exactly this class of manipulated medical content — the point being that refusal rate is an observed quantity, not an assumed one. Log untriggered filters so 'ran and passed' is distinguishable from 'never ran'." },
+    { type: "scq",
+      stem: "A learner's guardrail sets span status to Error whenever it blocks an ungrounded summary. What breaks?",
+      options: [
+        "Nothing — blocking is a failure and Error is correct",
+        "The trace won't export until the status is Unset",
+        "The error-rate SLO and burn-rate alerts from w07d4: a working guardrail now consumes the error budget and pages someone for correct behaviour",
+        "The guardrail.score attribute is dropped by the collector" ],
+      answer: 2,
+      explain: "The Tracing API spec says instrumentation SHOULD leave the status Unset unless there is an error. An intentional refusal is the system working. Marking it Error corrupts the error budget sized the day before, and reserves error.type — the one Stable dimension — for something that isn't a failure." },
+    { type: "tf",
+      stem: "On the OpenAI Responses API, you detect a safety refusal by reading choices[0].message.refusal.",
+      answer: false,
+      explain: "That is the Chat Completions shape, and it reads None on every Responses call — so the model_refusal branch silently never fires and the demo shows 'pass' on a refused request. On Responses, find the message item in response.output and branch on content[0].type === 'refusal'. It is the single most likely wiring bug of the day." },
+    { type: "mcq",
+      stem: "Which of these does strict JSON-Schema validation actually catch? (select all that apply)",
+      options: [
+        "A missing required field in the summary object",
+        "An invalid enum value for triage_level",
+        "A medication named in the summary that appears nowhere in the chart",
+        "A date field that isn't a valid ISO date",
+        "A confidently worded but wrong dollar figure in a fee answer" ],
+      answer: [0, 1, 3],
+      explain: "Schema enforces shape: required keys, enums, pattern/format, numeric and array constraints — at zero added model latency. It cannot tell you the content is false. A perfectly-shaped object that invents a medication or a fee passes validation, which is exactly why the grounding check layer exists." },
+    { type: "match",
+      stem: "Match each vendor grounding surface to what it actually returns.",
+      pairs: [
+        { l: "Azure AI Content Safety groundedness", r: "ungroundedPercentage (a proportion, not a confidence) + the offending span" },
+        { l: "Google check-grounding API", r: "0–1 support score with claim-level citations; a sentence is one claim" },
+        { l: "Amazon Bedrock contextual grounding", r: "separate grounding and relevance scores, thresholds capped at 0.99" },
+        { l: "Google Model Armor 'inspect only'", r: "logs violations without blocking — the shadow-mode before-number" } ],
+      explain: "Three different shapes of 'the number' and one deployment mode. Azure gives a proportion plus the span to show on screen; Google scores per claim and runs under 500 ms, so it can sit inline on every inference; Bedrock splits grounding from relevance, and a threshold of 1 is invalid because it would block everything. Model Armor's inspect-only is how you get a baseline before you block anything." },
+    { type: "open",
+      stem: "You are demoing the milestone to the client on Friday. In two or three sentences, describe what you show, in what order, and the outcome line you end on.",
+      hint: "The demo is the refusal, not the success — and the last sentence is a number plus an alert.",
+      model: "Feed the seeded bad case (the summary that invents a medication), show the user-facing decline, then show the trace: the guardrail span on the same trace as the model call, guardrail.score against guardrail.threshold, span status Unset, and the refusal counter incrementing on the dashboard — then, for contrast only, one happy path. End on the outcome line: of N summaries replayed from last week's traffic, X contained a claim unsupported by the chart; the guardrail now blocks that class and returns a logged decline; refusal rate is R%, added p95 latency is Y ms, and an alert fires if refusal rate crosses Z% or drops to 0%." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js?v=20260706"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
+</body>
+</html>

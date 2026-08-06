@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w07d1">
+<meta name="fde-concepts" content="agent-observability,run-tree-nesting,span-latency-attribution,token-and-cost-rollup,shareable-trace-url,thread-vs-trace-vs-trajectory">
+<title>W7·D1 — Observability for LLM Systems: Traces, Spans &amp; LangSmith | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Observability for LLM Systems: Traces, Spans, and LangSmith</h1>
+        <div class="meta">
+          <span><b>Week 7</b> · Day 1</span>
+          <span>Observability &amp; SRE</span>
+          <span><b>~24 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Your client handed you a week of raw latency logs and one sentence: <em>"intake froze about
+        twenty minutes Tuesday, no alert fired."</em> Those logs can't answer the question, because a log line has no
+        parent and no duration — it's a timestamp with an opinion. Today you learn the structure that can:
+        the <strong>trace</strong>, its <strong>spans</strong>, and the <strong>run tree</strong> that nests them —
+        why the span is the natural unit of an LLM call, how latency, tokens, and dollars attribute to specific spans
+        instead of to "the model," and the two documented ways nesting breaks silently. Then the FDE payoff: handing a
+        client a <strong>shareable trace URL</strong> instead of an adjective, and the disclosure decision that comes
+        with it. Scroll; the panel on the right builds one intake request into one run tree.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The vocabulary</div>
+        <h2>Run, trace, project — the words that replace "it's slow"</h2>
+        <p>Start with the noun that does all the work. A <strong>run</strong> is a single unit of work your application
+        performs: one LLM call, one prompt format, one document retrieval, one tool invocation. LangSmith states the
+        equivalence outright — if you know OpenTelemetry, <em>a run is a span</em>. One idea, two vocabularies, both in
+        the same meeting. A run has a name, a type, inputs, outputs, a start, an end, and a parent.</p>
+        <p>That last property is what a log line does not have. A <strong>trace</strong> is "a collection of runs for a
+        single operation" — one user request that fires an agent, which calls a model, then a tool, then the model
+        again, produces one trace holding all of those runs, bound by a unique trace ID. Above that sits a
+        <strong>project</strong>: the container for every trace of one application. Three nouns, one hierarchy.</p>
+        <p>Now re-read the client's incident note with that vocabulary in hand. "The portal froze" is an adjective
+        attached to a system. "The eligibility run under trace <code>a762af6c…</code> started at 14:02:11 and ended at
+        14:22:00; the summary run never started" is a fact attached to a boundary. Observability for LLM systems is
+        that move — and it needs its own week because agent systems are non-deterministic, multi-step, and branch
+        differently on every request.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Instrumentation</div>
+        <h2>Three mechanisms, one environment variable</h2>
+        <p>Turning tracing on is configuration, not a rewrite. Set <code>LANGSMITH_TRACING=true</code> and
+        <code>LANGSMITH_API_KEY</code>, and your instrumented code starts emitting; <code>LANGSMITH_PROJECT</code>
+        routes traces to a named project, and if you leave it unset a default project is created on first ingestion.
+        One gotcha for the runbook: non-US accounts must also set <code>LANGSMITH_ENDPOINT</code> to their regional API
+        URL, with no trailing slash — otherwise the API key "won't be recognized and requests will fail to
+        authenticate." Five minutes of config; a lost afternoon if nobody knows it exists.</p>
+        <p>For your own code there are exactly three manual-instrumentation mechanisms. The
+        <strong><code>@traceable</code> decorator</strong> is the recommended default: put it on a function and that
+        function becomes a run. The <strong><code>trace</code> context manager</strong> (Python only) wraps a block
+        instead of a function. The low-level <strong><code>RunTree</code> API</strong> is for explicit trace
+        construction. Reach for <code>RunTree</code> when control flow is too dynamic for decorators — and accept that
+        you now own details the decorator was handling for you.</p>
+        <p>The parameter that makes a span legible is <strong><code>run_type</code></strong>. Marking a function
+        <code>run_type="llm"</code> is what lets LangSmith render token counts and latency correctly;
+        <code>"tool"</code> marks tool spans, <code>"retriever"</code> retrieval, <code>"chain"</code> a root that
+        orchestrates. Get the type wrong and the span still records — it just stops being countable in the LLM-call
+        charts and the cost rollup. Typing your spans isn't cosmetic; it's the schema.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Run trees · nesting</div>
+        <h2>Parent and child: where the structure comes from</h2>
+        <p>Nesting is what turns a pile of spans into a tree you can read. With the decorator it happens by
+        composition: wrapping the model client logs every LLM call automatically as a nested span, and
+        <code>@traceable</code> on the calling function "captures the full pipeline in one trace, with the tool call
+        and LLM call as nested spans." With <code>RunTree</code> the edge is literal — create a root
+        <code>RunTree(name=…, run_type="chain", inputs=…)</code>, <code>.post()</code> it, then
+        <code>.create_child(name=…, run_type="llm", …)</code>, and close each with <code>.end(outputs=…)</code>
+        plus <code>.patch()</code>.</p>
+        <p>For the client's intake path, the tree you want is three nodes and takes an afternoon: a root
+        <code>chain</code> span for the intake request, a child <code>tool</code> span for the eligibility/payer call,
+        a child <code>llm</code> span for the patient summary. That shape is the deliverable's foundation, because
+        every later question — which step was slow, what did it cost, what did the model see — is answered by pointing
+        at one of those three nodes.</p>
+        <button class="code-cta" type="button" data-modal="code-w07d1"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· trace_intake.py</span></button>
+        <p>Now the part that will bite you, and it fails <em>silently</em>. Nesting relies on implicit context
+        propagation through Python <code>contextvars</code>. Under <strong>Python below 3.11</strong>, asyncio lacks
+        proper contextvar support, "which can lead to disconnected traces" — child runs show up as separate top-level
+        traces and your tree becomes confetti. More common still:
+        <strong><code>ThreadPoolExecutor</code> by default breaks tracing</strong>, because contextvars start empty
+        inside new threads. The fixes are boring: upgrade to 3.11+, use LangSmith's
+        <code>ContextThreadPoolExecutor</code>, or pass the parent explicitly via
+        <code>langsmith_extra={"parent": run_tree}</code>. Any brownfield service doing concurrent fan-out is a
+        candidate — check before you trust your first waterfall.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Latency attribution</div>
+        <h2>Which span owns the twenty minutes</h2>
+        <p>Because every run carries its own start and end, a trace renders as a <strong>waterfall</strong>: nested
+        bars whose widths are durations and whose indentation is parentage. This is the view that converts the client's
+        incident note into an engineering fact. "Intake froze about twenty minutes" becomes "the eligibility
+        <code>tool</code> span held for 19m48s and the <code>llm</code> span never started" — not a model problem at
+        all, and indistinguishable from one in a flat log stream.</p>
+        <p>Read the waterfall with one rule: <strong>the span that owns the latency is the deepest one whose bar is
+        nearly as wide as its parent's.</strong> A root that takes 20 seconds tells you nothing. A root at 20 seconds
+        with a retrieval child at 19.2 tells you where to spend the afternoon. Blame travels down the tree, never
+        up.</p>
+        <p>For streaming LLM runs there's a second number that matters more than total duration:
+        <strong>time-to-first-token</strong>, the wait a human actually feels. TTFT is auto-populated for streaming
+        runs under <code>traceable</code> or the SDK wrappers — but if you dropped down to the <code>RunTree</code> API
+        you must emit <code>run_tree.add_event({"name": "new_token"})</code> on the first token yourself, or TTFT stays
+        empty forever. That's the tax for hand-rolling, and exactly the kind of gap that makes a dashboard look healthy
+        while users complain.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a waterfall reader over a
+        seeded intake trace — hover a span for its duration and share of the parent, then find the child that owns the
+        19m48s. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Tokens &amp; cost</div>
+        <h2>Cost rolls up three levels — and metadata does not roll anywhere</h2>
+        <p>The same tree that answers "why is it slow" answers "what does it cost" — the one artifact you can show
+        both an engineer and a CFO. Usage aggregates at three levels: the <strong>trace
+        tree</strong> shows total usage for the whole trace, aggregated values for each parent run, and token and cost
+        breakdowns for each child run; <strong>project stats</strong> total every trace in the project;
+        <strong>dashboards</strong> plot the trend over time. The UI splits usage into three buckets — <em>Input</em>
+        (prompt tokens, incl. cache reads), <em>Output</em> (response tokens, incl. reasoning), and <em>Other</em>,
+        which carries "costs from tool calls, retrieval steps, or any custom runs." That third bucket is the one people
+        forget: non-LLM spans can carry money too.</p>
+        <p>Automatic cost computation needs three things present: token counts, the model and provider, and a model
+        price entry. You get it free when using LangChain, <code>@traceable</code> over common providers, or the
+        LangSmith wrappers. When you're pricing something the platform can't infer — a vendor API call, a per-document
+        retrieval fee, non-linear pricing — attribute manually by setting <code>usage_metadata</code> on the run tree
+        from inside the function, or returning it as a top-level key of the output. The fields cover input and output
+        tokens, cache-read and cache-creation details, reasoning tokens, and direct
+        <code>input_cost</code>/<code>output_cost</code> if you'd rather submit dollars than counts.</p>
+        <p>Then the trap that quietly invalidates analysis: <strong>"Metadata and tags are not propagated from parent
+        to child runs, or vice versa."</strong> If the tenant, merchant, or idempotency key sits only on the root run,
+        every per-LLM-call and per-tool-call chart silently drops it — you group by a key that exists on a third of
+        your population and never see an error. Same for threads: without the session identifier on child runs, "token
+        counts and costs from those runs won't be included in thread-level aggregations." Correlation keys go on the
+        root <em>and</em> the children, every time.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a cost-rollup sandbox — toggle
+        a metadata key at root and child level and watch the per-tenant dollars-per-request number shift under you.
+        Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Shapes &amp; the UI</div>
+        <h2>Trace, thread, trajectory — pick the right shape</h2>
+        <p>One trace covers one operation. Client complaints are rarely that tidy: "the assistant got confused after
+        the third message" spans several requests. That's what a <strong>thread</strong> is for — a sequence of traces
+        representing one multi-turn session, where a <em>turn</em> is one exchange (a user message plus everything the
+        agent does in response) and <strong>each turn is its own trace</strong>. Traces join a thread by carrying a
+        <code>thread_id</code> metadata key; without it, the UI shows only individual runs.</p>
+        <p>A <strong>trajectory</strong> is the third shape: a flat, ordered, de-duplicated list of messages projected
+        over a thread's traces with the nesting removed — "the path an agent took from start to finish." The docs
+        differentiate the three by use, which is worth memorizing as a triage rule: a <strong>trace</strong> when
+        debugging why one operation failed or ran slow; a <strong>thread</strong> when the behavior only makes sense
+        across turns, timing and nesting intact; a <strong>trajectory</strong> to read what was exchanged without
+        execution detail — usually the version you paste into a client conversation.</p>
+        <p>Inside a trace, the side panel offers three views with keyboard switches: <em>Messages</em> (beta,
+        <code>M</code>) is the conversation layer for finding <em>where</em> to look; <em>Turns</em> (<code>T</code>)
+        gives per-turn cards; <em>Details</em> (<code>D</code>) is the debugging layer for a specific run's inputs,
+        outputs, timing, token counts, errors, and metadata. The documented loop, worth making muscle memory: scan
+        Messages for the anomaly — a bad tool result, an unexpected handoff, a latency spike — click through to the
+        exact run in Details, inspect, return.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">The client artifact</div>
+        <h2>A URL instead of an adjective</h2>
+        <p>Here is the move that changes how clients see you. Open the trace, click <strong>Share</strong> in the more
+        menu at the top of the Details view, copy the link. The public URL has the shape
+        <code>https://smith.langchain.com/public/&lt;uuid&gt;/r</code>, and shared traces "are accessible to anyone with
+        the link, even without a LangSmith account. They can view the trace but not edit it." You stop emailing "the
+        eligibility call was very slow" and start sending a link where the client sees the bar, the duration, and the
+        inputs themselves.</p>
+        <p>The same trace ID is also the <strong>join key into their existing logs</strong>. The <em>See Logs</em>
+        button in the Details view jumps to the deployment's server logs with the filter box pre-filled with the trace
+        ID you were just looking at. Your client already has logs; what they never had was a correlating key instead of
+        a timestamp guess. Emitting the trace ID into their log lines is a small change that turns two systems into one
+        investigation.</p>
+        <p>Now the governance half, which the docs bold and so will we: <strong>"Sharing a trace publicly will make it
+        accessible to anyone with the link. Make sure you're not sharing sensitive information."</strong> A trace
+        contains every run with full inputs and outputs. On a healthcare intake path that is PHI; on a payment path it
+        is card and PII data. Sharing is a disclosure decision wearing a UI button's clothing. Three things make it
+        survivable: redact <em>at emission</em>, not before pressing Share; keep the standing audit item —
+        <strong>Settings → Shared URLs</strong> lists every publicly shared trace in the workspace with a per-trace
+        Unshare; and know the escape hatch, the <code>delete_runs</code> endpoint, which deletes by project, trace-ID
+        list, or metadata key-value when something got captured that shouldn't have been. Self-hosted inside a VPC, the
+        public link only reaches members authenticated within that VPC.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a pre-share scrub preview —
+        mark PHI-bearing fields on a seeded intake trace and diff what a public viewer sees before versus after
+        redaction-at-emission. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="7">
+        <div class="tag">Portability &amp; limits</div>
+        <h2>OpenTelemetry underneath, and the numbers that bound you</h2>
+        <p>Know the standard sitting under all of this: it's what keeps your instrumentation from being a vendor bet.
+        <strong>OpenTelemetry's GenAI semantic conventions</strong> define agreed span names and attributes for model
+        calls. Two attributes are required on an inference span —
+        <code>gen_ai.operation.name</code> and <code>gen_ai.provider.name</code> — and token attributes like
+        <code>gen_ai.usage.input_tokens</code> are recommended, with the rollup rule that cached input tokens are
+        <em>included</em> in the input total rather than reported separately. One logical call is one span, retries
+        inside it. The conventions are at <strong>Development</strong> status and have moved out of the main
+        OpenTelemetry repo into a dedicated <code>semantic-conventions-genai</code> project — expect churn, and don't
+        cite the old page. LangSmith accepts OTLP directly, and the documented topology is <em>fanout</em>: your app
+        emits spans to a Collector that routes them to several backends at once. Instrument once, stay portable.
+        <strong>Day 4 goes deeper.</strong></p>
+        <p>Two hard numbers belong on your slide before you promise a client anything. <strong>A trace is capped at
+        25,000 runs</strong> — past that, additional runs for that trace are rejected, a real risk for a long agent
+        loop. And <strong>LangSmith SaaS retains trace data for 180 days from ingestion</strong>, after which traces
+        are permanently deleted. If a trace is evidence — a regulator's sample, a benchmark baseline — add it to a
+        dataset; datasets persist indefinitely even after the source trace is gone.</p>
+        <p>Step back to the idea holding the day together: everything today was about giving a claim a
+        <em>boundary</em>. A log line asserts; a span measures, because it has a parent, a start, an end, a type, and
+        a cost. Once your client's critical path has boundaries, "flaky" becomes a duration, "expensive" becomes
+        dollars per decision, and "I'm always the last to know" becomes a threshold something can fire on — which is
+        what the rest of this week builds on top of the tree you instrument today.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When a client describes a problem with an adjective, hand back a boundary. <strong>Never answer "is it
+          slow?" with a sentence you could have written without the data</strong> — answer with the span that owns the
+          time, the tokens it burned, and a link they can open without an account. And before you send that link, ask
+          the question nobody at the client will ask you: <em>what is inside this trace that isn't allowed to
+          leave?</em></p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://docs.langchain.com/langsmith/observability-concepts" target="_blank" rel="noopener">LangSmith — Observability concepts</a> — run = span, trace, thread, trajectory, project; the 25,000-run cap and 180-day retention.</li>
+          <li><a href="https://docs.langchain.com/langsmith/observability-quickstart" target="_blank" rel="noopener">LangSmith — Tracing quickstart</a> — <code>LANGSMITH_TRACING</code>, project routing, the regional-endpoint gotcha.</li>
+          <li><a href="https://docs.langchain.com/langsmith/annotate-code" target="_blank" rel="noopener">LangSmith — Custom instrumentation</a> — <code>@traceable</code>, the <code>trace</code> context manager, <code>RunTree.create_child</code>.</li>
+          <li><a href="https://docs.langchain.com/langsmith/nest-traces" target="_blank" rel="noopener">LangSmith — Troubleshoot trace nesting</a> — asyncio under Python &lt; 3.11, <code>ThreadPoolExecutor</code>, <code>ContextThreadPoolExecutor</code>.</li>
+          <li><a href="https://docs.langchain.com/langsmith/log-llm-trace" target="_blank" rel="noopener">LangSmith — Log LLM calls</a> — <code>usage_metadata</code> fields and the manual TTFT event for <code>RunTree</code>.</li>
+          <li><a href="https://docs.langchain.com/langsmith/cost-tracking" target="_blank" rel="noopener">LangSmith — Cost tracking</a> — three-level rollup, input/output/other buckets, automatic vs manual cost.</li>
+          <li><a href="https://docs.langchain.com/langsmith/view-traces" target="_blank" rel="noopener">LangSmith — View traces</a> — Messages / Turns / Details views and the documented debugging loop.</li>
+          <li><a href="https://docs.langchain.com/langsmith/dashboards" target="_blank" rel="noopener">LangSmith — Monitor projects with dashboards</a> — prebuilt sections; the metadata-does-not-propagate rule.</li>
+          <li><a href="https://docs.langchain.com/langsmith/manage-trace" target="_blank" rel="noopener">LangSmith — Manage a trace</a> — Share / Unshare inventory, See Logs, <code>delete_runs</code>.</li>
+          <li><a href="https://docs.langchain.com/langsmith/trace-with-opentelemetry" target="_blank" rel="noopener">LangSmith — Trace with OpenTelemetry</a> — OTLP endpoint, <code>LANGSMITH_OTEL_ENABLED</code>, Collector fanout.</li>
+          <li><a href="https://github.com/open-telemetry/semantic-conventions-genai" target="_blank" rel="noopener">OpenTelemetry — GenAI semantic conventions (canonical repo)</a> — the new home; the <code>opentelemetry.io</code> pages are stubs.</li>
+          <li><a href="https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md" target="_blank" rel="noopener">OpenTelemetry — GenAI client spans</a> — required attributes, span naming, the token rollup rule.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Instrumenting a brownfield path without a rewrite</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on traces, spans &amp; attribution</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 7 Day 1</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: instrumenting a brownfield path without a rewrite</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. How to get a usable run tree out of a codebase you didn't write.</p>
+    <p><strong>1 · Pick one path, not the app.</strong> The week's deliverable says "one instrumented path" for a
+    reason. Choose the path the incident note points at — intake/eligibility for healthcare, authorize/capture for
+    payments — and instrument only its root plus its two or three real children. A complete tree over one path beats
+    partial coverage everywhere.</p>
+    <p><strong>2 · Decorate the seams, not the internals.</strong> The functions worth a <code>@traceable</code> are the
+    ones that cross a boundary: an outbound HTTP call, a database round trip, a model call, a queue publish. Those are
+    where the time actually goes. Internal helpers add depth without adding information, and depth costs you the
+    25,000-run ceiling on long loops.</p>
+    <p><strong>3 · Decide your correlation keys before you decorate.</strong> Tenant, request ID, and the domain key
+    (member ID, idempotency key) go on the root <em>and</em> every child, because metadata does not propagate. Write
+    them as a tiny helper that sets metadata on <code>get_current_run_tree()</code>, and call it in every decorated
+    function — otherwise someone adds a span in month two and your charts lose a population silently.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked example — turning "month-end noise" into a query</div>
+      <p style="margin:8px 0 0">Finance track: a double-fund is two spans that should have been one — the same logical
+      operation appearing twice. In a flat log stream that is invisible; in a run tree with the idempotency key
+      attached as metadata to the payment span, it is a filter: <em>group traces by idempotency key, show any key with
+      more than one capture span.</em> The instrumentation didn't fix the bug — it converted an unprovable suspicion
+      into a countable population, which is what makes the W5 idempotency gap arguable in front of Sam. Same pattern
+      on the healthcare side: the eligibility span boundary is what makes the W3 payer-outage finding measurable
+      rather than anecdotal.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Version floors worth noting.</strong> The <code>langsmith</code> Python SDK is at
+    0.10.16 and requires Python 3.10+. The OpenTelemetry path needs <code>langsmith&gt;=0.3.18</code>, with
+    <code>&gt;=0.4.25</code> recommended for important OTel fixes — check the pinned version in a client's lockfile
+    before you promise that <code>LANGSMITH_OTEL_ENABLED=true</code> will just work.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Week 7 · Day 1 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Use the vocabulary precisely: run = span, trace = the runs of one operation, project = the container — and say what a log line structurally lacks</li>
+      <li>Build a run tree with the right mechanism (<code>@traceable</code>, <code>trace</code>, <code>RunTree</code>) and the right <code>run_type</code> on each span</li>
+      <li>Read a waterfall to name the span that owns the latency, and know why TTFT can be empty on hand-rolled runs</li>
+      <li>Attribute tokens and dollars across the three-level rollup — and place correlation metadata on root <em>and</em> children</li>
+      <li>Decide whether a trace is safe to share, and run the unshare inventory as a standing audit item</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your brownfield repo (this is slice 1 of the week's one artifact)</div>
+    <ul class="deliv-list check">
+      <li>In <code>2463-FDE/riverbend-portal</code> (healthcare) or <code>2463-FDE/meridian-lending</code> (finance): instrument <b>the critical span</b> named by the <a href="../../client-delivery.html?w=7">Week 7 client packet</a> — the intake/eligibility call, or the payment authorize/capture call — as a run tree: root <code>chain</code>, child <code>tool</code>, child <code>llm</code></li>
+      <li>Attach the correlation keys to the root <em>and</em> every child (tenant + request ID; plus member ID or idempotency key), and emit the trace ID into the service's existing log lines so <em>See Logs</em> has something to join on</li>
+      <li>Capture one real trace from the handover scenario and record in <code>OBSERVABILITY.md</code>: the span that owns the latency, its duration, and the per-request token/cost rollup</li>
+      <li>A short "safe to share?" note: what PHI/PCI fields appear in span inputs today, what you redact <em>at emission</em>, and who owns the Settings → Shared URLs inventory</li>
+    </ul>
+    <p class="goals-foot">This tree is the substrate for the rest of the week — d2–d5 hang golden signals, an alert, and
+    the guardrail's outcome on the spans you create today. Bring one working trace to Day 2.</p>
+  </div>
+</div>
+
+<div id="code-w07d1" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: one intake request as one run tree</h2>
+    <p class="cv-cap">Root <code>chain</code> span, child <code>tool</code> span, child <code>llm</code> span — and the correlation key set on both levels, because metadata does not propagate.</p>
+    <div class="cv" data-file="trace_intake.py" data-lang="python"><pre class="cv-raw"># One intake request = one trace: root chain -&gt; tool span -&gt; llm span.
+# Env: LANGSMITH_TRACING=true, LANGSMITH_API_KEY, LANGSMITH_PROJECT=riverbend-intake
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import boto3
+from langsmith import traceable, get_current_run_tree
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+def tag(**kv):                       # metadata does NOT inherit -- set it per run
+    run = get_current_run_tree()
+    if run: run.metadata.update(kv)
+
+@traceable(run_type=&quot;tool&quot;)          # the span that held for 19m48s
+def check_eligibility(member_id, tenant):
+    tag(tenant=tenant, member_id=member_id)
+    return payer.get_coverage(member_id)
+
+@traceable(run_type=&quot;llm&quot;)           # run_type=llm is what renders tokens + latency
+def summarize(coverage, tenant):
+    tag(tenant=tenant)
+    resp = bedrock.converse(
+        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: render(coverage)}]}],
+        inferenceConfig={&quot;maxTokens&quot;: 400, &quot;temperature&quot;: 0},
+    )
+    u = resp[&quot;usage&quot;]
+    return {&quot;summary&quot;: resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;],
+            &quot;usage_metadata&quot;: {&quot;input_tokens&quot;: u[&quot;inputTokens&quot;],
+                               &quot;output_tokens&quot;: u[&quot;outputTokens&quot;]}}
+
+@traceable(run_type=&quot;chain&quot;)         # the root run IS the trace
+def handle_intake(member_id, tenant):
+    tag(tenant=tenant, member_id=member_id)
+    return summarize(check_eligibility(member_id, tenant), tenant)</pre></div>
+    <p class="cv-foot">Three decorators and a two-line helper. That is the whole difference between "intake froze" and "the eligibility span held for 19m48s while the LLM span never started."</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "W7 · Day 2 →", href: "w07d2.html" };
+window.DIAGRAM = {
+  title: "One intake request · one run tree",
+  width: 500, height: 700,
+  nodes: [
+    { id:"scene", step:0, kind:"example", x:14, y:14, w:472, h:70,
+      label:"CLIENT · \"the portal is flaky and I'm always the last to know\"\n  handover: a week of raw latency logs — no trace IDs, no durations\n  incident: \"intake froze ~20 min Tuesday, no alert fired\"" },
+
+    { id:"run",  step:0, x:24,  y:98, w:142, h:52, label:"RUN = SPAN\none unit of work",
+      detail:"An LLM call, a retrieval, a tool call. Has a name, a run_type, inputs, outputs, a start, an end — and a parent. LangSmith: \"you can think of a run as a span.\"" },
+    { id:"trc",  step:0, x:178, y:98, w:150, h:52, label:"TRACE\nruns of one operation",
+      detail:"A collection of runs for a single operation, bound by one trace ID. One user request that calls a model, a tool, then the model again = one trace." },
+    { id:"prj",  step:0, x:340, y:98, w:146, h:52, label:"PROJECT\nper app or service",
+      detail:"The container for all traces of one application. LANGSMITH_PROJECT routes traces; a default project is created on first ingestion if unset." },
+
+    { id:"inst", step:1, x:24,  y:166, w:230, h:56, label:"@traceable · trace() · RunTree\nLANGSMITH_TRACING=true",
+      detail:"Three manual mechanisms: the decorator (default choice), the trace context manager (Python only), and the low-level RunTree API for explicit construction. Non-US accounts must also set LANGSMITH_ENDPOINT." },
+    { id:"typ",  step:1, x:266, y:166, w:220, h:56, label:"run_type\nchain · llm · tool · retriever",
+      detail:"run_type=\"llm\" is what makes token counts and latency render correctly; \"tool\" marks tool spans; \"chain\" is the default root. Wrong type = the span still records but drops out of LLM charts and cost rollups." },
+
+    { id:"root", step:2, x:118, y:242, w:264, h:52, label:"root · chain\n\"intake request\"",
+      detail:"The root run IS the trace. Build it with @traceable on the entrypoint, or RunTree(...).post() and create_child(...) when control flow is too dynamic for decorators." },
+    { id:"elig", step:2, x:24,  y:318, w:212, h:56, label:"child · tool\neligibility / payer call",
+      detail:"The critical span for the client deliverable. A boundary here is what makes the W3 payer-outage pattern measurable instead of anecdotal — and gives this week's alert something to fire on." },
+    { id:"llm",  step:2, x:262, y:318, w:224, h:56, label:"child · llm\npatient-summary call",
+      detail:"Bedrock Converse under @traceable(run_type=\"llm\"). Tokens and cost attach here and roll up to the parent." },
+    { id:"brk",  step:2, x:24,  y:388, w:212, h:52, label:"⚠ nesting breaks silently\nasyncio <3.11 · ThreadPoolExecutor",
+      detail:"Nesting rides Python contextvars. Under 3.11 asyncio loses them (children become separate top-level traces); new threads start with empty contextvars. Fix: 3.11+, ContextThreadPoolExecutor, or pass langsmith_extra={\"parent\": run_tree}." },
+
+    { id:"wf",   step:3, x:262, y:388, w:224, h:52, label:"WATERFALL\nelig 19m48s · llm never ran",
+      detail:"Durations by span, indented by parentage. The span that owns the latency is the deepest one nearly as wide as its parent. TTFT is auto-populated for streaming runs — but manual RunTree code must emit a new_token event." },
+
+    { id:"cost", step:4, x:24,  y:454, w:230, h:60, label:"COST ROLLUP · 3 levels\nchild → parent → trace → project",
+      detail:"Buckets: Input (incl. cache reads), Output (incl. reasoning), and Other — tool calls and retrieval steps carry money too. Automatic cost needs tokens + model/provider + a price entry; otherwise set usage_metadata yourself." },
+    { id:"meta", step:4, x:266, y:454, w:220, h:60, label:"⚠ metadata does NOT propagate\nkey on root AND children",
+      detail:"\"Metadata and tags are not propagated from parent to child runs, or vice versa.\" Tenant / idempotency keys on the root only means every per-call chart silently drops a population." },
+
+    { id:"thr",  step:5, x:24,  y:530, w:230, h:56, label:"thread · trace · trajectory\nthread_id groups turns",
+      detail:"One turn = one trace; a thread_id groups turns into a session; a trajectory flattens a thread into an ordered message list. Debug one operation → trace. Behavior across turns → thread. What was said → trajectory." },
+    { id:"shr",  step:6, x:266, y:530, w:220, h:56, label:"SHARE\n/public/{uuid}/r",
+      detail:"Viewable without an account, read-only. But a trace holds every run with full inputs and outputs — PHI or PCI. Redact at emission; audit Settings → Shared URLs; delete_runs is the escape hatch." },
+
+    { id:"otel", step:7, x:24,  y:602, w:230, h:56, label:"OpenTelemetry GenAI semconv\nDevelopment status · d4",
+      detail:"Required on an inference span: gen_ai.operation.name + gen_ai.provider.name. Cached input tokens are included in input_tokens. Moved to the semantic-conventions-genai repo; LangSmith accepts OTLP and Collectors fan out to several backends." },
+    { id:"lim",  step:7, x:266, y:602, w:220, h:56, label:"LIMITS\n25,000 runs · 180 days",
+      detail:"A trace is capped at 25,000 runs — extra runs are rejected. SaaS retains traces 180 days from ingestion, then deletes. Evidence you need to keep goes into a dataset; datasets persist indefinitely." }
+  ],
+  edges: [
+    { id:"e_rt", step:0, from:"run",  to:"trc",  label:"nests into", ly:-2 },
+    { id:"e_tp", step:0, from:"trc",  to:"prj",  label:"lives in", ly:-2 },
+    { id:"e_ir", step:1, from:"inst", to:"root", label:"emits", lx:-6 },
+    { id:"e_re", step:2, from:"root", to:"elig", label:"child", lx:-8 },
+    { id:"e_rl", step:2, from:"root", to:"llm",  label:"child", lx:8 },
+    { id:"e_ew", step:3, from:"elig", to:"wf",   label:"duration", ly:-2 },
+    { id:"e_lc", step:4, from:"llm",  to:"cost", label:"tokens", bend:18 },
+    { id:"e_ts", step:6, from:"thr",  to:"shr",  label:"one URL", ly:-2 }
+  ],
+  captions: [
+    "The three nouns that replace \"it's slow\": a <b>run</b> (= a span) is one unit of work, a <b>trace</b> is all the runs of one operation, a <b>project</b> holds the traces. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Instrumentation is config plus three mechanisms — <b>@traceable</b>, the <b>trace</b> context manager, <b>RunTree</b> — and <b>run_type</b> is the schema that makes a span legible. <span style='opacity:.7'>(tap)</span>",
+    "The tree the deliverable needs: root <b>chain</b>, child <b>tool</b> (eligibility), child <b>llm</b> (summary) — plus the two ways nesting <b>breaks silently</b>. <span style='opacity:.7'>(tap)</span>",
+    "Durations turn the tree into a <b>waterfall</b>: \"intake froze\" becomes <b>the eligibility span held 19m48s and the LLM span never started</b>. <span style='opacity:.7'>(tap for TTFT)</span>",
+    "The same tree prices the request: cost rolls up <b>child → parent → trace → project</b> — and <b>metadata never propagates</b>, so correlation keys go on every level. <span style='opacity:.7'>(tap)</span>",
+    "Zoom out a level: <b>thread</b> = a session of turns, one trace per turn; <b>trajectory</b> = the flattened message path. Pick the shape that matches the question. <span style='opacity:.7'>(tap)</span>",
+    "The client artifact: a <b>public trace URL</b> they can open without an account — and the disclosure decision that comes with full inputs and outputs. <span style='opacity:.7'>(tap)</span>",
+    "Underneath sits the <b>OTel GenAI</b> convention (d4 goes deeper), and two hard numbers bound you: <b>25,000 runs per trace</b>, <b>180-day retention</b>. <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w07-d1",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A client hands you a week of plain-text latency logs and says \"intake froze about 20 minutes Tuesday.\" Why can't those logs tell you where the time went?",
+      options: [
+        "The logs are too large to grep efficiently",
+        "A log line has no parent and no duration boundary — it can't attribute time to a step within one operation",
+        "Log timestamps are unreliable across services",
+        "Because the model is non-deterministic, timing is meaningless" ],
+      answer: 1,
+      explain: "A run/span carries a start, an end, a type, and a parent — that's what lets you say which step owned the time. A log line is a timestamp with an opinion; nothing in it binds one line to another as part of the same operation, which is exactly what a trace ID and parent/child structure provide." },
+    { type: "tf",
+      stem: "Metadata attached to the root run of a trace is automatically inherited by its child runs.",
+      answer: false,
+      explain: "\"Metadata and tags are not propagated from parent to child runs, or vice versa.\" If the tenant or idempotency key sits only on the root, per-LLM-call and per-tool-call charts silently drop it — and without the session key on child runs, their tokens and costs aren't included in thread-level aggregations. Set correlation keys on every level." },
+    { type: "scq",
+      stem: "Your service fans out retrieval calls across a ThreadPoolExecutor. In LangSmith, the child runs appear as separate top-level traces. Most likely cause?",
+      options: [
+        "The run_type is set to \"chain\" instead of \"llm\"",
+        "Python's contextvars start empty in new threads, so the parent context never reaches the child run",
+        "LANGSMITH_PROJECT is unset, so runs are split across projects",
+        "The trace exceeded the 25,000-run cap" ],
+      answer: 1,
+      explain: "Nesting relies on implicit context propagation through contextvars, and ThreadPoolExecutor breaks it by default. Use langsmith.utils.ContextThreadPoolExecutor, which handles propagation, or pass the parent explicitly. The related failure is asyncio under Python < 3.11, which lacks proper contextvar support." },
+    { type: "mcq",
+      stem: "Which are true of sharing a LangSmith trace publicly? (select all that apply)",
+      options: [
+        "Anyone with the link can view it, without a LangSmith account",
+        "Viewers can edit the trace but not delete it",
+        "The shared trace exposes every run with full inputs and outputs",
+        "Every publicly shared trace in the workspace is listed under Settings → Shared URLs, with a per-trace Unshare",
+        "Sharing automatically redacts PII and PHI from span inputs" ],
+      answer: [0, 2, 3],
+      explain: "Shared traces are view-only and account-free, they carry full inputs and outputs for every run, and the workspace keeps an unshare inventory under Settings → Shared URLs. Nothing is redacted for you — that's why redaction happens at emission, and why pressing Share is a disclosure decision rather than a UI convenience." },
+    { type: "match",
+      stem: "Match each question to the shape you'd reach for.",
+      pairs: [
+        { l: "Why did this one request take 20 seconds?", r: "a trace (waterfall, nesting intact)" },
+        { l: "Why did the assistant drift after the third message?", r: "a thread (traces grouped by thread_id)" },
+        { l: "What was actually exchanged, without execution detail?", r: "a trajectory (flat, ordered messages)" },
+        { l: "What did the whole application cost last week?", r: "project stats / dashboards" } ],
+      explain: "One turn is one trace; a thread groups a session's turns via thread_id; a trajectory flattens a thread's messages with nesting removed. Aggregates across all traces of an app live at the project level, where prebuilt dashboards cover traces, LLM calls, cost and tokens, tools, run types, and feedback." },
+    { type: "open",
+      stem: "You instrumented the payment path with the RunTree API directly and are streaming responses. The dashboard shows total latency but time-to-first-token is empty everywhere. In one or two sentences, say why and what you'd change.",
+      hint: "Who populates TTFT automatically, and who doesn't?",
+      model: "TTFT is auto-populated for streaming LLM runs under @traceable or the SDK wrappers, but not when you drive the RunTree API yourself — you must emit run_tree.add_event({\"name\": \"new_token\"}) when the first token arrives, or the field stays empty. Fix: add that event in the stream handler (or move the span to @traceable/a wrapper and get it for free)." }
+  ]
+};
+</script>
+<script src="../../assets/js/roster.js?v=20260706"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
+</body>
+</html>

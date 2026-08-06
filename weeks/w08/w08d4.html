@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w08d4">
+<meta name="fde-concepts" content="data-flow-trust-boundary-map,safe-harbor-deidentification,reidentification-risk-testing,vendor-processor-agreement-scope,model-documentation-card,gated-rollout-with-widening-conditions">
+<title>W8·D4 — Governance, PII &amp; Responsible AI in a Regulated Deployment | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Governance, PII and Responsible AI in a Regulated Deployment</h1>
+        <div class="meta">
+          <span><b>Week 8</b> · Day 4</span>
+          <span>Security &amp; Governance</span>
+          <span><b>~24 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Days 1–3 gave you attacks and controls. Today is the layer above both: what data crosses out
+        of your trust boundary, under what agreement, and what you may promise about it. Four artifacts do the
+        work — a <strong>data-flow map</strong>, a <strong>vendor-agreement scope memo</strong>, a
+        <strong>de-identification routine with a test suite</strong>, and <strong>model documentation</strong>. Both W8
+        client packets ask for <em>wider</em>, and the honest answer is "not as specified." A flat no loses the room;
+        the move you're learning is a refusal carrying a narrower thing that ships and two conditions that widen it.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The boundary</div>
+        <h2>What leaves, and under what agreement</h2>
+        <p>Every regulated AI deployment reduces to one question asked per hop: what data crosses out of the trust
+        boundary, to whom, and under what written agreement. The governance artifact is not a new diagram — NIST's
+        Privacy Framework says a data map "can be overlaid on existing system/product/service design artifacts." It is
+        an annotation on the architecture you drew.</p>
+        <p>What the annotation carries is specified, not left to taste. Inventory-and-Mapping reads like a column
+        spec: systems (ID.IM-P1), owners and operators including third parties (P2), data actions (P4), purposes (P5),
+        "data elements within the data actions are inventoried" (P6), and the processing environment — "geographic
+        location, internal, cloud, third parties" (P7). ID.DE-P3 closes it: contracts with those parties "are used to
+        implement appropriate measures." Minimum row: <code>source | data elements | destination |
+        operator | region | purpose | agreement covering this hop | retention | evidence link</code>. A row with an
+        empty agreement cell is a finding, not a backlog item.</p>
+        <p>Why that granularity earns its keep: under HIPAA the API call <em>is</em> the regulated event. "Disclosure
+        means the release, transfer, provision of access to, or divulging in any manner of information outside the
+        entity holding the information" (45 CFR 160.103) — no volume threshold. P6 and P7 turn "we send the encounter
+        to the model" into "we send name, DOB, MRN and notes to vendor X in us-east-1 under no agreement."</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Permission</div>
+        <h2>The contract is the permission</h2>
+        <p>A covered entity may disclose PHI to a business associate "if the covered entity obtains satisfactory
+        assurance" that it will safeguard the information — and those assurances "must be documented through a written
+        contract" meeting §164.504(e) (45 CFR 164.502(e)(1)(i), (e)(2)). The permission does not come from TLS, a SOC 2
+        report, or the vendor's security page. It comes from an executed document — no document, no permission, and
+        the disclosure is impermissible, not a paperwork gap.</p>
+        <p>Your cloud LLM vendor is inside the definition: a business associate is anyone who, on a covered entity's
+        behalf, "creates, receives, maintains, or transmits" PHI for a regulated function, "including … data analysis,
+        processing or administration" (160.103). Summarization is data analysis — and the definition reaches
+        subcontractors, so the vendor's inference provider inherits it.</p>
+        <p>The required terms at 164.504(e)(2) are a checklist you can diff a terms-of-service against: permitted uses
+        stated; no further disclosure beyond the contract; safeguards including subpart C for ePHI; breach reporting
+        "as required by § 164.410"; subcontractors bound to "the same restrictions and conditions"; support for access,
+        amendment, and accounting of disclosures. A standard SaaS ToS satisfies none of it — "we have a contract with
+        the vendor" and "we have a BAA" are different findings.</p>
+        <p>Nor does signing end the duty: knowing of "a pattern of activity or practice … that constituted a material
+        breach" and failing to cure — ultimately by having "terminated the contract" — is itself non-compliance
+        (164.504(e)(1)(ii)). That standing obligation is why the widening conditions carry owners and dates.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Vendor scope</div>
+        <h2>"The vendor is HIPAA-ready" is not a row you can write</h2>
+        <p>The trap that turns a plausible memo into a wrong one: coverage is scoped surface by surface, not company by
+        company. Anthropic's BAA page covers Chat, Projects, Artifacts, Voice, Research and Skills; file creation and
+        code execution only "excluding network access and use of external websites"; MCP connectors, Enterprise Search
+        and Claude in Chrome are "available to use but sending data to 3rd parties via this feature isn't covered."</p>
+        <p>Coverage requires an affirmative act, not a plan tier: "Standard Claude Enterprise plans do not include BAA
+        coverage without action from a Primary Owner." And it couples to retention both ways — Claude Code CLI is "only
+        covered under the BAA with ZDR enabled," while "Covered Models require 30-day data retention and aren't
+        available with zero data retention (ZDR) enabled." Some model choices and covered surfaces are mutually
+        exclusive. Even the vendor's own pages disagree about web search — so read the coverage table, dated, on the
+        day you write the memo.</p>
+        <p>Two controls get mistaken for permission. <strong>Default-no-training</strong> — Anthropic's commercial
+        products, OpenAI's business and API tiers where data "isn't used for training our models" — is a <em>use</em>
+        control. <strong>Thirty-day retention with optional ZDR</strong> is a <em>retention</em> control. Neither
+        permits disclosure; under 164.502(e) only the executed agreement does. Roles are contractual too — the customer
+        is Controller, the vendor "acts as a 'Processor'." So the row names a feature: "Claude — covered" is false;
+        "Enterprise Chat with HIPAA activated — covered; the MCP connector hop — not covered" is a finding.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a coverage-table lookup — pick
+        a vendor surface and retention setting, get covered/not-covered plus the clause and its retrieval date as a
+        data-flow row's agreement cell. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">De-identification</div>
+        <h2>Two lawful methods, eighteen categories, one knowledge test</h2>
+        <p>The other lever is shrinking the payload, and "de-identify it first" is lawful in exactly two ways.
+        <strong>Expert determination</strong> (164.514(b)(1)): a qualified person determines the re-identification risk
+        "is very small … by an anticipated recipient" <em>and</em> documents the analysis. <strong>Safe
+        Harbor</strong> (b)(2): remove the listed identifiers — "of the individual <em>or of relatives, employers, or
+        household members</em>."</p>
+        <p>The list runs (A)–(R); three carry most of the engineering weight. <strong>(B) geography</strong>: ZIP
+        clears only at three digits, and only where that unit holds more than 20,000 people — otherwise
+        <code>000</code>. <strong>(C) dates</strong>: every element except year goes, ages over 89 collapse into "90 or
+        older." <strong>(R)</strong>: "any other unique identifying number, characteristic, or code," a catch-all that
+        swallows internal surrogate keys. The other fifteen are direct identifiers you'd guess — MRN (H), device serials (M).</p>
+        <p>So count what the contractor's "de-identified analytics export" achieved by dropping the <code>name</code>
+        column: one of eighteen. It still ships ZIP, dates, MRN and device IDs — still PHI. And Safe Harbor carries a
+        second, non-mechanical condition no library clears for you: the entity "does not have actual knowledge that the
+        information could be used … to identify an individual." The engineer who knows the MRN maps to a patient
+        satisfies that trigger personally.</p>
+        <p>The tempting fix — hash the MRN, keep the join key — fails on its own subsection. A re-identification code
+        is permitted only if it "is not derived from or related to information about the individual" (164.514(c)). A
+        hash <em>is</em>; irreversibility is not the test. Use a random surrogate in a table you never ship.</p>
+        <button class="code-cta" type="button" data-modal="code-w08d4"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· deident_gateway.py</span></button>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Evidence</div>
+        <h2>A redactor is a test suite, not a promise</h2>
+        <p>NIST SP 800-188 supplies the epigraph: "not all tools that merely mask personal information provide
+        sufficient functionality for performing de-identification." It classifies Safe Harbor as
+        <strong>prescriptive</strong> — focused "on the process of de-identification rather than on the specific
+        properties of the de-identified data" — which is good news, because a process is testable. The stakes warrant
+        it: "once de-identified, the dataset is no longer subject to HIPAA privacy, security, and breach notification
+        regulations." A function you wrote moves data out of a regulatory regime. The §4.6.2 validation checklist is
+        your test plan: verify "that no identifying information is unintentionally included in file data or metadata";
+        "critically evaluat[e] all default assumptions used by software that performs data modification"; and run a
+        <strong>motivated intruder test</strong> "to see if reasonably competent outside individuals can perform
+        re-identification using publicly available … datasets."</p>
+        <div class="callout">
+          <div class="k">Completion problem — finish the matrix</div>
+          <p>Three rows filled; write the fourth, then state the release rule.</p>
+          <ul>
+            <li><b>(A) names</b> — <code>"Pt. R. Ortega, spouse M. Ortega"</code> vs. <code>"the patient's
+            mother"</code>. Assert: <em>both</em> go — (b)(2)(i) covers relatives.</li>
+            <li><b>(C) dates</b> — <code>"admitted 3/4/26, DOB 1934-02-11, age 91"</code> vs. <code>"last
+            Tuesday"</code>. Assert: year survives, age becomes <code>90 or older</code>.</li>
+            <li><b>(B) ZIP</b> — <code>02139</code> (&gt;20,000), <code>59545</code> (≤20,000). Assert:
+            <code>021</code>, <code>000</code>.</li>
+            <li><b>(H) MRN</b> — <em>your row.</em> What are the positive fixtures, and where do they live?</li>
+          </ul>
+          <p>The MRN row catches people for two reasons the first three only hint at: fixtures must cover <em>format
+          variants inside free text</em> (<code>MRN 00123</code>, <code>mrn-00123</code>, <code>#123</code>) and
+          identifiers living outside a column — a filename, EXIF, a JSON sibling key. Then the release rule: report
+          <strong>recall per category</strong>; a miss on any direct identifier is release-blocking.</p>
+        </div>
+        <p>Run the suite offline — validating a redactor with live model calls leaks the data you are testing. And
+        borrow 800-188's governance wrapper: a <strong>Disclosure Review Board</strong>, "a de-identification standard
+        with measurable performance levels."</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a redactor bench — paste a
+        clinical note, run the (A)–(R) suite, see per-category recall with leaked spans highlighted and a pass/block
+        verdict. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Documentation</div>
+        <h2>The model card is a file in the repo</h2>
+        <p>Mitchell et al. proposed that "released models be accompanied by documentation detailing their performance
+        characteristics," including "benchmarked evaluation … across different cultural, demographic, or phenotypic
+        groups … and intersectional groups." Their stated purpose is exactly the lever you need this week: "to clarify
+        the intended use cases of machine learning models and minimize their usage in contexts for which they are not
+        well suited." A written intended-use section is how "not for this" stops being your opinion and becomes the
+        artifact's.</p>
+        <p>Form matters as much as content. Hugging Face's Hub spec is what makes it an engineering artifact rather
+        than a slide: "model cards are simple Markdown files with additional metadata… You can find a model card as the
+        <code>README.md</code> file in any model repo," with "a YAML section at the top" carrying
+        <code>license</code>, <code>datasets</code>, <code>base_model</code> and friends. It versions with the model
+        and reviews in a PR. Datasheets for Datasets (Gebru et al.) is the data-side companion.</p>
+        <p>NIST AI RMF 1.0 places it: "Trustworthy AI depends upon accountability. Accountability presupposes
+        transparency" — spanning "design decisions and training data to model training, the structure of the model, its
+        intended use cases, and how and when deployment, post-deployment, or end user decisions were made and by whom."
+        Then the sentence that kills the "make a nice page about how advanced it is" instinct: "A transparent
+        system is not necessarily an accurate, privacy-enhanced, secure, or fair system." Page and card can carry the
+        same facts; only one has an out-of-scope-use section and a commit history.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Currency</div>
+        <h2>When your citation gets withdrawn, walk down a level</h2>
+        <p>Write the finance memo from memory and you will cite CFPB Circulars 2022-03 and 2023-03 as live authority.
+        Both were withdrawn — items 14 and 7 of 90 FR 20084, May 12, 2025 — and "should not be
+        enforced or otherwise relied upon by the Bureau," though "such withdrawal is not necessarily final." Second
+        trap: <strong>site state is not legal state.</strong> consumerfinance.gov reduced 2023-03 to an "Archived
+        content" stub, while 2022-03 still renders in full with no banner despite sitting in the same list.</p>
+        <p>The finding survives anyway, because it never depended on the circular. 12 CFR 1002.9(b)(2): the statement
+        of reasons "must be specific and indicate the principal reason(s)," and statements that the applicant "failed
+        to achieve a qualifying score on the creditor's credit scoring system are insufficient." Comment 9(b)(2)-2:
+        reasons "must relate to and accurately describe the factors actually considered or scored." Comment -4: only
+        scored factors, and "no factor that was a principal reason for adverse action may be excluded from
+        disclosure." A scorer emitting two generic reason strings regardless of its real drivers is non-compliant on
+        the regulation's own terms.</p>
+        <p>Comment 9(b)(2)-5 then hands you an implementable selection algorithm: take the factors where the
+        applicant's score "fell furthest below the average score … achieved by applicants whose total score was at or
+        slightly above the minimum passing score"; "any other method that produces results substantially similar" is
+        acceptable. Comment -1 caps useful output at four reasons; -8 forces an automatic-denial factor to surface as
+        itself. That is your mapping's acceptance criteria, written by the regulator — and the habit to take away: when
+        the guidance you learned gets withdrawn, walk one level down and check whether the finding survives.</p>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="7">
+        <div class="tag">The delivery move</div>
+        <h2>Say no with a date attached</h2>
+        <p>Both W8 packets ask for <em>wider</em>. "Automatic visit summaries for every patient." "Roll the scorer out
+        wider and make a nice page about how advanced it is." Both hide a defect that width multiplies — an unsignaled
+        PHI disclosure per encounter, an ECOA exposure per applicant — and in both, the surface ask is a
+        <em>communication</em> artifact while the real deliverable is a <em>governance</em> one. So refuse with a dated alternative.
+        Five levers narrow the ask: <strong>scope</strong> (one clinic, one segment),
+        <strong>data</strong> (de-identified or minimum-necessary payload), <strong>autonomy</strong>
+        (draft-for-review), <strong>surface</strong> (only features the agreement covers), <strong>volume</strong> (a
+        capped pilot). Each lever traces back to a row in the data map — which is what makes the narrowing arguable
+        rather than timid.</p>
+        <p>Then two widening conditions, each with an <strong>owner, an artifact, and a date</strong>. Good conditions
+        are binary and checkable by someone who is not you: "executed BAA covering the surfaces named in the vendor's
+        coverage table, countersigned, on file — Legal, Oct 15." Bad conditions are moods: "once legal is comfortable."
+        State the failure branch out loud — if a condition slips, the gate holds. AI RMF <strong>GOVERN 6.2</strong>
+        wants "contingency processes … to handle failures or incidents in third-party … AI systems deemed to be
+        high-risk," and a condition producing no artifact cannot be audited. The sentence to be able to say
+        without notes: <em>"We can ship [gated version] by [date]; it widens to [full version] when (1) [condition A]
+        and (2) [condition B]."</em></p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a gate builder — pick your
+        levers, draft two conditions, have them linted for the three required parts plus a binary acceptance test.
+        Needs backend standup.</p></div>
+        <p>Anchor the gate to statute and regulation, the timeline to a review date. Guidance moves — the interagency
+        third-party guidance says of itself that "supervisory guidance does not have the force and effect of law." What
+        does not move: "use of third parties does not diminish [a banking organization's] responsibility."</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>Governance work fails in two directions: say yes and you shipped the disclosure, say no and you blocked
+          the business. Only the third answer survives a board — <strong>name the narrower version that ships this
+          quarter, and the two dated, evidence-backed conditions that widen it.</strong> Everything else today exists
+          to supply the evidence they point at.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-E/section-164.514" target="_blank" rel="noopener">45 CFR 164.514 (eCFR)</a> — de-identification: expert determination, Safe Harbor (A)–(R), the actual-knowledge test, and the re-identification-code rule at (c).</li>
+          <li><a href="https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-E/section-164.502" target="_blank" rel="noopener">45 CFR 164.502 (eCFR)</a> — 502(d)(2) re-identification, 502(e) business associates and documented satisfactory assurances.</li>
+          <li><a href="https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-E/section-164.504" target="_blank" rel="noopener">45 CFR 164.504 (eCFR)</a> — the business-associate contract's required terms, and the duty to cure or terminate.</li>
+          <li><a href="https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-160/subpart-A/section-160.103" target="_blank" rel="noopener">45 CFR 160.103 (eCFR)</a> — definitions: <em>disclosure</em>, <em>business associate</em> (incl. subcontractors), PHI.</li>
+          <li><a href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-188.pdf" target="_blank" rel="noopener">NIST SP 800-188 (Sept 2023)</a> — de-identification techniques and governance; §4.6.2 validation checklist, motivated-intruder testing, Disclosure Review Boards.</li>
+          <li><a href="https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.01162020.pdf" target="_blank" rel="noopener">NIST Privacy Framework 1.0</a> — the data map as an overlay; ID.IM-P1–P8 and ID.DE-P2/P3.</li>
+          <li><a href="https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf" target="_blank" rel="noopener">NIST AI 100-1, AI RMF 1.0</a> — third-party risk (GOVERN 6/6.1/6.2), transparency and accountability. <em>Note: the landing page states AI RMF 1.0 is being revised — pin the version you cite.</em></li>
+          <li><a href="https://arxiv.org/abs/1810.03993" target="_blank" rel="noopener">Mitchell et al., Model Cards for Model Reporting</a> — intended use, out-of-scope use, disaggregated evaluation.</li>
+          <li><a href="https://arxiv.org/abs/1803.09010" target="_blank" rel="noopener">Gebru et al., Datasheets for Datasets</a> — the data-side companion artifact.</li>
+          <li><a href="https://huggingface.co/docs/hub/model-cards" target="_blank" rel="noopener">Model Cards — Hugging Face Hub docs</a> — the card as <code>README.md</code> with YAML front-matter.</li>
+          <li><a href="https://privacy.claude.com/en/articles/8114513-business-associate-agreements-baa-for-commercial-customers" target="_blank" rel="noopener">Anthropic — BAA coverage for commercial customers</a> — the per-feature coverage table, Primary Owner activation, ZDR coupling.</li>
+          <li><a href="https://privacy.anthropic.com/en/articles/8956058-i-have-a-hipaa-compliance-requirement-can-i-use-anthropic-s-services" target="_blank" rel="noopener">Anthropic — zero-data-retention scope and HIPAA</a> — and the web-search discrepancy with the coverage page.</li>
+          <li><a href="https://privacy.claude.com/en/articles/9267385-does-anthropic-act-as-a-data-processor-or-controller" target="_blank" rel="noopener">Anthropic — processor or controller?</a> — the contractual role split.</li>
+          <li><a href="https://openai.com/enterprise-privacy/" target="_blank" rel="noopener">Enterprise privacy at OpenAI</a> — default no-training, 30-day API retention, ZDR eligibility, BAA availability.</li>
+          <li><a href="https://www.ecfr.gov/current/title-12/chapter-X/part-1002/section-1002.9" target="_blank" rel="noopener">12 CFR 1002.9 (eCFR)</a> — adverse-action notifications; (b)(2) specificity requirement.</li>
+          <li><a href="https://www.ecfr.gov/current/title-12/chapter-X/part-1002/appendix-Supplement%20I%20to%20Part%201002" target="_blank" rel="noopener">Regulation B Official Interpretations (eCFR)</a> — comments 9(b)(2)-1, -2, -3, -4, -5, -8.</li>
+          <li><a href="https://www.federalregister.gov/documents/2025/05/12/2025-08286/withdrawal-of-guidance-documents" target="_blank" rel="noopener">CFPB withdrawal notice — 90 FR 20084 (May 12, 2025)</a> — Circulars 2022-03 and 2023-03 withdrawn; "not necessarily final."</li>
+          <li><a href="https://www.consumerfinance.gov/compliance/circulars/circular-2022-03-adverse-action-notification-requirements-in-connection-with-credit-decisions-based-on-complex-algorithms/" target="_blank" rel="noopener">CFPB Circular 2022-03 (withdrawn 2025-05-12)</a> — dated background only; still the clearest statement of the "lack of understanding is not a defense" principle.</li>
+          <li><a href="https://www.federalregister.gov/documents/2023/06/09/2023-12340/interagency-guidance-on-third-party-relationships-risk-management" target="_blank" rel="noopener">Interagency Guidance on Third-Party Relationships (88 FR 37920)</a> — contract clauses, right to audit, and its own force-of-law caveat.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Writing the gate: two conditions that survive a board</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 questions on boundaries, agreements, de-identification &amp; gates</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 8 Day 4</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: writing the gate</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The difference between a condition and a wish.</p>
+    <p><strong>A condition has three parts and one property.</strong> Parts: the <em>artifact</em> that will exist,
+    the <em>owner</em> who produces it, the <em>date</em> it is due. Property: a person who was not in the room can
+    look at the artifact and answer yes or no without asking you. "Executed BAA covering Enterprise Chat and the
+    file-creation surface, countersigned, filed in the contracts repo — Legal (R. Okafor), Oct 15" passes both tests.
+    "Vendor risk sign-off" fails the property: sign-off on what, evidenced how?</p>
+    <p><strong>Pair a governance condition with an engineering condition.</strong> One condition someone else owns
+    (the agreement, the policy sign-off) and one you own (the redactor hits its per-category recall bar on the fixture
+    suite and passes a motivated-intruder pass; or the reason-code mapping is validated against the model's real
+    drivers at a stated threshold). Two conditions that both belong to Legal means you have no skin in the gate, and
+    the board will read it that way.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked half — finish the finance one</div>
+      <p style="margin:8px 0 0"><b>Healthcare, complete:</b> "We can ship AI visit summaries for the Riverbend
+      north-clinic pilot by Nov 1 — Safe-Harbor-scrubbed input, draft-for-clinician-review, on the BAA-covered chat
+      surface only, capped at 200 encounters/week with every decision logged. It widens to all clinics and to
+      unredacted input when (1) an executed BAA naming those surfaces is countersigned and on file (Legal, Oct 15) and
+      (2) the redactor reports ≥99.5% recall on every direct-identifier category across the fixture suite and passes a
+      motivated-intruder pass (me, Oct 22). If either slips, the gate holds."</p>
+      <p style="margin:8px 0 0"><b>Finance, your turn:</b> the narrow version keeps the scorer on its current portfolio
+      segment and adds the corrected reason mapping. Name the two conditions. One should point at the reason-accuracy
+      validation implied by comment 9(b)(2)-5; the other at the fair-lending monitoring spec, with a named owner and a
+      <em>first report date</em> rather than "ongoing."</p>
+    </div>
+    <p style="margin-top:14px"><strong>The vendor section, in banking.</strong> The interagency third-party guidance
+    names the clauses to look for and they transfer directly into the memo: access to your own data "in an appropriate
+    and timely manner"; how data "may be shared with regulators … as part of the supervisory process"; "whether the
+    third party is permitted to resell, assign, or permit access to customer data, or the banking organization's data,
+    metadata, and systems, to other entities"; notification of subcontractors and of "compliance lapses, enforcement
+    actions"; and periodic independent audits "of the third party and its relevant subcontractors," with the right to
+    conduct your own. It also warns against SLAs that "incentivize imprudent performance or behavior."</p>
+    <p style="margin-top:14px"><strong>Currency discipline for the whole package.</strong> Every citation in the memo
+    carries a retrieval date. Guidance-level sources (circulars, interagency guidance, framework playbooks) get a
+    re-verification date in the gate itself; statute and regulation get a version stamp. You saw two failure modes
+    today: a withdrawn circular that still renders in full, and a vendor's two pages disagreeing about web search.
+    Both are caught by the same habit — quote the source you actually opened, and write down when you opened it.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Week 8 · Day 4 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Annotate an existing architecture diagram into a data-flow / trust-boundary map where every hop names its data elements, operator, region, and the agreement covering it</li>
+      <li>Tell a <em>use</em> control and a <em>retention</em> control apart from a <em>permission to disclose</em> — and scope vendor coverage per feature rather than per company</li>
+      <li>Apply Safe Harbor's eighteen categories plus the actual-knowledge test, and explain why hashing the MRN fails 164.514(c)</li>
+      <li>Turn a de-identification claim into a test suite with per-category recall and a release-blocking rule</li>
+      <li>Walk down from withdrawn guidance to the regulation and check whether the finding survives</li>
+      <li>Write a refusal that ships: a gated version with a date, plus two conditions each carrying owner + artifact + date</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your brownfield client repo</div>
+    <ul class="deliv-list check">
+      <li>In <code>2463-FDE/riverbend-portal</code> (healthcare) or <code>2463-FDE/meridian-lending</code> (finance): today's slice of the <a href="../../client-delivery.html?w=8">Week 8 client ask</a> — the governance half of the package. Days 1–3 gave you the threat model and the guardrail decision; today you add what may legally leave the boundary</li>
+      <li><code>docs/DATA_FLOW.md</code> — one row per hop crossing the trust boundary, with the columns from step 1 (elements, operator, region, purpose, <b>agreement covering this hop</b>, retention, evidence link). At least one row must be a finding with an empty agreement cell, named as such</li>
+      <li><code>docs/VENDOR_SCOPE.md</code> — the agreement memo: which vendor <em>surfaces</em> your code paths actually use, which are covered, each claim quoted from the vendor's own coverage table with the date you retrieved it. State plainly whether you have a contract or a BAA</li>
+      <li>Healthcare: the Safe Harbor redactor in the repo with its fixture suite — one positive and one negative case per identifier category you claim to handle, free-text and metadata cases included, per-category recall reported, run offline. Finance: the reason-code → specific-consumer-reason mapping implementing comment 9(b)(2)-5's selection algorithm, plus <code>MODEL_CARD.md</code> (YAML front-matter, intended use, <b>out-of-scope use</b>, disaggregated evaluation)</li>
+      <li>The gate paragraph at the top of the memo: the narrower version you can ship this quarter and the two widening conditions, each with owner + artifact + date, and the failure branch stated</li>
+    </ul>
+    <p class="goals-foot">Bring the gate paragraph to Day 5 — the ★ milestone red-team pass triages by client
+    consequence and ships its fixes behind exactly this kind of gate, read out to a mixed room.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "W8 · Day 5 →", href: "w08d5.html" };
+window.DIAGRAM = {
+  title: "The trust boundary · what leaves, under what agreement",
+  width: 500, height: 596,
+  nodes: [
+    { id:"scene", step:0, kind:"example", x:14, y:12, w:472, h:62,
+      label:"CLIENT · the board wants it WIDER\n  healthcare: auto visit-summaries for every patient\n  finance: roll the scorer wider + a nice page about it" },
+
+    { id:"src", step:0, x:14, y:88, w:228, h:56, label:"INSIDE THE BOUNDARY\nEHR / origination · name·DOB·MRN·notes",
+      detail:"Your systems of record. NIST PF ID.IM-P6/P7 want the data elements and the processing environment inventoried per data action — that is the annotation layer on the architecture diagram you already have." },
+    { id:"hop", step:0, x:258, y:88, w:228, h:56, label:"THE HOP · POST /summarize\n= DISCLOSURE (45 CFR 160.103)",
+      detail:"\"Disclosure means the release, transfer, provision of access to, or divulging in any manner of information outside the entity holding the information.\" No volume threshold; one request counts." },
+
+    { id:"agree", step:1, x:258, y:156, w:228, h:56, label:"WRITTEN AGREEMENT\n164.502(e) → 164.504(e)(2) terms",
+      detail:"Satisfactory assurances \"must be documented through a written contract.\" Required terms include breach reporting under 164.410, subcontractor flow-down, and accounting-of-disclosures support. A standard ToS has none of them." },
+    { id:"surf", step:2, x:258, y:224, w:228, h:56, label:"SCOPE IS PER-FEATURE\nChat ✓ · MCP hop ✗ · CLI needs ZDR",
+      detail:"Coverage is a table of surfaces, requires a Primary Owner to activate HIPAA and accept the BAA, and couples to retention: some Covered Models require 30-day retention and are unavailable with ZDR on." },
+
+    { id:"scrub", step:3, x:14, y:156, w:228, h:56, label:"OR SHRINK THE PAYLOAD\nSafe Harbor (A)–(R) + no actual knowledge",
+      detail:"Eighteen categories, covering relatives and household members too. ZIP clears only at 3 digits above 20,000 people; dates keep year only; a hash of the MRN fails 164.514(c) because it is derived from the individual." },
+    { id:"tests", step:4, x:14, y:224, w:228, h:56, label:"PROVE IT · redactor test suite\nrecall/category · motivated intruder",
+      detail:"NIST SP 800-188 §4.6.2: inspect file data and metadata, challenge tool defaults, run a motivated-intruder test. \"Not all tools that merely mask personal information provide sufficient functionality.\"" },
+
+    { id:"card", step:5, x:258, y:292, w:228, h:56, label:"MODEL CARD · README.md + YAML\nintended use · OUT-OF-SCOPE use",
+      detail:"Mitchell et al.: clarify intended use cases and \"minimize their usage in contexts for which they are not well suited.\" AI RMF: accountability presupposes transparency — but a transparent system is not necessarily a fair one." },
+    { id:"reg", step:6, x:14, y:292, w:228, h:56, label:"GUIDANCE WITHDRAWN?\nwalk down: 12 CFR 1002.9(b)(2)",
+      detail:"CFPB Circulars 2022-03 and 2023-03 withdrawn at 90 FR 20084. The regulation and comments 9(b)(2)-2/-4/-5 are untouched, and they carry the finding — plus comment -5's reason-selection algorithm." },
+
+    { id:"gate", step:7, kind:"example", x:14, y:366, w:472, h:82,
+      label:"THE GATE — ship the narrow version, dated\nlevers: scope · data · autonomy · surface · volume\n(1) artifact+owner+date   (2) artifact+owner+date   slip ⇒ gate holds",
+      detail:"AI RMF GOVERN 6.2 wants contingency processes for high-risk third-party AI. A widening condition that produces no artifact cannot be audited later — which is why every condition names the thing someone else can open." }
+  ],
+  edges: [
+    { id:"e_out", step:0, from:"src",   to:"hop",   label:"leaves the boundary", ly:-2 },
+    { id:"e_ag",  step:1, from:"hop",   to:"agree", label:"permitted only if", lx:8 },
+    { id:"e_sf",  step:2, from:"agree", to:"surf",  label:"per feature", lx:8 },
+    { id:"e_sc",  step:3, from:"src",   to:"scrub", label:"or shrink it", lx:-8 },
+    { id:"e_ts",  step:4, from:"scrub", to:"tests", label:"prove it", lx:-8 },
+    { id:"e_g1",  step:7, from:"tests", to:"gate",  label:"condition 2", lx:-6 },
+    { id:"e_g2",  step:7, from:"card",  to:"gate",  label:"condition 1", lx:6 }
+  ],
+  captions: [
+    "The hop <b>is</b> the regulated event: \"divulging in any manner of information outside the entity\" (45 CFR 160.103). One POST of one encounter counts. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "The permission is a <b>document</b>, not a control. Assurances \"must be documented through a written contract\" meeting 164.504(e)(2) — no BAA means impermissible disclosure. <span style='opacity:.7'>(tap)</span>",
+    "Coverage is scoped <b>per feature</b>: Chat covered, the MCP connector hop not, the CLI only with ZDR. \"The vendor is HIPAA-ready\" is not a row you can write.",
+    "The other lever is <b>shrinking the payload</b>: eighteen categories removed <em>plus</em> no actual knowledge of re-identifiability. Dropping <code>name</code> clears one of eighteen.",
+    "De-identification is a <b>tested artifact</b> — recall per category, metadata cases, a motivated-intruder test, and a release-blocking rule. Not a promise. <span style='opacity:.7'>(tap)</span>",
+    "The <b>model card</b> is a <code>README.md</code> in the repo. Its out-of-scope-use section is what makes \"not for this\" reviewable — and transparency is not fairness.",
+    "When the circular you cited is <b>withdrawn</b>, walk one level down. 1002.9(b)(2) and comments -2/-4/-5 keep the finding alive without it.",
+    "The delivery move: <b>refuse with a date</b>. Narrow on five levers, then two widening conditions — each with an owner, an artifact, and a date someone else can check."
+  ]
+};
+window.QUIZ = {
+  id: "w08-d4",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "The clinic's vendor contract is a standard SaaS terms-of-service. Traffic is TLS 1.3, the vendor is SOC 2 Type II, and the plan is enterprise tier with default no-training. How do you write the finding?",
+      options: [
+        "Compliant — encryption plus no-training plus an enterprise contract covers the disclosure",
+        "A paperwork gap: add the BAA to the backlog and keep the feature running",
+        "Impermissible disclosure: under 164.502(e) the permission comes only from documented satisfactory assurances meeting 164.504(e)(2) — none of those controls is a permission",
+        "Compliant if the vendor signs an NDA covering the encounter data" ],
+      answer: 2,
+      explain: "164.502(e)(1)(i)+(e)(2): a covered entity may disclose to a business associate only with satisfactory assurances \"documented through a written contract\" meeting 164.504(e). Encryption is a safeguard, no-training is a use control, SOC 2 is an attestation. None of them is permission. And the vendor is a business associate under 160.103 because summarization is \"data analysis, processing or administration.\"" },
+    { type: "tf",
+      stem: "\"We're on Claude Enterprise, so our PHI workflows are covered by Anthropic's BAA.\"",
+      answer: false,
+      explain: "Two failures. First, coverage requires an affirmative act: \"Standard Claude Enterprise plans do not include BAA coverage without action from a Primary Owner,\" who must activate HIPAA compliance and accept the BAA. Second, coverage is per feature — MCP connectors, Enterprise Search, and Claude in Chrome are annotated as not covered for third-party sends, and Claude Code CLI is covered only with ZDR enabled. The data-flow row names a surface, not a company." },
+    { type: "mcq",
+      stem: "A contractor ships a \"de-identified\" export: the name column is dropped, MRN is replaced with SHA-256(MRN), full admission dates are kept, ZIP is 5-digit, and ages include 91 and 94. Which statements are correct? (select all that apply)",
+      options: [
+        "The hashed MRN satisfies 164.514(c) because the original number is unrecoverable",
+        "Full dates fail category (C) — only the year may remain for dates tied to an individual",
+        "5-digit ZIP fails (B); it clears at three digits only where that unit exceeds 20,000 people",
+        "Ages 91 and 94 fail (C) and must be aggregated into \"90 or older\"",
+        "Even a mechanically perfect scrub can fail if the covered entity has actual knowledge the data is re-identifiable" ],
+      answer: [1, 2, 3, 4],
+      explain: "Only the hash claim is wrong: 164.514(c) permits a re-identification code only if it \"is not derived from or related to information about the individual,\" and a hash of the MRN is derived from it — irreversibility is not the test. (C) keeps year only and collapses ages over 89; (B) is the ZIP3/20,000 rule; and (b)(2)(ii)'s actual-knowledge condition is a second, non-mechanical hurdle no library clears for you." },
+    { type: "match",
+      stem: "Match each claim a stakeholder makes to what it actually is.",
+      pairs: [
+        { l: "\"The vendor doesn't train on our data\"", r: "a use control — not a permission to disclose" },
+        { l: "\"Data is deleted after 30 days\"", r: "a retention control — not a permission to disclose" },
+        { l: "\"We have an executed BAA covering these surfaces\"", r: "the permission itself (164.502(e))" },
+        { l: "\"Our responsible-AI page explains the model\"", r: "a communication artifact — transparency ≠ fairness" },
+        { l: "\"MODEL_CARD.md states out-of-scope uses\"", r: "a governance artifact that versions with the model" } ],
+      explain: "Use controls and retention controls are real and worth having, but under 164.502(e) only the executed agreement permits the disclosure. On the documentation side, AI RMF 1.0 says accountability presupposes transparency and then adds the corrective: \"A transparent system is not necessarily an accurate, privacy-enhanced, secure, or fair system.\" The card is reviewable in a PR; the page is not." },
+    { type: "scq",
+      stem: "Your lending memo's central finding was going to cite CFPB Circular 2023-03. You discover it was withdrawn at 90 FR 20084 (May 2025) — and that Circular 2022-03, withdrawn in the same notice, still renders in full on consumerfinance.gov with no banner. What do you do?",
+      options: [
+        "Cite 2022-03 instead, since its page is still live and unarchived",
+        "Drop the finding — without live guidance there's no basis for it",
+        "Walk down to 12 CFR 1002.9(b)(2) and comments 9(b)(2)-2/-4/-5, which are untouched and carry the finding; cite the circulars only as dated background",
+        "Keep 2023-03 and add a footnote that the Bureau may restore it" ],
+      answer: 2,
+      explain: "Site state is not legal state — both circulars appear in the same withdrawal list regardless of how their pages render. But the finding never depended on them: 1002.9(b)(2) requires reasons that are \"specific and indicate the principal reason(s)\", comment -2 requires they \"relate to and accurately describe the factors actually considered or scored,\" and comment -5 supplies an implementable selection algorithm. Withdrawn guidance can be cited as dated background for its reasoning." },
+    { type: "open",
+      stem: "The board wants automatic AI visit summaries for every patient. You have found: no BAA, and a scrub that drops only the name column. Write the gate — one sentence for the narrow version and two widening conditions.",
+      hint: "Five narrowing levers (scope, data, autonomy, surface, volume); each condition needs an artifact, an owner, and a date, and must be checkable by someone who isn't you.",
+      model: "\"We can ship AI visit summaries for the north clinic by Nov 1 — Safe-Harbor-scrubbed input, draft-for-clinician-review, on the BAA-covered chat surface only, capped at 200 encounters/week with every decision logged. It widens to all clinics and to unredacted input when (1) an executed BAA naming those specific surfaces from the vendor's coverage table is countersigned and on file (Legal — R. Okafor, Oct 15), and (2) the redactor reports ≥99.5% recall on every direct-identifier category across the fixture suite, including free-text and metadata cases, and passes a motivated-intruder pass (me, Oct 22). If either condition slips, the gate holds.\" The shape matters more than the numbers: narrowed on four of the five levers, two conditions with artifact + owner + date, one owned outside engineering and one inside, and a stated failure branch." }
+  ]
+};
+</script>
+<div id="code-w08d4" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: the boundary gate</h2>
+    <p class="cv-cap">De-identification stops being a promise the moment it is a function with a refusal branch: scrub, re-scan, and raise rather than send.</p>
+    <div class="cv" data-file="deident_gateway.py" data-lang="python"><pre class="cv-raw"># Nothing crosses the trust boundary without a Safe Harbor scrub AND an independent re-scan.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import re, boto3
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+class BoundaryViolation(RuntimeError):
+    &quot;&quot;&quot;Residual identifier post-scrub -- sending it would be a disclosure.&quot;&quot;&quot;
+
+# 45 CFR 164.514(b)(2)(i) -- 4 of the 18 categories; the fixture suite covers the rest.
+SAFE_HARBOR = {
+    &quot;H_mrn&quot;:   re.compile(r&quot;\b(?:MRN|mrn)[-#\s]?\d{4,10}\b&quot;),
+    &quot;G_ssn&quot;:   re.compile(r&quot;\b\d{3}-\d{2}-\d{4}\b&quot;),
+    &quot;F_email&quot;: re.compile(r&quot;\b[\w.+-]+@[\w-]+\.[\w.]+\b&quot;),
+    &quot;C_date&quot;:  re.compile(r&quot;\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b&quot;),
+}
+# Deliberately NOT the same patterns: the gate must fail on what the scrub missed.
+RESIDUAL = re.compile(r&quot;\d{4,}|@|\b\d{1,2}[/-]\d{1,2}\b&quot;)
+
+def scrub(text: str) -&gt; str:
+    for tag, pat in SAFE_HARBOR.items():
+        text = pat.sub(f&quot;[{tag}]&quot;, text)
+    return text
+
+def summarize(note: str) -&gt; str:
+    payload = scrub(note)
+    hit = RESIDUAL.search(payload)
+    if hit:                        # refuse; never &quot;send anyway and log a warning&quot;
+        raise BoundaryViolation(f&quot;residual {hit.group()!r} at {hit.start()}: not sent&quot;)
+    resp = bedrock.converse(
+        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+        system=[{&quot;text&quot;: &quot;Summarize the visit. Never invent identifiers.&quot;}],
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: payload}]}],
+        inferenceConfig={&quot;maxTokens&quot;: 400, &quot;temperature&quot;: 0},
+    )
+    return resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;]</pre></div>
+    <p class="cv-foot">Four regexes are not Safe Harbor — they are 4 of 18, and 800-188 warns that tools which "merely mask" are not de-identification. Two things make this production-shaped: the residual check is <em>independent</em> of the scrub patterns (re-scanning with the same regexes always passes, which proves nothing), and the failure branch is <code>raise</code>, not a warning. The fixture suite is what proves the recall behind it.</p>
+  </div>
+</div>
+
+<script src="../../assets/js/roster.js?v=20260706"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
+</body>
+</html>

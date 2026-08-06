@@ -286,19 +286,19 @@ window.CLIENT = {
       7: {
         title: "Observability / SRE / Guardrails",
         tie: "Golden-signal instrumentation, tracing, alerting; guardrails on LLM output.",
-        ask: "The portal feels flaky and I'm always the last to hear about it — usually a patient complains before I even know there's a problem. I want real visibility so I can get ahead of issues. And that patient AI summary you stood up makes me nervous now that it's live; I need to know it can't say something off about a patient. Here's a week of logs and a transcript from it that honestly concerned me.",
+        ask: "The portal feels flaky and I'm always the last to hear about it — usually a patient complains before I even know there's a problem. I want real visibility so I can get ahead of issues. And that patient AI summary you stood up makes me nervous now that it's live; I need to know it can't say something off about a patient. Here's a week of logs. And I don't want to be told it hasn't said anything wrong — I want to be shown it can't.",
         handover: [
           "A week of raw latency logs — plain text, no trace IDs, no structured fields; you can't follow one request across services.",
           "Incident note: \"intake froze ~20 min Tuesday, no alert fired — I found out from a front-desk phone call.\"",
           "That frozen window lines up with the same intake/eligibility path from the W3 payer outage.",
-          "A transcript from the AI summary you shipped: for a patient on no medications, it generated \"...continue metformin as prescribed.\"",
+          "The AI summary you shipped is live and unguarded — whether it has already invented a medication is something you will have to find out, not something I can hand you.",
           "That summary endpoint returns the model output directly — no grounding check, no validation, no 'refuse if unknown.'",
           "No dashboard, no SLO definition, and no alerting config anywhere in the repo."
         ],
         dig: [
           "With these logs, can you reconstruct a single slow request end-to-end? What's missing to make that possible?",
           "Why did a 20-minute outage produce zero alerts — what would have had to exist to page someone?",
-          "Where did \"metformin\" come from in that summary, and what could have caught it before a clinician saw it?",
+          "Run your own summary against the seed corpus — can you make it state something the record does not support? What would have caught it before a clinician saw it?",
           "What are the few golden signals for the intake path you'd watch, and which single alert is worth firing?"
         ],
         stated: [
@@ -315,11 +315,11 @@ window.CLIENT = {
       8: {
         title: "Security / Governance / Responsible AI",
         tie: "Data governance, responsible-AI design, PII handling, third-party/vendor risk.",
-        ask: "The board is really excited — they want the AI visit-summary turned on for every patient, automatically, as our headline feature. Let's make it happen this week. We already share data with the AI vendor, and we have a de-identified export for analytics, so the privacy stuff is handled. Can you just flip it on for everyone?",
+        ask: "The board is really excited — they want the AI visit-summary turned on for every patient, automatically, as our headline feature. Let's make it happen this week. We're already sending data to whatever AI service you wired up, so the privacy side is handled, isn't it? Can you just flip it on for everyone?",
         handover: [
           "Your AI summary currently sends the full encounter record <code>{name, dob, mrn, notes}</code> to the cloud LLM vendor — nothing is stripped before it leaves the building.",
-          "The LLM vendor is on a standard SaaS Terms of Service — there is no Business Associate Agreement (BAA) on file for them.",
-          "The analytics team's 'de-identification' step just drops the <code>name</code> field, then ships the row — keeping ZIP, full dates, MRN, and device_id.",
+          "Nobody has checked whether the model provider you chose is covered by a Business Associate Agreement, or what its data-retention terms actually say — that question has never been asked in writing.",
+          
           "A sample row from that 'de-identified' analytics export: <code>{zip:90210, dob:1971-03-02, mrn:'M4471', device_id:'IPAD-07', visit_date:'2026-06-14'}</code>.",
           "HHS Safe-Harbor reference: the list of 18 identifiers that must be removed for de-identification.",
           "No data-flow diagram of what leaves the PHI boundary, or under what agreement."
@@ -343,63 +343,57 @@ window.CLIENT = {
         deliverable: "A responsible-AI design package: a Safe-Harbor de-identification scrub (18 identifiers, unit-tested redactor) used before any LLM/analytics path + a data-flow + BAA/vendor-governance memo (what leaves the PHI boundary, under what agreement) + a recommendation gate."
       },
       9: {
-        title: "Client Specialization Track (Healthcare Compliance)",
-        tie: "Deep specialization in the client's regulatory domain; least-privilege + audit architecture.",
-        ask: "A payer audit is coming and I want us buttoned up. Tighten the security generally, and — staff keep asking — can we finally add the records-request (ROI) feature so we stop emailing PDFs around? Everyone here logs in with their own account, so access control is basically handled; I just want it to look clean for the auditor.",
+        title: "Client Delivery — Handover &amp; Continuity",
+        tie: "Generic client-delivery craft: handover, estimation against actuals, escalation, two stakeholders. No new technical ground.",
+        ask: "I want to talk about what happens after you're gone. If one of my staff has a problem in three months, who do they ask? And where are we against what you told me a month ago — I'm not chasing you, I just need to know what to expect.",
         handover: [
-          "RBAC config <code>roles.yaml</code>: a single role <code>staff</code>; billing, ROI, front-desk, and clinicians all map to it → all can read clinical <code>notes</code>.",
-          "The <code>roi-service</code> <code>GET /disclosures/{patient_id}</code> returns a patient's full records with no check for a 45 CFR 164.508 authorization, no honoring of 164.522 restrictions, and no disclosure logged (the only trace is a bare <code>disclosures</code> row with no authorization_id/purpose).",
-          "Current ROI process doc: \"Staff email the records as a PDF to the requester\" — no log of who disclosed what, to whom, or when.",
-          "Auth config: password login only, <code>mfa_enabled: false</code>.",
-          "Access-log sample: a billing clerk's account opened a patient's psychotherapy <code>notes</code> — allowed, and unremarkable to the system."
+          "Nothing new is handed over. The material is what you have already built and what you still owe.",
+          "Your own blocker cards from W7 and W8, with the estimates written on them.",
+          "Your debt register and roadmap, read as a client would read them rather than as engineering hygiene.",
         ],
         dig: [
-          "List who can read clinical notes today — does a billing clerk need the same access as a treating clinician?",
-          "When ROI serves a record, where does it verify a valid authorization exists, and where is the disclosure logged?",
-          "If the auditor asks \"prove you had authorization for this disclosure,\" can the current ROI flow answer?",
-          "What's the gap between \"everyone has a login\" and actual least-privilege access control?"
+          "If you left on Friday, what would stop working, and who would not know why?",
+          "Which of your estimates moved, and can you say why without it sounding like an excuse?",
+          "Every Path B item you carry: is the conversion date still true, or has it been true twice running without moving?",
+          "Two people here want different things from the same word. Which word, and what do you do about it?",
         ],
         stated: [
-          "A payer audit is coming — 'tighten up security.'",
-          "Staff want the records-request (ROI) feature added."
+          "Wants confidence the work survives the engagement.",
+          "Wants to know what is left, and when.",
         ],
         hidden: [
-          "<b>Minimum-necessary unenforced (D7, #4)</b> — one role sees everything.",
-          "<b>ROI with no authorization enforcement / no disclosure accounting (D12, #10)</b> + <b>no MFA</b>."
+          "<b>Work only you can run is not delivered</b> — an undocumented dependency is a defect the client finds after you have gone.",
+          "<b>An estimate never compared to an actual never improves</b> — this is the week the calibration loop closes.",
         ],
-        facilitator: "Frame it as the auditor's questions: 'who can see what, and can you prove a valid authorization for each disclosure?' — today the answer is 'everyone, and no.'",
-        deliverable: "An RBAC / least-privilege spec (separate treatment vs ROI vs billing scopes, mapped to 164.502(b)) + an ADR for consent/authorization-enforced ROI (check 164.508 auth, honor 164.522, log every disclosure) + an MFA recommendation. Spec + ADRs; implementation scoped, not shipped."
+        facilitator: "No new technical scope. Burn-down and estimate calibration. CODE FREEZE FRIDAY. If W7/W8 slip into here the freeze slips and W10 is compromised — protect it.",
+        deliverable: "Every outstanding item merged, or carrying a blocker card with a moved estimate and a named owner. Plus one page: what someone inheriting this repo on Monday needs to know."
       },
-      10: {
-        title: "Project Work & Client Showcase",
-        tie: "Integrate the arc; produce a handoff + showcase that proves value in client language.",
-        ask: "Home stretch — I need to prove to the board that we're compliant and audit-ready, and package everything up. The auditor sent a pre-visit questionnaire and a couple of the questions completely stumped my team. Can you pull the whole engagement together into something I can present? I want it to land in terms the board actually cares about.",
+10: {
+        title: "Final Delivery &amp; Team Onboarding",
+        tie: "The showcase and the handover package. Integrate the arc; prove value in client language; leave something the next engineer can run.",
+        ask: "Home stretch. Show me what we've got in a way I can take to the board — and leave my team something they can actually run without you.",
         handover: [
-          "<code>audit_logs</code> table DDL: an ordinary table — rows are <code>UPDATE</code>/<code>DELETE</code>-able, and there's a <code>deleted_at</code> soft-delete column. (Recall the W1 finding: 'audit' here is really app logging.)",
-          "Auditor questionnaire Q7: \"Produce an accounting of disclosures for patient X.\" Q9: \"List everyone who viewed patient Y in the last 90 days.\"",
-          "Staff's attempted answer, in writing: \"We don't have a way to pull that.\"",
-          "Breach-response policy doc: references a 60-day notification clock but no mechanism to *detect* an impermissible access.",
-          "Sample 'audit' rows: app INFO logs containing PHI — not an actor→patient→action→time access trail you could trust as evidence."
+          "No new material. This week is delivery.",
+          "Code freeze held from Friday of Week 9 — nothing merges except a demo-blocking bug.",
         ],
         dig: [
-          "Try to answer the auditor's two questions with today's data — what's structurally missing?",
-          "Can a row in <code>audit_logs</code> be changed or deleted? What does that do to its value as evidence?",
-          "The 60-day breach clock starts at \"discovery\" — how would Riverbend ever discover an impermissible access?",
-          "What's the smallest append-only trail that would make \"who viewed patient Y?\" answerable?"
+          "Which single screen, against which data, proves the thing you were actually hired to fix?",
+          "What is the before number and the after number, and can you say both in the first two minutes?",
+          "When the demo breaks — and it will — what is the sentence you already wrote for that moment?",
+          "Can a new engineer clone this repo and have it running from the README alone, without asking you?",
         ],
         stated: [
-          "Prove compliance + audit-readiness to the board.",
-          "Package the whole arc into a handoff + showcase."
+          "Wants proof of value in language the board understands.",
+          "Wants to keep using it after the engagement ends.",
         ],
         hidden: [
-          "<b>No breach-detection / append-only access trail (D2/D14, #2/#6)</b> — the 60-day breach clock can't start on a discovery you can't make.",
-          "'Who viewed this patient?' is unanswerable today."
+          "<b>A demo is not a delivery</b> — the handover package is what the client still has in six months.",
+          "<b>Every claim must trace to a commit on main</b> — one untraceable slide fails the deck.",
         ],
-        facilitator: "Tie the auditor's two questions back to the mutable audit_logs finding from W1. Why it matters: breach-notification obligations (164.404) are structurally unmeetable. Integrate W1–W9 findings; ship a focused capstone slice, not everything.",
-        quota: "Report generation — run on seeded sample data, not the full corpus.",
-        deliverable: "Capstone: an append-only access-trail design + one working breach-detection alert (impermissible-access signal) + an accounting-of-disclosures report generator (prototype over seeded data) + a handoff package (debt register, ADR catalog, risk-prioritized roadmap) + a client showcase framed in audit-readiness, patient-safety, and dollars."
-      }
-    }
+        facilitator: "No new code. Rehearse, package, hand over, show. Score the whole arc: the number, the roadmap, the recovery when something breaks. Failures are not rescued.",
+        deliverable: "A rehearsed demo against main with a written script and a planned failure; a before/after number said aloud; a handover package (README that is true, runbook that runs, ADR trail where every citation resolves); and a dated roadmap with owners."
+      },
+}
   },
 
   finance: {
@@ -475,7 +469,7 @@ window.CLIENT = {
           "Sample model output: <code>{score: 612, decision: 'deny', adverse_action_reason: 'purchasing history'}</code> — the same generic string recurs across many denials.",
           "No decision record is persisted: nothing stores the inputs, the model's actual top features, or a timestamp.",
           "A denied applicant's adverse-action letter draft: reason = \"purchasing history\" (a nearest-checkbox, not the real driver).",
-          "Reg B reference note: the adverse-action notice must state the *specific, accurate* principal reason(s); CFPB Circular 2023-03 — no AI exemption."
+          "Reg B reference note: the adverse-action notice must state the *specific, accurate* principal reason(s); 12 CFR 1002.9 (the obligation CFPB Circular 2023-03 restated before it was withdrawn 2025-05-12) — no AI exemption."
         ],
         dig: [
           "Read several denials — are the adverse-action reasons specific to each applicant, or the same generic string?",
@@ -618,13 +612,13 @@ window.CLIENT = {
           "Decision logs from the W3 model: every denial carries the same generic adverse-action string (\"purchasing history\") — the scorecard draws from a hardcoded two-item list (<code>GENERIC_REASONS</code> in <code>decision.py</code>) and emits one regardless of the real driver.",
           "No model card, no model documentation, and no record of the features/version used per decision.",
           "No fair-lending disparity check and no monitoring of denial-reason accuracy anywhere.",
-          "Approval-rate breakdown by ZIP code shows a noticeable pattern across certain areas.",
-          "CFPB Circular 2023-03 note: ML/black-box models must still give the specific driver — no AI exemption.",
+          
+          "<b>12 CFR 1002.9</b> requires specific, accurate adverse-action reasons — there is no exemption for a model that cannot explain itself. (CFPB Circulars 2022-03 and 2023-03 said the same and were <b>withdrawn 2025-05-12</b>; cite the regulation, not the circular.)",
           "<code>services/decision-service</code> records only the outcome — no model id, version, or feature set per decision — so there is no registry to govern or roll back as the scorer is rolled wider."
         ],
         dig: [
           "Across many decisions, how many *distinct* adverse-action reasons does the model actually emit?",
-          "Does the ZIP-level approval-rate pattern warrant a disparate-impact look before scaling wider?",
+          "There is no disparity data at all today — what would you need to collect before anyone could claim this model is fair?",
           "If a regulator asked \"how does this model decide, and is it fair?\", what documentation exists today?",
           "What does 'responsible AI' require here beyond a marketing page — reason accuracy, monitoring, a model card?"
         ],
@@ -634,69 +628,64 @@ window.CLIENT = {
         ],
         hidden: [
           "<b>The AI scorer is an ECOA liability at scale (#2, D10)</b> — generic reasons, no governance, no disparity monitoring, no model card.",
-          "CFPB Circular 2023-03 = no AI exemption; rolling it wider multiplies fair-lending exposure."
+          "12 CFR 1002.9 (the obligation CFPB Circular 2023-03 restated before it was withdrawn 2025-05-12) = no AI exemption; rolling it wider multiplies fair-lending exposure."
         ],
         facilitator: "Responsible-AI isn't a marketing page; it's reason accuracy + monitoring + documentation. The ZIP approval-rate pattern is the disparate-impact prompt.",
         quota: "Model reason-mapping — test the mapping logic with fixtures, don't spam the live model.",
         deliverable: "A responsible-AI / fair-lending governance package: a reason-code → specific-consumer-reason mapping (tested against the model's real drivers), a model card, and a fair-lending monitoring spec (denial-reason accuracy + disparity check). Governance artifacts; not a model rebuild."
       },
       9: {
-        title: "Client Specialization Track (Lending Compliance / BSA-AML)",
-        tie: "Deep specialization in the client's regulatory domain (KYC/AML pipeline).",
-        ask: "We're launching a new product and I want KYC tightened during onboarding so we don't get burned. I attached the kyc-service and a sample onboarding. We verify the applicant's identity already, so I think we're mostly there — just make it look thorough for the launch.",
+        title: "Client Delivery — Handover &amp; Continuity",
+        tie: "Generic client-delivery craft: handover, estimation against actuals, escalation, two stakeholders. No new technical ground.",
+        ask: "Before we wrap, I need to know this doesn't fall over when you leave. And Sam wants the numbers you promised versus what landed — he's not being difficult, that's his job.",
         handover: [
-          "<code>services/kyc-service/app/kyc.py</code>: performs CIP only — verifies name/DOB/address/SSN, then stops.",
-          "No OFAC/sanctions screening, no beneficial-owner (UBO) capture, no ongoing monitoring, and no SAR path anywhere in the code.",
-          "Onboarding sample: an *entity* (LLC) applicant cleared with no beneficial owner identified and no sanctions check.",
-          "BSA/AML reference: CIP → CDD (incl. beneficial owner, FinCEN 2016 rule) → EDD → ongoing monitoring → SAR; OFAC screening required.",
-          "Compliance worksheet: \"we check ID ✓\" written next to a blank \"sanctions screen?\" field."
+          "Nothing new is handed over. The material is what you have already built and what you still owe.",
+          "Your own blocker cards from W7 and W8, with the estimates written on them.",
+          "Your debt register and roadmap, read as a client would read them rather than as engineering hygiene.",
         ],
         dig: [
-          "What does the kyc-service actually check — and where does it stop relative to full KYC/AML?",
-          "For the LLC applicant, who are the beneficial owners, and were they screened against sanctions lists?",
-          "Could a sanctioned party clear onboarding today? Where in the flow would a screen have caught them?",
-          "What's the difference between \"verifying ID\" (CIP) and the CDD / ongoing-monitoring / SAR obligations of BSA/AML?"
+          "If you left on Friday, what would stop working, and who would not know why?",
+          "Which of your estimates moved, and can you say why without it sounding like an excuse?",
+          "Every Path B item you carry: is the conversion date still true, or has it been true twice running without moving?",
+          "Two people here want different things from the same word. Which word, and what do you do about it?",
         ],
         stated: [
-          "Launching a new product — 'tighten up KYC.'",
-          "Client thinks 'we verify ID' means KYC is mostly handled."
+          "Wants confidence the work survives the engagement.",
+          "Wants to know what is left, and when.",
         ],
         hidden: [
-          "<b>KYC stops at CIP — no CDD/UBO, no OFAC/sanctions, no SAR (D11, #8)</b> — Meridian could be onboarding a sanctioned party today.",
-          "'Checks ID' ≠ KYC — a BSA/AML violation with real penalties."
+          "<b>Work only you can run is not delivered</b> — an undocumented dependency is a defect the client finds after you have gone.",
+          "<b>An estimate never compared to an actual never improves</b> — this is the week the calibration loop closes.",
         ],
-        facilitator: "<b>Priya leads this one.</b> Walk the entity-applicant sample through the pipeline and let them find where the sanctions/UBO screen should have been.",
-        deliverable: "A KYC/AML specialization spec: CIP → CDD + beneficial-owner identification + OFAC/sanctions screening + ongoing-monitoring/SAR hooks, with a screening-integration ADR and acceptance criteria. Spec + ADR; screening-vendor integration scoped, not built."
+        facilitator: "No new technical scope. Burn-down and estimate calibration. CODE FREEZE FRIDAY. If W7/W8 slip into here the freeze slips and W10 is compromised — protect it.",
+        deliverable: "Every outstanding item merged, or carrying a blocker card with a moved estimate and a named owner. Plus one page: what someone inheriting this repo on Monday needs to know."
       },
-      10: {
-        title: "Project Work & Client Showcase",
-        tie: "Integrate the arc; produce a handoff + showcase in client language.",
-        ask: "Privacy's a hot topic with the board, so I want a clean 'delete my data' button for customers who ask — full hard delete, the works. Then package the whole engagement up so I can present it. I want it to land in terms the board cares about: risk, money, defensibility.",
+10: {
+        title: "Final Delivery &amp; Team Onboarding",
+        tie: "The showcase and the handover package. Integrate the arc; prove value in client language; leave something the next engineer can run.",
+        ask: "Let's put it all together. I want something I can show the board, and Sam wants something his team can pick up on Monday.",
         handover: [
-          "Product request ticket: \"On request, hard-delete ALL data for any customer.\"",
-          "Retention map (assembled across prior weeks): applications + adverse-action reasons (Reg B) and financial records (SOX) are legally required to be *retained*.",
-          "Note linking back to W3: those same records include the decision audit trail that proves fair-lending compliance.",
-          "Reg B retention: adverse-action records kept ~25 months; SOX: financial records kept for years.",
-          "No field-level redaction capability exists today — the only option is all-or-nothing delete."
+          "No new material. This week is delivery.",
+          "Code freeze held from Friday of Week 9 — nothing merges except a demo-blocking bug.",
         ],
         dig: [
-          "Cross-check 'hard-delete everything' against the retention map — which fields is the law requiring you to keep?",
-          "If you delete a denied applicant's record, what compliance evidence (the W3 audit trail) vanishes with it?",
-          "How do you honor a privacy request without erasing legally-required records — what gets redacted vs retained?",
-          "Which records are safe to delete, and which must survive a 'delete my data' request — and why?"
+          "Which single screen, against which data, proves the thing you were actually hired to fix?",
+          "What is the before number and the after number, and can you say both in the first two minutes?",
+          "When the demo breaks — and it will — what is the sentence you already wrote for that moment?",
+          "Can a new engineer clone this repo and have it running from the README alone, without asking you?",
         ],
         stated: [
-          "Add a 'delete my data' privacy button.",
-          "Package the arc into a handoff + board showcase."
+          "Wants proof of value in language the board understands.",
+          "Wants to keep using it after the engagement ends.",
         ],
         hidden: [
-          "<b>Retention conflict (#9/#10, D4)</b> — a hard 'delete my data' would erase records Reg B/SOX require keeping, including the decision audit trail that proves fair-lending compliance.",
-          "The right design is <b>retention-aware redaction</b>, not deletion."
+          "<b>A demo is not a delivery</b> — the handover package is what the client still has in six months.",
+          "<b>Every claim must trace to a commit on main</b> — one untraceable slide fails the deck.",
         ],
-        facilitator: "<b>Sam + Priya both in the room.</b> The well-meaning privacy feature would create compliance violations. Integrate W3 (decision log), W6 (ledger + maker-checker), W7 (reconciliation). Ship a focused capstone slice.",
-        deliverable: "Capstone: a retention-aware redaction design (policy table mapping fields → Reg B/SOX retention) + a controls-and-audit-trail review integrating W3/W6/W7 + a handoff package (debt register, ADR catalog, risk-prioritized roadmap) + a client showcase framed in fair-lending defensibility, money-correctness, and audit-readiness."
-      }
-    }
+        facilitator: "No new code. Rehearse, package, hand over, show. Score the whole arc: the number, the roadmap, the recovery when something breaks. Failures are not rescued.",
+        deliverable: "A rehearsed demo against main with a written script and a planned failure; a before/after number said aloud; a handover package (README that is true, runbook that runs, ADR trail where every citation resolves); and a dated roadmap with owners."
+      },
+}
   }
 };
 

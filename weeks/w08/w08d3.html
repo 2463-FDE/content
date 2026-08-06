@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w08d3">
+<meta name="fde-concepts" content="guardrail-layer-taxonomy,guardrail-request-path-placement,guardrail-latency-budget,guardrail-false-positive-economics,pii-recognizer-coverage-matrix,guardrail-vendor-continuity-risk">
+<title>W8·D3 — Guardrail Frameworks: Pricing the Control | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Guardrail Frameworks: Pricing the Control</h1>
+        <div class="meta">
+          <span><b>Week 8</b> · Day 3</span>
+          <span>Responsible AI &amp; Governance</span>
+          <span><b>~26 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Week 7 Day 5 wired a guardrail into a path you already observe. Today you choose
+        <em>which</em> guardrail, on <em>what hardware</em>, at <em>what price</em>, from a vendor that will still exist
+        next year. Four names dominate — <strong>NeMo Guardrails</strong>, <strong>Guardrails AI</strong>,
+        <strong>LLM Guard</strong>, <strong>Presidio</strong> — and they are not four options; three wrap the fourth.
+        The angle is the only one an exec can act on: <strong>cost of control versus cost of incident</strong>, every
+        term priced — added latency, dollars per thousand units, and the false-positive rate the front desk actually
+        feels. Output: a recommendation memo, via the 60-minute decision protocol from Week 7 Day 3. Scroll; the panel
+        assembles the request path, then hangs a price on every position in it.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">Taxonomy</div>
+        <h2>Four names, but not four options</h2>
+        <p>The instinct is a four-way bake-off. That is a category error: these tools sit at different altitudes.</p>
+        <p><strong>NeMo Guardrails</strong> (NVIDIA, Apache-2.0, 0.23.0) is a <em>dialogue-management runtime</em>; its
+        EMNLP paper frames it as "programmable rails… user-defined, independent of the underlying LLM, and
+        interpretable," as distinct from guardrails "embedded into a specific model at training."
+        <strong>Guardrails AI</strong> (Apache-2.0, 0.10.2) is an <em>output-validator framework</em>: its unit is the
+        Guard, which "wraps LLM calls, orchestrates validation, and keeps track of call history." <strong>LLM
+        Guard</strong> is a <em>flat scanner pipeline</em> — scanners around the call, each returning
+        <code>(sanitized_prompt, is_valid, risk_score)</code>. And <strong>Presidio</strong> is not a guardrail at all;
+        its README calls it a "Data Protection and De-identification SDK."</p>
+        <p>Here is the fact that collapses the comparison. <strong>Three of the four wrap the fourth.</strong> NeMo's
+        sensitive-data rails require you to <code>pip install nemoguardrails[sdd]</code> and pull spaCy's
+        <code>en_core_web_lg</code> — because they <em>are</em> Presidio. Guardrails Hub's <code>Detect PII</code>
+        validator says it detects PII "using Microsoft Presidio." LLM Guard's <code>Anonymize</code> scanner advertises
+        "Integration with Presidio Analyzer." So the real decision is two decisions: <strong>which orchestration model
+        you want</strong>, and <strong>what you feed the detector</strong>. NeMo's own guardrail catalog — Content
+        Safety, Jailbreak Protection, Topic Control, PII Detection, Agentic Security, Tool Calling, Hallucinations &amp;
+        Fact-Checking, LLM Self-Check, Third-Party APIs — is the cleanest available list of what "a guardrail" can even
+        mean. Use it as the memo's option space so nothing gets silently dropped.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Placement</div>
+        <h2>Five positions — and two different products at each</h2>
+        <p>NeMo ships five rail types, and the vocabulary is worth borrowing even if you never install it: it gives an
+        exec five nameable places instead of one vague "filter." <strong>Input</strong> rails reject or alter the input.
+        <strong>Dialog</strong> rails operate on canonical forms. <strong>Retrieval</strong> rails can reject a chunk
+        "preventing it from being used to prompt the LLM." <strong>Execution</strong> rails wrap tool input and output.
+        <strong>Output</strong> rails reject or alter the response.</p>
+        <p>Two consequences. First, <strong>the same capability at the same position is two different products</strong> —
+        a product decision, not a config detail. NeMo's docs: <code>detect sensitive data on input</code> means
+        "the bot will refuse to respond"; <code>mask sensitive data on input</code> means the bot "will mask the
+        sensitive parts… and continue." One produces a blocked user. The other produces a degraded answer with holes in
+        it. Somebody at the client owns that choice; leave it out of the memo and they inherit whatever the default is.</p>
+        <p>Second — and this is the position teams forget — <strong>the retrieval rail is the only one that stops corpus
+        PHI from entering the prompt at all</strong>. An output filter on a RAG-over-records system is theatre: by the
+        time it fires, the record has already been sent to the vendor. If PHI lives in your corpus, the scrub belongs on
+        the request and on the chunk, not on the answer.</p>
+        <button class="code-cta" type="button" data-modal="code-w08d3"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· redact_rail.py</span></button>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Placement · streaming</div>
+        <h2>Streaming defaults to the unsafe half of the tradeoff</h2>
+        <p>All five positions assume a request/response shape. Streaming breaks that assumption, and NeMo is unusually
+        honest about the consequence. Under <code>rails.output.streaming</code>, <code>stream_first</code>
+        defaults to <strong><code>True</code></strong>, meaning "the client receives each chunk of tokens <em>before</em>
+        output rails process that chunk. This provides faster time-to-first-token, but <strong>if a rail blocks the
+        content, the user has already received the tokens.</strong>" The stream then terminates with a JSON error — after
+        the disclosure. Set it to <code>False</code> and "the user never sees blocked content, but time-to-first-token
+        increases by the rail execution time per chunk."</p>
+        <p>The knobs price that tradeoff explicitly. <code>chunk_size</code> defaults to <strong>200 tokens</strong>:
+        larger means fewer rail executions but higher latency to first output; smaller means more executions and faster
+        first token. <code>context_size</code> defaults to <strong>50 tokens</strong> carried across chunk boundaries so
+        a sentence spanning two chunks can still be evaluated — drop it and you get misses that look random. And
+        <code>enabled</code> defaults to <code>False</code>: calling <code>stream_async()</code> with output rails
+        configured but streaming disabled is a hard error, not a silent degrade.</p>
+        <p>Write it into the memo as a sentence an exec can veto: <em>"Streamed summaries show the clinician tokens the
+        safety rail has not yet cleared. Turning that off costs roughly one rail execution per 200 tokens of added
+        time-to-first-token."</em> That is a decision. "We enabled guardrails" is not.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Latency</div>
+        <h2>A latency number without an instance type is fiction</h2>
+        <p>LLM Guard is the only project here that publishes per-scanner p90/p95/p99 <em>with the machine named</em> —
+        Amazon Linux 2, Python 3.11.6, five runs. That makes it the category's reference table, including for tools that
+        publish nothing.</p>
+        <p><strong>PromptInjection</strong> (384-char input): m5.xlarge <strong>212.87 ms avg / 317 ms p99</strong>; the
+        same box with ONNX <strong>104.21 / 107</strong>; g5.xlarge GPU 81.01 / 329; g5.xlarge GPU + ONNX
+        <strong>7.65 / 14.75</strong>; Azure Standard_D4as_v4 <strong>421.46 / 1,237</strong>.
+        <strong>Anonymize</strong> — the PII scanner, Presidio plus BERT NER, 317-char input — is the expensive one:
+        m5.xlarge <strong>177.13 / 325.71</strong>, +ONNX 128.64 / 179.93, GPU+ONNX <strong>38.11 / 99.26</strong>.</p>
+        <p>Two levers fall straight out. <strong>ONNX runtime is roughly 2× on CPU and ~10× on GPU, and it is a one-line
+        change</strong> (<code>pip install llm-guard[onnxruntime]</code>, <code>use_onnx=True</code>) — it also collapses
+        variance, from 3.00 to 0.00 on m5.xlarge for PromptInjection. And <strong>instance type can dominate tool
+        choice</strong>: Toxicity runs at 4.80 ms on g5.xlarge GPU+ONNX, 34.13 ms on m5.xlarge+ONNX, and
+        <strong>620.79 ms on r6a.xlarge</strong> — a 129× spread on identical code and an identical benchmark. Benchmark
+        on the client's actual fleet or you are quoting someone else's hardware.</p>
+        <p>One more shape: <strong>LLM-based rails cost an order of magnitude more than purpose-trained small models and
+        are usually less accurate.</strong> NeMo's fact-checking rail, per checked fact: <code>align_score-base</code>
+        84.5% at <strong>23.0 ms</strong>; <code>gpt-3.5-turbo</code> 82.5% at <strong>435.1 ms</strong>. A frontier
+        model as your validator is the expensive way to be slightly worse.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a latency-budget calculator —
+        pick a scanner set, an instance type, and ONNX on/off, and watch the serial p99 ceiling and the sum-of-averages
+        central estimate move against a stated turn budget. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Latency · composition</div>
+        <h2>Read the units, then read the execution model</h2>
+        <p>Now the trap that embarrasses people in front of clients. Every LLM Guard benchmark table has a
+        <strong><code>QPS</code></strong> column. <strong>It is not queries per second.</strong> From
+        <code>benchmarks/run.py</code>: <code>throughput = input_length * (1000.0 / latency_ms)</code>, where
+        <code>input_length</code> is <code>len(prompt)</code> in characters. It reproduces exactly — PromptInjection on
+        m5.xlarge, 384 chars / 0.21287 s = 1,804 against a published 1,803.91. The harness is
+        <code>timeit.repeat(..., number=1)</code>: sequential, single-threaded, <strong>no concurrency and no batching
+        anywhere</strong>. Those tables support no request-throughput claim at all. The only rate they license is
+        single-stream <code>1000 / avg_latency_ms</code> — ~131 req/s for the fastest configuration in the corpus
+        (7.65 ms). Anything above that needs a concurrency factor you measured yourself.</p>
+        <p>The second half is composition. LLM Guard's shipped API states: <strong>"Scanners will be executed in the
+        order of configuration,"</strong> with <code>SCAN_FAIL_FAST</code> defaulting to <code>False</code>. Serial, and
+        it does not stop at the first failure. <strong>So a multi-scanner budget is a sum, not a max</strong> — the
+        parallel number is an engineering project, not a config flag.</p>
+        <p><strong>Finish this budget.</strong> Stack: Anonymize + PromptInjection + Toxicity, serial. On m5.xlarge with
+        no ONNX the p99s are 325.71 + 316.97 + 188.11 = <strong>~831 ms</strong>. Add ONNX on the same box: 179.93 +
+        107.01 + 35.71 = <strong>~323 ms</strong>. Now do the last row yourself — g5.xlarge GPU + ONNX, p99s
+        <code>99.26 + 14.75 + 10.65</code>. Your answer is the "buyable" claim: what multiple did a hardware line item
+        and one boolean just buy? State the caveat with it — <strong>summing p99s is an upper bound, not a p99</strong>,
+        since the p99 of a sum only equals the sum of p99s if the scanners are perfectly correlated. Quote the sum as a
+        ceiling and the sum of averages (~476 ms on CPU) as the central estimate, and <em>say which one you are
+        using</em>.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">False positives</div>
+        <h2>Precision is a staffing number</h2>
+        <p>This is the term nobody models and it is the largest one. Start with the ceiling: in Guardrails AI's index —
+        24 guardrails, 6 datasets, "32 days spent on GPU" — the best <strong>PII detector scores F1 0.65</strong>.
+        Category bests elsewhere: Topic Restriction 0.93, Jailbreaking 0.81, Hallucination 0.77, Content Moderation 0.72.
+        Nothing here is near-perfect; a memo implying otherwise is what gets the FDE fired two quarters later.</p>
+        <p>Now the failure mode that looks like success. NVIDIA's evaluation on ToxicChat (n=10,165, 7.2% harmful) scores
+        <code>gpt-3.5-turbo-instruct</code> with <code>self check input</code> at <strong>accuracy 66.5%, precision 0.16,
+        recall 0.85, F1 0.27</strong> — against <code>llama guard check input</code> at 94.4% / 0.67 / 0.44 / 0.53.
+        NVIDIA's read: "The low precision and high recall numbers… indicates an <strong>overly defensive
+        behavior</strong>." A deck reporting "85% recall" is reporting the flattering half.</p>
+        <p><strong>Convert it.</strong> False alarms per true catch is <code>(1 − precision) / precision</code> =
+        <code>0.84 / 0.16</code> = <strong>5.25</strong> — precision alone fixes that ratio; the base rate never enters.
+        At 200 front-desk chats/day: harmful = 200 × 0.072 = 14.4, true catches = 14.4 × 0.85 = <strong>12.2</strong>.
+        <strong>You finish it:</strong> false alarms, total blocked, and the share of <em>all</em> traffic wrongly
+        blocked. Then run the consistency check in front of the room — back out TN and FN and recompute accuracy; if it
+        lands on NVIDIA's published 66.5%, your arithmetic is safe to quote. That is the sentence the memo needs, in
+        patients rather than percentages. And it is why <strong>the acceptance metric is F<sub>β=2</sub>, not F1</strong>
+        — Presidio's own recommendation, because "recall is often more important than precision, as we'd like to avoid
+        missing any PII."</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a false-positive economics
+        widget — set precision, recall, base rate and daily volume, and read out wrongly-blocked humans per day plus the
+        accuracy consistency check. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Coverage</div>
+        <h2>Detection method predicts where the errors live</h2>
+        <p>Presidio's recognizers are grouped by jurisdiction, and each one declares how it detects — which makes a
+        coverage matrix mechanically derivable rather than a guess. <strong>Global</strong>: <code>CREDIT_CARD</code>,
+        <code>CRYPTO</code>, <code>DATE_TIME</code>, <code>EMAIL_ADDRESS</code>, <code>IBAN_CODE</code>,
+        <code>IP_ADDRESS</code>, <code>MAC_ADDRESS</code>, <code>NRP</code>, <code>LOCATION</code>, <code>PERSON</code>,
+        <code>PHONE_NUMBER</code>, <code>MEDICAL_LICENSE</code>, <code>URL</code>. <strong>USA</strong>:
+        <code>US_BANK_NUMBER</code>, <code>US_DRIVER_LICENSE</code>, <code>US_ITIN</code>, <code>US_MBI</code>,
+        <code>US_NPI</code>, <code>US_PASSPORT</code>, <code>US_SSN</code>.</p>
+        <p>The useful column is not the entity name — it is the method, because <strong>method predicts the error
+        class</strong>. Pattern <strong>+ checksum</strong> (<code>CREDIT_CARD</code>, <code>IBAN_CODE</code>,
+        <code>US_NPI</code>, <code>UK_NHS</code>) is high-precision and cheap. Pattern <strong>+ context</strong>
+        (<code>US_SSN</code>, <code>US_DRIVER_LICENSE</code>, <code>IP_ADDRESS</code>, <code>DATE_TIME</code>) is where
+        false positives concentrate — Presidio's own example is that a driver's licence number "could be <em>any</em>
+        9-digit number." <strong>NER-driven</strong> (<code>PERSON</code>, <code>LOCATION</code>, <code>NRP</code>) is
+        where recall fails. A real domain difference follows: a lending identifier set is mostly checksum-shaped and
+        cheaper to redact than a clinical one. Presidio's tuning levers, in order: raise the acceptance threshold;
+        <strong>delete recognizers your data cannot contain</strong> — free, and the one teams skip; rewrite the
+        recognizer; replace it with a third-party service.</p>
+        <p>Three footnotes the matrix needs. <strong>Language</strong> — Anonymize states "current entity detection
+        functionality is English-specific," and <code>PhoneRecognizer</code> needs explicit
+        <code>supported_regions</code>; a multilingual population is a coverage gap, not a config detail.
+        <strong>Structure</strong> — <code>presidio-structured</code> handles tabular data, the easy half; the note body
+        and the model's generated summary are the hard half, and only NER sees identifiers there. And
+        <strong>Presidio's own non-guarantee</strong>, which belongs in the memo verbatim: "there is no guarantee that
+        Presidio will find all sensitive information. Consequently, additional systems and protections should be
+        employed."</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a recognizer coverage prober —
+        paste a synthetic note, toggle the active recognizer set and threshold, and see which spans get caught, by which
+        method, and what survives into the prompt. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Dollars</div>
+        <h2>The term everyone models is the smallest one</h2>
+        <p>Managed meters give you a defensible price without a capacity model. <strong>Amazon Bedrock Guardrails</strong>
+        bills per 1,000 text units, per filter, filters individually optional: content filters and denied topics
+        <strong>$0.15/1k</strong>, sensitive-information filters <strong>$0.10/1k</strong>, contextual grounding $0.10/1k.
+        <strong>Regex-based sensitive-information filters and word filters are free</strong> — which matters for a lending
+        identifier set that is mostly regex-shaped. A text unit is ≤1,000 characters, rounded up. The
+        standalone <code>InvokeGuardrailChecks</code> API is cheaper for the same checks ($0.07/1k content, $0.08/1k
+        prompt attack) and is the cheap way to guardrail a model you host yourself. <strong>Azure Content Safety</strong>
+        is a blended meter — <strong>$0.38 per 1,000 text records</strong> covering Text + Prompt Shields + Protected
+        material + Groundedness, with a capped 5,000-record/month free tier. The two are not comparable at face value:
+        Azure bundles four capabilities, Bedrock's $0.15 buys one, and a Bedrock unit is 1,000 <em>characters</em>
+        against Azure's 1,000 <em>Unicode code points</em>.</p>
+        <p>Then the sentence that ends the budget argument, from AWS's own worked example: 10,000 clinical summaries at
+        3,500 characters each is 4 text units apiece, so <code>10000 × 4 × ($0.10/1000)</code> = <strong>$4.00</strong>.
+        That converts "can we afford de-identification?" from a budget question into a design question — the move that
+        makes a board's "turn it on for everyone" answerable with "yes, behind this, at this price."</p>
+        <p>Which leaves self-hosting. Be honest about why: <strong>a g5.xlarge is an always-on fixed cost and the managed
+        meter has a $0 floor at zero traffic</strong>, and without a measured concurrency figure you cannot state a
+        crossover volume — deriving one from a chars-per-second column is exactly the error this day exists to teach.
+        Make the case on residency instead: <em>the data must not leave the boundary.</em> That is a compliance argument
+        and does not depend on the arithmetic at all.</p>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="8">
+        <div class="tag">Continuity · the memo</div>
+        <h2>The fourth term: will this control still exist?</h2>
+        <p>Three of the four projects in this landscape changed ownership, governance, or lifecycle status inside twelve
+        months. <strong>LLM Guard was archived by Protect AI on 2026-07-09</strong> and is read-only — last release
+        0.3.16 (2025-05-19), changelog still listing 0.3.17 as "Unreleased" — while <em>its documentation site is still
+        live, still renders, and still advertises the Slack community</em>. A healthy-looking docs site over a dead
+        project is the trap. <strong>Presidio left Microsoft</strong>: <code>microsoft/presidio</code> now resolves to
+        <code>data-privacy-stack/presidio</code>, and the transition doc says the project "will not be owned or operated
+        by a commercial entity." That one breaks deployments — legacy MCR images "remain available for older tags but are
+        no longer updated," so anything pinned to <code>mcr.microsoft.com/presidio-*</code> is pinned to a frozen image.
+        <strong>Guardrails AI</strong> pivoted to "The AI Reliability Platform" with a <strong>404ing pricing
+        page</strong>: the OSS library is alive and current, but everything past it is a sales conversation. Even NeMo
+        moved repos, and carries a strategic caveat — Apache-2.0 and vendor-neutral, but its <em>strongest</em>
+        configuration points at NVIDIA assets (NemoGuard Content Safety, the Jailbreak Detection NIM, the GLiNER-PII
+        NIM). Cheap on the open path; an infrastructure decision on the recommended one.</p>
+        <p>So record four fields for every control you name: <strong>licence, last release date, governing entity,
+        container-image origin.</strong> A control that stops receiving security updates does not fail loudly. It quietly
+        stops being a control.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>Run the 60-minute protocol from Week 7 Day 3, but price the control in <strong>four</strong> terms:
+          latency (p99, instance named), dollars (per 1k units, at a stated volume), false positives (in humans per
+          day), and continuity (licence, last release, owner, image origin). Set that total against the cost of the
+          incident it prevents. An exec cannot sign "we added guardrails." They can sign <em>"$4 per ten thousand
+          summaries, 99 ms at the tail, roughly N people a day wrongly blocked, on an MIT library that moved owners in
+          July."</em></p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://arxiv.org/abs/2310.10501" target="_blank" rel="noopener">NeMo Guardrails: A Toolkit for Controllable and Safe LLM Applications with Programmable Rails (arXiv:2310.10501, EMNLP 2023 Demo)</a> — the "programmable rails" framing and the five rail types.</li>
+          <li><a href="https://github.com/NVIDIA/NeMo-Guardrails" target="_blank" rel="noopener">NVIDIA-NeMo/Guardrails — GitHub</a> — repo move, rail types, retrieval rail.</li>
+          <li><a href="https://docs.nvidia.com/nemo/guardrails/configure-guardrails/guardrail-catalog" target="_blank" rel="noopener">NeMo — Guardrail Catalog</a> — the option space for the memo.</li>
+          <li><a href="https://docs.nvidia.com/nemo/guardrails/configure-guardrails/guardrail-catalog/third-party/presidio" target="_blank" rel="noopener">NeMo — Presidio integration</a> — <code>detect</code> vs <code>mask</code>, and the <code>[sdd]</code> extra.</li>
+          <li><a href="https://docs.nvidia.com/nemo/guardrails/configure-guardrails/guardrail-catalog/pii-detection" target="_blank" rel="noopener">NeMo — PII Detection (GLiNER-PII NIM)</a> — the newer, non-Presidio PII path.</li>
+          <li><a href="https://docs.nvidia.com/nemo/guardrails/evaluation/evaluate-guardrails" target="_blank" rel="noopener">NeMo — Evaluate Guardrails performance</a> — ToxicChat precision 0.16, fact-checking latency table.</li>
+          <li><a href="https://docs.nvidia.com/nemo/guardrails/configure-guardrails/yaml-schema/streaming/output-rail-streaming" target="_blank" rel="noopener">NeMo — Output Rail Streaming Configuration</a> — <code>stream_first</code>, <code>chunk_size</code>, <code>context_size</code>.</li>
+          <li><a href="https://protectai.github.io/llm-guard/input_scanners/prompt_injection/" target="_blank" rel="noopener">LLM Guard — Prompt Injection scanner benchmarks</a> — p90/p95/p99 by instance type.</li>
+          <li><a href="https://protectai.github.io/llm-guard/input_scanners/anonymize/" target="_blank" rel="noopener">LLM Guard — Anonymize scanner</a> — Presidio integration, Vault/Deanonymize, English-only limit.</li>
+          <li><a href="https://raw.githubusercontent.com/protectai/llm-guard/main/benchmarks/run.py" target="_blank" rel="noopener">LLM Guard — benchmarks/run.py</a> — proof the <code>QPS</code> column is chars/second from a single-threaded harness.</li>
+          <li><a href="https://protectai.github.io/llm-guard/api/overview/" target="_blank" rel="noopener">LLM Guard — API deployment overview</a> — serial execution, <code>SCAN_FAIL_FAST=False</code>.</li>
+          <li><a href="https://github.com/protectai/llm-guard" target="_blank" rel="noopener">protectai/llm-guard — GitHub (archived 2026-07-09)</a> — the archive banner behind a live docs site.</li>
+          <li><a href="https://raw.githubusercontent.com/data-privacy-stack/presidio/main/docs/project_transition.md" target="_blank" rel="noopener">Presidio — project transition doc</a> — the Microsoft handover and the frozen MCR images.</li>
+          <li><a href="https://data-privacy-stack.github.io/presidio/supported_entities/" target="_blank" rel="noopener">Presidio — supported PII entities</a> — the recognizer inventory and detection methods.</li>
+          <li><a href="https://data-privacy-stack.github.io/presidio/faq/" target="_blank" rel="noopener">Presidio — FAQ</a> — the non-guarantee, the false-positive levers, SaaS coverage comparison.</li>
+          <li><a href="https://data-privacy-stack.github.io/presidio/evaluation/" target="_blank" rel="noopener">Presidio — Evaluating PII detection</a> — the F<sub>β=2</sub> recommendation and <code>presidio-research</code>.</li>
+          <li><a href="https://index.guardrailsai.com/" target="_blank" rel="noopener">AI Guardrails Index</a> — cross-guardrail F1 and latency, including Presidio vs Guardrails PII vs GLiNER.</li>
+          <li><a href="https://guardrailsai.com/docs/concepts/guard" target="_blank" rel="noopener">Guardrails AI — The Guard</a> — <code>guard.parse(..., num_reasks=0)</code> as a pure post-processor.</li>
+          <li><a href="https://hub.guardrailsai.com/" target="_blank" rel="noopener">Guardrails Hub — 65 validators</a> — the validator catalogue by risk class.</li>
+          <li><a href="https://aws.amazon.com/bedrock/pricing/" target="_blank" rel="noopener">Amazon Bedrock pricing — Guardrails</a> — per-filter meters, free regex tier, the $4 / 10,000-summary worked example.</li>
+          <li><a href="https://azure.microsoft.com/en-us/pricing/details/cognitive-services/content-safety/" target="_blank" rel="noopener">Azure AI Content Safety pricing</a> — the blended $0.38/1k text-record meter and the capped free tier.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">The three-term cost model, filled in twice</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 questions on layers, placement, latency &amp; false positives</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 8 Day 3</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the three-term cost model, filled in twice</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The frame, then the same frame against both brownfield systems.</p>
+    <pre style="white-space:pre-wrap;font-size:.86em;line-height:1.5;overflow-x:auto">cost_of_control =  latency_cost         p99 ms × turns × what a slow turn costs
+                +  dollar_cost          per-1k-unit meter, or instance-hours if self-hosted
+                +  false_positive_cost  FP rate × turns × cost per wrongly-blocked interaction
+                (+ continuity_risk      non-monetary, but it is the term that kills you)</pre>
+    <p><strong>Riverbend (healthcare).</strong> Term 2: <b>$4.00</b> to redact 10,000 clinical summaries at Bedrock's
+    $0.10/1k. Term 1: Anonymize alone is <b>177 ms avg / 326 ms p99</b> on m5.xlarge, <b>38 / 99</b> on GPU+ONNX — quote
+    both and label them, because an exec told "177 ms" who then experiences 326 ms at the tail stops trusting the memo.
+    Add injection and toxicity scanning and the stack is serial by default: <b>~831 ms p99 on CPU, ~125 ms on
+    GPU+ONNX</b>. Term 3 is the one that decides the design: <code>detect</code> mode refuses to answer,
+    <code>mask</code> mode answers with holes, and <code>stream_first: True</code> shows the clinician tokens no rail has
+    cleared. Term 4: Presidio moved to <code>data-privacy-stack</code> and the MCR images are frozen — that single line
+    turns "we'll use Microsoft's library" into a real vendor-governance finding.</p>
+    <p><strong>Meridian (finance).</strong> Term 2 is smaller per identifier because lending identifiers are
+    regex-shaped — <code>US_SSN</code>, <code>US_ITIN</code>, <code>US_BANK_NUMBER</code>, <code>CREDIT_CARD</code> with
+    checksum — and Bedrock's <b>regex sensitive-information filters are free</b>. Term 1 barely matters on a batch
+    scoring path. Term 3 is where the harm is: if a validator gates adverse-action reasons and it behaves like NeMo's
+    self-check rail (precision 0.16), you have manufactured <b>wrongly-denied applicants</b> — the exact ECOA harm the
+    governance package exists to prevent. State the FP budget in applicants per month, not percent.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Completion — the intervention that fits a live scorer</div>
+      <p style="margin:8px 0 0">Meridian's scorer is in production and you have one week. You are not rewriting the
+      decision path. Guardrails AI's <code>guard.parse(llm_output=…, num_reasks=0)</code> validates output <em>you</em>
+      already generated and, at zero re-asks, stays "purely as a post-processor" — bolt-on, no extra LLM round trip.
+      Above zero re-asks, each failure costs another call. <b>Your move:</b> decide whether Meridian's adverse-action
+      validator runs at <code>num_reasks=0</code> or higher, and write the one sentence of justification the memo needs —
+      it has to name what a re-ask buys and what it costs, in both latency and regulatory defensibility.</p>
+    </div>
+    <p style="margin-top:14px"><strong>One pattern worth stealing:</strong> LLM Guard's <code>Anonymize</code> +
+    <code>Vault</code> + <code>Deanonymize</code> round trip — redacted values go into a vault on the way out
+    (<code>use_faker</code> substitutes fabricated data), and the paired output scanner restores them on the way back.
+    That is the mechanism for "the vendor never sees the identifier, but the clinician still does." The project is
+    archived; the pattern is not.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Week 8 · Day 3 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Place NeMo Guardrails, Guardrails AI, LLM Guard and Presidio on the layer taxonomy — and explain why three of them wrap the fourth, so a "four-way bake-off" is a category error</li>
+      <li>Choose a rail position for a given risk (input / dialog / retrieval / execution / output), and choose <code>detect</code> vs <code>mask</code> as a deliberate product decision — including what <code>stream_first: True</code> does to it</li>
+      <li>Build a latency budget that names the instance type, sums serially because the shipped API is serial, and distinguishes a ceiling (sum of p99s) from a central estimate (sum of averages)</li>
+      <li>Convert a precision figure into wrongly-blocked humans per day, run the accuracy consistency check, and write F<sub>β=2</sub> into acceptance criteria</li>
+      <li>Score any candidate control on licence, last release, governing entity and image origin — and spot a live docs site over an archived project</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your brownfield repo</div>
+    <ul class="deliv-list check">
+      <li><code>docs/adr/guardrail-stack.md</code> in <code>2463-FDE/riverbend-portal</code> (AD, jf) or <code>2463-FDE/meridian-lending</code> (MC, KK) — the one-page recommendation memo, produced in 60 minutes against the <a href="../../client-delivery.html?w=8">Week 8 client packet</a>: Decision, Options considered (each rejected one carrying its disqualifying fact), Recommendation, Cost at a stated volume, Reversibility, What we're accepting</li>
+      <li>The cost line prices <b>all four terms</b>: p99 latency <b>with the instance type named</b>, dollars per 1k units at your assumed monthly volume, false positives expressed as <b>humans per day</b>, and a continuity row per control (licence · last release · governing entity · image origin)</li>
+      <li>A <b>coverage matrix</b> — one row per identifier your system actually holds, with the Presidio recognizer that sees it, its detection method (pattern+checksum / pattern+context / NER), and the residual risk that follows from that method. This matrix is the spine of the week's de-identification deliverable</li>
+      <li>One line naming the <b>rail position</b> your scrub runs at and why it is not the output rail — plus the <code>detect</code>-vs-<code>mask</code> decision and what the front desk experiences under each</li>
+      <li>Find at least three continuity facts yourself and cite them with the date you verified: LLM Guard's archive, Presidio's move off <code>mcr.microsoft.com</code>, Guardrails AI's 404ing pricing page</li>
+    </ul>
+    <p class="goals-foot">This memo is the "what do we build the redactor out of" half of the week's one artifact. Day 4
+    supplies the regulatory column of your coverage matrix — the required identifier row set and whether your residual
+    risk clears the standard. Bring the matrix; you will justify it tomorrow.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "W8 · Day 4 →", href: "w08d4.html" };
+window.DIAGRAM = {
+  title: "Cost of control · the request path and its price",
+  width: 500, height: 664,
+  nodes: [
+    { id:"scene", step:0, kind:"example", x:14, y:12, w:472, h:62,
+      label:"CLIENT ASK · \"turn on AI visit-summaries for everyone\"\n  which control, on what hardware, at what price —\n  from a vendor that still exists next year" },
+
+    { id:"nemo", step:0, x:24,  y:86, w:148, h:50, label:"NeMo Guardrails\ndialogue runtime",
+      detail:"Apache-2.0, 0.23.0. Programmable rails, user-defined and independent of the model. Five rail types. Repo moved to NVIDIA-NeMo/Guardrails; strongest config points at NVIDIA NIM assets." },
+    { id:"grai", step:0, x:180, y:86, w:146, h:50, label:"Guardrails AI\noutput validators",
+      detail:"Apache-2.0, 0.10.2. The Guard wraps LLM calls and orchestrates validation; guard.parse(num_reasks=0) is a pure post-processor. 65 Hub validators. Pricing page 404s." },
+    { id:"llmg", step:0, x:334, y:86, w:152, h:50, label:"LLM Guard\nscanner pipeline",
+      detail:"MIT, 0.3.16. Input/output scanners returning (sanitized_prompt, is_valid, risk_score). Archived by Protect AI on 2026-07-09 — docs site still live. Publishes the best benchmarks in the category." },
+    { id:"pres", step:0, x:140, y:146, w:220, h:44, label:"Presidio · de-identification SDK\nthe other three wrap it",
+      detail:"MIT. Not a guardrail — analyzer + anonymizer + image-redactor + structured + CLI. Moved from microsoft/presidio to data-privacy-stack/presidio; MCR images frozen." },
+
+    { id:"req",  step:1, x:24,  y:206, w:82,  h:46, label:"user turn" },
+    { id:"inr",  step:1, x:116, y:206, w:118, h:46, label:"INPUT rail\ndetect | mask",
+      detail:"detect = the bot refuses to respond. mask = the bot answers with the sensitive parts removed. Same position, two different products — somebody at the client owns that choice." },
+    { id:"llm",  step:1, x:244, y:206, w:92,  h:46, label:"LLM\n(vendor)" },
+    { id:"outr", step:1, x:346, y:206, w:140, h:46, label:"OUTPUT rail",
+      detail:"Rejects or alters the response. Useless as a PHI control on RAG-over-records: by the time it fires, the record already crossed the boundary." },
+    { id:"retr", step:1, x:116, y:262, w:118, h:46, label:"RETRIEVAL rail\nchunk → prompt",
+      detail:"Rejects or masks a retrieved chunk before it is used to prompt the LLM. The only position that stops corpus PHI entering the prompt at all — and the one teams forget." },
+    { id:"strm", step:2, x:252, y:262, w:234, h:46, label:"streaming · stream_first: True\ntokens ship before the rail runs",
+      detail:"Default True: faster time-to-first-token, but a blocked chunk has already reached the user; the stream ends in a JSON error. chunk_size 200 tokens, context_size 50 carried across boundaries. enabled defaults False." },
+
+    { id:"lat",  step:3, x:24,  y:328, w:222, h:62, label:"LATENCY · name the instance\n831 ms CPU → ~125 ms GPU+ONNX",
+      detail:"LLM Guard publishes p90/p95/p99 by instance. ONNX ≈2x CPU, ≈10x GPU, one line. Toxicity spans 4.80 ms (g5+ONNX) to 620.79 ms (r6a) — 129x on identical code. LLM-based rails cost 8-30x a purpose-trained model." },
+    { id:"unit", step:4, x:256, y:328, w:230, h:62, label:"READ THE UNITS\nQPS column = chars/sec, 1 thread",
+      detail:"throughput = input_length * (1000/latency_ms), input_length = len(prompt) in chars. Harness is timeit.repeat(number=1) — no concurrency, no batching. Scanners run in configuration order, SCAN_FAIL_FAST=False: budgets sum, not max." },
+    { id:"fp",   step:5, x:24,  y:404, w:222, h:62, label:"FALSE POSITIVES\nprecision .16 → 5.25 per true catch",
+      detail:"NeMo self-check on ToxicChat: 66.5% accuracy, precision 0.16, recall 0.85 — NVIDIA calls it overly defensive. Best PII F1 in the whole index is 0.65. Acceptance metric is F(beta=2), not F1." },
+    { id:"cov",  step:6, x:256, y:404, w:230, h:62, label:"COVERAGE MATRIX\nmethod predicts the error",
+      detail:"pattern+checksum (CREDIT_CARD, IBAN, US_NPI) = high precision. pattern+context (US_SSN, US_DRIVER_LICENSE, DATE_TIME) = where FPs concentrate. NER (PERSON, LOCATION) = where recall fails. English-only is a hard limit." },
+    { id:"dol",  step:7, x:24,  y:480, w:222, h:56, label:"DOLLARS\n$4.00 per 10,000 summaries",
+      detail:"Bedrock: $0.10/1k text units for sensitive-info filters, $0.15/1k content filters, regex filters free, unit = 1,000 chars. Azure: $0.38/1k text records, blended across four capabilities. Not comparable at face value." },
+    { id:"cont", step:8, x:256, y:480, w:230, h:56, label:"CONTINUITY\nlicence · release · owner · image",
+      detail:"Three of four projects changed ownership, governance or lifecycle inside twelve months. A control that stops receiving security updates does not fail loudly — it quietly stops being a control." },
+
+    { id:"memo", step:8, x:96, y:552, w:308, h:60, label:"THE MEMO AN EXEC SIGNS\ncost of control vs cost of incident",
+      detail:"60-minute protocol, one page: Decision, Options with each rejection's disqualifying fact, Recommendation, Cost at a stated volume, Reversibility, What we're accepting. Four priced terms, not one." }
+  ],
+  edges: [
+    { id:"e_wrap", step:0, from:"llmg", to:"pres", label:"wraps", ly:-2 },
+    { id:"e_in",   step:1, from:"req",  to:"inr",  label:"" },
+    { id:"e_call", step:1, from:"inr",  to:"llm",  label:"scrubbed" },
+    { id:"e_out",  step:1, from:"llm",  to:"outr", label:"" },
+    { id:"e_ret",  step:1, from:"retr", to:"llm",  label:"before the prompt", bend:18 },
+    { id:"e_str",  step:2, from:"outr", to:"strm", label:"chunked", lx:6 },
+    { id:"e_m1",   step:8, from:"lat",  to:"memo", label:"term 1", lx:-8 },
+    { id:"e_m3",   step:8, from:"fp",   to:"memo", label:"term 3", lx:-8 },
+    { id:"e_m2",   step:8, from:"dol",  to:"memo", label:"term 2", lx:-6 },
+    { id:"e_m4",   step:8, from:"cont", to:"memo", label:"term 4", lx:8 }
+  ],
+  captions: [
+    "Four names, <b>not four options</b>: a dialogue runtime, an output-validator framework, a scanner pipeline — and a de-identification SDK that the other three wrap. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Five rail positions. <b>detect</b> blocks the user; <b>mask</b> degrades the answer — same position, different product. The <b>retrieval rail</b> is the only one that stops corpus PHI reaching the prompt. <span style='opacity:.7'>(tap)</span>",
+    "Streaming breaks the request/response assumption: <b><code>stream_first: True</code> is the default</b>, so a blocked chunk has already reached the user. <span style='opacity:.7'>(tap for the knobs)</span>",
+    "Latency is meaningless without the machine: <b>129× spread across instance types</b> on identical code, and ONNX is ~2× on CPU / ~10× on GPU for one boolean. <span style='opacity:.7'>(tap)</span>",
+    "Before quoting any table, read its units — that <b><code>QPS</code> column is characters per second</b>, single-threaded — and read the execution model: serial, so <b>budgets sum</b>. <span style='opacity:.7'>(tap)</span>",
+    "The term nobody models is the biggest: <b>precision 0.16 means 5.25 false alarms per true catch</b>. Convert it into humans per day before it reaches a slide. <span style='opacity:.7'>(tap)</span>",
+    "Coverage is derivable, not guessed: <b>detection method predicts the error class</b> — checksum is precise, context is where FPs live, NER is where recall dies. <span style='opacity:.7'>(tap)</span>",
+    "Dollars are the smallest term: <b>$4.00 to de-identify 10,000 clinical summaries</b>. That turns an affordability question into a design question. <span style='opacity:.7'>(tap)</span>",
+    "And the fourth term: <b>continuity</b>. All four hang off the memo an exec signs — <b>cost of control priced against cost of incident.</b> <span style='opacity:.7'>(tap)</span>"
+  ]
+};
+window.QUIZ = {
+  id: "w08-d3",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A client asks you to run a four-way bake-off: NeMo Guardrails vs Guardrails AI vs LLM Guard vs Presidio, scored on PII detection. What's wrong with the request?",
+      options: [
+        "Nothing — that's exactly the right evaluation",
+        "Three of the four call Presidio for PII detection, so you'd largely be benchmarking Presidio against itself under three wrappers; the real decision is orchestration model plus what you feed the detector",
+        "Presidio is the only one that does PII, so the other three should be excluded",
+        "They're all Apache-2.0, so licence can't differentiate them" ],
+      answer: 1,
+      explain: "NeMo's sensitive-data rails require Presidio (pip install nemoguardrails[sdd]); Guardrails Hub's Detect PII validator uses Presidio; LLM Guard's Anonymize advertises Presidio Analyzer integration. They sit at different altitudes — dialogue runtime, output-validator framework, scanner pipeline, de-identification SDK — so a single head-to-head score is a category error." },
+    { type: "scq",
+      stem: "Riverbend's assistant answers questions over a corpus of encounter records. Where must the PHI scrub run to stop record PHI reaching the vendor?",
+      options: [
+        "Output rail — filter the answer before the clinician sees it",
+        "Input rail on the user's request, and a retrieval rail on every chunk drawn from the record system",
+        "Execution rail on the tool call",
+        "Dialog rail, on the canonical form" ],
+      answer: 1,
+      explain: "The retrieval rail rejects or masks a chunk before it is used to prompt the LLM — the only position that stops corpus PHI entering the prompt at all. An output rail fires after the record has already crossed the vendor boundary, which is the disclosure you were trying to prevent." },
+    { type: "tf",
+      stem: "The QPS column in LLM Guard's benchmark tables gives you requests per second, so you can size an instance fleet directly from it.",
+      answer: false,
+      explain: "benchmarks/run.py computes throughput = input_length * (1000.0 / latency_ms) where input_length is len(prompt) in characters — it is characters per second. The harness is timeit.repeat(..., number=1): strictly sequential, single-threaded, no batching. The only rate the source licenses is single-stream 1000/avg_latency_ms; any concurrency factor has to be measured on the client's fleet." },
+    { type: "mcq",
+      stem: "Which statements about composing a multi-scanner latency budget are supported by the sources? (select all that apply)",
+      options: [
+        "LLM Guard's shipped API runs scanners in configuration order, so a stack's budget is the sum, not the max",
+        "SCAN_FAIL_FAST defaults to False, so the pipeline does not stop at the first failed check",
+        "Summing p99s gives you the stack's true p99",
+        "Enabling ONNX is roughly a 2x win on CPU and ~10x on GPU, and also collapses latency variance",
+        "Parallel scanner execution is a config flag you can turn on" ],
+      answer: [0, 1, 3],
+      explain: "Serial-by-default and SCAN_FAIL_FAST=False are both documented in the API deployment overview, and the ONNX gains plus the variance collapse (3.00 → 0.00 on m5.xlarge) are in the scanner benchmarks. Summing p99s is an upper bound, not a p99 — the p99 of a sum only equals the sum of p99s if the latencies are perfectly correlated. And parallel execution is an engineering project: the shipped API does not fan scanners out." },
+    { type: "match",
+      stem: "Match each Presidio detection method to the error profile it predicts — and to a control decision that follows.",
+      pairs: [
+        { l: "Pattern + checksum (CREDIT_CARD, IBAN_CODE, US_NPI)", r: "High precision and cheap — safe to run at a low threshold" },
+        { l: "Pattern + context (US_SSN, US_DRIVER_LICENSE, DATE_TIME)", r: "Where false positives concentrate — tune the threshold and expect front-desk friction" },
+        { l: "NER-driven (PERSON, LOCATION, NRP)", r: "Where recall fails — the residual-risk row in the coverage matrix" },
+        { l: "Recognizers for entities your data cannot contain", r: "Remove them — the free false-positive lever teams skip" } ],
+      explain: "Detection method is the useful column of a coverage matrix because it predicts the error class. Checksums are self-validating; context-dependent regex is guessy (a driver's licence number 'could be any 9-digit number'); NER misses identifiers buried in prose, which is exactly where free-text identifiers live. And Presidio's second documented FP lever — deleting recognizers for entities your dataset cannot contain — costs nothing." },
+    { type: "open",
+      stem: "A rail scores precision 0.16 and recall 0.85 on traffic with a 7.2% harmful base rate. At 200 chats/day, write the sentence you would put in the memo — and say why 'recall 0.85' alone would be a misleading thing to present.",
+      hint: "False alarms per true catch is (1 − precision) / precision. Then work in absolute daily counts, and finish with the share of ALL traffic wrongly blocked.",
+      model: "False alarms per true catch = 0.84 / 0.16 = 5.25. Harmful traffic = 200 × 0.072 = 14.4/day; true catches = 14.4 × 0.85 = 12.2; false alarms = 12.2 × 5.25 = 64.1; total blocked = 76.3 — about 38% of all traffic flagged and about 32% wrongly blocked. Memo sentence: 'at 200 chats a day this rail wrongly blocks about 64 patients daily.' Presenting 'recall 0.85' alone reports only the flattering half — NVIDIA's own read of the same numbers is 'overly defensive behavior.' Consistency check: implied TN = 185.6 − 64.1 = 121.5, FN = 14.4 − 12.2 = 2.2, accuracy = (12.2 + 121.5)/200 = 66.9%, which reproduces the published 66.5% to rounding — that check is what makes the number safe to quote in front of a regulator." }
+  ]
+};
+</script>
+<div id="code-w08d3" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: the scrub is an input rail, not an output filter</h2>
+    <p class="cv-cap">The rail runs before the request crosses the vendor boundary — and the recognizer list is trimmed to entities this system can actually contain, which is Presidio's free false-positive lever.</p>
+    <div class="cv" data-file="redact_rail.py" data-lang="python"><pre class="cv-raw"># Input rail: de-identify BEFORE the request crosses the vendor boundary.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import boto3
+from presidio_analyzer import AnalyzerEngine
+from presidio_anonymizer import AnonymizerEngine
+
+# Trim to what Riverbend records can actually hold. Removing recognizers is
+# Presidio&#x27;s documented false-positive lever #2 -- it is free, and teams skip it.
+ENTITIES = [&quot;PERSON&quot;, &quot;US_SSN&quot;, &quot;US_MBI&quot;, &quot;US_NPI&quot;, &quot;PHONE_NUMBER&quot;,
+            &quot;EMAIL_ADDRESS&quot;, &quot;DATE_TIME&quot;, &quot;LOCATION&quot;]
+
+analyzer, anonymizer = AnalyzerEngine(), AnonymizerEngine()
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+def scrub(text: str, threshold: float = 0.4) -&gt; str:
+    hits = [r for r in analyzer.analyze(text=text, entities=ENTITIES, language=&quot;en&quot;)
+            if r.score &gt;= threshold]          # lever #1: the acceptance threshold
+    return anonymizer.anonymize(text=text, analyzer_results=hits).text
+
+def summarize(note: str) -&gt; str:
+    clean = scrub(note)                       # ~177 ms avg / 326 ms p99 on m5.xlarge
+    resp = bedrock.converse(
+        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+        system=[{&quot;text&quot;: &quot;Summarize this visit for the patient. Never invent identifiers.&quot;}],
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: clean}]}],
+        inferenceConfig={&quot;maxTokens&quot;: 400, &quot;temperature&quot;: 0},
+    )
+    return resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;]</pre></div>
+    <p class="cv-foot">Two lines carry the whole day: <code>scrub()</code> runs <em>before</em> <code>converse()</code>, and it is <code>mask</code> semantics — the caller still gets an answer, with holes. Swap to <code>detect</code> (refuse on any hit) and you have changed the product, not the config.</p>
+  </div>
+</div>
+
+<script src="../../assets/js/roster.js?v=20260706"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
+</body>
+</html>

@@ -40,7 +40,17 @@
     { v: "w06d2", t: "Week 6 · Day 2" },
     { v: "w06d3", t: "Week 6 · Day 3" },
     { v: "w06d4", t: "Week 6 · Day 4" },
-    { v: "w06d5", t: "Week 6 · Day 5" }
+    { v: "w06d5", t: "Week 6 · Day 5" },
+    { v: "w07d1", t: "Week 7 · Day 1" },
+    { v: "w07d2", t: "Week 7 · Day 2" },
+    { v: "w07d3", t: "Week 7 · Day 3" },
+    { v: "w07d4", t: "Week 7 · Day 4" },
+    { v: "w07d5", t: "Week 7 · Day 5" },
+    { v: "w08d1", t: "Week 8 · Day 1" },
+    { v: "w08d2", t: "Week 8 · Day 2" },
+    { v: "w08d3", t: "Week 8 · Day 3" },
+    { v: "w08d4", t: "Week 8 · Day 4" },
+    { v: "w08d5", t: "Week 8 · Day 5" }
   ];
   var DEFAULT_DAY = "w01d5";
   // Shared with the Collaborator Chat module (collab.js) so the day list never drifts.

@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w07d3">
+<meta name="fde-concepts" content="observability-deployment-topologies,otel-native-vs-proprietary-tracing,source-available-vs-osi-open-source,observability-pricing-meters,trace-data-residency-and-baa,vendor-continuity-risk">
+<title>W7·D3 — Alt Research: Langfuse, Phoenix &amp; Helicone vs LangSmith | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Alt Research: Langfuse, Phoenix &amp; Helicone against LangSmith</h1>
+        <div class="meta">
+          <span><b>Week 7</b> · Day 3</span>
+          <span>Observability &amp; SRE</span>
+          <span><b>~25 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Every other day this week is about the client's system. Today is about the
+        <strong>platform the client will pay for</strong>. Day 1 gave you traces and spans; the moment you show a
+        tracing plan, someone asks where that data goes, who owns the tool, and what it costs. Four serious answers
+        exist — <strong>LangSmith</strong>, <strong>Langfuse</strong>, <strong>Arize Phoenix</strong>, and
+        <strong>Helicone</strong> — and they differ on six axes that have nothing to do with which dashboard is
+        prettier: deployment topology, how OTel-native they really are, license, pricing meter, data residency, and
+        vendor continuity. Your deliverable is not a favourite. It is a <strong>one-page memo an exec signs</strong>:
+        options, one recommendation, and the single client constraint that decided it.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The deliverable</div>
+        <h2>You are not picking a tool. You are writing a memo.</h2>
+        <p>Start with the output, because it changes how you read everything else. The artifact is one page:
+        <strong>Decision</strong>, <strong>Options considered</strong> — each rejected one carrying the fact that
+        disqualified it — <strong>Recommendation</strong>, <strong>the constraint that decided it</strong>,
+        <strong>Cost at an assumed volume</strong>, <strong>Reversibility</strong>, <strong>What we're
+        accepting</strong>. An exec signs that. Nobody signs a feature-comparison table.</p>
+        <p>The spine of the memo is <em>one</em> constraint. Not seven. A memo listing eleven considerations of equal
+        weight has not made a decision; it has forwarded the decision back to whoever asked you. The craft move is to
+        find the single client fact that eliminates most of the field, name it in one sentence, and let everything else
+        be supporting detail. Healthcare's sentence is "intake traces contain PHI." Finance's is "this reconciliation
+        is a SOX-material control and its evidence must survive an audit period."</p>
+        <p>Second rule, and it separates a professional memo from a plausible one: <strong>every price and every
+        capability claim carries a source and a verified date.</strong> All four vendors below changed something
+        material in the last year — a licence you'd misremember, an acquisition, a pricing unit that no longer exists,
+        a major-version data-model change. Anyone answering from memory gets at least one wrong, and a wrong fact in a
+        signed memo costs you credibility, not a footnote. Today you practise verifying instead of recalling.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Axis ① · topology</div>
+        <h2>Where the trace payload lives eliminates the field fastest</h2>
+        <p>Run this axis first because it is binary and cuts hardest: <strong>can trace payloads leave the client's
+        network?</strong> Five real topologies — managed SaaS, region-pinned SaaS, hybrid (SaaS control plane,
+        self-hosted data plane), self-hosted, air-gapped — and the four vendors land in very different places.</p>
+        <p><strong>Phoenix</strong> is the most permissive: free to self-host with no feature limitations, "nothing is
+        sent to Arize," fully air-gappable, with deployment paths from a CLI through Docker, Kubernetes, Helm,
+        CloudFormation and Cloud Run — and OAuth2/LDAP auth, RBAC and retention policies in the free product.
+        <strong>Langfuse</strong> self-hosted runs the same codebase as its cloud, deployable in a VPC or on-premises
+        where "internet access is optional" — but the honest cost is that it is <em>five components, not one
+        container</em>: Langfuse Web and Worker plus Postgres, ClickHouse, Redis/Valkey and S3-compatible blob storage.
+        Plus an operational trap worth quoting to whoever runs the cluster: all infrastructure must run with its
+        timezone set to UTC, or queries silently return incorrect or empty results.</p>
+        <p><strong>LangSmith</strong> gates self-hosting to Enterprise, and it is not air-gapped by default. The
+        install docs require egress to <code>beacon.langchain.com</code>, and the egress page is explicit that this
+        covers billing telemetry — licence verification and usage reporting — which <strong>cannot be disabled</strong>.
+        A true offline install needs a separately negotiated air-gapped licence, and enabling Engine adds a second
+        destination through which "Engine content leaves your environment." LangSmith does offer the genuine
+        <strong>hybrid</strong> option, though: SaaS control plane, self-hosted data plane. <strong>Helicone</strong>
+        self-hosts four ways — manual, Docker Compose, Kubernetes, cloud — with Discord-only support on the OSS
+        path.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Axis ② · OTel</div>
+        <h2>"We support OpenTelemetry" tells you nothing</h2>
+        <p>All four ingest OTLP. That sentence is on every marketing page and useless for deciding. What matters is
+        whether the vendor's <em>internal</em> data model is OTel's, or whether OTLP is a translation layer bolted on
+        the front.</p>
+        <p><strong>Phoenix</strong> is the most genuinely OTel-native: built on OpenTelemetry and powered by
+        <strong>OpenInference</strong> instrumentation, with auto-instrumentation across LangChain, LlamaIndex, the
+        Vercel AI SDK, Bedrock and Anthropic, in Python, TypeScript and Java. <strong>Langfuse</strong> is an OTel
+        <em>backend with a mapping layer</em>, and says so: because the GenAI semantic conventions "are still evolving,"
+        it maps received OTel traces into the Langfuse data model. Two details you will hit in the first hour — it
+        supports OTLP over HTTP/JSON and HTTP/protobuf but <strong>gRPC is not supported</strong>, and direct senders
+        need the <code>x-langfuse-ingestion-version: 4</code> header or data can lag by ten minutes.
+        <strong>LangSmith</strong> is proprietary-model-first with a published translation table
+        (<code>gen_ai.system</code> → <code>metadata.ls_provider</code>, <code>gen_ai.prompt</code> →
+        <code>inputs</code>). <strong>Helicone</strong> is a different animal: a <strong>gateway</strong>, not an
+        instrumentation library. Repoint your OpenAI-compatible SDK at <code>ai-gateway.helicone.ai</code> and logging
+        is automatic — but a proxy only sees what crosses it, so retrieval steps, tool calls and agent control flow
+        stay invisible unless you instrument anyway.</p>
+        <p>Underneath sit two rival convention sets — <strong>OpenInference</strong> (Arize) and
+        <strong>OpenLLMetry</strong> (Traceloop), both Apache 2.0 — and the standard they converge on <em>is not
+        finished</em>: the OTel GenAI semantic conventions moved to their own repository where the Schema URL section
+        still reads "TODO" and no releases have been cut. Portability is aspirational today. The consequence for the
+        memo: instrument with a vendor-neutral library and export through an <strong>OTel Collector</strong>. LangSmith
+        itself documents the Collector <strong>fanout</strong> pattern — one span stream to several backends at once.
+        The lock-in decision is the <em>instrumentation SDK</em>, not the backend, and fanout makes "trial two vendors
+        for a month" a config change instead of a project.</p>
+        <button class="code-cta" type="button" data-modal="code-w07d3"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· otel_tracing.py</span></button>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a Collector fanout sandbox —
+        emit one instrumented span stream, route it to two backends simultaneously, and diff what each one actually
+        stored from the same trace. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">Axis ③ · license</div>
+        <h2>Four legally different meanings of "open source"</h2>
+        <p>Ask an engineer and you get "three of them are open source." Ask counsel and you get four different
+        answers.</p>
+        <p><strong>Langfuse is MIT — except the <code>ee/</code> folders.</strong> The repository says exactly that, and
+        the self-hosted OSS tier is unusually generous: all core platform features and APIs, unlimited usage, and —
+        notably — <strong>enterprise SSO and RBAC included</strong>, which most open-core vendors keep behind the
+        paywall. <strong>Helicone is Apache 2.0</strong>, with the vendor's stated rationale explicitly naming
+        "preventing vendor lock-in." <strong>LangSmith is proprietary</strong>, with self-hosting gated to Enterprise
+        behind a network-verified licence key.</p>
+        <p>And the one nearly everyone gets wrong: <strong>Arize Phoenix is Elastic License 2.0, not Apache 2.0.</strong>
+        The repository states it plainly and adds a patent notice — portions of the code are covered by U.S. patents.
+        ELv2 is <strong>source-available, not OSI-approved</strong>: it forbids providing the software to third parties
+        as a managed service, and forbids circumventing licence-key functionality. Read that against your actual
+        engagement. For a client running Phoenix internally on their own traces, ELv2 is <em>irrelevant</em>. For a
+        client whose product is a hosted platform resold to <em>their</em> customers with the observability UI embedded
+        in it, ELv2 is <em>disqualifying</em>. Both sentences belong in the memo, in that order — the exec's lawyer
+        asks the second question and the engineer only prepared the first.</p>
+        <p>The shape of this axis: don't report a licence, report what it permits <em>for this deployment</em>.
+        "OSI-approved" is a hard procurement gate at some organizations and meaningless at others; find out which kind
+        you're in before you write a recommendation that hinges on it.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Axis ④ · pricing</div>
+        <h2>Four incompatible meters — which is exactly the point</h2>
+        <p>You cannot compare these prices. Not "it's hard" — you literally cannot, because the four vendors bill in
+        four different units. <strong>Langfuse Cloud</strong> meters "units": Hobby free (50k units/month, 30-day data
+        access), Core $29/month (100k units, 90 days), Pro $199/month (three years of data access, retention
+        management, SOC 2 / ISO 27001 reports, HIPAA-ready region), Enterprise $2,499/month (audit logs, SCIM); overage
+        runs $8 per 100k units, and self-hosted OSS is free with unlimited usage. <strong>Helicone</strong> meters
+        requests plus storage: Hobby free (10,000 requests, 1 GB), Pro $79/month, Team $799/month (SOC-2 and HIPAA).
+        <strong>Arize AX</strong> — the hosted path for Phoenix — meters spans, ingest GB and retention window
+        together: Free is 25k spans/month, 1 GB, 15-day retention; Pro is $50/month for 50k spans, 10 GB, 30 days;
+        users and evals are unlimited on every tier. <strong>LangSmith</strong> has repriced onto normalized units —
+        <strong>LCU at $1.50</strong> for work done, <strong>LSU at $1.00</strong> for data stored — with Developer at
+        $0/seat (5k base traces) and Plus at $39/seat/month (10k base traces, then 0.005 LSU per additional trace).
+        Flat per-trace numbers you may have memorized are stale.</p>
+        <p>A unit, a request, a span and an LSU are four different things, and <strong>one trace fans out into many
+        spans</strong>. So your cost section is invalid unless it states two numbers up front: the <strong>assumed
+        monthly volume</strong> and the <strong>trace-to-span fan-out ratio</strong>. Count the spans in the trace you
+        drew on Day 1 and use that.</p>
+        <p>One more meter hides in plain sight: <strong>retention window is a cost axis, not a feature bullet.</strong>
+        Fifteen days on AX Free, thirty on AX Pro and Langfuse Hobby, ninety on Core, three years on Langfuse Pro. If
+        the traces are evidence for an audit-relevant control, a control whose evidence evaporates in fifteen days is
+        not a control.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a meter calculator — enter
+        monthly traces, spans per trace, and payload size, and watch the same workload priced in units, requests,
+        spans+GB, and LCU/LSU side by side. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Axis ⑤ · residency</div>
+        <h2>Residency, BAAs, and the controls that shrink what ever leaves</h2>
+        <p>Here is the sentence that decides the healthcare memo: <strong>a trace payload containing PHI is a PHI
+        disclosure.</strong> Not "logging." Not "telemetry." A disclosure to a third party, which needs an agreement in
+        place first. That reframes the axis.</p>
+        <p><strong>Langfuse</strong> has the most explicit answer: four fully-separated cloud regions — US (Oregon), EU
+        (Ireland), Japan (Tokyo), and a dedicated <strong>HIPAA region</strong> at <code>hipaa.cloud.langfuse.com</code>
+        — separated down to accounts and infrastructure, so switching regions means a new account and a migration. It
+        will <strong>sign a BAA</strong> on Pro plan or higher, in the HIPAA region only, via DocuSign, and the docs say
+        the quiet part out loud: <em>do not process PHI in Langfuse until the signed BAA is in place.</em> Around that:
+        SOC 2 Type 2 and ISO 27001 audits, external pen tests, a DPA, and the customer-side controls that matter more
+        than any of it — <strong>masking, retention, deletion, region selection, SSO/SCIM, audit logs</strong>.</p>
+        <p><strong>LangSmith</strong> is GDPR-compliant, SOC 2 Type 2 certified and HIPAA compliant, with US, EU and
+        APAC cloud instances — and one procurement fact that stops European deals dead: <em>"We do not have a legal
+        entity in the EU that we can contract with today."</em> Also: an org cannot have workspaces in different
+        regions, and cross-region billing is unsupported. <strong>Helicone</strong> Cloud is SOC2 compliant with EU and
+        US regions, and HIPAA appears at the <strong>Team tier, $799 a month</strong> — a real number for the table.
+        <strong>Phoenix's</strong> residency answer is simply "run it yourself": nothing goes to Arize, fully
+        air-gappable; regulated-cloud SKUs live on Arize AX Enterprise.</p>
+        <p>The FDE instinct to build here: the strongest residency control is the one that reduces what ever reaches
+        the vendor. Mask at the SDK, before the span leaves the process, and every downstream conversation gets easier.
+        That is the same redaction discipline Week 8 will grade you on, arriving a week early in observability
+        clothes.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Axis ⑥ · continuity</div>
+        <h2>Who will own this tool in three years?</h2>
+        <p>The axis engineers skip and control owners never do. You are recommending something the client operates for
+        years; the vendor's trajectory is part of the recommendation.</p>
+        <p>The clean example is right here. <strong>Helicone was acquired by Mintlify on 3 March 2026 and is explicitly
+        in maintenance mode.</strong> The founder's post is unambiguous: services stay live "for the foreseeable future
+        in maintenance mode. This means security updates, new models, bug &amp; performance fixes all keep shipping."
+        Read that precisely — a real commitment, and one that contains <em>no new feature investment</em>. For a
+        weekend project, irrelevant. For a SOX-relevant control with a multi-year horizon, it is a strike the memo must
+        name, alongside the scale that made Helicone credible in the first place (14.2 trillion tokens, 16,000
+        organizations, YC W23).</p>
+        <p>Continuity risk is not only acquisition. <strong>Langfuse v4</strong> is GA with a new observations-first
+        data model, at least a 10× dashboard-load improvement — and <strong>trace-level input/output deprecated across
+        the product</strong>. That is a migration, and it belongs in "what we're accepting." <strong>LangSmith's</strong>
+        move to LCU/LSU invalidates older cost models. <strong>Phoenix's</strong> standalone cloud SKU has been folded
+        into Arize AX tiers. None of that is scandal; all of it is churn, and churn is what your memo has to
+        survive.</p>
+        <p>So the method matters more than the facts. <strong>Check, don't recall.</strong> Four places, ten minutes:
+        the <em>licence file in the repository</em>, the <em>release cadence and changelog dates</em>, the
+        <em>pricing page</em>, the <em>vendor blog</em>. A memo that missed Helicone's maintenance mode, Phoenix's
+        ELv2, or LangSmith's mandatory beacon egress was written from training data rather than the web — and those
+        three are exactly the discoveries you should make yourself today.</p>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="7">
+        <div class="tag">The protocol</div>
+        <h2>Sixty minutes, in this order</h2>
+        <p>You will not evaluate six axes evenly in an hour, and you shouldn't try. Run them as an
+        <strong>elimination order</strong>, hardest cut first. <strong>One:</strong> can trace payloads leave the
+        client's network? That alone usually removes half the field. <strong>Two:</strong> does counsel need
+        OSI-approved licensing, or is source-available fine? <strong>Three:</strong> what is the monthly span volume,
+        and what does each meter make that cost? <strong>Four, and only then:</strong> features. Continuity and
+        residency ride along inside steps one and three.</p>
+        <p>Two constraints, two different memos — that is the lesson. On the <strong>healthcare</strong> track the
+        deciding sentence is that intake and <code>ai-summary</code> traces carry PHI, so the spine is
+        <em>BAA-or-air-gap</em>: Phoenix self-hosted if no third party may touch PHI at all, Langfuse's HIPAA region
+        with a signed BAA on Pro-or-higher if managed is acceptable, everything else rejected with a named fact. On the
+        <strong>finance</strong> track the deciding sentence is that the reconciliation is a SOX-material control, so
+        the spine is <em>retention and continuity</em>: fifteen-day retention disqualifies itself, a vendor in
+        maintenance mode is a disclosure, and "who could view raw payment payloads, and can we prove it?" has a price
+        attached — audit logs and fine-grained RBAC sit behind Langfuse's Enterprise/Teams tiers and LangSmith
+        Enterprise. Same landscape, same hour, different constraint, different answer.</p>
+        <p>Finish with the line most engineers omit: <strong>Reversibility.</strong> How would we switch, and what
+        would it cost? If you instrumented with a vendor-neutral SDK behind an OTel Collector, the honest answer is "a
+        Collector config change and a re-ingest of whatever history we care about" — worth more to an exec than any
+        feature you could have compared. Recommending a vendor is easy. Recommending one <em>and</em> proving you're
+        not trapped by it is the job.</p>
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>A tool comparison is homework; a memo is a decision someone can sign. Asked "which one should we use?",
+          don't answer with a matrix — answer with <strong>the one client constraint that eliminates most of the
+          field</strong>, the option it leaves standing, the price at a stated volume, and the exit path if you're
+          wrong. And date every fact: an unstamped price is a guess wearing a suit.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="../../client-delivery.html?w=7" target="_blank" rel="noopener">Client Delivery — Week 7 packet</a> — the ask, the materials, and the one artifact this week's five days build.</li>
+          <li><a href="https://langfuse.com/pricing" target="_blank" rel="noopener">Langfuse — pricing</a> — units meter, Hobby/Core/Pro/Enterprise tiers, retention windows, overage.</li>
+          <li><a href="https://langfuse.com/pricing-self-host" target="_blank" rel="noopener">Langfuse — self-hosted pricing</a> — MIT OSS tier with unlimited usage <em>including</em> enterprise SSO and RBAC.</li>
+          <li><a href="https://langfuse.com/self-hosting" target="_blank" rel="noopener">Langfuse — self-hosting</a> — the five components (Web, Worker, Postgres, ClickHouse, Redis, S3) and the UTC-timezone hard requirement.</li>
+          <li><a href="https://langfuse.com/security/data-regions" target="_blank" rel="noopener">Langfuse — data regions</a> — four fully separated regions including the dedicated HIPAA region.</li>
+          <li><a href="https://langfuse.com/security/hipaa" target="_blank" rel="noopener">Langfuse — HIPAA</a> — BAA via DocuSign, Pro plan or higher, "do not process PHI until the signed BAA is in place."</li>
+          <li><a href="https://langfuse.com/integrations/native/opentelemetry" target="_blank" rel="noopener">Langfuse — OpenTelemetry integration</a> — the mapping layer, HTTP-only (no gRPC), and the v4 ingestion header.</li>
+          <li><a href="https://langfuse.com/docs/v4" target="_blank" rel="noopener">Langfuse v4 is live</a> — observations-first data model; trace-level input/output deprecated.</li>
+          <li><a href="https://github.com/Arize-ai/phoenix" target="_blank" rel="noopener">Arize-ai/phoenix — GitHub</a> — the Elastic License 2.0 statement and the patent notice.</li>
+          <li><a href="https://arize.com/docs/phoenix/self-hosting" target="_blank" rel="noopener">Phoenix — self-hosting</a> — free with no feature limitations, nothing sent to Arize, fully air-gappable.</li>
+          <li><a href="https://phoenix.arize.com/pricing" target="_blank" rel="noopener">Arize AX — pricing</a> — spans + ingest GB + retention window as the meter; where the hosted Phoenix path now lives.</li>
+          <li><a href="https://www.helicone.ai/blog/joining-mintlify" target="_blank" rel="noopener">Helicone is joining Mintlify</a> — the 3 Mar 2026 acquisition and the maintenance-mode commitment, in the founder's words.</li>
+          <li><a href="https://www.helicone.ai/pricing" target="_blank" rel="noopener">Helicone — pricing</a> — requests + storage meter; HIPAA at the $799 Team tier.</li>
+          <li><a href="https://www.langchain.com/pricing-langsmith" target="_blank" rel="noopener">LangSmith — plans and pricing</a> — LCU $1.50 / LSU $1.00, and the Cloud / Hybrid / Self-Hosted matrix.</li>
+          <li><a href="https://docs.langchain.com/langsmith/self-host-egress" target="_blank" rel="noopener">LangSmith — self-host egress</a> — beacon egress for billing telemetry "cannot be disabled"; air-gapped needs a negotiated licence.</li>
+          <li><a href="https://docs.langchain.com/langsmith/regions-faq" target="_blank" rel="noopener">LangSmith — regions FAQ</a> — SOC 2 / HIPAA, and "we do not have a legal entity in the EU that we can contract with today."</li>
+          <li><a href="https://docs.langchain.com/langsmith/trace-with-opentelemetry" target="_blank" rel="noopener">LangSmith — trace with OpenTelemetry</a> — the <code>gen_ai.*</code> translation table and the Collector fanout pattern.</li>
+          <li><a href="https://github.com/Arize-ai/openinference" target="_blank" rel="noopener">OpenInference</a> · <a href="https://github.com/traceloop/openllmetry" target="_blank" rel="noopener">OpenLLMetry</a> — the two Apache-2.0 convention sets under the "OTel-native" claim.</li>
+          <li><a href="https://github.com/open-telemetry/semantic-conventions-genai" target="_blank" rel="noopener">open-telemetry/semantic-conventions-genai</a> — the standard everyone is converging on: Schema URL still "TODO," no releases cut.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">The memo template, filled in twice</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 questions on topology, licences, meters &amp; continuity</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 7 Day 3</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the memo template, filled in twice</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The same one-page shape, driven by two different client constraints — this is what "the memo has a spine" looks like on paper.</p>
+    <p><strong>The shape (seven lines, one page).</strong> Decision · Options considered, each rejected one with its
+    disqualifying fact · Recommendation · The constraint that decided it · Cost at assumed volume · Reversibility ·
+    What we're accepting. Every price and capability carries a source link and a verified date.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked example A — healthcare (Riverbend): PHI in the trace payload</div>
+      <p style="margin:8px 0 0"><b>Constraint:</b> intake/eligibility and <code>ai-summary</code> traces carry PHI, so a
+      trace export is a disclosure. <b>Rejected:</b> LangSmith — HIPAA compliant, but no air-gap without a negotiated
+      offline licence and beacon egress cannot be disabled. Helicone — HIPAA only at the $799 Team tier, and the vendor
+      is in maintenance mode since Mar 2026. <b>Recommendation:</b> Langfuse HIPAA region on Pro ($199/mo), BAA signed
+      before the first PHI-bearing span, masking enabled at the SDK, retention set to the minimum that supports
+      incident review. <b>Alternate if legal says no third party:</b> Phoenix self-hosted, air-gapped, ELv2 — fine for
+      internal use, not for resale. <b>Reversibility:</b> OpenInference instrumentation behind an OTel Collector; a
+      switch is a Collector config change. <b>Accepting:</b> Langfuse v4 deprecates trace-level input/output — a
+      migration if we ever start on v3.</p>
+    </div>
+    <div class="model-answer show" style="margin-top:14px">
+      <div class="ma-k">Worked example B — finance (Meridian): a SOX-material control</div>
+      <p style="margin:8px 0 0"><b>Constraint:</b> the ledger-vs-settlement reconciliation is a SOX-material control, so
+      its evidence must survive an audit period and its tooling must have a named owner in three years. <b>Rejected:</b>
+      Arize AX Free/Pro — 15- and 30-day retention; evidence that evaporates inside the audit window. Helicone —
+      maintenance mode is a disclosable continuity risk on a control's tooling. <b>Recommendation:</b> Langfuse Pro
+      ($199/mo, three-year data access) with the Teams add-on ($300/mo) for fine-grained RBAC over payment payloads;
+      audit logs at Enterprise if the auditor asks who viewed what. <b>Cost at volume:</b> stated at N traces/month × the
+      measured span fan-out, priced in units with $8/100k overage. <b>Accepting:</b> masking must land before any PAN
+      or account identifier can appear in a span.</p>
+    </div>
+    <p style="margin-top:14px"><strong>The ten-minute verification pass</strong> that keeps the memo honest: repository
+    licence file → release cadence and changelog dates → pricing page → vendor blog. Stamp each with the date you
+    checked. A memo that reuses today's prices three months from now without re-verification is precisely the failure
+    mode this day exists to prevent.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Week 7 · Day 3 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Place any LLM-observability vendor on the five deployment topologies — SaaS, region-pinned, hybrid, self-hosted, air-gapped — and say what self-hosting actually costs to operate</li>
+      <li>Distinguish "ingests OTLP" from "OTel-native," and name where the real lock-in lives (the instrumentation SDK) plus the escape hatch (Collector fanout)</li>
+      <li>State the legal difference between MIT, Apache 2.0, Elastic License 2.0, and proprietary — and say which one matters <em>for this engagement</em></li>
+      <li>Price the same workload under four incompatible meters, with a stated monthly volume and trace→span fan-out</li>
+      <li>Treat residency, BAAs, and vendor continuity as decision inputs, and verify each from a primary source with a date rather than recalling it</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your brownfield repo (<code>2463-FDE/riverbend-portal</code> or <code>2463-FDE/meridian-lending</code>)</div>
+    <ul class="deliv-list check">
+      <li><code>docs/adr/observability-platform.md</code> — the one-page recommendation memo, produced in 60 minutes against the <a href="../../client-delivery.html?w=7">Week 7 client packet</a>: Decision, Options considered (each rejected one carrying its disqualifying fact), Recommendation, <b>the single client constraint that decided it</b>, Cost at a stated volume, Reversibility, What we're accepting</li>
+      <li>The cost line must name your <b>assumed monthly trace volume</b> and the <b>trace→span fan-out ratio</b> measured from the span you instrumented on Day 1 — a price without a workload is not an estimate</li>
+      <li>Every price and capability claim carries a <b>source URL and the date you verified it</b>. Find at least the three planted facts yourself: Helicone's maintenance mode, Phoenix's ELv2, LangSmith's non-disableable beacon egress</li>
+      <li>One line in the memo naming what your Day 1 instrumentation would have to <b>mask or drop</b> before a span could legally leave this system's boundary</li>
+    </ul>
+    <p class="goals-foot">This memo is the "where does it land" half of the week's one artifact — the observability
+    instrument your packet asks for. Day 4 turns the instrumented path into golden signals, an SLO, and one working
+    alert; your chosen platform is where that alert has to fire.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "W7 · Day 4 →", href: "w07d4.html" };
+window.DIAGRAM = {
+  title: "Choosing an observability platform · the elimination order",
+  width: 500, height: 656,
+  nodes: [
+    { id:"scene", step:0, kind:"example", x:14, y:14, w:472, h:64,
+      label:"EXEC ASKS · \"which observability platform do we sign?\"\n  deliverable: ONE page — options, one recommendation,\n  and the single client constraint that decided it" },
+
+    { id:"ls", step:0, x:14,  y:92, w:110, h:56, label:"LangSmith\nproprietary",
+      detail:"Developer $0/seat, Plus $39/seat/mo; metered in LCU ($1.50) and LSU ($1.00). Self-host is Enterprise-only; hybrid (SaaS control plane + self-hosted data plane) is real. Deepest LangChain/LangGraph integration." },
+    { id:"lf", step:0, x:132, y:92, w:110, h:56, label:"Langfuse v4\nMIT (except ee/)",
+      detail:"Same codebase Cloud and self-hosted. OSS self-host is free and unlimited — including enterprise SSO and RBAC. v4 is observations-first; trace-level input/output is deprecated." },
+    { id:"px", step:0, x:250, y:92, w:110, h:56, label:"Arize Phoenix\nElastic 2.0",
+      detail:"Source-available, NOT OSI-approved, plus a patent notice. Free to self-host with no feature limits and fully air-gappable. Built on OpenTelemetry + OpenInference. Hosted path is Arize AX." },
+    { id:"hl", step:0, x:368, y:92, w:110, h:56, label:"Helicone\nApache 2.0",
+      detail:"A gateway, not an instrumentation library: repoint the SDK at ai-gateway.helicone.ai and logging is automatic. Acquired by Mintlify 2026-03-03, explicitly in maintenance mode." },
+
+    { id:"ax1", step:1, x:44, y:172, w:412, h:52, label:"① TOPOLOGY — can trace payloads leave the network?",
+      detail:"SaaS / region-pinned / hybrid / self-hosted / air-gapped. Phoenix air-gaps free. Langfuse self-host = Web + Worker + Postgres + ClickHouse + Redis + S3, all on UTC or queries return empty. LangSmith self-host is Enterprise-only and needs beacon.langchain.com egress for billing telemetry — cannot be disabled." },
+    { id:"ax2", step:2, x:44, y:236, w:412, h:52, label:"② OTel-NATIVE vs PROPRIETARY — where is the lock-in?",
+      detail:"All four ingest OTLP; only the internal model differs. Phoenix is OpenInference-native. Langfuse maps OTel into its own model — HTTP/JSON + protobuf only, no gRPC. LangSmith publishes a gen_ai.* translation table. Lock-in is the instrumentation SDK; Collector fanout is the escape hatch." },
+    { id:"ax3", step:3, x:44, y:300, w:412, h:52, label:"③ LICENSE — OSI open source, or source-available?",
+      detail:"MIT (Langfuse, except ee/) · Apache 2.0 (Helicone, OpenInference, OpenLLMetry) · Elastic 2.0 (Phoenix — source-available) · proprietary (LangSmith). ELv2 is irrelevant for internal client use and disqualifying if the client resells a hosted product built on it." },
+    { id:"ax4", step:4, x:44, y:364, w:412, h:52, label:"④ METER — units · requests · spans+GB · LCU/LSU",
+      detail:"Four incompatible units, and one trace fans out into many spans — so a price without an assumed monthly volume and a fan-out ratio is not an estimate. Retention is a cost axis too: AX Free 15 days, AX Pro 30, Langfuse Core 90, Langfuse Pro 3 years." },
+    { id:"ax5", step:5, x:44, y:428, w:412, h:52, label:"⑤ RESIDENCY &amp; BAA — a PHI trace is a disclosure",
+      detail:"Langfuse: four separated regions plus a dedicated HIPAA region; BAA via DocuSign on Pro+ — do not send PHI before it is signed. LangSmith: SOC 2 + HIPAA, but no EU legal entity to contract with. Helicone: HIPAA at the $799 Team tier. Phoenix: run it yourself. Mask at the SDK first." },
+    { id:"ax6", step:6, x:44, y:492, w:412, h:52, label:"⑥ CONTINUITY — who owns this in three years?",
+      detail:"Acquisition, maintenance mode and repricing are decision inputs, not trivia. Check four places in ten minutes: repo license file, release cadence and changelog dates, pricing page, vendor blog. Verify — do not recall." },
+
+    { id:"memo", step:7, x:44, y:566, w:412, h:76, label:"THE MEMO AN EXEC SIGNS\nDecision · Options (+ the fact that killed each) · Recommendation\nThe constraint · Cost at volume · Reversibility · What we accept",
+      detail:"One page, one spine. Healthcare: PHI in the trace payload decides it — BAA or air-gap. Finance: a SOX-material control decides it — retention long enough for the audit period, and a vendor that still exists. Reversibility is where Collector fanout earns its place." }
+  ],
+  edges: [
+    { id:"e_in",  step:1, from:"lf",  to:"ax1",  label:"4 candidates in", lx:-6 },
+    { id:"e_out", step:7, from:"ax6", to:"memo", label:"1 recommendation", lx:8 }
+  ],
+  captions: [
+    "The output is a <b>one-page memo</b>, not a comparison table — options, one recommendation, and the one constraint that decided it. Four candidates go in. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "Axis ①, the hardest cut: <b>can trace payloads leave the network?</b> Phoenix air-gaps free; Langfuse self-host is six components on UTC; LangSmith self-host needs undisableable beacon egress. <span style='opacity:.7'>(tap)</span>",
+    "Axis ②: everyone ingests OTLP, so that claim decides nothing. The <b>lock-in is the instrumentation SDK</b> — and an OTel Collector with fanout is the escape hatch. <span style='opacity:.7'>(tap)</span>",
+    "Axis ③: MIT vs Apache 2.0 vs <b>Elastic 2.0</b> vs proprietary. Phoenix is source-available, not OSI — irrelevant internally, disqualifying if resold. <span style='opacity:.7'>(tap)</span>",
+    "Axis ④: <b>units, requests, spans+GB, LCU/LSU</b> — four incompatible meters. No monthly volume and fan-out ratio means no cost estimate. Retention is a meter too. <span style='opacity:.7'>(tap)</span>",
+    "Axis ⑤: a PHI-bearing trace is a <b>disclosure</b>. Separated regions, a signed BAA before the first span, an EU contracting entity — and masking at the SDK to shrink what ever leaves. <span style='opacity:.7'>(tap)</span>",
+    "Axis ⑥: <b>vendor continuity</b>. Acquisition, maintenance mode, repricing. Check the license file, changelog dates, pricing page and blog — verify, don't recall. <span style='opacity:.7'>(tap)</span>",
+    "All six collapse into <b>one signable page</b>. Healthcare's spine is PHI residency; finance's spine is retention and continuity. Same landscape, different constraint, different answer."
+  ]
+};
+window.QUIZ = {
+  id: "w07-d3",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A client needs LLM observability with no telemetry of any kind leaving their network, on their own Kubernetes. Which option is disqualified by a documented, non-negotiable requirement — and why?",
+      options: [
+        "Langfuse self-hosted — it requires a licence key checked over the network",
+        "LangSmith self-hosted — a standard install requires egress to beacon.langchain.com for billing telemetry, which cannot be disabled",
+        "Phoenix self-hosted — free tiers always phone home for usage counts",
+        "Helicone self-hosted — the Apache licence forbids private deployment" ],
+      answer: 1,
+      explain: "LangSmith self-hosting is Enterprise-only and, per the egress docs, requires beacon.langchain.com for licence verification and usage reporting — explicitly 'cannot be disabled'. A truly offline install needs a separately negotiated air-gapped licence. Phoenix, by contrast, documents that nothing is sent to Arize and it can be fully air-gapped." },
+    { type: "scq",
+      stem: "A teammate writes in the memo: 'Phoenix is Apache 2.0, so legal has nothing to review.' What is wrong?",
+      options: [
+        "Nothing — Phoenix is Apache 2.0",
+        "Phoenix is Elastic License 2.0 — source-available, not OSI-approved, with a patent notice; whether that matters depends on whether the client resells a hosted product built on it",
+        "Phoenix is MIT, which is even more permissive, so the sentence understates the case",
+        "Phoenix is proprietary and cannot be self-hosted at all" ],
+      answer: 1,
+      explain: "The repository states Phoenix is licensed under Elastic License 2.0 and carries a patent notice. ELv2 is source-available, not OSI-approved: it forbids offering the software to third parties as a managed service. Irrelevant for a client running it internally; disqualifying if the deliverable is a hosted product resold to their own customers. Both belong in the memo." },
+    { type: "tf",
+      stem: "Because all four vendors ingest OTLP, switching between them is mostly a matter of changing the export endpoint — so 'OTel support' makes the choice low-risk.",
+      answer: false,
+      explain: "Ingesting OTLP says nothing about the internal model. Langfuse maps OTel traces into its own data model (HTTP only, no gRPC); LangSmith publishes a gen_ai.* → run-tree translation table; Helicone is a proxy that never sees non-LLM steps at all. And the GenAI semantic conventions are still pre-stable — the Schema URL literally reads 'TODO'. Portability comes from instrumenting with a vendor-neutral SDK and exporting through a Collector, not from the vendors' OTLP badges." },
+    { type: "mcq",
+      stem: "Your memo's cost section will be sent back as incomplete unless it contains which of these? (select all that apply)",
+      options: [
+        "An assumed monthly trace volume",
+        "The trace→span fan-out ratio for the instrumented path",
+        "The retention window each tier provides",
+        "A source URL and verified date for every price",
+        "A ranking of which dashboard UI the team preferred" ],
+      answer: [0, 1, 2, 3],
+      explain: "Units, requests, spans+GB and LCU/LSU are four different meters, and one trace fans out into many spans — so volume plus fan-out is the minimum to make any comparison real. Retention is a cost axis (15 days on AX Free vs 3 years on Langfuse Pro), and every price is stamped because this field reprices constantly. UI preference is not a cost input." },
+    { type: "match",
+      stem: "Match each client constraint to the fact that most directly decides it.",
+      pairs: [
+        { l: "Intake traces carry PHI and legal wants a signed agreement", r: "Langfuse HIPAA region + BAA on Pro or higher, signed before any PHI" },
+        { l: "Evidence for a SOX-material control must survive the audit period", r: "Retention window — 15 days (AX Free) vs 3 years (Langfuse Pro)" },
+        { l: "The control's tooling needs a named owner three years out", r: "Helicone's Mar 2026 acquisition and maintenance-mode status" },
+        { l: "We must be able to switch backends without re-instrumenting", r: "Vendor-neutral SDK + OTel Collector fanout" },
+        { l: "Procurement must sign a contract with an EU legal entity", r: "LangSmith: 'no legal entity in the EU that we can contract with today'" } ],
+      explain: "Each memo has one spine. The craft is finding which single constraint eliminates most of the field, then letting the other five axes be supporting detail rather than a five-way tie." },
+    { type: "open",
+      stem: "In two or three sentences, write the 'Reversibility' line of your memo: how would this client switch observability vendors in six months, and what would it cost them?",
+      hint: "Think about which layer you're actually locked into, and what a Collector can do with one span stream.",
+      model: "We instrument with a vendor-neutral library (OpenInference or OpenLLMetry) and export OTLP to an OTel Collector we run, so the backend is a Collector config value rather than an application dependency. Switching vendors is a config change plus a re-ingest of whatever trace history we need to carry over — and the same fanout lets us run two backends in parallel for a month before committing. What we're accepting: the GenAI semantic conventions are still pre-stable, so some vendor-specific attributes won't survive the move and dashboards would be rebuilt." }
+  ]
+};
+</script>
+<!-- production-code modal (w07d3) -->
+<div id="code-w07d3" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: instrument once, export anywhere</h2>
+    <p class="cv-cap">This file names no observability vendor. That is the whole point — the lock-in is the instrumentation SDK, and the backend is a Collector config value.</p>
+    <div class="cv" data-file="otel_tracing.py" data-lang="python"><pre class="cv-raw"># Vendor-neutral tracing for the intake summary call. The exporter points at a LOCAL
+# OTel Collector, which fans the same span stream out to Langfuse / Phoenix / LangSmith.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import boto3
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+# HTTP, not gRPC: Langfuse accepts HTTP/JSON + HTTP/protobuf only.
+provider = TracerProvider()
+provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+trace.set_tracer_provider(provider)
+tracer = trace.get_tracer(&quot;intake.summary&quot;)
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+MODEL = &quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;
+
+def summarize(note: str) -&gt; str:
+    with tracer.start_as_current_span(&quot;llm.summarize&quot;) as span:
+        span.set_attribute(&quot;gen_ai.system&quot;, &quot;aws.bedrock&quot;)      # OTel GenAI semconv
+        span.set_attribute(&quot;gen_ai.request.model&quot;, MODEL)        # (still pre-stable)
+        span.set_attribute(&quot;openinference.span.kind&quot;, &quot;LLM&quot;)    # OpenInference, Apache 2.0
+        r = bedrock.converse(
+            modelId=MODEL,
+            messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: note}]}],
+            inferenceConfig={&quot;maxTokens&quot;: 400, &quot;temperature&quot;: 0},
+        )
+        # Metadata only -- the note is PHI, so no prompt/completion payload on the span.
+        span.set_attribute(&quot;gen_ai.usage.input_tokens&quot;, r[&quot;usage&quot;][&quot;inputTokens&quot;])
+        span.set_attribute(&quot;gen_ai.usage.output_tokens&quot;, r[&quot;usage&quot;][&quot;outputTokens&quot;])
+        return r[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;]</pre></div>
+    <p class="cv-foot">Nothing here is vendor-specific except the exporter's endpoint environment variable — which is why the memo's Reversibility line can honestly say "a Collector config change."</p>
+  </div>
+</div>
+
+<script src="../../assets/js/roster.js?v=20260706"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
+</body>
+</html>

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w07d2">
+<meta name="fde-concepts" content="offline-vs-online-eval,llm-as-judge-bias,judge-human-agreement,expert-labeled-gold-set,eval-regression-gate">
+<title>W7·D2 — Evals in Production: Online and Offline | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+
+<main class="lesson2">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Evals in Production: Online and Offline</h1>
+        <div class="meta">
+          <span><b>Week 7</b> · Day 2</span>
+          <span>Observability, SRE &amp; Guardrails</span>
+          <span><b>~23 min</b> · reading @150 wpm + diagram + check</span>
+        </div>
+        <p class="summary">Yesterday you instrumented a path so you could <em>see</em> it. Today: <strong>how do you know
+        the output is any good — and how do you prove it still is next month?</strong> <strong>Offline evals</strong> run
+        a curated dataset with known-correct answers; <strong>online evals</strong> grade live traffic that has no answer
+        key. Between them sits the <strong>LLM judge</strong> — genuinely useful, provably biased in three documented
+        ways. The part nobody can outsource is the gold set: only a clinician can label "is this summary safe." Scroll
+        the reading; the panel assembles the loop, then turns a score into a build-breaking gate.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The split</div>
+        <h2>Two evals, told apart by their target</h2>
+        <p>Offline and online are not rival metrics. The difference is the <strong>target</strong>. An <strong>offline
+        evaluation</strong> runs on <strong>dataset examples</strong> — an input paired with a reference output you
+        already believe in: benchmarking, regression testing, backtesting, before you deploy. An <strong>online
+        evaluation</strong> runs on <strong>runs and threads from production tracing</strong> — yesterday's spans — for
+        monitoring, anomaly detection, and production feedback.</p>
+        <p>LangSmith states the consequence directly: "this difference in targets determines what you can evaluate:
+        offline evaluations can check correctness against expected answers, while online evaluations focus on quality
+        patterns, safety, and real-world behavior." Production runs "do not include reference outputs. Online evaluators
+        must assess quality without knowing what the 'correct' answer should be."</p>
+        <p>That sorts your evaluator library into two piles. <strong>Reference-free</strong> evaluators survive the jump
+        to production: safety checks (toxicity, PII, policy violations), format validation, quality heuristics, judges
+        for clarity and tone. <strong>Reference-based</strong> evaluators — correctness, factual accuracy against ground
+        truth, exact match — "only work for offline evaluation."</p>
+        <p>So when a client asks "can't you just run your accuracy check on live traffic?", the answer is usually no:
+        accuracy needs an answer key, and live traffic doesn't ship with one. What runs live is groundedness, schema
+        validity, refusal compliance.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">The loop</div>
+        <h2>Production writes your test set</h2>
+        <p>The two halves are a <strong>loop</strong>, not a choice: "online evaluations surface issues that become
+        offline test cases, offline evaluations validate fixes, and online evaluations confirm production improvements."
+        Google names the same bridge — "sample directly from production logs to evaluate the real-world usage of your
+        model." OpenAI's workflow ends on it: run evals on every change, "identify new cases of nondeterminism, and
+        <strong>grow the eval set over time</strong>."</p>
+        <p>Your client packet already contains the first example. Riverbend handed over a transcript where the summarizer
+        <strong>invented a medication the patient isn't on</strong>. That is not an anecdote to patch around — it is
+        <strong>gold-set example #1</strong>: a real trace with a known-bad label, from the exact distribution your
+        system serves. Promote it into a versioned dataset and this week's fix can never silently regress. Meridian's
+        payment rows that don't tie out to the settlement file are the same thing in an accounting costume.</p>
+        <p>Notice the direction of travel. You don't imagine test cases; you instrument, sample, find failures, and
+        graduate each one into a permanent example. A set built that way tracks real traffic by construction — the
+        opposite of OpenAI's named anti-pattern, "<strong>biased design</strong>: creating eval datasets that don't
+        reproduce production traffic patterns."</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="2">
+        <div class="tag">Online · cost &amp; privacy</div>
+        <h2>Grading live traffic is a budget decision too</h2>
+        <p>Every graded run is another model call on top of the one you already paid for, so the discipline is
+        <strong>filter, then sample</strong>. A run filter narrows to traffic
+        worth grading — negative feedback, a particular tool call, a metadata tag — and a sampling rate does the
+        rest: "to control costs… only apply the evaluator to 10% of traces… set the sampling rate to 0.1." Microsoft
+        Foundry exposes the same two dials as <code>samplingPercent</code> and a per-hour <code>maxRequestRate</code>,
+        capped by "the system limit of 1000/hour."</p>
+        <p>Two side effects matter more than they look. Billing: a graded trace "will be <strong>auto-upgraded to
+        extended data retention</strong>. This upgrade will impact trace pricing" — a judge changes what you pay to
+        <em>store</em> traces, not just to grade them. And privacy — raise it before the client's counsel does. Foundry
+        redacts judge reasoning by default, warning that "reasoning explanations might mention sensitive information
+        based on the content of the conversation." For Riverbend that means an evaluator writing commentary <em>about
+        encounter content</em> into telemetry, then upgrading retention on those traces: a new PHI surface, created by a
+        quality feature.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a sampling-cost calculator —
+        set trace volume, filter, sampling rate, and judge model, then watch judge spend, retention storage, and
+        caught-incidents-per-week move together. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="3">
+        <div class="tag">The judge</div>
+        <h2>The judge is an instrument, so calibrate it</h2>
+        <p>Production has no answer key, so something must produce the score — increasingly, another model. The headline
+        result is genuinely strong: "strong LLM judges like GPT-4 can match both controlled and crowdsourced human
+        preferences well, achieving <strong>over 80% agreement, the same level of agreement between humans</strong>…
+        a scalable and explainable way to approximate human preferences, which are otherwise very expensive."</p>
+        <p>Both halves matter. The judge is about as good as a human — <em>and humans agree with each other only 80% of
+        the time</em>. The realistic target isn't perfection; it's <strong>inter-expert agreement</strong>.
+        MedHELM puts a number on that ceiling: their LLM jury "achieved good agreement with clinician ratings
+        (ICC = 0.47), <strong>surpassing both average clinician-clinician agreement (ICC = 0.43)</strong>." That's not
+        "solved" — it's as good as the human process it replaces, which is the bar, and only claimable if you measured
+        it.</p>
+        <p>So treat the judge like any instrument: calibration drifts. Track <strong>judge-versus-human agreement as its
+        own metric over time</strong>, on a fresh labeled sample each cycle. A frontier model doesn't retire the problem
+        — CALM quantifies <strong>12 key potential biases</strong> and finds that "while advanced models have achieved
+        commendable overall performance, significant biases persist in certain specific tasks."</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="4">
+        <div class="tag">Biases</div>
+        <h2>Three biases with receipts</h2>
+        <p><strong>Position bias.</strong> In a pairwise comparison, the order you present candidates in changes the
+        verdict: "the quality ranking of candidate responses can be easily hacked by simply altering their order of
+        appearance in the context." With ChatGPT as evaluator, "Vicuna-13B could beat ChatGPT on <strong>66 over
+        80</strong> tested queries" by exploiting order alone. Mitigations: <em>Multiple Evidence Calibration</em>
+        (evidence before scoring), <em>Balanced Position Calibration</em> (run both orderings, aggregate), and
+        <em>Human-in-the-Loop Calibration</em>, which scores example difficulty and "seeks human assistance when needed"
+        — route the high-disagreement examples into your expert review queue. <span style="opacity:.7">(That routing
+        framing is ours.)</span></p>
+        <p><strong>Verbosity bias.</strong> Judges like longer answers: "even simple, known confounders such as
+        preference for longer outputs remain in existing automated evaluation metrics… AlpacaEval is known to favor
+        models that generate longer outputs." The fix is a counterfactual — ask what the preference would be "if the
+        model's and baseline's output had the <strong>same length</strong>," then regress the length difference out.
+        Length control "increases the Spearman correlation with LMSYS Chatbot Arena from 0.94 to 0.98." Practical rule:
+        when a score jumps after a prompt change, <strong>check output length before you celebrate</strong>.</p>
+        <p><strong>Self-preference.</strong> An LLM evaluator "scores its own outputs higher than others' while human
+        annotators consider them of equal quality." Measured, not folklore: models have "non-trivial accuracy at
+        distinguishing themselves" from other models and humans, and fine-tuning reveals "a linear correlation between
+        self-recognition capability and the strength of self-preference bias." Consequence: <strong>the judge must differ
+        from the generator.</strong> "We A/B'd two prompts on one model and let it pick the winner" isn't a weak
+        experiment — it's a broken one.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="5">
+        <div class="tag">Mitigations</div>
+        <h2>Use the cheapest grader that works</h2>
+        <p>Before you reach for a judge, walk Anthropic's ladder. <strong>Code-based grading</strong> is "fastest and
+        most reliable, extremely scalable." <strong>Human grading</strong> is high quality "but slow and expensive —
+        <em>avoid if possible</em>." <strong>LLM-based grading</strong> is "fast and flexible… <em>test to ensure
+        reliability first then scale</em>." Meridian's reconciliation is the textbook case: comparing a ledger row to a
+        settlement row needs <em>no judge at all</em>. Reaching for an LLM where a deterministic comparison exists is the
+        mistake, not the sophistication.</p>
+
+        <p>When you do need a judge, four documented moves buy most of the reliability. <strong>Force reasoning, then
+        throw it away</strong> — "ask the LLM to think first before deciding an evaluation score, and then discard the
+        reasoning. This increases evaluation performance, particularly for tasks requiring complex judgement."
+        <strong>Constrain the output space</strong> — "instruct the LLM to output only 'correct' or 'incorrect'…
+        purely qualitative evaluations are hard to assess quickly and at scale."
+        <strong>Prefer comparison to absolute scoring</strong>, because "LLMs are better at discriminating between
+        options" — "choosing the more informative of two summaries is often easier than assigning an absolute score to a
+        single summary." And <strong>few-shot the judge</strong>: grader prompts carrying example inputs, outputs, and
+        expected grades "often improve performance." Google pushes further with per-prompt <strong>adaptive
+        rubrics</strong>, generated "for each prompt, like unit tests."</p>
+        <button class="code-cta" type="button" data-modal="code-w07d2"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· judge_groundedness.py</span></button>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="6">
+        <div class="tag">Gold set</div>
+        <h2>Build the gold set <em>with</em> the client</h2>
+        <p>Here is the part no tool sells you. A judge is only as good as the labels you calibrate it against, and for
+        the questions that matter, <strong>you cannot produce those labels</strong>. "Invented a medication," "dropped an
+        allergy," "contradicted the chart" are clinical-safety judgments; "is this the actual reason we declined the
+        applicant?" is a Reg B compliance judgment. MedHELM's answer was a "clinician-validated taxonomy… developed with
+        <strong>29 clinicians</strong>," because near-perfect licensing-exam scores "inadequately reflect… real-world
+        clinical practice."</p>
+        <p>The instinct is to book a kickoff meeting and walk out with a rubric. That fails, and there's a name for why:
+        <strong>criteria drift</strong>. "Users need criteria to grade outputs, but grading outputs helps users define
+        criteria." Some criteria even turn out <em>dependent on the specific outputs observed</em>, which "raises serious
+        questions for approaches that assume the independence of evaluation from observation." The rubric is an
+        <em>output</em> of the labeling session, not an input. Sit a clinician down with twenty to thirty real summaries,
+        watch what they flag, let the rubric assemble itself — and expect them to disagree with each other. MedHELM's
+        0.43 is your instrument for measuring that.</p>
+        <p>Mechanically: start with <strong>manually curated examples</strong> — "5-10 examples of what 'good' looks like
+        for each critical component," growing to "10-20 high-quality examples covering common scenarios and edge cases."
+        Then the advice inverts: "<strong>prioritize volume over quality</strong> — more questions with slightly lower
+        signal automated grading is better than fewer questions with human hand-graded evals." Annotation
+        queues give you prescribed rubrics, multiple reviewers, and <strong>assertions</strong> — acceptance criteria a
+        future offline evaluator grades against, which is how one clinician's objection becomes a permanent test. Then
+        <strong>version the dataset</strong> and pin versions in CI, or the gate means nothing.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">The gate</div>
+        <h2>Turn a score into a build-breaking control</h2>
+        <p>"Generative AI is variable… which makes <strong>traditional software testing methods insufficient</strong>."
+        Evals test it anyway, and a gate needs a number. Anthropic's example of hardening a hazy criterion is the one to memorize: bad = "safe
+        outputs"; good = "<strong>less than 0.1% of outputs out of 10,000 trials flagged for toxicity by our content
+        filter</strong>." OpenAI's worked thresholds read like acceptance criteria — "on a held-out set of 1000 reference
+        transcripts → summaries… a ROUGE-L score of at least 0.40 and coherence score of at least 80%."</p>
+
+        <p>Three shapes implement it. <strong>(A) Assertions in your test runner</strong> — LangSmith's pytest plugin
+        (<code>langsmith&gt;=0.3.4</code>) is for when "you want to assert binary expectations… and raise assertion
+        errors locally, e.g. in CI pipelines"; each decorated test syncs to a dataset example.
+        <strong>(B) A declarative threshold</strong> — promptfoo's test case exposes <code>threshold</code>:
+        "test will fail if the combined score of assertions is less than this number." Wire it to a PR with
+        <code>promptfoo/promptfoo-action@v1</code> on path-filtered <code>pull_request</code> events, plus
+        <code>pull-requests: write</code> to post results as comments and a response cache to save cost.
+        <strong>(C) A hosted run's pass/fail counts</strong> — but <strong>don't build on OpenAI's Evals platform:</strong>
+        read-only 2026-10-31, shut down 2026-11-30; migration path, Promptfoo.</p>
+        <p>Last question: <em>where</em> does the gate go? Map your architecture and "identify where nondeterminism
+        enters your system. That's where you'll want to implement evals." One end-to-end score says something broke;
+        per-seam gates say what.</p>
+        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a gate simulator — load a
+        labeled gold set, move the groundedness threshold, and watch pass/fail counts, false-block rate, and which past
+        incidents get caught flip in real time. Needs backend standup.</p></div>
+      </section>
+
+      <section class="step extra" data-diagram="0" data-step="8">
+        <div class="tag">The load-bearing idea</div>
+        <h2>A guardrail without an eval is an assertion</h2>
+        <p>Tomorrow you build the content guardrail your packet asks for. Today's idea is what makes it a
+        <strong>control</strong> instead of a claim. A guardrail nobody measures is the same species as the README that
+        says "HIPAA compliant" — the one you flagged in Week 1: it asserts a property. A named metric, a threshold, a
+        versioned dataset with a clinician's name on it, and a build that fails when the number drops
+        <em>demonstrates</em> one.</p>
+        <p>The two accounts converge from opposite ends. Riverbend's "it invented a medication and nobody knew until a
+        clinician noticed" is the same missing-detection story as "intake froze twenty minutes and no alert fired" — a
+        reference-free groundedness check on sampled live summaries <em>is</em> the alert that was missing. Meridian's
+        daily reconciliation, scored against a month of labeled breaks with a threshold and an owner, is a regression
+        gate in a SOX costume: "month-end noise" becomes "the control fired."</p>
+
+
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>When a client asks "is the AI accurate?", never answer with a demo. Answer with the instrument: <strong>what
+          is the metric, who labeled the set, what is the threshold, and what breaks when it's missed?</strong> Miss any
+          of the four and you don't have an eval — you have a vibe. The one you can't supply yourself is the second: go
+          get the expert.</p>
+        </div>
+      </section>
+
+      <section class="reading-sources" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://docs.langchain.com/langsmith/evaluation-concepts" target="_blank" rel="noopener">Evaluation concepts — LangSmith</a> — offline/online targets; reference-free vs reference-based; dataset versions and splits.</li>
+          <li><a href="https://docs.langchain.com/langsmith/online-evaluations" target="_blank" rel="noopener">LLM-as-a-judge online evaluators — LangSmith</a> — run filters, sampling rate, extended-retention billing.</li>
+          <li><a href="https://docs.langchain.com/langsmith/annotation-queues" target="_blank" rel="noopener">Use annotation queues — LangSmith</a> — rubrics, reviewers, reservations, assertions.</li>
+          <li><a href="https://docs.langchain.com/langsmith/pytest" target="_blank" rel="noopener">Evaluations with pytest — LangSmith</a> — gate shape A; <code>langsmith&gt;=0.3.4</code>.</li>
+          <li><a href="https://www.promptfoo.dev/docs/configuration/reference/" target="_blank" rel="noopener">Configuration reference — Promptfoo</a> — <code>threshold</code>, assertion weights, model-graded assertions.</li>
+          <li><a href="https://www.promptfoo.dev/docs/integrations/github-action/" target="_blank" rel="noopener">Testing prompts with GitHub Actions — Promptfoo</a> — gate shape B; caching; Node ≥ 22.22.0.</li>
+          <li><a href="https://developers.openai.com/api/docs/guides/evaluation-best-practices" target="_blank" rel="noopener">Evaluation best practices — OpenAI</a> — eval-driven development, anti-patterns, worked thresholds.</li>
+          <li><a href="https://developers.openai.com/api/docs/deprecations" target="_blank" rel="noopener">Deprecations — OpenAI</a> — Evals read-only 2026-10-31, shutdown 2026-11-30; <a href="https://developers.openai.com/cookbook/examples/evaluation/moving-from-openai-evals-to-promptfoo" target="_blank" rel="noopener">migration to Promptfoo</a>.</li>
+          <li><a href="https://platform.claude.com/docs/en/test-and-evaluate/develop-tests" target="_blank" rel="noopener">Define success criteria and build evaluations — Anthropic</a> — measurable criteria; the grading ladder; LLM-grading tips.</li>
+          <li><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/models/evaluation-overview" target="_blank" rel="noopener">Gen AI evaluation service — Vertex AI</a> — adaptive rubrics; sampling from production logs.</li>
+          <li><a href="https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/continuous-evaluation-agents" target="_blank" rel="noopener">Continuous evaluation (preview) — Microsoft Foundry</a> — sampling percent, 1000/hr ceiling, redaction warning.</li>
+          <li><a href="https://arxiv.org/abs/2306.05685" target="_blank" rel="noopener">Judging LLM-as-a-Judge (MT-Bench) — arXiv 2306.05685</a> — &gt;80% judge/human agreement; names the three biases.</li>
+          <li><a href="https://arxiv.org/abs/2305.17926" target="_blank" rel="noopener">LLMs are not Fair Evaluators — arXiv 2305.17926</a> — position bias flips 66/80; three calibrations.</li>
+          <li><a href="https://arxiv.org/abs/2404.04475" target="_blank" rel="noopener">Length-Controlled AlpacaEval — arXiv 2404.04475</a> — Arena Spearman 0.94 → 0.98.</li>
+          <li><a href="https://arxiv.org/abs/2404.13076" target="_blank" rel="noopener">LLM Evaluators Favor Their Own Generations — arXiv 2404.13076</a> — self-recognition drives self-preference.</li>
+          <li><a href="https://arxiv.org/abs/2410.02736" target="_blank" rel="noopener">Justice or Prejudice? — arXiv 2410.02736</a> — CALM; 12 quantified judge biases.</li>
+          <li><a href="https://arxiv.org/abs/2404.12272" target="_blank" rel="noopener">Who Validates the Validators? — arXiv 2404.12272</a> — EvalGen; criteria drift.</li>
+          <li><a href="https://arxiv.org/abs/2505.23802" target="_blank" rel="noopener">MedHELM — arXiv 2505.23802</a> — 29-clinician taxonomy; ICC 0.47 vs 0.43.</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram"></svg>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">Running your first clinician labeling session</div>
+          <div class="ac-meta">optional · +10 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">6 quick questions on offline/online, judges &amp; gates</div>
+          <div class="ac-meta">~5 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next"></a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 7 Day 2</footer>
+
+<!-- deep-dive modal -->
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: running your first labeling session with a domain expert</h2>
+    <p class="quiz-sub">Optional. ~10 minutes. The 90-minute session that produces a rubric, a gold set, and a threshold you can defend.</p>
+    <p><strong>Before the session.</strong> Pull 25-30 real outputs from production traces — deliberately skewed toward
+    the interesting ones (negative feedback, retries, long latency, errors), not a uniform sample. Include the source
+    material next to each output; a clinician cannot judge a summary without the encounter note. Do <em>not</em> arrive
+    with a finished rubric. You are there to discover it.</p>
+    <p><strong>During.</strong> Ask for a binary call first — safe / not safe — then ask <em>why</em>, and write the
+    reason verbatim. Those verbatim reasons are your rubric categories: "invented a medication," "dropped an allergy,"
+    "contradicted the chart." This is criteria drift working for you rather than against you: the criteria emerge from
+    the grading. Where two experts disagree, do not resolve it in the room — record it. Disagreement is data, and the
+    rate of it is the ceiling on any automated grader you build next.</p>
+    <p><strong>After.</strong> Convert each verbatim reason into an assertion attached to its example, so a future
+    offline evaluator can grade new runs against it. Version the dataset and pin that version in CI. Then build the
+    judge, run it against the labeled set, and report agreement — not accuracy. If your judge lands near the
+    expert-to-expert agreement rate, that is the realistic ceiling, and you say so out loud.</p>
+    <div class="model-answer show">
+      <div class="ma-k">Worked example — the sentence you hand back to the client</div>
+      <p style="margin:8px 0 0">"Groundedness on the clinician-labeled summary set (v3, 42 examples, labeled by
+      Dr. Okonkwo's team) must stay at or above 0.95, measured by a Claude Haiku judge that agrees with clinician labels
+      at κ 0.71 on a held-out slice. A prompt or model change that drops below the floor fails the build. The set grows
+      every time a live groundedness check fires." That sentence contains all four things: metric, labeler, threshold,
+      consequence. Practice writing it for your own account until it takes thirty seconds.</p>
+    </div>
+    <p style="margin-top:14px"><strong>Sizing note.</strong> Start at 5-10 examples per critical component, grow to
+    10-20 covering typical + edge + adversarial cases, <em>then</em> favor volume with automated grading. Do not spend
+    six weeks hand-labeling 500 examples before you ship anything — the first version of the gate should exist inside a
+    week.</p>
+  </div>
+</div>
+
+<!-- quiz modal -->
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<!-- daily goals + deliverable modal -->
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Week 7 · Day 2 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Sort any proposed metric into offline (dataset + reference output) or online (live runs, reference-free) — and say why an accuracy check can't run on production traffic</li>
+      <li>Name the three documented judge biases with their evidence, and state the mitigation for each (balanced ordering, length control, judge ≠ generator)</li>
+      <li>Report a judge as an instrument: agreement against expert labels, benchmarked against expert-to-expert agreement, not against perfection</li>
+      <li>Convert a hazy success criterion into a numeric threshold and wire it as a build-breaking gate on a pinned dataset version</li>
+    </ul>
+    <div class="ma-k">Deliverable — commit to your brownfield repo (<code>riverbend-portal</code> / <code>meridian-lending</code>)</div>
+    <ul class="deliv-list check">
+      <li>A versioned <code>evals/</code> dataset seeded from the <a href="../../client-delivery.html?w=7">Week 7 client packet</a>'s own handover artifacts — the grounding failure you reproduce yourself against the seed corpus (healthcare) or a week of ledger↔settlement breaks (finance) — as example #1 with its known-bad label</li>
+      <li>One grader, chosen by the cheapest-that-works rule: a deterministic comparison for reconciliation, or a judge for groundedness with the judge model explicitly different from the generator</li>
+      <li><code>evals/RUBRIC.md</code>: the criteria you'd derive <em>with</em> the expert (Dr. Okonkwo's clinicians / Priya on reason accuracy), plus the three questions you'd ask in that labeling session and how you'll record disagreement</li>
+      <li>One numeric threshold written as an acceptance criterion — metric, floor, owner, what fails — staged for the guardrail you build on Day 3</li>
+      <li>In <code>NOTES.md</code>: the PHI/PII line — what an online evaluator would write into telemetry about production payloads, and the retention change that comes with it</li>
+    </ul>
+    <p class="goals-foot">This is one slice of the week's single artifact: the instrumented path plus a <em>gated</em>
+    content guardrail. Day 3 builds the guardrail; today's threshold is what makes it auditable instead of aspirational.</p>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = { label: "W7 · Day 3 →", href: "w07d3.html" };
+window.DIAGRAM = {
+  title: "Evals in production · offline set ⇄ live traffic",
+  width: 500, height: 690,
+  nodes: [
+    { id:"scene", step:0, kind:"example", x:14, y:12, w:472, h:62,
+      label:"CLIENT ASK · \"is the AI output any good — and will it still be next month?\"\n  two machines: a curated set with answers, and live traffic without them" },
+
+    { id:"off", step:0, x:26, y:86, w:206, h:58, label:"OFFLINE EVAL\ndataset + reference output",
+      detail:"Target = dataset examples (input + expected output). Jobs: benchmarking, regression testing, unit testing, backtesting. Only here can you score correctness, factual accuracy, exact match." },
+    { id:"onl", step:0, x:268, y:86, w:206, h:58, label:"ONLINE EVAL\nlive runs · no reference",
+      detail:"Target = runs and threads from production tracing. Jobs: real-time monitoring, anomaly detection, production feedback. No answer key, so only reference-free evaluators work: safety, schema, heuristics, reference-free judges." },
+
+    { id:"loop", step:1, x:26, y:158, w:448, h:44, label:"THE LOOP · online finds it → offline pins it → online confirms the fix",
+      detail:"Online surfaces issues that become offline test cases; offline validates fixes; online confirms production improvement. Sample directly from production logs and grow the eval set over time. Riverbend's invented-medication transcript is gold-set example #1." },
+
+    { id:"samp", step:2, x:26, y:216, w:206, h:58, label:"filter, then sample\n10% of traces · 1000/hr cap",
+      detail:"Filter to runs worth grading (negative feedback, a tool call, a metadata tag), then set a sampling rate (0.1 = 10%). Foundry: samplingPercent + maxRequestRate under a system limit of 1000/hour." },
+    { id:"priv", step:2, x:268, y:216, w:206, h:58, label:"⚠ retention upgrade\n+ judge text about PHI",
+      detail:"Grading a run auto-upgrades its trace to extended data retention, changing storage pricing. And judge reasoning \"might mention sensitive information based on the content of the conversation\" — a new PHI surface in your telemetry store." },
+
+    { id:"judge", step:3, x:120, y:288, w:260, h:52, label:"LLM-AS-JUDGE\n>80% agreement = human-human",
+      detail:"Strong judges match controlled and crowdsourced human preferences at over 80% agreement — the same level humans reach with each other. MedHELM: LLM-jury ICC 0.47 vs clinician-clinician 0.43. The target is inter-expert agreement, not perfection." },
+
+    { id:"pos",  step:4, x:26,  y:356, w:142, h:56, label:"position bias\n66/80 flipped",
+      detail:"Reordering candidates hacks the ranking — Vicuna-13B beat ChatGPT on 66 of 80 queries by order alone. Fix: balanced position calibration (run both orders, aggregate); route high-disagreement examples to a human." },
+    { id:"verb", step:4, x:178, y:356, w:142, h:56, label:"verbosity bias\nregress it out",
+      detail:"Judges favor longer outputs. Length-controlled comparison asks what the preference would be at equal length; it raised Spearman correlation with Chatbot Arena from 0.94 to 0.98. Rule: check output length before celebrating a score jump." },
+    { id:"self", step:4, x:330, y:356, w:144, h:56, label:"self-preference\njudge ≠ generator",
+      detail:"Models recognize their own outputs and score them above human-rated equals; self-recognition causally drives the bias. So the judge model must differ from the generator — same-model A/B judging is a broken experiment." },
+
+    { id:"mit", step:5, x:26, y:426, w:448, h:48, label:"MITIGATIONS · cheapest grader first · pairwise > absolute · reason-then-discard",
+      detail:"Ladder: code-based (fast, reliable, scalable) → human (avoid if possible) → LLM (test reliability first, then scale). Then: force reasoning and discard it, constrain the output space, prefer comparison, few-shot the grader, or use per-prompt adaptive rubrics." },
+
+    { id:"gold", step:6, x:26, y:490, w:206, h:64, label:"GOLD SET · built WITH the client\nclinician / compliance labels",
+      detail:"Only the expert can label \"is this summary safe\" or \"is this reason accurate.\" Criteria drift means the rubric comes out of the session, not into it. 5-10 → 10-20 → volume; annotation queues give rubrics, multiple reviewers, and assertions; version the dataset." },
+    { id:"gate", step:7, x:268, y:490, w:206, h:64, label:"REGRESSION GATE\nnumeric threshold in CI",
+      detail:"Shapes: pytest assertions (langsmith>=0.3.4), promptfoo threshold on a path-filtered PR with cached responses, or a hosted run's result_counts. Pin the dataset version. Gate at each nondeterministic seam, not end-to-end." },
+
+    { id:"out", step:8, x:96, y:570, w:308, h:58, label:"metric · labeler · threshold · consequence\nthe guardrail becomes a control",
+      detail:"A guardrail nobody measures asserts a property; a named metric on an expert-labeled set with a failing build demonstrates one. Meridian's break threshold is the same construct wearing a SOX costume." }
+  ],
+  edges: [
+    { id:"e_loop", step:1, from:"onl",   to:"off",   label:"promote the trace", ly:-2 },
+    { id:"e_samp", step:2, from:"onl",   to:"samp",  label:"filter + sample", bend:18 },
+    { id:"e_j",    step:3, from:"samp",  to:"judge", label:"grade it", lx:-6 },
+    { id:"e_b",    step:4, from:"judge", to:"verb",  label:"three biases", lx:6 },
+    { id:"e_m",    step:5, from:"verb",  to:"mit",   label:"mitigate", lx:6 },
+    { id:"e_g",    step:6, from:"mit",   to:"gold",  label:"still needs a human", lx:-8 },
+    { id:"e_gt",   step:7, from:"gold",  to:"gate",  label:"threshold on labels", ly:-2 },
+    { id:"e_o",    step:8, from:"gate",  to:"out",   label:"fails the build", lx:8 }
+  ],
+  captions: [
+    "Two evals, split by <b>target</b>: offline runs dataset examples <i>with</i> reference outputs; online runs live production traces that have none. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "They're a <b>loop</b>, not a choice — online surfaces the failure, it becomes a permanent offline example, offline validates the fix, online confirms it in production.",
+    "Grading live traffic costs money and touches PHI: <b>filter, then sample</b> — and know that graded traces get retention-upgraded and judge text lands in telemetry. <span style='opacity:.7'>(tap)</span>",
+    "The <b>LLM judge</b> is a real instrument: ~80% agreement with humans, which is what humans manage with each other. Calibrate it and track agreement over time. <span style='opacity:.7'>(tap)</span>",
+    "Three biases with receipts: <b>position</b> (order flips verdicts), <b>verbosity</b> (longer wins), <b>self-preference</b> (never let the generator grade itself). <span style='opacity:.7'>(tap each)</span>",
+    "Mitigations, cheapest first: use <b>code</b> when a deterministic comparison exists; when you need a judge, constrain output, force-then-discard reasoning, prefer pairwise. <span style='opacity:.7'>(tap)</span>",
+    "The part you can't outsource: the <b>gold set</b>. Only the clinician or the compliance officer can produce the label — and the rubric emerges from the labeling session. <span style='opacity:.7'>(tap)</span>",
+    "A number becomes a <b>gate</b>: a per-metric threshold on a pinned dataset version that fails the build — assertions, a declarative threshold in CI, or a hosted run's counts. <span style='opacity:.7'>(tap)</span>",
+    "The whole chain in one sentence: <b>metric · labeler · threshold · consequence.</b> Missing any one and the guardrail is an assertion, not a control."
+  ]
+};
+window.QUIZ = {
+  id: "w07-d2",
+  title: "Check your understanding",
+  questions: [
+    { type: "scq",
+      stem: "A client asks you to run your existing correctness check — output compared against the expected answer — continuously on live production traffic. What's the accurate response?",
+      options: [
+        "Yes, just point the evaluator at the production trace store",
+        "No — correctness is reference-based, and production runs carry no reference output. Live traffic supports reference-free checks (groundedness, schema, safety) instead",
+        "Yes, but only at a sampling rate below 10%",
+        "No — correctness checks are too slow to run online" ],
+      answer: 1,
+      explain: "The offline/online split is about the target. Production runs do not include reference outputs, so online evaluators must assess quality without knowing the correct answer. Reference-based evaluators (correctness, exact match, accuracy vs ground truth) only work offline; reference-free ones (safety, schema, quality heuristics, reference-free judges) survive the jump." },
+    { type: "scq",
+      stem: "A teammate reports: \"Prompt B beat prompt A on 78% of our comparisons — we ran both through the same model and had that model pick the winner.\" What's the flaw?",
+      options: [
+        "The sample size is too small to be meaningful",
+        "Nothing — same-model judging controls for model differences",
+        "The generator is also the judge, so self-preference bias contaminates the result; the judge model must differ from the generator",
+        "They should have used a 1-5 scale instead of a binary pick" ],
+      answer: 2,
+      explain: "Self-preference is measured, not folklore: LLM evaluators score their own outputs higher than humans rate them, and self-recognition capability is causally linked to the strength of the bias. A generator grading its own outputs is a broken experiment. Also worth checking here: did prompt B just produce longer answers?" },
+    { type: "tf",
+      stem: "An LLM judge reaching ~80% agreement with human labels means the judge is still substantially worse than a human panel and shouldn't be trusted.",
+      answer: false,
+      explain: "~80% is the level of agreement humans reach with each other. The realistic target for a judge is inter-expert agreement, not perfection — MedHELM's LLM jury hit ICC 0.47 against clinician ratings while clinician-clinician agreement was 0.43. The claim you can make is 'as good as the human process,' and only if you measured it." },
+    { type: "mcq",
+      stem: "Which of these are real, documented consequences of switching on an online LLM-judge evaluator? (select all that apply)",
+      options: [
+        "Graded traces get auto-upgraded to extended data retention, changing trace pricing",
+        "Judge reasoning may contain sensitive information from the conversation, so it's redacted by default in some platforms",
+        "Sampling and request-rate ceilings apply (e.g. a 1000 requests/hour system limit)",
+        "Reference-based correctness scoring becomes available on live traffic",
+        "Each graded run costs an additional model call on top of the original" ],
+      answer: [0, 1, 2, 4],
+      explain: "Online evaluation is a cost, privacy, and rate-limit decision as much as a quality one. What it does NOT unlock is reference-based scoring — production runs still have no ground-truth answer to compare against, which is why you filter and sample reference-free checks instead." },
+    { type: "match",
+      stem: "Match each situation to the right grading approach.",
+      pairs: [
+        { l: "Ledger row vs processor settlement row", r: "code-based grader — no judge needed" },
+        { l: "\"Is this discharge summary clinically safe?\"", r: "expert labels first, then a calibrated judge" },
+        { l: "Two candidate summaries, hard to score in absolute terms", r: "pairwise comparison with balanced ordering" },
+        { l: "A judge that must be fast, cheap, and auditable", r: "constrained output space + reason-then-discard" } ],
+      explain: "Anthropic's ladder: code-based grading is fastest and most reliable; human grading is high quality but slow and expensive (avoid if possible); LLM grading is fast and flexible but must be tested for reliability before scaling. Reaching for a judge where a deterministic comparison exists is a mistake, not sophistication." },
+    { type: "open",
+      stem: "Your client's clinicians disagree with each other on 1 in 5 summaries during a labeling session. Your PM says the gold set is unusable. In two or three sentences, respond as the FDE.",
+      hint: "Think about what expert disagreement tells you about the ceiling.",
+      model: "Disagreement isn't a defect in the gold set — it's a measurement of the task's inherent ambiguity, and it sets the realistic ceiling for any automated grader. MedHELM's clinician-clinician agreement was ICC 0.43, and their LLM jury scored 0.47 against clinician ratings; the judge's target is inter-expert agreement, not perfection. So: record the disagreements rather than resolving them away, report inter-annotator agreement as a number alongside the judge's agreement score, and route the high-disagreement examples to a second reviewer instead of discarding them." }
+  ]
+};
+</script>
+<div id="code-w07d2" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: a groundedness judge that respects its own biases</h2>
+    <p class="cv-cap">Three mitigations in twenty lines — judge model ≠ generator model, constrained output space, and reasoning forced then discarded.</p>
+    <div class="cv" data-file="judge_groundedness.py" data-lang="python"><pre class="cv-raw"># Groundedness judge for sampled production summaries (online eval, reference-free).
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import json, boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+# The generator runs on Sonnet. The judge MUST be a different model -- an evaluator
+# recognizes and favors its own generations (self-preference bias, arXiv 2404.13076).
+JUDGE = &quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;
+
+RUBRIC = &quot;&quot;&quot;Grade one clinical summary against its source encounter note.
+Reason step by step in &quot;why&quot;, then output ONLY this JSON object:
+{&quot;why&quot;: &quot;...&quot;, &quot;verdict&quot;: &quot;grounded&quot; or &quot;unsupported&quot;}
+Answer &quot;unsupported&quot; if ANY medication, allergy, or diagnosis in the summary
+does not appear in the source. Two labels only -- no scale, no prose.&quot;&quot;&quot;
+
+def grade(source: str, summary: str) -&gt; str:
+    resp = bedrock.converse(
+        modelId=JUDGE,
+        system=[{&quot;text&quot;: RUBRIC}],
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [
+            {&quot;text&quot;: f&quot;&lt;source&gt;{source}&lt;/source&gt;\n&lt;summary&gt;{summary}&lt;/summary&gt;&quot;}]}],
+        inferenceConfig={&quot;maxTokens&quot;: 400, &quot;temperature&quot;: 0},  # temp 0 -&gt; repeatable
+    )
+    out = json.loads(resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;])
+    # Reasoning was forced (it lifts judge accuracy), then discarded: it quotes the
+    # encounter, so emitting it to telemetry would create a new PHI surface.
+    return out[&quot;verdict&quot;]</pre></div>
+    <p class="cv-foot">The same function is both halves of the loop: run it on sampled live traces (online), and on the clinician-labeled gold set in CI where its pass rate is the number the regression gate compares to a floor.</p>
+  </div>
+</div>
+<script src="../../assets/js/roster.js?v=20260706"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/codeviewer.js"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
+</body>
+</html>
