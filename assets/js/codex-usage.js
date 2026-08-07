@@ -62,13 +62,28 @@
     if (rl.secondary) rows += barHTML("Weekly", rl.secondary, limit);
     if (!rows) return;
 
+    // A quota reading is only true at the moment Codex last ran. The pusher can only
+    // report the newest snapshot in Codex's logs, so when no review has run the same
+    // figures get re-pushed indefinitely and age silently. Past a few hours these are
+    // a historical reading, not a live one — and showing "quota exhausted" off stale
+    // data tells the cohort reviews are paused when they are not.
+    var ts = usage.source_ts || usage.stored_at;
+    var ageMs = ts ? (Date.now() - ts) : 0;
+    var STALE_MS = 3 * 3600 * 1000;
+    var isStale = ageMs > STALE_MS;
+
     var plan = usage.plan_type ? '<span class="cu-plan">' + String(usage.plan_type) + '</span>' : "";
-    var stale = ago(usage.source_ts || usage.stored_at);
-    var banner = limit ? '<div class="cu-limit">⚠ Shared quota exhausted — reviews paused until reset</div>' : "";
+    var stale = ago(ts);
+    var banner = (limit && !isStale)
+      ? '<div class="cu-limit">⚠ Shared quota exhausted — reviews paused until reset</div>' : "";
+    var staleNote = isStale
+      ? '<div class="cu-stale">⏳ Last reading ' + stale + ' — Codex has not run since, so this is ' +
+        'a historical snapshot, not a live quota. It refreshes on the next review.</div>' : "";
 
     host.innerHTML =
-      '<div class="cu-card' + (limit ? ' is-limit' : '') + '">' +
+      '<div class="cu-card' + (limit && !isStale ? ' is-limit' : '') + (isStale ? ' is-stale' : '') + '">' +
         '<div class="cu-head"><span class="cu-title">🤖 Codex Review Quota</span>' + plan + '</div>' +
+        staleNote +
         banner +
         rows +
         (stale ? '<div class="cu-foot">shared across the cohort · updated ' + stale + '</div>' : '') +

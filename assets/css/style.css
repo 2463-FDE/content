@@ -1139,6 +1139,9 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
 .cu-fill.warn { background: #e8871e; }
 .cu-fill.crit { background: var(--bad, #e03131); }
 .cu-sub { font-size: 10.5px; color: var(--ink-soft); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.cu-stale { font-size: 11.5px; font-weight: 600; color: var(--gate-ink, #b45309); background: var(--gate-soft, #fff6e6); border: 1px solid var(--gate-line, #f0d9ab); border-radius: 4px; padding: 7px 9px; margin-bottom: 9px; line-height: 1.35; }
+.cu-card.is-stale .cu-fill { opacity: .42; }
+.cu-card.is-stale .cu-pct { opacity: .6; }
 .cu-foot { font-size: 10px; color: var(--ink-soft); opacity: .8; border-top: 1px dashed var(--line); padding-top: 7px; margin-top: 8px; line-height: 1.3; }
 /* Cohort activity (most-active devs) — compact, counts only, no scores. */
 .cu-metrics .cu-head { margin-bottom: 7px; }
