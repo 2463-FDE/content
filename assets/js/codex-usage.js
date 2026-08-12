@@ -54,13 +54,21 @@
   }
 
   function render(host, usage) {
-    var rl = usage && usage.rate_limits;
-    if (!rl) return;
-    var limit = !!rl.limit_reached;
+    if (!usage) return;
+    var rl = usage.rate_limits;
+    var limit = !!(rl && rl.limit_reached);
     var rows = "";
-    if (rl.primary) rows += barHTML(rl.secondary ? "5-hour" : "Usage", rl.primary, limit);
-    if (rl.secondary) rows += barHTML("Weekly", rl.secondary, limit);
-    if (!rows) return;
+    if (rl && rl.primary) rows += barHTML(rl.secondary ? "5-hour" : "Usage", rl.primary, limit);
+    if (rl && rl.secondary) rows += barHTML("Weekly", rl.secondary, limit);
+    // The cohort strip is independent of the quota feed — a snapshot Codex never
+    // recorded should not also take the leaderboard down with it.
+    if (!rows) {
+      var only = metricsHTML(usage.metrics);
+      if (!only) return;
+      host.innerHTML = only;
+      host.style.display = "";
+      return;
+    }
 
     // A quota reading is only true at the moment Codex last ran. The pusher can only
     // report the newest snapshot in Codex's logs, so when no review has run the same
@@ -121,6 +129,41 @@
     );
   }
 
+  // Re-mint a lapsed session from the stored access code. Prefers auth.js's shared
+  // helper; the inline fallback covers pages still serving a cached auth.js.
+  function ensureSession(force) {
+    if (typeof window.FDE_ensureSession === "function") return window.FDE_ensureSession(force);
+    if (!force) { var t = token(); if (t) return Promise.resolve(t); }
+    var idt = null;
+    try { idt = JSON.parse(localStorage.getItem("fde_identity") || "null"); } catch (e) { /* corrupt */ }
+    if (!idt || !idt.code) return Promise.resolve("");
+    return fetch(RUN + "/auth/login", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: idt.code }),
+    }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.ok || !d.token) return "";
+        try { localStorage.setItem("fde_session", d.token); } catch (e) { /* full/blocked */ }
+        return d.token;
+      }).catch(function () { return ""; });
+  }
+
+  function load(host, tok, retried) {
+    return fetch(RUN + "/codex-usage", { headers: { authorization: "Bearer " + tok } })
+      .then(function (r) {
+        // 401 = the session expired (~30 days) while the identity record lived on.
+        // Re-mint once from the stored code rather than leaving the card blank.
+        if (r.status === 401 && !retried) {
+          return ensureSession(true).then(function (fresh) {
+            return fresh ? load(host, fresh, true) : null;
+          });
+        }
+        return r.ok ? r.json().then(function (d) {
+          if (d && d.ok && d.usage) render(host, d.usage);
+        }) : null;
+      });
+  }
+
   function mount() {
     var host = document.getElementById("codex-usage");
     if (!host) {
@@ -133,11 +176,10 @@
       rail.appendChild(host);
     }
     host.style.display = "none";
-    var t = token();
-    if (!t) return; // not logged in — auth.js overlay will handle it
-    fetch(RUN + "/codex-usage", { headers: { authorization: "Bearer " + t } })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) { if (d && d.ok && d.usage) render(host, d.usage); })
+    // No token is not the same as not logged in: learners who signed in before
+    // server-side sessions shipped hold an identity with no token at all.
+    ensureSession(false)
+      .then(function (t) { return t ? load(host, t, false) : null; })
       .catch(function () { /* silent — widget is non-critical */ });
   }
 

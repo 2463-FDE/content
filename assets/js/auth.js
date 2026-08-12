@@ -91,7 +91,25 @@
     inp.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
     setTimeout(() => inp.focus(), 50);
   }
+  // Sessions expire (~30 days) but the identity record does not, so a learner keeps
+  // their badge and every code-authenticated feature while token-gated calls quietly
+  // 401. The access code is already in localStorage, so a lapsed session can be
+  // re-minted silently. Returns a fresh token, or "" if the code no longer resolves.
+  async function ensureSession(force) {
+    if (!force) {
+      const t = localStorage.getItem(TOKEN_KEY);
+      if (t) return t;
+    }
+    const idt = get();
+    if (!idt || !idt.code) return "";
+    const m = await resolve(idt.code);
+    if (!m) return "";
+    set(m.idt, m.token);
+    return m.token;
+  }
+
   window.FDE_getIdentity = get;
+  window.FDE_ensureSession = ensureSession;
   document.addEventListener("DOMContentLoaded", () => {
     const idt = get();
     if (idt) { window.FDE_IDENTITY = idt; if (idt.role === "trainer") document.body.classList.add("is-trainer"); trainerNav(idt); badge(idt); }
