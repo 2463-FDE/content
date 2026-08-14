@@ -102,8 +102,10 @@ Login changes alone do NOT fully reset progress. Two namespaces:
 
 For a TRUE scratch reset: one-time KV purge of all per-user DATA prefixes
 (`uprog: cc: weak: best: dbest: attempts: dhist: iv: drep: q: xo: progress:`),
-PRESERVING `login:` entries and CJ-TEST. Combined with #7's fresh codes = genuine
-clean slate. Also bump a client reset marker so returning browsers discard stale
+PRESERVING `login:` entries and `<ROTATED_PRACTICE_ACCESS_CODE>`. The prior
+practice code was rotated on 2026-08-14; access codes never belong in this
+repository. Combined with #7's fresh codes = genuine clean slate. Also bump a
+client reset marker so returning browsers discard stale
 localStorage instead of re-syncing it up (progress.js heals local→server, so a
 server-only wipe won't stick without this). Optionally add a per-learner "Reset"
 button in the trainer panel for ongoing use. Do this LAST so we don't wipe mid-build.

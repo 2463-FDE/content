@@ -1,7 +1,11 @@
 // Browser QA for reading-coach.js. Serves the worktree, intercepts the Worker,
 // and drives both paths: signed out (offline template) and signed in (chat +
 // generated prompt). Screenshots land next to this file.
-import { chromium } from "playwright";
+const PRACTICE_ACCESS_CODE = process.env.FDE_PRACTICE_ACCESS_CODE;
+if (!PRACTICE_ACCESS_CODE) {
+  throw new Error("FDE_PRACTICE_ACCESS_CODE is required; supply the rotated practice code via the environment");
+}
+const { chromium } = await import("playwright");
 
 const BASE = "http://localhost:8123/weeks/w05/w05d3.html";
 const OUT = "/private/tmp/claude-501/-Users-jestercharles-2463-fde/5f02697d-a030-4ed2-af0f-5345ea6b390d/scratchpad/";
@@ -16,10 +20,10 @@ const browser = await chromium.launch();
 // here is a signed-in learner. The "degraded" case is the Worker being
 // unreachable, not the learner being logged out.
 const signIn = async (context) => {
-  await context.addInitScript(() => {
-    localStorage.setItem("fde_identity", JSON.stringify({ code: "CJ-TEST", name: "Charles Jester", role: "practice" }));
+  await context.addInitScript((accessCode) => {
+    localStorage.setItem("fde_identity", JSON.stringify({ code: accessCode, name: "Charles Jester", role: "practice" }));
     localStorage.setItem("fde_session", "test-token");
-  });
+  }, PRACTICE_ACCESS_CODE);
 };
 
 // ---- worker down -------------------------------------------------------------
