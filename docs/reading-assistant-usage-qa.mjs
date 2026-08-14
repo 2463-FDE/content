@@ -2,7 +2,7 @@
 // never enters the transcript the model sees.
 const PRACTICE_ACCESS_CODE = process.env.FDE_PRACTICE_ACCESS_CODE;
 if (!PRACTICE_ACCESS_CODE) {
-  throw new Error("FDE_PRACTICE_ACCESS_CODE is required; supply the rotated practice code via the environment");
+  throw new Error("FDE_PRACTICE_ACCESS_CODE is required. Every Worker route is stubbed here, so any non-secret placeholder works: FDE_PRACTICE_ACCESS_CODE=practice-placeholder. Never supply a real access code.");
 }
 const { chromium } = await import("playwright");
 let fail = 0, calls = 0;
