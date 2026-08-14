@@ -4,6 +4,8 @@ const PRACTICE_ACCESS_CODE = process.env.FDE_PRACTICE_ACCESS_CODE;
 if (!PRACTICE_ACCESS_CODE) {
   throw new Error("FDE_PRACTICE_ACCESS_CODE is required. Every Worker route is stubbed here, so any non-secret placeholder works: FDE_PRACTICE_ACCESS_CODE=practice-placeholder. Never supply a real access code.");
 }
+// Imported dynamically so the check above fails first — a static import is hoisted
+// and would make an uninstalled playwright, not the missing env var, the error.
 const { chromium } = await import("playwright");
 let fail = 0, calls = 0;
 const ok = (n, c, e) => { console.log((c ? "  ok   " : "  FAIL ") + n + (c || !e ? "" : "\n        " + e)); if (!c) fail++; };
