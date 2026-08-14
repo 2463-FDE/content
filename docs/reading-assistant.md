@@ -207,8 +207,16 @@ screenshots light/dark/mobile):
 
 ```bash
 python3 -m http.server 8123 &
-npm i playwright && node docs/reading-assistant-qa.mjs
+npm i playwright
+node docs/reading-assistant-qa.mjs
 ```
+
+The scripts carry a built-in `practice-placeholder` dummy marker that only seeds the `fde_identity`
+entry in localStorage, and they stub every Worker route, so nothing validates it: the placeholder
+passes every assertion and no sensitive input is needed to run them. Never substitute a real access
+code here — the previously committed literal was rotated on 2026-08-14, and access codes never belong
+in this repository. The sibling scripts `docs/reading-assistant-usage-qa.mjs` and
+`docs/reading-assistant-week-qa.mjs` use the same built-in marker.
 
 ## Rollout — done 2026-08-05
 

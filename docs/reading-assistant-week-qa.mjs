@@ -1,10 +1,14 @@
 import { chromium } from "playwright";
+
+// Every Worker route is stubbed here, so nothing validates this value. It is a
+// dummy marker, never a real access code.
+const PRACTICE_ACCESS_CODE = "practice-placeholder";
 let fail = 0;
 const ok = (n, c, e) => { console.log((c ? "  ok   " : "  FAIL ") + n + (c || !e ? "" : "\n        " + e)); if (!c) fail++; };
 const OUT = "/private/tmp/claude-501/-Users-jestercharles-2463-fde/5f02697d-a030-4ed2-af0f-5345ea6b390d/scratchpad/";
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
-await ctx.addInitScript(() => localStorage.setItem("fde_identity", JSON.stringify({ code: "CJ-TEST", name: "Charles Jester", role: "learner" })));
+await ctx.addInitScript((accessCode) => localStorage.setItem("fde_identity", JSON.stringify({ code: accessCode, name: "Charles Jester", role: "learner" })), PRACTICE_ACCESS_CODE);
 // Stub only the Worker chat routes; a learner identity so the budget label shows.
 await ctx.route("**/fde-backend.jestercharles.workers.dev/**", (r) => {
   const u = r.request().url();

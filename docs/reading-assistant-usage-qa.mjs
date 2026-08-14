@@ -1,11 +1,15 @@
 // The budget reminder: fires once per 20% threshold per day, costs nothing, and
 // never enters the transcript the model sees.
 import { chromium } from "playwright";
+
+// Every Worker route is stubbed here, so nothing validates this value. It is a
+// dummy marker, never a real access code.
+const PRACTICE_ACCESS_CODE = "practice-placeholder";
 let fail = 0, calls = 0;
 const ok = (n, c, e) => { console.log((c ? "  ok   " : "  FAIL ") + n + (c || !e ? "" : "\n        " + e)); if (!c) fail++; };
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
-await ctx.addInitScript(() => localStorage.setItem("fde_identity", JSON.stringify({ code: "CJ-TEST", name: "C", role: "learner" })));
+await ctx.addInitScript((accessCode) => localStorage.setItem("fde_identity", JSON.stringify({ code: accessCode, name: "C", role: "learner" })), PRACTICE_ACCESS_CODE);
 
 // Budget walks down as the test drives turns.
 let left = 100;
@@ -70,7 +74,7 @@ ok("survives a reload without repeating", await p.locator(".rc-usage").count() =
 
 // Practice identities are uncapped and must see nothing.
 const ctx2 = await b.newContext();
-await ctx2.addInitScript(() => localStorage.setItem("fde_identity", JSON.stringify({ code: "CJ-TEST", name: "C", role: "practice" })));
+await ctx2.addInitScript((accessCode) => localStorage.setItem("fde_identity", JSON.stringify({ code: accessCode, name: "C", role: "practice" })), PRACTICE_ACCESS_CODE);
 await ctx2.route("**/fde-backend.jestercharles.workers.dev/**", (r) => r.fulfill({ status: 200, contentType: "application/json",
   body: JSON.stringify({ ok: true, sessionId: "s", opening: "open.", reply: "r", loaded: [],
     reading: { id: "w05d3", title: "T", week: "w05", weekTitle: "W" }, budgetLeft: null, budgetTotal: 100 }) }));

@@ -3,6 +3,10 @@
 // generated prompt). Screenshots land next to this file.
 import { chromium } from "playwright";
 
+// Every Worker route is stubbed here, so nothing validates this value. It is a
+// dummy marker, never a real access code.
+const PRACTICE_ACCESS_CODE = "practice-placeholder";
+
 const BASE = "http://localhost:8123/weeks/w05/w05d3.html";
 const OUT = "/private/tmp/claude-501/-Users-jestercharles-2463-fde/5f02697d-a030-4ed2-af0f-5345ea6b390d/scratchpad/";
 let fail = 0;
@@ -16,10 +20,10 @@ const browser = await chromium.launch();
 // here is a signed-in learner. The "degraded" case is the Worker being
 // unreachable, not the learner being logged out.
 const signIn = async (context) => {
-  await context.addInitScript(() => {
-    localStorage.setItem("fde_identity", JSON.stringify({ code: "CJ-TEST", name: "Charles Jester", role: "practice" }));
+  await context.addInitScript((accessCode) => {
+    localStorage.setItem("fde_identity", JSON.stringify({ code: accessCode, name: "Charles Jester", role: "practice" }));
     localStorage.setItem("fde_session", "test-token");
-  });
+  }, PRACTICE_ACCESS_CODE);
 };
 
 // ---- worker down -------------------------------------------------------------
