@@ -207,8 +207,14 @@ screenshots light/dark/mobile):
 
 ```bash
 python3 -m http.server 8123 &
-npm i playwright && node docs/reading-assistant-qa.mjs
+npm i playwright
+FDE_PRACTICE_ACCESS_CODE='<practice-access-code>' node docs/reading-assistant-qa.mjs
 ```
+
+`FDE_PRACTICE_ACCESS_CODE` is the current practice access code, supplied from your own environment —
+the scripts exit with `FDE_PRACTICE_ACCESS_CODE is required` when it is unset, and the value never
+belongs in this repository (the previous literal was rotated on 2026-08-14). The sibling scripts
+`docs/reading-assistant-usage-qa.mjs` and `docs/reading-assistant-week-qa.mjs` need the same variable.
 
 ## Rollout — done 2026-08-05
 
