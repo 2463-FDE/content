@@ -208,15 +208,15 @@ screenshots light/dark/mobile):
 ```bash
 python3 -m http.server 8123 &
 npm i playwright
-FDE_PRACTICE_ACCESS_CODE=practice-placeholder node docs/reading-assistant-qa.mjs
+node docs/reading-assistant-qa.mjs
 ```
 
-`FDE_PRACTICE_ACCESS_CODE` only seeds the `fde_identity` entry in localStorage, and these scripts stub
-every Worker route, so nothing validates it: any non-secret placeholder passes every assertion. Never
-supply, export, or persist a real access code here — the previously committed literal was rotated on
-2026-08-14, and access codes never belong in this repository. The scripts exit with
-`FDE_PRACTICE_ACCESS_CODE is required` when it is unset. The sibling scripts
-`docs/reading-assistant-usage-qa.mjs` and `docs/reading-assistant-week-qa.mjs` take the same variable.
+The scripts carry a built-in `practice-placeholder` dummy marker that only seeds the `fde_identity`
+entry in localStorage, and they stub every Worker route, so nothing validates it: the placeholder
+passes every assertion and no sensitive input is needed to run them. Never substitute a real access
+code here — the previously committed literal was rotated on 2026-08-14, and access codes never belong
+in this repository. The sibling scripts `docs/reading-assistant-usage-qa.mjs` and
+`docs/reading-assistant-week-qa.mjs` use the same built-in marker.
 
 ## Rollout — done 2026-08-05
 

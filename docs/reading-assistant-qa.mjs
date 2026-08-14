@@ -1,13 +1,11 @@
 // Browser QA for reading-coach.js. Serves the worktree, intercepts the Worker,
 // and drives both paths: signed out (offline template) and signed in (chat +
 // generated prompt). Screenshots land next to this file.
-const PRACTICE_ACCESS_CODE = process.env.FDE_PRACTICE_ACCESS_CODE;
-if (!PRACTICE_ACCESS_CODE) {
-  throw new Error("FDE_PRACTICE_ACCESS_CODE is required. Every Worker route is stubbed here, so any non-secret placeholder works: FDE_PRACTICE_ACCESS_CODE=practice-placeholder. Never supply a real access code.");
-}
-// Imported dynamically so the check above fails first — a static import is hoisted
-// and would make an uninstalled playwright, not the missing env var, the error.
-const { chromium } = await import("playwright");
+import { chromium } from "playwright";
+
+// Every Worker route is stubbed here, so nothing validates this value. It is a
+// dummy marker, never a real access code.
+const PRACTICE_ACCESS_CODE = "practice-placeholder";
 
 const BASE = "http://localhost:8123/weeks/w05/w05d3.html";
 const OUT = "/private/tmp/claude-501/-Users-jestercharles-2463-fde/5f02697d-a030-4ed2-af0f-5345ea6b390d/scratchpad/";

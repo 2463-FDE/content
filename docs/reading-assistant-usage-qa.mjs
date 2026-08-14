@@ -1,12 +1,10 @@
 // The budget reminder: fires once per 20% threshold per day, costs nothing, and
 // never enters the transcript the model sees.
-const PRACTICE_ACCESS_CODE = process.env.FDE_PRACTICE_ACCESS_CODE;
-if (!PRACTICE_ACCESS_CODE) {
-  throw new Error("FDE_PRACTICE_ACCESS_CODE is required. Every Worker route is stubbed here, so any non-secret placeholder works: FDE_PRACTICE_ACCESS_CODE=practice-placeholder. Never supply a real access code.");
-}
-// Imported dynamically so the check above fails first — a static import is hoisted
-// and would make an uninstalled playwright, not the missing env var, the error.
-const { chromium } = await import("playwright");
+import { chromium } from "playwright";
+
+// Every Worker route is stubbed here, so nothing validates this value. It is a
+// dummy marker, never a real access code.
+const PRACTICE_ACCESS_CODE = "practice-placeholder";
 let fail = 0, calls = 0;
 const ok = (n, c, e) => { console.log((c ? "  ok   " : "  FAIL ") + n + (c || !e ? "" : "\n        " + e)); if (!c) fail++; };
 const b = await chromium.launch();
