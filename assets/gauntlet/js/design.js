@@ -5,9 +5,9 @@
 //
 // Flow: track-select -> scenario-pick -> workspace (draw + clarify-chat, 20min)
 //   -> spoken explanation -> dual-critic scoring -> results + 2 re-think
-//   follow-ups (spoken) -> finalize -> leaderboards.
+//   follow-ups (spoken) -> finalize -> results.
 //
-// Exposes window.DESIGN.open(creds, onExit) and window.DESIGN.boards(creds, onExit).
+// Exposes window.DESIGN.open(creds, onExit).
 
 (function () {
   "use strict";
@@ -272,7 +272,7 @@
         el("h1", { class: "board-title", text: (S.track === "agentic" ? "AI / Agentic" : "Full-Stack") + " Scenarios" }),
         el("div", { class: "board-head__actions" }, [guideBtn, back])
       ]),
-      el("p", { class: "sd-note", text: "New here? Read the Playbook (top-right) for how to spend your time. Unlimited practice — only your best each day counts on the board." }),
+      el("p", { class: "sd-note", text: "New here? Read the Playbook (top-right) for how to spend your time." }),
       el("div", { class: "sd-scenario-grid" }, cards)
     ]));
   }
@@ -759,16 +759,13 @@
     var d = data.dims || {};
 
     var badge = data.personalBestToday ? el("div", { class: "best-badge", text: "⭐ Personal best today!" }) : null;
-    var rank = typeof data.rankToday === "number" ? el("p", { class: "rank-line" }, ["Today's System Design rank: ", el("strong", { text: "#" + data.rankToday })]) : null;
-    var practice = (S.tier === "practice") ? el("p", { class: "mic-note", text: "Practice mode — not posted to the board." }) : null;
-
     var hero = el("div", { class: "card results-card screen-in" }, [
       el("h1", { class: "results-title", text: "Design complete" }),
       el("div", { class: "results-score" }, [
         el("span", { class: "score-num score-num--xl", text: String(typeof data.finalScore === "number" ? data.finalScore : 0) }),
         el("span", { class: "score-den score-den--xl", text: "/100" })
       ]),
-      badge, rank, practice
+      badge
     ]);
 
     var dims = el("div", { class: "card sd-dims-panel" }, [
@@ -824,182 +821,14 @@
 
     var pdfBtn = el("button", { class: "btn btn--primary", type: "button", text: "⬇ Download PDF" });
     pdfBtn.addEventListener("click", function () { downloadPdf(report); });
-    var toBoards = el("button", { class: "btn", type: "button", text: "Leaderboards" });
-    toBoards.addEventListener("click", function () { renderBoards(); });
     var hist = el("button", { class: "btn", type: "button", text: "My past designs" });
     hist.addEventListener("click", renderHistory);
     var again = el("button", { class: "btn", type: "button", text: "Another scenario" });
     again.addEventListener("click", exit);
 
     var main = el("div", { class: "results-main" }, [hero, dims, notesPanel, fbPanel,
-      el("div", { class: "results-actions" }, [pdfBtn, toBoards, hist, again])]);
+      el("div", { class: "results-actions" }, [pdfBtn, hist, again])]);
     root.appendChild(el("div", { class: "screen screen--wide" }, [main]));
-  }
-
-  // =====================================================================
-  // SCREEN: leaderboards (Overall / Interview / System Design) + peer view
-  // =====================================================================
-  function renderBoards() {
-    cleanup();
-    var root = appRoot();
-    clear(root);
-    var active = "overall";
-
-    var back = el("button", { class: "btn btn--ghost", type: "button", text: "← Back" });
-    back.addEventListener("click", exit);
-
-    var tabsWrap = el("div", { class: "tabs" });
-    var mount = el("div", { id: "boardsMount" }, [el("div", { class: "loading", text: "Loading…" })]);
-
-    function tab(key, label) {
-      var t = el("button", { class: "tab" + (active === key ? " is-active" : ""), type: "button", text: label });
-      t.addEventListener("click", function () { active = key; redraw(); });
-      return t;
-    }
-    function rebuildTabs() {
-      clear(tabsWrap);
-      tabsWrap.appendChild(tab("overall", "Overall"));
-      tabsWrap.appendChild(tab("design", "System Design"));
-      tabsWrap.appendChild(tab("interview", "Interview"));
-    }
-
-    var cache = { design: null, interview: null };
-
-    function redraw() {
-      rebuildTabs();
-      clear(mount);
-      mount.appendChild(el("div", { class: "loading", text: "Loading…" }));
-      if (active === "interview") {
-        window.API.leaderboard().then(function (d) { drawInterview(mount, d); }).catch(function () { fail(mount); });
-      } else {
-        window.API.designLeaderboard().then(function (d) {
-          if (active === "overall") drawOverall(mount, d);
-          else drawDesign(mount, d);
-        }).catch(function () { fail(mount); });
-      }
-    }
-    function fail(m) { clear(m); m.appendChild(el("p", { class: "loading", text: "Could not load. Try again." })); }
-
-    root.appendChild(el("div", { class: "screen" }, [
-      el("div", { class: "board-head" }, [el("h1", { class: "board-title", text: "Leaderboards" }), back]),
-      tabsWrap, mount
-    ]));
-    redraw();
-  }
-
-  function drawOverall(mount, data) {
-    clear(mount);
-    var rows = (data && data.overall) || [];
-    mount.appendChild(el("p", { class: "board-date", text: "Blended (interview + system design), " + (data.date || "") + " — resets daily, US Eastern" }));
-    if (!rows.length) { mount.appendChild(el("p", { class: "empty", text: "No scores yet today." })); return; }
-    var table = el("table", { class: "board-table" });
-    table.appendChild(el("thead", {}, [el("tr", {}, [
-      el("th", { text: "#" }), el("th", { text: "Name" }), el("th", { text: "Tier" }),
-      el("th", { class: "num", text: "Overall" }), el("th", { class: "num", text: "Interview" }), el("th", { class: "num", text: "Design" })
-    ])]));
-    var tb = el("tbody");
-    rows.forEach(function (r, i) {
-      tb.appendChild(el("tr", { class: (i === 0 ? "is-leader " : "") + (r.name === S.name ? "is-me" : "") }, [
-        el("td", { class: "rank-cell", text: String(i + 1) }),
-        el("td", { text: r.name }),
-        el("td", {}, [r.tier ? el("span", { class: "tier-pill", text: r.tier }) : document.createTextNode("—")]),
-        el("td", { class: "num strong", text: r.blended == null ? "—" : String(r.blended) }),
-        el("td", { class: "num", text: r.interview == null ? "—" : String(r.interview) }),
-        el("td", { class: "num", text: r.systemDesign == null ? "—" : String(r.systemDesign) })
-      ]));
-    });
-    table.appendChild(tb); mount.appendChild(table);
-  }
-
-  function drawDesign(mount, data) {
-    clear(mount);
-    var rows = (data && data.systemDesign) || [];
-    mount.appendChild(el("p", { class: "board-date", text: "Best design today — click a row to view their diagram & explanation (after you've done that scenario)." }));
-    if (!rows.length) { mount.appendChild(el("p", { class: "empty", text: "No designs finalized yet today." })); return; }
-    var table = el("table", { class: "board-table sd-board-table" });
-    table.appendChild(el("thead", {}, [el("tr", {}, [
-      el("th", { text: "#" }), el("th", { text: "Name" }), el("th", { text: "Tier" }),
-      el("th", { class: "num", text: "Best" }), el("th", { class: "num", text: "Sessions" }), el("th", { text: "Top scenario" })
-    ])]));
-    var tb = el("tbody");
-    rows.forEach(function (r, i) {
-      var tr = el("tr", { class: (i === 0 ? "is-leader " : "") + (r.name === S.name ? "is-me " : "") + "sd-board-row", title: "View this design" }, [
-        el("td", { class: "rank-cell", text: String(i + 1) }),
-        el("td", { text: r.name }),
-        el("td", {}, [r.tier ? el("span", { class: "tier-pill", text: r.tier }) : document.createTextNode("—")]),
-        el("td", { class: "num strong", text: String(r.bestScore) }),
-        el("td", { class: "num", text: String(r.sessions) }),
-        el("td", { class: "sd-scn-cell", text: r.scenarioTitle || "—" })
-      ]);
-      tr.addEventListener("click", function () { openPeerView(r.bestSessionId); });
-      tb.appendChild(tr);
-    });
-    table.appendChild(tb); mount.appendChild(table);
-  }
-
-  function drawInterview(mount, data) {
-    clear(mount);
-    var board = (data && data.board) || [];
-    mount.appendChild(el("p", { class: "board-date", text: "Interview Gauntlet — " + ((data && data.date) || "") }));
-    if (!board.length) { mount.appendChild(el("p", { class: "empty", text: "No interviews logged yet today." })); return; }
-    var table = el("table", { class: "board-table" });
-    table.appendChild(el("thead", {}, [el("tr", {}, [
-      el("th", { text: "#" }), el("th", { text: "Name" }), el("th", { text: "Tier" }),
-      el("th", { class: "num", text: "Best" }), el("th", { class: "num", text: "Interviews" })
-    ])]));
-    var tb = el("tbody");
-    board.forEach(function (r, i) {
-      tb.appendChild(el("tr", { class: (i === 0 ? "is-leader " : "") + (r.name === S.name ? "is-me" : "") }, [
-        el("td", { class: "rank-cell", text: String(i + 1) }),
-        el("td", { text: r.name }),
-        el("td", {}, [r.tier ? el("span", { class: "tier-pill", text: r.tier }) : document.createTextNode("—")]),
-        el("td", { class: "num strong", text: String(r.bestScore) }),
-        el("td", { class: "num", text: String(r.interviews) })
-      ]));
-    });
-    table.appendChild(tb); mount.appendChild(table);
-  }
-
-  function openPeerView(sessionId) {
-    if (!sessionId) return;
-    var overlay = el("div", { class: "sd-modal-overlay" });
-    var body = el("div", { class: "sd-modal-body" }, [el("div", { class: "loading", text: "Loading design…" })]);
-    var closeBtn = el("button", { class: "btn btn--ghost sd-modal-close", type: "button", text: "✕ Close" });
-    closeBtn.addEventListener("click", function () { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); });
-    var modal = el("div", { class: "sd-modal" }, [el("div", { class: "sd-modal-head" }, [closeBtn]), body]);
-    overlay.appendChild(modal);
-    overlay.addEventListener("click", function (e) { if (e.target === overlay) overlay.parentNode.removeChild(overlay); });
-    document.body.appendChild(overlay);
-
-    window.API.designSessionView(S.name, S.passcode, sessionId).then(function (data) {
-      clear(body);
-      if (!data || !data.ok) { body.appendChild(el("p", { text: "Could not load." })); return; }
-      if (data.locked) {
-        body.appendChild(el("div", { class: "sd-locked" }, [
-          el("h3", { text: "🔒 Locked" }),
-          el("p", { text: "You can view " + (data.owner || "this") + "'s “" + (data.scenarioTitle || "design") + "” after you've completed that scenario yourself." })
-        ]));
-        return;
-      }
-      var dd = data.dims || {};
-      body.appendChild(el("h2", { class: "panel-title", text: data.owner + " — " + data.scenarioTitle }));
-      body.appendChild(el("div", { class: "sd-modal-score" }, [
-        el("span", { class: "score-num", text: String(data.overall) }), el("span", { class: "score-den", text: "/100" }),
-        data.tier ? el("span", { class: "tier-pill", text: data.tier }) : null
-      ]));
-      if (data.summary) body.appendChild(el("p", { class: "ov-summary", text: data.summary }));
-      body.appendChild(el("div", { class: "sd-modal-dims" }, [
-        dimBar("Completeness", dd.completeness), dimBar("Design quality", dd.design_quality),
-        dimBar("Scoping", dd.scoping), dimBar("Deliverability", dd.deliverability),
-        dimBar("Adaptability", dd.adaptability)
-      ]));
-      if (data.scenePng) body.appendChild(el("img", { class: "sd-modal-diagram", src: data.scenePng, alt: "diagram" }));
-      else body.appendChild(el("p", { class: "empty", text: "(No diagram captured.)" }));
-      if (data.explanation) {
-        body.appendChild(el("h4", { class: "ov-h", text: "Their explanation" }));
-        body.appendChild(el("blockquote", { class: "sd-modal-explain", text: data.explanation }));
-      }
-    }).catch(function () { clear(body); body.appendChild(el("p", { text: "Could not load." })); });
   }
 
   // =====================================================================
@@ -1269,11 +1098,6 @@
       S.onExit = onExit || null;
       S.track = /^ag-/.test(String(scenarioId)) ? "agentic" : "fullstack";
       startSession({ id: scenarioId });
-    },
-    boards: function (creds, onExit) {
-      S.name = creds.name; S.passcode = creds.passcode; S.tier = creds.tier || null;
-      S.onExit = onExit || null;
-      renderBoards();
     },
     history: function (creds, onExit) {
       S.name = creds.name; S.passcode = creds.passcode; S.tier = creds.tier || null;

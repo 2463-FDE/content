@@ -1,5 +1,5 @@
 // app.js — flow + state for the FDE Interview Gauntlet.
-// Screens: gate -> lobby -> interview -> results -> leaderboard.
+// Screens: gate -> lobby -> interview -> results.
 // Pure vanilla JS. Relies on window.API (api.js) and window.STT (stt.js).
 
 (function () {
@@ -238,8 +238,8 @@
   }
 
   function isPractice() {
-    // Server-authoritative: the backend marks trainer/practice identities as
-    // leaderboard-exempt (role → practice) in the /session payload.
+    // Server-authoritative: the backend marks trainer/practice identities in
+    // the /session payload.
     return !!(state.session && state.session.practice);
   }
 
@@ -398,7 +398,7 @@
   }
 
   // ===========================================================================
-  // SCREEN: Mode select (hub) — Interview vs System Design + boards + trainer
+  // SCREEN: Mode select (hub) — Interview vs System Design + trainer
   // ===========================================================================
   function creds() {
     return { name: state.name, passcode: state.passcode, tier: state.tier };
@@ -457,8 +457,6 @@
       function () { window.COLLAB.open(creds(), renderModeSelect); }
     );
 
-    var boardsBtn = el("button", { class: "btn btn--primary", type: "button", text: "🏆 Leaderboards" });
-    boardsBtn.addEventListener("click", function () { window.DESIGN.boards(creds(), renderModeSelect); });
     var historyBtn = el("button", { class: "btn", type: "button", text: "My past designs" });
     historyBtn.addEventListener("click", function () { window.DESIGN.history(creds(), renderModeSelect); });
     var guideBtn = el("button", { class: "btn", type: "button", text: "📖 SD Playbook" });
@@ -482,7 +480,7 @@
           ])
         : null,
       el("div", { class: "sd-track-grid" }, [interviewCard, designCard, collabCard]),
-      el("div", { class: "mode-actions" }, [boardsBtn, guideBtn, historyBtn, trainerBtn])
+      el("div", { class: "mode-actions" }, [guideBtn, historyBtn, trainerBtn])
     ]));
   }
 
@@ -710,7 +708,7 @@
         ]);
 
     var capNote = capped
-      ? el("p", { class: "cap-note", text: "You've used all of today's interviews. Come back tomorrow — the board resets daily (US Eastern)." })
+      ? el("p", { class: "cap-note", text: "You've used all of today's interviews. Come back tomorrow." })
       : null;
 
     var micNote = el("p", { class: "mic-note" }, [
@@ -726,7 +724,7 @@
         el("li", { text: "Press Record and speak — you get up to 2 minutes. The countdown shows the time left." }),
         el("li", { text: "On stop or time-out, your full transcript appears for you to edit — no rush, editing isn't timed." }),
         el("li", { text: "Submit each answer — it's scored privately. No feedback shown mid-interview." }),
-        el("li", { text: "When you're done, you'll see your full score + feedback. Finish to post your best to the leaderboard." })
+        el("li", { text: "When you're done, you'll see your full score + feedback." })
       ])
     ]);
 
@@ -781,10 +779,7 @@
     tabs.appendChild(modesTab);
     var lobbyTab = el("button", { class: "tab" + (active === "lobby" ? " is-active" : ""), type: "button", text: "Lobby" });
     lobbyTab.addEventListener("click", function () { if (active !== "lobby") renderLobby(); });
-    var boardTab = el("button", { class: "tab" + (active === "board" ? " is-active" : ""), type: "button", text: "Leaderboard" });
-    boardTab.addEventListener("click", function () { if (active !== "board") renderLeaderboard("lobby"); });
     tabs.appendChild(lobbyTab);
-    tabs.appendChild(boardTab);
     return tabs;
   }
 
@@ -1390,27 +1385,18 @@
 
     var pq = mergedPerQuestion(data);
 
-    // ---- Hero: big score + badge + rank ----
+    // ---- Hero: big score + personal-best badge ----
     var scoreNum = el("span", { class: "score-num score-num--xl", text: "0" });
     var badge = data.personalBestToday
       ? el("div", { class: "best-badge", text: "⭐ Personal best today!" })
       : null;
-    var rank = typeof data.rankToday === "number"
-      ? el("p", { class: "rank-line" }, ["Today's rank: ", el("strong", { text: "#" + data.rankToday })])
-      : null;
-    var practiceNote = isPractice()
-      ? el("p", { class: "mic-note", text: "Practice mode — this run isn't posted to the leaderboard." })
-      : null;
-
     var hero = el("div", { class: "card results-card screen-in" }, [
       el("h1", { class: "results-title", text: "Interview complete" }),
       el("div", { class: "results-score" }, [
         scoreNum,
         el("span", { class: "score-den score-den--xl", text: "/100" })
       ]),
-      badge,
-      rank,
-      practiceNote
+      badge
     ]);
 
     // ---- Overall Feedback panel ----
@@ -1485,15 +1471,13 @@
       ])
     ]);
 
-    // ---- Actions: Download / Lobby / Leaderboard ----
+    // ---- Actions: Download / Lobby ----
     var dlBtn = el("button", { class: "btn btn--primary", type: "button", text: "⬇ Download PDF" });
     dlBtn.addEventListener("click", function () { downloadReport(data, pq); });
     var toLobby = el("button", { class: "btn", type: "button", text: "Back to Lobby" });
     toLobby.addEventListener("click", refreshSessionThenLobby);
-    var toBoard = el("button", { class: "btn btn--primary", type: "button", text: "View Leaderboard" });
-    toBoard.addEventListener("click", function () { renderLeaderboard("results"); });
 
-    var actions = el("div", { class: "results-actions" }, [dlBtn, toLobby, toBoard]);
+    var actions = el("div", { class: "results-actions" }, [dlBtn, toLobby]);
 
     // Side rail: warning + actions stay reachable while scrolling the breakdown.
     var rail = el("aside", { class: "results-rail" }, [savedWarning, actions]);
@@ -1532,7 +1516,6 @@
     metaBits.push("<span><strong>Date:</strong> " + esc(dateStr) + "</span>");
     metaBits.push("<span><strong>Score:</strong> " +
       (typeof data.interviewScore === "number" ? data.interviewScore : "—") + " / 100</span>");
-    if (typeof data.rankToday === "number") metaBits.push("<span><strong>Today's rank:</strong> #" + data.rankToday + "</span>");
     if (data.personalBestToday) metaBits.push("<span><strong>★ Personal best today</strong></span>");
 
     var overallHtml = "";
@@ -1646,101 +1629,6 @@
         renderLobby();
       })
       .catch(function () { renderLobby(); });
-  }
-
-  // ===========================================================================
-  // SCREEN: Leaderboard
-  // ===========================================================================
-  function renderLeaderboard(from) {
-    window.STT.tts.cancel();
-    renderHeader();
-    var root = app();
-    clear(root);
-
-    var backBtn = el("button", { class: "btn", type: "button" }, [
-      from === "results" ? "Back to Lobby" : "← Lobby"
-    ]);
-    backBtn.addEventListener("click", function () { renderLobby(); });
-
-    var refreshBtn = el("button", { class: "btn btn--ghost", type: "button", text: "↻ Refresh" });
-
-    var mount = el("div", { id: "boardMount" }, [el("div", { class: "loading", text: "Loading leaderboard…" })]);
-
-    var head = el("div", { class: "board-head" }, [
-      el("h1", { class: "board-title", text: "Daily Leaderboard" }),
-      el("div", { class: "board-head__actions" }, [refreshBtn, backBtn])
-    ]);
-
-    root.appendChild(el("div", { class: "screen" }, [head, mount]));
-
-    function load() {
-      mount.innerHTML = "";
-      mount.appendChild(el("div", { class: "loading", text: "Loading leaderboard…" }));
-      refreshBtn.disabled = true;
-      window.API.leaderboard()
-        .then(function (data) {
-          refreshBtn.disabled = false;
-          if (data && data.ok) drawBoard(mount, data);
-          else { mount.innerHTML = ""; mount.appendChild(el("p", { class: "loading", text: "Leaderboard unavailable." })); }
-        })
-        .catch(function () {
-          refreshBtn.disabled = false;
-          mount.innerHTML = "";
-          mount.appendChild(el("p", { class: "loading", text: "Could not load leaderboard. Try Refresh." }));
-        });
-    }
-    refreshBtn.addEventListener("click", load);
-    load();
-  }
-
-  function drawBoard(mount, data) {
-    clear(mount);
-
-    if (data.yesterdayWinner) {
-      mount.appendChild(el("div", { class: "yesterday" }, [
-        "🏆 Yesterday's winner: ",
-        el("strong", { text: String(data.yesterdayWinner) })
-      ]));
-    }
-
-    if (data.date) {
-      mount.appendChild(el("p", { class: "board-date", text: "Standings for " + data.date + " (resets daily, US Eastern)" }));
-    }
-
-    // Ranking table
-    var board = data.board || [];
-    if (!board.length) {
-      mount.appendChild(el("p", { class: "empty", text: "No interviews logged yet today. Be the first." }));
-    } else {
-      var table = el("table", { class: "board-table" });
-      table.appendChild(el("thead", {}, [
-        el("tr", {}, [
-          el("th", { text: "#" }),
-          el("th", { text: "Name" }),
-          el("th", { text: "Tier" }),
-          el("th", { class: "num", text: "Best" }),
-          el("th", { class: "num", text: "Interviews" })
-        ])
-      ]));
-      var tbody = el("tbody");
-      board.forEach(function (row, i) {
-        var isMe = row.name === state.name;
-        var tr = el("tr", { class: (i === 0 ? "is-leader " : "") + (isMe ? "is-me" : "") }, [
-          el("td", { class: "rank-cell", text: String(i + 1) }),
-          el("td", { text: String(row.name) }),
-          el("td", {}, [row.tier ? el("span", { class: "tier-pill", text: row.tier }) : document.createTextNode("—")]),
-          el("td", { class: "num strong", text: String(row.bestScore) }),
-          el("td", { class: "num", text: String(row.interviews) })
-        ]);
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      mount.appendChild(table);
-    }
-
-    // Prize pool dropped for the internal 2463 cohort — leaderboard is bragging
-    // rights only. Board still resets daily (US Eastern).
-    mount.appendChild(el("p", { class: "pool-rule", text: "Board resets daily (US Eastern). Bragging rights only — no prize pool." }));
   }
 
   // ===========================================================================
