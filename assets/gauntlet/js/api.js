@@ -66,25 +66,6 @@
       });
   }
 
-  function get(path) {
-    var url = base() + path;
-    var to = timeoutSignal(REQUEST_TIMEOUT_MS);
-    return fetch(url, { method: "GET", signal: to.signal })
-      .then(function (res) {
-        to.clear();
-        return res.json().catch(function () {
-          throw new Error("Bad response from server (status " + res.status + ").");
-        });
-      })
-      .catch(function (err) {
-        to.clear();
-        if (err && err.name === "AbortError") {
-          throw new Error("Request timed out. Check your connection and try again.");
-        }
-        throw err;
-      });
-  }
-
   // ---- Endpoint wrappers --------------------------------------------------
 
   function session(name, passcode) {
@@ -131,13 +112,6 @@
     });
   }
 
-  function leaderboard() {
-    return get("/leaderboard").catch(function (e) {
-      toast(e.message || "Could not load the leaderboard.");
-      throw e;
-    });
-  }
-
   // ---- System Design Simulator wrappers ----------------------------------
 
   function designScenarios(name, passcode, track) {
@@ -171,18 +145,6 @@
   function designFollowup(sessionId, answers) {
     return post("/design/followup", { sessionId: sessionId, answers: answers }).catch(function (e) {
       toast(e.message || "Could not submit your follow-up answers.");
-      throw e;
-    });
-  }
-  function designSessionView(name, passcode, sessionId) {
-    return post("/design/session-view", { name: name, passcode: passcode, sessionId: sessionId }).catch(function (e) {
-      toast(e.message || "Could not load that design.");
-      throw e;
-    });
-  }
-  function designLeaderboard() {
-    return get("/design/leaderboard").catch(function (e) {
-      toast(e.message || "Could not load the leaderboards.");
       throw e;
     });
   }
@@ -249,7 +211,6 @@
     startInterview: startInterview,
     judge: judge,
     finishInterview: finishInterview,
-    leaderboard: leaderboard,
     // System Design Simulator
     designScenarios: designScenarios,
     designStart: designStart,
@@ -257,8 +218,6 @@
     designSnapshot: designSnapshot,
     designSubmit: designSubmit,
     designFollowup: designFollowup,
-    designSessionView: designSessionView,
-    designLeaderboard: designLeaderboard,
     trainerReport: trainerReport,
     designHistory: designHistory,
     designReport: designReport,
