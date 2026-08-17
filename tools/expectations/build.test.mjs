@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,7 +14,6 @@ import {
 } from "./build.mjs";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
-const COMMIT = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
 const read = (name) => readFileSync(new URL(`../../${name}`, import.meta.url), "utf8");
 const sources = () => ({
   client: read("client-delivery.html"),
@@ -23,15 +22,27 @@ const sources = () => ({
   alt: read("alt-research.html"),
 });
 const metadata = {
-  generated_from_commit: COMMIT,
   reviewed_by_role: "trainer",
-  reviewed_at_commit: COMMIT,
   owner_roles: {},
   versions: {},
   supersedes: {},
   persistent: [],
 };
 const SCHEMA = JSON.parse(read("expectations.v1.schema.json"));
+
+const stakeholderContext = (positionKey, positionType) => ({
+  position_key: positionKey,
+  stakeholder_role: "client_business",
+  position_type: positionType,
+  approval_authority: ["client_business"],
+  rationale: "Synthetic authored business rationale.",
+  pressure: "Synthetic authored delivery pressure.",
+  success_criteria: ["Synthetic authored success criterion."],
+  boundaries: ["Synthetic authored boundary."],
+  trade_space: [],
+  escalation_triggers: ["Synthetic authored escalation trigger."],
+  conflicts: [],
+});
 
 const standaloneSources = (marker = "") => ({
   client: `${marker ? `<div class="cd-sec trainer-only">${marker}-multi-class</div>` : ""}<script>window.CLIENT = {
@@ -149,6 +160,14 @@ test("a trainer-only marker sharing an element with other classes is still strip
   assert.equal(stripHtml('learner <span class="trainer-only-ish">visible</span> ok'), "learner visible ok");
 });
 
+test("a void element carrying the trainer marker is stripped instead of aborting the build", () => {
+  assert.equal(stripHtml('learner <img class="trainer-only" src=x> ok'), "learner ok");
+  assert.equal(stripHtml('learner <br class="trainer-only"> ok'), "learner ok");
+  assert.equal(stripHtml('learner <hr class="cd-sec trainer-only"> ok'), "learner ok");
+  assert.equal(stripHtml('learner <input class="trainer-only" value="SECRET"> ok'), "learner ok");
+  assert.equal(stripHtml('learner <img src=x alt="visible"> ok'), "learner ok");
+});
+
 test("post-cutover rejects every trainer-only authored field", () => {
   const base = sources();
   const cases = [
@@ -194,15 +213,7 @@ test("captain amendment schema preserves two roles, demand/preference, authority
   const technical = modeled.items[1];
   business.owner_role = "client_business";
   business.stakeholder_context = {
-    stakeholder_role: "client_business",
-    position_type: "non_negotiable",
-    approval_authority: ["client_business"],
-    rationale: "Synthetic authored business rationale.",
-    pressure: "Synthetic authored delivery pressure.",
-    success_criteria: ["Synthetic authored success criterion."],
-    boundaries: ["Synthetic authored boundary."],
-    trade_space: [],
-    escalation_triggers: ["Synthetic authored escalation trigger."],
+    ...stakeholderContext("healthcare.w01.phi-logging", "non_negotiable"),
     conflicts: [{
       with_id: technical.id,
       dimensions: ["delivery", "reliability"],
@@ -212,8 +223,8 @@ test("captain amendment schema preserves two roles, demand/preference, authority
   };
   technical.owner_role = "client_technical_lead";
   technical.stakeholder_context = {
+    ...stakeholderContext("healthcare.w01.parser-maintainability", "preference"),
     stakeholder_role: "client_technical_lead",
-    position_type: "preference",
     approval_authority: ["client_technical_lead", "security"],
     rationale: "Synthetic authored technical rationale.",
     pressure: "Synthetic authored maintainability pressure.",
@@ -239,6 +250,15 @@ test("captain amendment schema preserves two roles, demand/preference, authority
   const oneDimensional = structuredClone(modeled);
   oneDimensional.items[0].stakeholder_context.conflicts[0].dimensions = ["delivery"];
   assert.throws(() => validateManifest(oneDimensional, schema, { root: ROOT }));
+  const noKey = structuredClone(modeled);
+  delete noKey.items[0].stakeholder_context.position_key;
+  assert.throws(() => validateManifest(noKey, schema, { root: ROOT }), /stakeholder_context/);
+  const textDerivedKey = structuredClone(modeled);
+  textDerivedKey.items[0].stakeholder_context.position_key = "The registration page feels slow.";
+  assert.throws(() => validateManifest(textDerivedKey, schema, { root: ROOT }), /stakeholder_context/);
+  const reusedKey = structuredClone(modeled);
+  reusedKey.items[1].stakeholder_context.position_key = reusedKey.items[0].stakeholder_context.position_key;
+  assert.throws(() => validateManifest(reusedKey, schema, { root: ROOT }), /duplicate position_key/);
 });
 
 test("same inputs are byte-stable and inserting a bullet renumbers nothing", () => {
@@ -321,48 +341,103 @@ test("provenance is pinned to source content, validates without git, and catches
   }
 });
 
-test("softening a non-negotiable into a preference needs an explicit version and supersession", () => {
+const POSITION_KEY = "healthcare.w01.phi-logging";
+
+function classifiedBaseline(positionType) {
+  const manifest = buildManifestFromSources(sources(), { mode: "pre-cutover", metadata }).manifest;
+  manifest.items[0].owner_role = "client_business";
+  manifest.items[0].stakeholder_context = stakeholderContext(POSITION_KEY, positionType);
+  return manifest;
+}
+
+function reclassified(previous, positionType) {
+  const next = structuredClone(previous);
+  next.items[0].stakeholder_context.position_type = positionType;
+  return next;
+}
+
+test("classifying previously unclassified content is an ordinary versioned addition", () => {
   const previous = buildManifestFromSources(sources(), { mode: "pre-cutover", metadata }).manifest;
-  const context = {
-    stakeholder_role: "client_business",
-    position_type: "non_negotiable",
-    approval_authority: ["client_business"],
-    rationale: "Synthetic authored business rationale.",
-    pressure: "Synthetic authored delivery pressure.",
-    success_criteria: ["Synthetic authored success criterion."],
-    boundaries: ["Synthetic authored boundary."],
-    trade_space: [],
-    escalation_triggers: ["Synthetic authored escalation trigger."],
-    conflicts: [],
-  };
-  previous.items[0].owner_role = "client_business";
-  previous.items[0].stakeholder_context = context;
-  const targetId = previous.items[0].id;
+  assert.equal(previous.items.every((item) => item.stakeholder_context === null), true);
 
-  const softened = structuredClone(previous);
-  softened.items[0].stakeholder_context.position_type = "preference";
-  assert.doesNotThrow(() => validateManifest(softened, SCHEMA, { root: ROOT }),
-    "the softened manifest is schema-valid on its own, so only the reclassification rule can catch it");
+  const classified = structuredClone(previous);
+  classified.items[0].owner_role = "client_business";
+  classified.items[0].stakeholder_context = stakeholderContext(POSITION_KEY, "non_negotiable");
+  assert.equal(classified.items[0].version, 1);
+  assert.equal(classified.items[0].supersedes, null);
+  assert.doesNotThrow(() => validateManifest(classified, SCHEMA, { root: ROOT, previous }));
+
+  const dropped = structuredClone(previous);
+  assert.doesNotThrow(() => validateManifest(dropped, SCHEMA, { root: ROOT, previous: classified }));
+});
+
+test("reclassifying a position in either direction needs an explicit version and supersession", () => {
+  for (const [from, to] of [["non_negotiable", "preference"], ["preference", "non_negotiable"]]) {
+    const previous = classifiedBaseline(from);
+    const moved = reclassified(previous, to);
+
+    assert.doesNotThrow(() => validateManifest(moved, SCHEMA, { root: ROOT }),
+      `the ${from} to ${to} manifest is schema-valid on its own, so only the reclassification rule can catch it`);
+    assert.throws(
+      () => validateManifest(moved, SCHEMA, { root: ROOT, previous }),
+      new RegExp(`position ${POSITION_KEY.replace(/\./g, "\\.")} moves from ${from} to ${to} without incrementing version`),
+      `${from} -> ${to} at the same version`,
+    );
+
+    const versionedOnly = structuredClone(moved);
+    versionedOnly.items[0].version = previous.items[0].version + 1;
+    assert.throws(
+      () => validateManifest(versionedOnly, SCHEMA, { root: ROOT, previous }),
+      /without a supersession record naming/,
+      `${from} -> ${to} with a version bump but no supersession`,
+    );
+
+    const recorded = structuredClone(versionedOnly);
+    recorded.items[0].supersedes = `${POSITION_KEY}@v${previous.items[0].version}`;
+    assert.doesNotThrow(() => validateManifest(recorded, SCHEMA, { root: ROOT, previous }),
+      `${from} -> ${to} with both a version bump and a supersession record`);
+
+    const wrongKey = structuredClone(versionedOnly);
+    wrongKey.items[0].supersedes = `${previous.items[0].id}@v${previous.items[0].version}`;
+    assert.throws(() => validateManifest(wrongKey, SCHEMA, { root: ROOT, previous }),
+      /without a supersession record naming/,
+      `${from} -> ${to} superseding the item id instead of the durable position key`);
+  }
+});
+
+test("rewording the authored sentence rotates the item id but not the position identity", () => {
+  const input = sources();
+  const anchor = "The registration page feels slow.";
+  const reworded = { ...input, client: input.client.replace(anchor, "The registration page is slow for the front desk.") };
+  assert.notEqual(reworded.client, input.client);
+
+  const beforeId = "healthcare.w01.stated.the-registration-page-feels-slow";
+  const afterId = "healthcare.w01.stated.the-registration-page-is-slow-for-the-front-desk";
+
+  const previous = buildManifestFromSources(input, { mode: "pre-cutover", metadata }).manifest;
+  const classified = previous.items.find((item) => item.id === beforeId);
+  classified.owner_role = "client_business";
+  classified.stakeholder_context = stakeholderContext(POSITION_KEY, "non_negotiable");
+
+  const next = buildManifestFromSources(reworded, {
+    mode: "pre-cutover", metadata, validateProvenance: false,
+  }).manifest;
+  assert.equal(next.items.some((item) => item.id === beforeId), false);
+
+  const rotated = next.items.find((item) => item.id === afterId);
+  assert.ok(rotated, "the reworded sentence gets a fresh display id");
+  rotated.owner_role = "client_business";
+  rotated.stakeholder_context = stakeholderContext(POSITION_KEY, "preference");
+
   assert.throws(
-    () => validateManifest(softened, SCHEMA, { root: ROOT, previous }),
-    new RegExp(`${targetId.replace(/\./g, "\\.")} moves position_type from non_negotiable to preference without incrementing version`),
+    () => validateManifest(next, SCHEMA, { root: ROOT, validateProvenance: false, previous }),
+    new RegExp(`position ${POSITION_KEY.replace(/\./g, "\\.")} moves from non_negotiable to preference`),
+    "a wording change must not launder a softening past the guard",
   );
 
-  const versionedOnly = structuredClone(softened);
-  versionedOnly.items[0].version = previous.items[0].version + 1;
-  assert.throws(
-    () => validateManifest(versionedOnly, SCHEMA, { root: ROOT, previous }),
-    /without a supersession record naming/,
-  );
-
-  const hardenedAgain = structuredClone(previous);
-  hardenedAgain.items[0].stakeholder_context.position_type = "preference";
-  hardenedAgain.items[0].version = previous.items[0].version + 1;
-  hardenedAgain.items[0].supersedes = `${targetId}@v${previous.items[0].version}`;
-  assert.doesNotThrow(() => validateManifest(hardenedAgain, SCHEMA, { root: ROOT, previous }));
-
-  const untouched = structuredClone(previous);
-  assert.doesNotThrow(() => validateManifest(untouched, SCHEMA, { root: ROOT, previous }));
+  rotated.version = classified.version + 1;
+  rotated.supersedes = `${POSITION_KEY}@v${classified.version}`;
+  assert.doesNotThrow(() => validateManifest(next, SCHEMA, { root: ROOT, validateProvenance: false, previous }));
 });
 
 test("CLI check is a drift guard and reports generated counts", () => {

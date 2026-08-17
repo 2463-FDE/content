@@ -7,27 +7,18 @@
   "additionalProperties": false,
   "required": [
     "schema",
-    "generated_from_commit",
     "reviewed_by_role",
-    "reviewed_at_commit",
     "items"
   ],
   "properties": {
     "schema": { "const": "fde.expectations/v1" },
-    "generated_from_commit": { "$ref": "#/$defs/commit" },
     "reviewed_by_role": { "const": "trainer" },
-    "reviewed_at_commit": { "$ref": "#/$defs/commit" },
     "items": {
       "type": "array",
       "items": { "$ref": "#/$defs/item" }
     }
   },
   "$defs": {
-    "commit": {
-      "description": "Informational review provenance. Commit identifiers are not resolvable after a squash or rebase merge, so they are never used to validate the manifest; per-item source content hashes carry that guarantee.",
-      "type": "string",
-      "pattern": "^[0-9a-f]{40}$"
-    },
     "relativeDate": {
       "type": "object",
       "additionalProperties": false,
@@ -113,6 +104,7 @@
           ]
         },
         "supersedes": {
+          "description": "The record this item replaces. Reclassifying a stakeholder position between non_negotiable and preference requires both a version increment and this field set to '<position_key>@v<superseded version>'. First-time classification of previously unclassified content is an ordinary versioned addition and needs no supersession record.",
           "oneOf": [
             { "type": "string", "minLength": 1 },
             { "type": "null" }
@@ -148,6 +140,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "position_key",
         "stakeholder_role",
         "position_type",
         "approval_authority",
@@ -160,6 +153,11 @@
         "conflicts"
       ],
       "properties": {
+        "position_key": {
+          "description": "Human-assigned durable identity for this stakeholder position, written by the author who classifies it. Format: lowercase kebab-case words joined by dots, 2 to 4 segments, e.g. 'healthcare.w01.phi-logging' or 'finance.payment-idempotency'. It is chosen once and never changes when the authored wording changes, so classification history, versions, and supersession stay bound to the position rather than to the sentence. Never derive it from item text; the item id already carries the display slug.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*){1,3}$"
+        },
         "stakeholder_role": { "$ref": "#/$defs/stakeholderRole" },
         "position_type": {
           "enum": ["non_negotiable", "preference"]

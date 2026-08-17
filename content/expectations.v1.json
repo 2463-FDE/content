@@ -1,8 +1,6 @@
 {
   "schema": "fde.expectations/v1",
-  "generated_from_commit": "1b1be3dd123b709306a53c3bc44a0204822c8d8c",
   "reviewed_by_role": "trainer",
-  "reviewed_at_commit": "1b1be3dd123b709306a53c3bc44a0204822c8d8c",
   "items": [
     {
       "id": "finance.w01.ask",

@@ -93,10 +93,15 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+const VOID_TAGS = new Set([
+  "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr",
+]);
+
 function extractElementAt(html, start) {
   const opening = html.slice(start).match(/^<([a-z][a-z0-9-]*)\b[^>]*>/i);
   if (!opening) throw new Error(`Expected an HTML element at offset ${start}`);
   const tag = opening[1];
+  if (VOID_TAGS.has(tag.toLowerCase())) return opening[0];
   const token = new RegExp(`<\\/?${escapeRegex(tag)}\\b[^>]*>`, "gi");
   token.lastIndex = start;
   let depth = 0;
@@ -367,38 +372,51 @@ function checkSchema(value, schema, root, path = "manifest") {
   }
 }
 
-function verifySource(root, source) {
+function verifySource(root, source, hashes) {
   const match = source.match(/^([^#]+)#.+@sha256:([0-9a-f]{64})$/);
   if (!match) throw new Error(`Invalid source provenance: ${source}`);
   const [, file, hash] = match;
   const repoRoot = resolve(root);
   const absolute = resolve(repoRoot, file);
   if (absolute !== repoRoot && !absolute.startsWith(repoRoot + sep)) throw new Error(`Source escapes repository: ${file}`);
-  let content;
-  try { content = readFileSync(absolute, "utf8"); } catch { throw new Error(`Source file does not exist: ${file}`); }
-  if (sha256(content) !== hash) {
+  let actual = hashes?.get(absolute);
+  if (actual === undefined) {
+    let content;
+    try { content = readFileSync(absolute, "utf8"); } catch { throw new Error(`Source file does not exist: ${file}`); }
+    actual = sha256(content);
+    hashes?.set(absolute, actual);
+  }
+  if (actual !== hash) {
     throw new Error(`Source file ${file} no longer matches its pinned content hash ${hash}; regenerate the manifest`);
   }
 }
 
-function positionType(item) {
-  return item.stakeholder_context ? item.stakeholder_context.position_type : null;
+function classifiedPositions(manifest) {
+  const positions = new Map();
+  for (const item of manifest.items || []) {
+    const context = item.stakeholder_context;
+    if (!context) continue;
+    if (positions.has(context.position_key)) {
+      throw new Error(`duplicate position_key: ${context.position_key}`);
+    }
+    positions.set(context.position_key, { position_type: context.position_type, item });
+  }
+  return positions;
 }
 
 function assertNoSilentReclassification(previous, manifest) {
-  const before = new Map((previous.items || []).map((item) => [item.id, item]));
-  for (const item of manifest.items) {
-    const prior = before.get(item.id);
+  const before = classifiedPositions(previous);
+  for (const [key, { position_type: now, item }] of classifiedPositions(manifest)) {
+    const prior = before.get(key);
     if (!prior) continue;
-    const was = positionType(prior);
-    const now = positionType(item);
+    const was = prior.position_type;
     if (was === now) continue;
-    const change = `${item.id} moves position_type from ${was} to ${now}`;
-    if (!(item.version > prior.version)) {
-      throw new Error(`${change} without incrementing version past ${prior.version}`);
+    const change = `position ${key} moves from ${was} to ${now}`;
+    if (!(item.version > prior.item.version)) {
+      throw new Error(`${change} without incrementing version past ${prior.item.version}`);
     }
-    if (item.supersedes !== `${item.id}@v${prior.version}`) {
-      throw new Error(`${change} without a supersession record naming ${item.id}@v${prior.version}`);
+    if (item.supersedes !== `${key}@v${prior.item.version}`) {
+      throw new Error(`${change} without a supersession record naming ${key}@v${prior.item.version}`);
     }
   }
 }
@@ -406,15 +424,17 @@ function assertNoSilentReclassification(previous, manifest) {
 export function validateManifest(manifest, schema, { root, validateProvenance = true, previous } = {}) {
   checkSchema(manifest, schema, schema);
   const ids = new Set();
+  const hashes = new Map();
   for (const item of manifest.items) {
     if (ids.has(item.id)) throw new Error(`duplicate id: ${item.id}`);
     ids.add(item.id);
     if (/[<>]/.test(item.text)) throw new Error(`${item.id}.text contains HTML delimiters`);
-    if (validateProvenance && root) verifySource(root, item.source);
+    if (validateProvenance && root) verifySource(root, item.source, hashes);
   }
   if (manifest.items.some((item) => item.visibility !== "learner") && manifest.items.some((item) => item.visibility === "learner")) {
     throw new Error("A manifest cannot mix learner and trainer visibility");
   }
+  classifiedPositions(manifest);
   if (previous) assertNoSilentReclassification(previous, manifest);
   return manifest;
 }
@@ -454,9 +474,7 @@ export function buildManifestFromSources(sources, options = {}) {
   assertOverridesAreBound(metadata, new Set([...packets, ...schedule, ...track].map((item) => item.id)));
   const manifest = {
     schema: "fde.expectations/v1",
-    generated_from_commit: metadata.generated_from_commit,
     reviewed_by_role: metadata.reviewed_by_role,
-    reviewed_at_commit: metadata.reviewed_at_commit,
     items: [...packets, ...schedule, ...track].sort((a, b) => a.id.localeCompare(b.id)),
   };
   const schema = options.schema || JSON.parse(readFileSync(SCHEMA_PATH, "utf8"));
