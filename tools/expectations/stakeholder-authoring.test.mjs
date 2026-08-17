@@ -55,22 +55,37 @@ test("AC-1.6.2 every carrying item bumped its version when its position was adde
   }
 });
 
-test("AC-1.6.3 every conflict is reciprocal, same dimensions, same visibility, and resolves", () => {
-  let pairs = 0;
+test("AC-1.6.3 every conflict is reciprocal, intra-week, same dimensions, same visibility, and resolves", () => {
+  let ends = 0;
+  const unorderedPairs = new Set();
+  const pairsByProjectWeek = new Map();
   for (const id of positionIds) {
+    const item = byId.get(id);
     for (const conflict of positions[id].conflicts) {
       const other = positions[conflict.with_id];
       assert.ok(other, `${id} conflicts with ${conflict.with_id}, which must carry an authored position`);
-      assert.equal(byId.get(conflict.with_id)?.visibility, byId.get(id).visibility, `${id} ↔ ${conflict.with_id} share visibility`);
+      const otherItem = byId.get(conflict.with_id);
+      assert.equal(otherItem?.visibility, item.visibility, `${id} ↔ ${conflict.with_id} share visibility`);
+      assert.equal(otherItem.project, item.project, `${id} ↔ ${conflict.with_id} are in the same project`);
+      assert.equal(otherItem.week, item.week, `${id} ↔ ${conflict.with_id} are in the same week`);
       const back = other.conflicts.find((candidate) => candidate.with_id === id);
       assert.ok(back, `${conflict.with_id} names ${id} back`);
       assert.deepEqual([...back.dimensions].sort(), [...conflict.dimensions].sort(), `${id} ↔ ${conflict.with_id} same dimensions`);
       assert.ok(conflict.dimensions.length >= 2, `${id} ↔ ${conflict.with_id} spans at least two dimensions`);
       assert.notEqual(other.stakeholder_role, positions[id].stakeholder_role, `${id} ↔ ${conflict.with_id} is a cross-role conflict`);
-      pairs += 1;
+      ends += 1;
+      const key = `${item.project}.W${item.week}`;
+      unorderedPairs.add([id, conflict.with_id].sort().join("↔"));
+      pairsByProjectWeek.set(key, (pairsByProjectWeek.get(key) || new Set()).add([id, conflict.with_id].sort().join("↔")));
     }
   }
-  assert.equal(pairs % 2, 0, "conflict ends pair up");
+  assert.equal(ends, 2 * unorderedPairs.size, "every conflict pair is carried by exactly two reciprocal ends");
+  for (const project of ["healthcare", "finance"]) {
+    for (const week of [7, 8, 9, 10]) {
+      const key = `${project}.W${week}`;
+      assert.ok((pairsByProjectWeek.get(key)?.size ?? 0) >= 1, `${key} carries at least one intra-week conflict pair`);
+    }
+  }
 });
 
 test("AC-1.6.4 pilot weeks W7–W10 carry both roles and at least one conflict pair per project-week", () => {
