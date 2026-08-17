@@ -97,19 +97,16 @@ against it.
 **Riverbend (healthcare):**
 > "Our scheduling keeps double-booking… The team's pretty sure it's a glitch in the calendar widget,
 > so could you just fix the calendar so it stops doing that?"
-> - `hidden`: "'double-booking' is a correctness defect (retry = duplicate; race on Slot), not a
->   calendar-UI bug. 'Fixing the calendar' without idempotency just reshuffles the race."
-> - `facilitator`: "Reframe the ask: lead them from 'calendar bug' to 'retry produced a duplicate.'"
 > - `deliverable`: "A spec package… **Spec only — implementation is scoped, not built.**"
 
 **Lender (finance):**
 > "Let's just add a payment form… We've had a few 'I was charged twice' complaints, but I think
 > people are just confused."
-> - `facilitator`: "Reframe 'add a payment form' → idempotency + PCI tokenization + no-SAD storage.
->   **Spec week — don't let them start building.**"
 
 That packet is a textbook XY reframe with the landmines pre-planted, and its `stated` / `dig` /
-`hidden` / `facilitator` fields are effectively a finished lesson plan.
+`deliverable` fields plus the matching trainer-only answer key are effectively a finished lesson
+plan. The `hidden` / `facilitator` answer key is no longer in the public page — it is served from
+the authenticated trainer manifest route (see `AGENTS.md`), so it is quoted here only by field name.
 
 The readings never reach for it:
 

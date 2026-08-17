@@ -1,0 +1,27 @@
+{
+  "reviewed_by_role": "trainer",
+  "owner_roles": {},
+  "versions": {},
+  "supersedes": {},
+  "stakeholder_position_keys": {
+    "finance.w07.ask": "finance.w07.business.first-to-know",
+    "finance.w07.deliverable": "finance.w07.techlead.payment-path-safety",
+    "finance.w08.ask": "finance.w08.business.scorer-rollout",
+    "finance.w08.deliverable": "finance.w08.techlead.decision-record-gate",
+    "finance.w09.ask": "finance.w09.business.promised-vs-landed",
+    "finance.w09.deliverable": "finance.w09.techlead.handover-freeze",
+    "finance.w10.deliverable": "finance.w10.techlead.demo-on-main",
+    "finance.w10.stated.wants-proof-of-value-in-language-the-board-7f7a90ff": "finance.w10.business.board-headline",
+    "healthcare.w07.ask": "healthcare.w07.business.guardrail-proof",
+    "healthcare.w07.deliverable": "healthcare.w07.techlead.intake-path-safety",
+    "healthcare.w08.ask": "healthcare.w08.business.summary-rollout",
+    "healthcare.w08.deliverable": "healthcare.w08.techlead.phi-egress-gate",
+    "healthcare.w09.ask": "healthcare.w09.business.support-route",
+    "healthcare.w09.deliverable": "healthcare.w09.techlead.handover-freeze",
+    "healthcare.w10.deliverable": "healthcare.w10.techlead.demo-on-main",
+    "healthcare.w10.stated.wants-proof-of-value-in-language-the-board-7f7a90ff": "healthcare.w10.business.board-headline"
+  },
+  "retired_position_keys": {},
+  "stakeholder_context": {},
+  "persistent": []
+}
