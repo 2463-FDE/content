@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -29,6 +31,32 @@ const metadata = {
   supersedes: {},
   persistent: [],
 };
+const SCHEMA = JSON.parse(read("expectations.v1.schema.json"));
+
+const standaloneSources = (marker = "") => ({
+  client: `${marker ? `<div class="cd-sec trainer-only">${marker}-multi-class</div>` : ""}<script>window.CLIENT = {
+      demo: { weeks: { 1: {
+        ask: "learner ask",
+        handover: ["learner handover one", "learner handover two"],
+        dig: ["learner dig"],
+        stated: ["learner stated"],${marker ? `\n        hidden: ["${marker}-hidden"],\n        facilitator: "${marker}-facilitator",` : ""}
+        deliverable: "learner deliverable"
+      } } }
+    };</script>`,
+  weeks: `<script>window.WEEKS = [{w:1, days:[{t:"learner day",s:"learner detail"}]}];</script>`,
+  delivery: `<section id="rhythm"><div class="dt-day" id="rt-mon"><div class="dt-t dt-heading">learner cadence</div><div class="dt-s">learner cadence detail${marker ? ` <span class="note trainer-only">${marker}-delivery-block <em class="trainer-only">${marker}-nested</em></span>` : ""}</div></div></section>
+      <section id="rubric"><div class="dt-bar">learner pass bar</div><details class="dt-dim rubric-dim"><span class="dnm">learner dimension</span><div class="dt-score">learner rubric</div></details></section>
+      <section id="premortem"><h2>Demo pre-mortem</h2><p class="lede">learner pre-mortem</p></section>
+      <section id="blocker"><div class="row bc-row"><div class="lb">learner field</div><input data-f="bc.item"></div></section>`,
+  alt: `<script>window.ALT = {1:{title:"learner"${marker ? `,trainer:"${marker}-alt"` : ""}}};</script>`,
+});
+
+function writeSourceTree(dir, input) {
+  writeFileSync(join(dir, "client-delivery.html"), input.client);
+  writeFileSync(join(dir, "index.html"), input.weeks);
+  writeFileSync(join(dir, "delivery-track.html"), input.delivery);
+  writeFileSync(join(dir, "alt-research.html"), input.alt);
+}
 
 function sourcePacketCount(client) {
   let count = 0;
@@ -100,24 +128,25 @@ test("AC-1.2.3 ten deterministic random packet entries round-trip to authored wo
 
 test("AC-1.2.4 every trainer-only source class is excluded from learner output", () => {
   const marker = "TRAINER-ONLY-MARKER-7f3a";
-  const input = {
-    client: `<div class="trainer-only">${marker}-block</div><script>window.CLIENT = {
-      demo: { weeks: { 1: { ask: "learner ask", handover: ["learner handover"], dig: ["learner dig"], stated: ["learner stated"], hidden: ["${marker}-hidden"], facilitator: "${marker}-facilitator", deliverable: "learner deliverable" } } }
-    };</script>`,
-    weeks: `<script>window.WEEKS = [{w:1, days:[{t:"learner day",s:"learner detail"}]}];</script>`,
-    delivery: `<section id="rhythm"><div class="dt-day" id="rt-mon"><div class="dt-t">learner cadence</div><div class="dt-s">learner cadence detail <span class="trainer-only">${marker}-delivery-block</span></div></div></section>
-      <section id="rubric"><div class="dt-bar">learner pass bar</div><details class="dt-dim"><span class="dnm">learner dimension</span><div class="dt-score">learner rubric</div></details></section>
-      <section id="premortem"><h2>Demo pre-mortem</h2><p class="lede">learner pre-mortem</p></section>
-      <section id="blocker"><div class="row"><div class="lb">learner field</div><input data-f="bc.item"></div></section>`,
-    alt: `<script>window.ALT = {1:{title:"learner",trainer:"${marker}-alt"}};</script>`,
-  };
+  const input = standaloneSources(marker);
   const { manifest } = buildManifestFromSources(input, { mode: "pre-cutover", metadata, validateProvenance: false });
   const output = JSON.stringify(manifest);
 
   assert.equal(manifest.items.every((item) => item.visibility === "learner"), true);
-  for (const suffix of ["hidden", "facilitator", "alt", "block", "delivery-block"]) {
+  for (const suffix of ["hidden", "facilitator", "alt", "multi-class", "delivery-block", "nested"]) {
     assert.equal(output.includes(`${marker}-${suffix}`), false, suffix);
   }
+  assert.equal(
+    manifest.items.find((item) => item.id === "track.cadence.mon-steering").text,
+    "learner cadence learner cadence detail",
+  );
+});
+
+test("a trainer-only marker sharing an element with other classes is still stripped", () => {
+  assert.equal(stripHtml('learner <span class="note trainer-only">SECRET</span> ok'), "learner ok");
+  assert.equal(stripHtml('learner <span class="trainer-only note">SECRET</span> ok'), "learner ok");
+  assert.equal(stripHtml('learner <div class="cd-sec trainer-only">SECRET <b class="trainer-only">DEEPER</b></div> ok'), "learner ok");
+  assert.equal(stripHtml('learner <span class="trainer-only-ish">visible</span> ok'), "learner visible ok");
 });
 
 test("post-cutover rejects every trainer-only authored field", () => {
@@ -212,25 +241,128 @@ test("captain amendment schema preserves two roles, demand/preference, authority
   assert.throws(() => validateManifest(oneDimensional, schema, { root: ROOT }));
 });
 
-test("same inputs are byte-stable; a versioned packet edit preserves every id", () => {
+test("same inputs are byte-stable and inserting a bullet renumbers nothing", () => {
   const input = sources();
   const first = buildManifestFromSources(input, { mode: "pre-cutover", metadata }).manifest;
   const second = buildManifestFromSources(input, { mode: "pre-cutover", metadata }).manifest;
   assert.equal(JSON.stringify(first), JSON.stringify(second));
 
-  const editedInput = { ...input, client: input.client.replace("The registration page feels slow.", "The registration page remains slow.") };
-  const changedId = "healthcare.w01.stated.1";
-  const editedMetadata = { ...metadata, versions: { [changedId]: 2 } };
-  const edited = buildManifestFromSources(editedInput, {
-    mode: "pre-cutover", metadata: editedMetadata, validateProvenance: false,
-  }).manifest;
-  assert.deepEqual(edited.items.map((item) => item.id), first.items.map((item) => item.id));
+  const anchor = '"The registration page feels slow.",';
+  assert.ok(input.client.includes(anchor), "insertion fixture anchor still exists in the authored source");
+  const insertedInput = {
+    ...input,
+    client: input.client.replace(anchor, `"Nurses re-key the same intake twice.",\n          ${anchor}`),
+  };
+  assert.notEqual(insertedInput.client, input.client);
 
-  const beforeById = new Map(first.items.map((item) => [item.id, item]));
-  const changed = edited.items.filter((item) => JSON.stringify(item) !== JSON.stringify(beforeById.get(item.id)));
-  assert.equal(changed.length, 1);
-  assert.equal(changed[0].id, changedId);
-  assert.equal(changed[0].version, 2);
+  const versionedId = "healthcare.w01.stated.the-registration-page-feels-slow";
+  const insertedMetadata = {
+    ...metadata,
+    versions: { [versionedId]: 3 },
+    owner_roles: { [versionedId]: "client_business" },
+  };
+  const inserted = buildManifestFromSources(insertedInput, {
+    mode: "pre-cutover", metadata: insertedMetadata, validateProvenance: false,
+  }).manifest;
+
+  const afterById = new Map(inserted.items.map((item) => [item.id, item]));
+  for (const item of first.items) {
+    const after = afterById.get(item.id);
+    assert.ok(after, `${item.id} survives an insertion earlier in its array`);
+    assert.equal(after.text, item.text, `${item.id} still carries its own authored sentence`);
+  }
+  assert.equal(inserted.items.length, first.items.length + 1);
+  assert.ok(afterById.has("healthcare.w01.stated.nurses-re-key-the-same-intake-twice"), "the inserted bullet gets its own id");
+
+  const versioned = afterById.get(versionedId);
+  assert.equal(versioned.version, 3, "a recorded version bump stays bound to the sentence it was recorded against");
+  assert.equal(versioned.owner_role, "client_business");
+  assert.equal(versioned.text, "The registration page feels slow.");
+});
+
+test("an override keyed to an id the sources no longer produce is rejected", () => {
+  const input = sources();
+  for (const override of [
+    { versions: { "healthcare.w01.stated.1": 2 } },
+    { owner_roles: { "healthcare.w01.stated.2": "client_business" } },
+    { supersedes: { "healthcare.w99.ask": "healthcare.w98.ask" } },
+    { persistent: ["finance.w01.handover.3"] },
+  ]) {
+    assert.throws(
+      () => buildManifestFromSources(input, {
+        mode: "pre-cutover", metadata: { ...metadata, ...override }, validateProvenance: false,
+      }),
+      /override references unknown expectation id/,
+      JSON.stringify(override),
+    );
+  }
+});
+
+test("provenance is pinned to source content, validates without git, and catches a stale source", () => {
+  const dir = mkdtempSync(join(tmpdir(), "expectations-provenance-"));
+  try {
+    assert.equal(existsSync(join(dir, ".git")), false, "the fixture tree is not a git repository");
+    const input = standaloneSources();
+    writeSourceTree(dir, input);
+    const { manifest } = buildManifestFromSources(input, {
+      mode: "post-cutover", metadata, root: dir, schema: SCHEMA,
+    });
+
+    assert.equal(manifest.items.every((item) => /@sha256:[0-9a-f]{64}$/.test(item.source)), true);
+    assert.doesNotThrow(() => validateManifest(manifest, SCHEMA, { root: dir }));
+
+    writeSourceTree(dir, { ...input, client: input.client.replace("learner ask", "learner ask, revised") });
+    assert.throws(
+      () => validateManifest(manifest, SCHEMA, { root: dir }),
+      /client-delivery\.html no longer matches its pinned content hash/,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("softening a non-negotiable into a preference needs an explicit version and supersession", () => {
+  const previous = buildManifestFromSources(sources(), { mode: "pre-cutover", metadata }).manifest;
+  const context = {
+    stakeholder_role: "client_business",
+    position_type: "non_negotiable",
+    approval_authority: ["client_business"],
+    rationale: "Synthetic authored business rationale.",
+    pressure: "Synthetic authored delivery pressure.",
+    success_criteria: ["Synthetic authored success criterion."],
+    boundaries: ["Synthetic authored boundary."],
+    trade_space: [],
+    escalation_triggers: ["Synthetic authored escalation trigger."],
+    conflicts: [],
+  };
+  previous.items[0].owner_role = "client_business";
+  previous.items[0].stakeholder_context = context;
+  const targetId = previous.items[0].id;
+
+  const softened = structuredClone(previous);
+  softened.items[0].stakeholder_context.position_type = "preference";
+  assert.doesNotThrow(() => validateManifest(softened, SCHEMA, { root: ROOT }),
+    "the softened manifest is schema-valid on its own, so only the reclassification rule can catch it");
+  assert.throws(
+    () => validateManifest(softened, SCHEMA, { root: ROOT, previous }),
+    new RegExp(`${targetId.replace(/\./g, "\\.")} moves position_type from non_negotiable to preference without incrementing version`),
+  );
+
+  const versionedOnly = structuredClone(softened);
+  versionedOnly.items[0].version = previous.items[0].version + 1;
+  assert.throws(
+    () => validateManifest(versionedOnly, SCHEMA, { root: ROOT, previous }),
+    /without a supersession record naming/,
+  );
+
+  const hardenedAgain = structuredClone(previous);
+  hardenedAgain.items[0].stakeholder_context.position_type = "preference";
+  hardenedAgain.items[0].version = previous.items[0].version + 1;
+  hardenedAgain.items[0].supersedes = `${targetId}@v${previous.items[0].version}`;
+  assert.doesNotThrow(() => validateManifest(hardenedAgain, SCHEMA, { root: ROOT, previous }));
+
+  const untouched = structuredClone(previous);
+  assert.doesNotThrow(() => validateManifest(untouched, SCHEMA, { root: ROOT, previous }));
 });
 
 test("CLI check is a drift guard and reports generated counts", () => {

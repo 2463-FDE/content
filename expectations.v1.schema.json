@@ -24,6 +24,7 @@
   },
   "$defs": {
     "commit": {
+      "description": "Informational review provenance. Commit identifiers are not resolvable after a squash or rebase merge, so they are never used to validate the manifest; per-item source content hashes carry that guarantee.",
       "type": "string",
       "pattern": "^[0-9a-f]{40}$"
     },
@@ -67,7 +68,7 @@
         "id": {
           "type": "string",
           "anyOf": [
-            { "pattern": "^[a-z][a-z0-9-]*\\.w[0-9]{2}\\.[a-z][a-z0-9-]*(?:\\.[1-9][0-9]*)?$" },
+            { "pattern": "^[a-z][a-z0-9-]*\\.w[0-9]{2}\\.[a-z][a-z0-9-]*(?:\\.[a-z0-9][a-z0-9-]*)?$" },
             { "pattern": "^track\\.[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*$" },
             { "pattern": "^schedule\\.w[0-9]{2}\\.(?:mon|tue|wed|thu|fri|sat|sun)$" },
             { "pattern": "^alt\\.[a-z][a-z0-9-]*\\.trainer$" }
@@ -122,8 +123,9 @@
           "minimum": 1
         },
         "source": {
+          "description": "Source file, path within that file, and the SHA-256 of the exact file content the text was generated from. The content hash is the durable pin: it survives every merge style, and it goes stale the moment the source wording changes.",
           "type": "string",
-          "pattern": "^[A-Za-z0-9_./-]+#[^@]+@[0-9a-f]{40}$"
+          "pattern": "^[A-Za-z0-9_./-]+#[^@]+@sha256:[0-9a-f]{64}$"
         },
         "stakeholder_context": {
           "oneOf": [

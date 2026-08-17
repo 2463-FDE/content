@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, sep } from "node:path";
 import process from "node:process";
@@ -122,7 +122,7 @@ function extractElementsByClass(html, className, tag = "[a-z][a-z0-9-]*") {
   const elements = [];
   let match;
   while ((match = opening.exec(html))) {
-    if (!match[3].split(/\\s+/).includes(className)) continue;
+    if (!match[3].trim().split(/\s+/).includes(className)) continue;
     elements.push(extractElementAt(html, match.index));
   }
   return elements;
@@ -148,8 +148,20 @@ function slug(value) {
     .replace(/^-|-$/g, "");
 }
 
-function sourceRef(file, path, commit) {
-  return `${file}#${path}@${commit}`;
+function sha256(value) {
+  return createHash("sha256").update(String(value), "utf8").digest("hex");
+}
+
+function idSlug(text) {
+  const base = slug(text);
+  if (!base) throw new Error(`Authored entry has no addressable text: ${JSON.stringify(text).slice(0, 60)}`);
+  if (base.length <= 48) return base;
+  const trimmed = base.slice(0, 48).replace(/-[^-]*$/, "").replace(/-+$/, "");
+  return `${trimmed || base.slice(0, 48)}-${sha256(text).slice(0, 8)}`;
+}
+
+function sourceRef(file, path, hash) {
+  return `${file}#${path}@sha256:${hash}`;
 }
 
 function makeItem(metadata, values) {
@@ -165,7 +177,7 @@ function makeItem(metadata, values) {
   };
 }
 
-function packetItems(client, metadata) {
+function packetItems(client, metadata, hash) {
   const items = [];
   for (const project of Object.keys(client).sort()) {
     const weeks = client[project]?.weeks || {};
@@ -173,10 +185,12 @@ function packetItems(client, metadata) {
       const packet = weeks[weekText];
       for (const field of PACKET_FIELDS) {
         if (packet[field] == null) continue;
-        const values = Array.isArray(packet[field]) ? packet[field] : [packet[field]];
+        const isList = Array.isArray(packet[field]);
+        const values = isList ? packet[field] : [packet[field]];
         values.forEach((text, index) => {
-          const suffix = Array.isArray(packet[field]) ? `.${index + 1}` : "";
-          const id = `${project}.w${String(weekText).padStart(2, "0")}.${field}${suffix}`;
+          const idSuffix = isList ? `.${idSlug(text)}` : "";
+          const pathSuffix = isList ? `.${index + 1}` : "";
+          const id = `${project}.w${String(weekText).padStart(2, "0")}.${field}${idSuffix}`;
           items.push(makeItem(metadata, {
             id,
             project,
@@ -186,7 +200,7 @@ function packetItems(client, metadata) {
             owner_role: OWNER_DEFAULTS[field],
             effective_from: { week: weekText, day: "mon" },
             effective_to: metadata.persistent?.includes(id) ? null : { week: weekText, day: "sun" },
-            source: sourceRef("client-delivery.html", `window.CLIENT.${project}.weeks.${weekText}.${field}${suffix}`, metadata.generated_from_commit),
+            source: sourceRef("client-delivery.html", `window.CLIENT.${project}.weeks.${weekText}.${field}${pathSuffix}`, hash),
           }));
         });
       }
@@ -195,7 +209,7 @@ function packetItems(client, metadata) {
   return items;
 }
 
-function scheduleItems(weeks, metadata) {
+function scheduleItems(weeks, metadata, hash) {
   const items = [];
   weeks.forEach((week, weekIndex) => {
     (week.days || []).forEach((day, dayIndex) => {
@@ -212,14 +226,14 @@ function scheduleItems(weeks, metadata) {
         owner_role: "trainer",
         effective_from: { week: week.w, day: dayName },
         effective_to: { week: week.w, day: dayName },
-        source: sourceRef("index.html", `window.WEEKS.${weekIndex}.days.${dayIndex}`, metadata.generated_from_commit),
+        source: sourceRef("index.html", `window.WEEKS.${weekIndex}.days.${dayIndex}`, hash),
       }));
     });
   });
   return items;
 }
 
-function trackItems(delivery, metadata) {
+function trackItems(delivery, metadata, hash) {
   const items = [];
   const add = (topic, itemSlug, field, text, path) => {
     const id = `track.${topic}.${itemSlug}`;
@@ -232,7 +246,7 @@ function trackItems(delivery, metadata) {
       owner_role: "trainer",
       effective_from: { week: 7, day: "mon" },
       effective_to: null,
-      source: sourceRef("delivery-track.html", path, metadata.generated_from_commit),
+      source: sourceRef("delivery-track.html", path, hash),
     }));
   };
 
@@ -353,31 +367,43 @@ function checkSchema(value, schema, root, path = "manifest") {
   }
 }
 
-function verifyCommit(root, commit) {
-  try {
-    execFileSync("git", ["cat-file", "-e", `${commit}^{commit}`], { cwd: root, stdio: "ignore" });
-  } catch {
-    throw new Error(`Commit does not exist: ${commit}`);
-  }
-}
-
 function verifySource(root, source) {
-  const match = source.match(/^([^#]+)#.+@([0-9a-f]{40})$/);
+  const match = source.match(/^([^#]+)#.+@sha256:([0-9a-f]{64})$/);
   if (!match) throw new Error(`Invalid source provenance: ${source}`);
-  const [, file, commit] = match;
+  const [, file, hash] = match;
   const repoRoot = resolve(root);
   const absolute = resolve(repoRoot, file);
   if (absolute !== repoRoot && !absolute.startsWith(repoRoot + sep)) throw new Error(`Source escapes repository: ${file}`);
-  try { readFileSync(absolute); } catch { throw new Error(`Source file does not exist: ${file}`); }
-  verifyCommit(repoRoot, commit);
-  try {
-    execFileSync("git", ["cat-file", "-e", `${commit}:${file}`], { cwd: repoRoot, stdio: "ignore" });
-  } catch {
-    throw new Error(`Source file ${file} does not exist at commit ${commit}`);
+  let content;
+  try { content = readFileSync(absolute, "utf8"); } catch { throw new Error(`Source file does not exist: ${file}`); }
+  if (sha256(content) !== hash) {
+    throw new Error(`Source file ${file} no longer matches its pinned content hash ${hash}; regenerate the manifest`);
   }
 }
 
-export function validateManifest(manifest, schema, { root, validateProvenance = true } = {}) {
+function positionType(item) {
+  return item.stakeholder_context ? item.stakeholder_context.position_type : null;
+}
+
+function assertNoSilentReclassification(previous, manifest) {
+  const before = new Map((previous.items || []).map((item) => [item.id, item]));
+  for (const item of manifest.items) {
+    const prior = before.get(item.id);
+    if (!prior) continue;
+    const was = positionType(prior);
+    const now = positionType(item);
+    if (was === now) continue;
+    const change = `${item.id} moves position_type from ${was} to ${now}`;
+    if (!(item.version > prior.version)) {
+      throw new Error(`${change} without incrementing version past ${prior.version}`);
+    }
+    if (item.supersedes !== `${item.id}@v${prior.version}`) {
+      throw new Error(`${change} without a supersession record naming ${item.id}@v${prior.version}`);
+    }
+  }
+}
+
+export function validateManifest(manifest, schema, { root, validateProvenance = true, previous } = {}) {
   checkSchema(manifest, schema, schema);
   const ids = new Set();
   for (const item of manifest.items) {
@@ -389,11 +415,23 @@ export function validateManifest(manifest, schema, { root, validateProvenance = 
   if (manifest.items.some((item) => item.visibility !== "learner") && manifest.items.some((item) => item.visibility === "learner")) {
     throw new Error("A manifest cannot mix learner and trainer visibility");
   }
-  if (validateProvenance && root) {
-    verifyCommit(root, manifest.generated_from_commit);
-    verifyCommit(root, manifest.reviewed_at_commit);
-  }
+  if (previous) assertNoSilentReclassification(previous, manifest);
   return manifest;
+}
+
+function assertOverridesAreBound(metadata, ids) {
+  const bindings = [
+    ["owner_roles", Object.keys(metadata.owner_roles || {})],
+    ["versions", Object.keys(metadata.versions || {})],
+    ["supersedes", Object.keys(metadata.supersedes || {})],
+    ["stakeholder_context", Object.keys(metadata.stakeholder_context || {})],
+    ["persistent", metadata.persistent || []],
+  ];
+  for (const [name, keys] of bindings) {
+    for (const key of keys) {
+      if (!ids.has(key)) throw new Error(`${name} override references unknown expectation id: ${key}`);
+    }
+  }
 }
 
 export function buildManifestFromSources(sources, options = {}) {
@@ -410,9 +448,10 @@ export function buildManifestFromSources(sources, options = {}) {
   }
   assertTrainerFields(client, alt, mode);
 
-  const packets = packetItems(client, metadata);
-  const schedule = scheduleItems(weeks, metadata);
-  const track = trackItems(sources.delivery, metadata);
+  const packets = packetItems(client, metadata, sha256(sources.client));
+  const schedule = scheduleItems(weeks, metadata, sha256(sources.weeks));
+  const track = trackItems(sources.delivery, metadata, sha256(sources.delivery));
+  assertOverridesAreBound(metadata, new Set([...packets, ...schedule, ...track].map((item) => item.id)));
   const manifest = {
     schema: "fde.expectations/v1",
     generated_from_commit: metadata.generated_from_commit,
@@ -424,6 +463,7 @@ export function buildManifestFromSources(sources, options = {}) {
   validateManifest(manifest, schema, {
     root: options.root || ROOT,
     validateProvenance: options.validateProvenance !== false,
+    previous: options.previous,
   });
   if (manifest.items.some((item) => item.visibility !== "learner")) {
     throw new Error("Public learner manifest contains a trainer-visible item");
@@ -457,13 +497,16 @@ function runCli() {
     delivery: readFileSync(resolve(ROOT, "delivery-track.html"), "utf8"),
     alt: readFileSync(resolve(ROOT, "alt-research.html"), "utf8"),
   };
-  const { manifest, counts } = buildManifestFromSources(sourceFiles, { mode: args.mode, metadata, root: ROOT });
+  let committed = "";
+  try { committed = readFileSync(OUTPUT_PATH, "utf8"); } catch { /* first generation has no prior manifest */ }
+  let previous;
+  try { previous = committed ? JSON.parse(committed) : undefined; } catch { previous = undefined; }
+
+  const { manifest, counts } = buildManifestFromSources(sourceFiles, { mode: args.mode, metadata, root: ROOT, previous });
   const output = `${JSON.stringify(manifest, null, 2)}\n`;
   const countText = `packet=${counts.packet} schedule=${counts.schedule} track=${counts.track} total=${manifest.items.length}`;
 
   if (args.check) {
-    let committed = "";
-    try { committed = readFileSync(OUTPUT_PATH, "utf8"); } catch { /* missing is drift */ }
     if (committed !== output) {
       console.error(`expectations manifest drift detected (${countText}); run node tools/expectations/build.mjs --mode ${args.mode}`);
       process.exitCode = 1;
