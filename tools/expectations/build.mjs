@@ -10,8 +10,8 @@ const ROOT = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const SCHEMA_PATH = resolve(ROOT, "expectations.v1.schema.json");
 const OUTPUT_PATH = resolve(ROOT, "content/expectations.v1.json");
 const OVERRIDES_PATH = resolve(ROOT, "tools/expectations/overrides.json");
-const BASELINE_PATH = resolve(ROOT, "tools/expectations/classification-baseline.json");
 const CLASSIFICATIONS = new Set(["non_negotiable", "preference"]);
+const POSITION_KEY_PATTERN = /^[a-z][a-z0-9-]*\.w[0-9]{2}\.(?:business|techlead)\.[a-z0-9][a-z0-9-]*$/;
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const PACKET_FIELDS = ["ask", "handover", "dig", "stated", "deliverable", "quota"];
 const OWNER_DEFAULTS = {
@@ -80,6 +80,9 @@ const ENTITIES = {
 
 export function stripHtml(value) {
   const learnerVisibleHtml = removeElementsByClass(String(value ?? ""), "trainer-only");
+  if (/<[^>]*(?<![-\w])trainer-only(?![-\w])[^>]*>/i.test(learnerVisibleHtml)) {
+    throw new Error("A trainer-only marker survived learner extraction; refusing to emit the fragment");
+  }
   return learnerVisibleHtml
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
@@ -125,7 +128,7 @@ function extractElementById(html, id) {
 }
 
 function extractElementsByClass(html, className, tag = "[a-z][a-z0-9-]*") {
-  const opening = new RegExp(`<(${tag})\\b[^>]*\\bclass=(?:(['"])([^'"]*)\\2|([^\\s>]+))[^>]*>`, "gi");
+  const opening = new RegExp(`<(${tag})\\b[^>]*\\bclass\\s*=\\s*(?:(['"])([^'"]*)\\2|([^\\s>]+))[^>]*>`, "gi");
   const elements = [];
   let match;
   while ((match = opening.exec(html))) {
@@ -420,69 +423,79 @@ function classifiedPositions(manifest) {
   return positions;
 }
 
-function ledgerState(entry) {
-  return entry.retired ? "retired" : entry.position_type;
+function parseSupersedes(value) {
+  const match = String(value).match(/^(.+)@v([1-9][0-9]*)$/);
+  if (!match) return null;
+  return { key: match[1], version: Number(match[2]) };
 }
 
-function assertLedgerIsAppendOnly(key, entries) {
-  if (!Array.isArray(entries) || entries.length === 0) {
-    throw new Error(`classification baseline for ${key} has no entries`);
+function assertPositionKeysAreImmutable(metadata, manifest) {
+  const active = classifiedPositions(manifest);
+  const tombstones = metadata.retired_position_keys || {};
+
+  for (const [key, { item }] of active) {
+    if (item.supersedes == null) continue;
+    const reference = parseSupersedes(item.supersedes);
+    if (reference?.key === key) {
+      throw new Error(`position ${key} may not supersede itself; a classification is immutable for the life of its key, so retire the key and author a new one`);
+    }
   }
-  if (entries[0].supersedes != null) {
-    throw new Error(`classification baseline for ${key} supersedes a record that predates its own history`);
+
+  for (const [key, tombstone] of Object.entries(tombstones)) {
+    if (!POSITION_KEY_PATTERN.test(key)) {
+      throw new Error(`retired_position_keys has a malformed position key: ${key}`);
+    }
+    if (!CLASSIFICATIONS.has(tombstone.position_type)) {
+      throw new Error(`retired position ${key} has an unknown position_type: ${tombstone.position_type}`);
+    }
+    if (!Number.isInteger(tombstone.version) || tombstone.version < 1) {
+      throw new Error(`retired position ${key} has no version`);
+    }
+    if (active.has(key)) {
+      throw new Error(`position ${key} is retired and cannot be reused; author a new durable key`);
+    }
   }
-  entries.forEach((entry, index) => {
-    if (!Number.isInteger(entry.version) || entry.version < 1) {
-      throw new Error(`classification baseline for ${key} has a non-versioned entry`);
+
+  const claimed = new Map();
+  for (const [key, { item }] of active) {
+    if (item.supersedes == null) continue;
+    const reference = parseSupersedes(item.supersedes);
+    if (!reference) {
+      throw new Error(`position ${key} supersedes ${item.supersedes}, which is not a <position_key>@v<version> record`);
     }
-    if (!entry.retired && !CLASSIFICATIONS.has(entry.position_type)) {
-      throw new Error(`classification baseline for ${key} has an unknown position_type: ${entry.position_type}`);
+    const tombstone = tombstones[reference.key];
+    if (!tombstone) {
+      throw new Error(`position ${key} supersedes ${reference.key}, which is not recorded in retired_position_keys`);
     }
-    if (index === 0) return;
-    const prior = entries[index - 1];
-    if (entry.version <= prior.version) {
-      throw new Error(`classification baseline for ${key} does not increment version past ${prior.version}`);
+    if (tombstone.version !== reference.version) {
+      throw new Error(`position ${key} supersedes ${item.supersedes} but ${reference.key} was retired at v${tombstone.version}`);
     }
-    if (ledgerState(entry) === ledgerState(prior)) return;
-    const change = `position ${key} moves from ${ledgerState(prior)} to ${ledgerState(entry)}`;
-    if (entry.supersedes !== `${key}@v${prior.version}`) {
-      throw new Error(`${change} without a supersession record naming ${key}@v${prior.version}`);
+    if (tombstone.superseded_by !== key) {
+      throw new Error(`retired position ${reference.key} names ${tombstone.superseded_by} as its successor, not ${key}`);
     }
-  });
+    if (claimed.has(reference.key)) {
+      throw new Error(`retired position ${reference.key} is superseded by both ${claimed.get(reference.key)} and ${key}`);
+    }
+    claimed.set(reference.key, key);
+  }
+
+  for (const [key, tombstone] of Object.entries(tombstones)) {
+    if (tombstone.superseded_by == null) continue;
+    if (!active.has(tombstone.superseded_by)) {
+      throw new Error(`retired position ${key} names successor ${tombstone.superseded_by}, which is not a classified position`);
+    }
+    if (claimed.get(key) !== tombstone.superseded_by) {
+      throw new Error(`retired position ${key} names successor ${tombstone.superseded_by}, which does not supersede it`);
+    }
+  }
+
+  for (const item of manifest.items) {
+    if (item.stakeholder_context || item.supersedes == null) continue;
+    throw new Error(`${item.id} records supersedes ${item.supersedes} without carrying a stakeholder position`);
+  }
 }
 
-function assertClassificationMatchesBaseline(baseline, manifest) {
-  const positions = classifiedPositions(manifest);
-  const recorded = baseline?.positions || {};
-  for (const [key, entries] of Object.entries(recorded)) {
-    assertLedgerIsAppendOnly(key, entries);
-    const current = entries[entries.length - 1];
-    const live = positions.get(key);
-    if (current.retired) {
-      if (live) throw new Error(`position ${key} is retired at v${current.version} but is still classified in the manifest`);
-      continue;
-    }
-    if (!live) {
-      throw new Error(`position ${key} is classified at v${current.version} in the baseline but absent from the manifest; record its retirement`);
-    }
-    if (live.position_type !== current.position_type) {
-      throw new Error(`position ${key} is ${live.position_type} in the manifest but ${current.position_type} in the classification baseline`);
-    }
-    if (live.item.version !== current.version) {
-      throw new Error(`position ${key} is v${live.item.version} in the manifest but v${current.version} in the classification baseline`);
-    }
-    if ((live.item.supersedes ?? null) !== (current.supersedes ?? null)) {
-      throw new Error(`position ${key} carries supersedes ${live.item.supersedes} in the manifest but ${current.supersedes} in the classification baseline`);
-    }
-  }
-  for (const key of positions.keys()) {
-    if (!Object.hasOwn(recorded, key)) {
-      throw new Error(`position ${key} is classified in the manifest but absent from the classification baseline`);
-    }
-  }
-}
-
-export function validateManifest(manifest, schema, { root, validateProvenance = true, baseline } = {}) {
+export function validateManifest(manifest, schema, { root, validateProvenance = true } = {}) {
   checkSchema(manifest, schema, schema);
   const ids = new Set();
   const hashes = new Map();
@@ -496,7 +509,6 @@ export function validateManifest(manifest, schema, { root, validateProvenance = 
     throw new Error("A manifest cannot mix learner and trainer visibility");
   }
   classifiedPositions(manifest);
-  if (baseline) assertClassificationMatchesBaseline(baseline, manifest);
   return manifest;
 }
 
@@ -543,8 +555,8 @@ export function buildManifestFromSources(sources, options = {}) {
   validateManifest(manifest, schema, {
     root: options.root || ROOT,
     validateProvenance: options.validateProvenance !== false,
-    baseline: options.baseline,
   });
+  assertPositionKeysAreImmutable(metadata, manifest);
   if (manifest.items.some((item) => item.visibility !== "learner")) {
     throw new Error("Public learner manifest contains a trainer-visible item");
   }
@@ -579,9 +591,8 @@ function runCli() {
   };
   let committed = "";
   try { committed = readFileSync(OUTPUT_PATH, "utf8"); } catch { /* first generation has no prior manifest */ }
-  const baseline = JSON.parse(readFileSync(BASELINE_PATH, "utf8"));
 
-  const { manifest, counts } = buildManifestFromSources(sourceFiles, { mode: args.mode, metadata, root: ROOT, baseline });
+  const { manifest, counts } = buildManifestFromSources(sourceFiles, { mode: args.mode, metadata, root: ROOT });
   const output = `${JSON.stringify(manifest, null, 2)}\n`;
   const countText = `packet=${counts.packet} schedule=${counts.schedule} track=${counts.track} total=${manifest.items.length}`;
 

@@ -104,7 +104,7 @@
           ]
         },
         "supersedes": {
-          "description": "The record this item replaces. Every change to a position's classification state — non_negotiable to preference, preference to non_negotiable, retiring a classified position, or re-classifying a retired one — requires both a version increment and this field set to '<position_key>@v<superseded version>'. First-time classification of previously unclassified content is an ordinary versioned addition and needs no supersession record. The append-only history lives in tools/expectations/classification-baseline.json and is checked against this manifest on every build.",
+          "description": "The retired position this item's position replaces, as '<retired position_key>@v<version it was retired at>'. A position_type is immutable for the life of its position_key: reclassification is never an in-place edit but a retirement plus a newly authored key that links back through this field. Only an item carrying a stakeholder position may set it, the named key must be tombstoned in tools/expectations/overrides.json under retired_position_keys with a matching successor, and a position may never supersede itself.",
           "oneOf": [
             { "type": "string", "minLength": 1 },
             { "type": "null" }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -169,6 +169,21 @@ test("an unquoted trainer-only class attribute is stripped rather than emitted",
   assert.equal(stripHtml("learner <span class=trainer-only data-x=1>SECRET</span> ok"), "learner ok");
   assert.equal(stripHtml("learner <img class=trainer-only src=x> ok"), "learner ok");
   assert.equal(stripHtml("learner <span class=visible-note>visible</span> ok"), "learner visible ok");
+});
+
+test("whitespace around the class equals does not let a trainer-only marker through", () => {
+  assert.equal(stripHtml('learner <span class ="trainer-only">SECRET</span> ok'), "learner ok");
+  assert.equal(stripHtml('learner <span class= "cd-sec trainer-only">SECRET</span> ok'), "learner ok");
+  assert.equal(stripHtml("learner <span class = trainer-only>SECRET</span> ok"), "learner ok");
+});
+
+test("a trainer-only marker the extractor cannot resolve fails closed instead of leaking", () => {
+  assert.throws(
+    () => stripHtml('learner <span data-role="trainer-only">SECRET</span> ok'),
+    /trainer-only marker survived learner extraction/,
+  );
+  assert.equal(stripHtml("learner trainer-only guidance is elsewhere ok"), "learner trainer-only guidance is elsewhere ok");
+  assert.equal(stripHtml('learner <span class="trainer-only-ish">visible</span> ok'), "learner visible ok");
 });
 
 test("a void element carrying the trainer marker is stripped instead of aborting the build", () => {
@@ -353,24 +368,35 @@ test("provenance is pinned to source content, validates without git, and catches
 });
 
 const CARRYING_ID = "healthcare.w07.ask";
+const SUCCESSOR_ID = "healthcare.w07.deliverable";
 const POSITION_KEY = "healthcare.w07.business.guardrail-proof";
-const ledger = (...entries) => ({ positions: { [POSITION_KEY]: entries } });
+const SUCCESSOR_KEY = "healthcare.w07.business.guardrail-proof-v2";
 
-function classifiedManifest(positionType, { id = CARRYING_ID, version = 1, supersedes = null, input = sources() } = {}) {
-  const manifest = buildManifestFromSources(input, {
-    mode: "pre-cutover",
-    metadata: {
-      ...metadata,
-      versions: { [id]: version },
-      supersedes: supersedes ? { [id]: supersedes } : {},
-      owner_roles: { [id]: "client_business" },
-      stakeholder_position_keys: { [id]: POSITION_KEY },
-      stakeholder_context: { [id]: stakeholderContext(positionType) },
-    },
-    validateProvenance: false,
+function buildClassified({ positions = [], retired = {}, input = sources() } = {}) {
+  const authored = {
+    ...metadata,
+    versions: {},
+    supersedes: {},
+    owner_roles: {},
+    stakeholder_position_keys: {},
+    stakeholder_context: {},
+    retired_position_keys: retired,
+  };
+  for (const position of positions) {
+    authored.versions[position.id] = position.version ?? 1;
+    if (position.supersedes) authored.supersedes[position.id] = position.supersedes;
+    authored.owner_roles[position.id] = "client_business";
+    authored.stakeholder_position_keys[position.id] = position.key;
+    authored.stakeholder_context[position.id] = stakeholderContext(position.position_type);
+  }
+  return buildManifestFromSources(input, {
+    mode: "pre-cutover", metadata: authored, validateProvenance: false,
   }).manifest;
-  return manifest;
 }
+
+const tombstone = (overrides = {}) => ({
+  [POSITION_KEY]: { position_type: "non_negotiable", version: 1, superseded_by: null, ...overrides },
+});
 
 test("the authored position keys resolve to real expectations and never inline the key", () => {
   const authored = JSON.parse(read("tools/expectations/overrides.json"));
@@ -409,142 +435,125 @@ test("the authored position keys resolve to real expectations and never inline t
   );
 });
 
-test("classifying previously unclassified content is an ordinary versioned addition", () => {
+test("classifying previously unclassified content is an ordinary addition", () => {
   const unclassified = buildManifestFromSources(sources(), { mode: "pre-cutover", metadata }).manifest;
   assert.equal(unclassified.items.every((item) => item.stakeholder_context === null), true);
-  assert.doesNotThrow(() => validateManifest(unclassified, SCHEMA, { root: ROOT, baseline: { positions: {} } }));
 
-  const classified = classifiedManifest("non_negotiable");
+  const classified = buildClassified({
+    positions: [{ id: CARRYING_ID, key: POSITION_KEY, position_type: "non_negotiable" }],
+  });
   const carrier = classified.items.find((item) => item.id === CARRYING_ID);
   assert.equal(carrier.version, 1);
   assert.equal(carrier.supersedes, null);
-  assert.doesNotThrow(() => validateManifest(classified, SCHEMA, {
-    root: ROOT, validateProvenance: false,
-    baseline: ledger({ version: 1, position_type: "non_negotiable", supersedes: null }),
-  }));
+  assert.equal(carrier.stakeholder_context.position_key, POSITION_KEY);
+  assert.equal(carrier.stakeholder_context.position_type, "non_negotiable");
+});
+
+test("a classification is immutable for the life of its key: a position cannot supersede itself", () => {
+  for (const [from, to] of [["non_negotiable", "preference"], ["preference", "non_negotiable"]]) {
+    assert.throws(
+      () => buildClassified({
+        positions: [{ id: CARRYING_ID, key: POSITION_KEY, position_type: to, version: 2, supersedes: `${POSITION_KEY}@v1` }],
+        retired: { [POSITION_KEY]: { position_type: from, version: 1, superseded_by: POSITION_KEY } },
+      }),
+      /may not supersede itself; a classification is immutable for the life of its key/,
+      `${from} -> ${to} rewritten in place under one key`,
+    );
+  }
+});
+
+test("a retired key needs a tombstone and can never be resurrected", () => {
+  assert.throws(
+    () => buildClassified({
+      positions: [{ id: SUCCESSOR_ID, key: SUCCESSOR_KEY, position_type: "preference", version: 1, supersedes: `${POSITION_KEY}@v1` }],
+    }),
+    /supersedes healthcare\.w07\.business\.guardrail-proof, which is not recorded in retired_position_keys/,
+    "superseding a key that was never tombstoned is rejected",
+  );
 
   assert.throws(
-    () => validateManifest(classified, SCHEMA, { root: ROOT, validateProvenance: false, baseline: { positions: {} } }),
-    /classified in the manifest but absent from the classification baseline/,
+    () => buildClassified({
+      positions: [{ id: CARRYING_ID, key: POSITION_KEY, position_type: "preference" }],
+      retired: tombstone(),
+    }),
+    /is retired and cannot be reused; author a new durable key/,
+    "a tombstoned key reappearing as a live position is rejected",
+  );
+
+  assert.throws(
+    () => buildClassified({ positions: [], retired: tombstone({ superseded_by: SUCCESSOR_KEY }) }),
+    /names successor healthcare\.w07\.business\.guardrail-proof-v2, which is not a classified position/,
+    "a tombstone may not point at a successor that does not exist",
+  );
+
+  assert.doesNotThrow(
+    () => buildClassified({ positions: [], retired: tombstone() }),
+    "a plain retirement keeps its tombstone with no successor",
   );
 });
 
-test("reclassifying a position in either direction needs an explicit version and supersession", () => {
+test("reclassifying in either direction requires a linked retirement plus a new key", () => {
   for (const [from, to] of [["non_negotiable", "preference"], ["preference", "non_negotiable"]]) {
-    const sameVersion = ledger(
-      { version: 1, position_type: from, supersedes: null },
-      { version: 2, position_type: to, supersedes: null },
-    );
-    sameVersion.positions[POSITION_KEY][1].version = 1;
+    const successor = { id: SUCCESSOR_ID, key: SUCCESSOR_KEY, position_type: to, version: 1 };
+    const retired = (extra = {}) => ({
+      [POSITION_KEY]: { position_type: from, version: 2, superseded_by: SUCCESSOR_KEY, ...extra },
+    });
+
     assert.throws(
-      () => validateManifest(classifiedManifest(to), SCHEMA, { root: ROOT, validateProvenance: false, baseline: sameVersion }),
-      /does not increment version past 1/,
-      `${from} -> ${to} at the same version`,
+      () => buildClassified({ positions: [successor], retired: retired() }),
+      /names successor healthcare\.w07\.business\.guardrail-proof-v2, which does not supersede it/,
+      `${from} -> ${to} with a new key that omits the supersession link`,
     );
 
-    const versionedOnly = ledger(
-      { version: 1, position_type: from, supersedes: null },
-      { version: 2, position_type: to, supersedes: null },
-    );
     assert.throws(
-      () => validateManifest(classifiedManifest(to, { version: 2 }), SCHEMA, {
-        root: ROOT, validateProvenance: false, baseline: versionedOnly,
+      () => buildClassified({
+        positions: [{ ...successor, supersedes: `${POSITION_KEY}@v1` }],
+        retired: retired(),
       }),
-      new RegExp(`position ${POSITION_KEY.replace(/\./g, "\\.")} moves from ${from} to ${to} without a supersession record`),
-      `${from} -> ${to} with a version bump but no supersession`,
+      /but healthcare\.w07\.business\.guardrail-proof was retired at v2/,
+      `${from} -> ${to} naming a version the tombstone does not record`,
     );
 
-    const wrongKey = structuredClone(versionedOnly);
-    wrongKey.positions[POSITION_KEY][1].supersedes = `${CARRYING_ID}@v1`;
     assert.throws(
-      () => validateManifest(classifiedManifest(to, { version: 2, supersedes: `${CARRYING_ID}@v1` }), SCHEMA, {
-        root: ROOT, validateProvenance: false, baseline: wrongKey,
+      () => buildClassified({
+        positions: [{ ...successor, supersedes: `${POSITION_KEY}@v2` }],
+        retired: retired({ superseded_by: "healthcare.w07.techlead.other" }),
       }),
-      /without a supersession record naming/,
+      /names healthcare\.w07\.techlead\.other as its successor, not healthcare\.w07\.business\.guardrail-proof-v2/,
+      `${from} -> ${to} with a one-sided link`,
+    );
+
+    assert.throws(
+      () => buildClassified({
+        positions: [{ ...successor, supersedes: `${CARRYING_ID}@v2` }],
+        retired: retired(),
+      }),
+      /which is not recorded in retired_position_keys/,
       `${from} -> ${to} superseding the carrying item id instead of the durable position key`,
     );
 
-    const recorded = structuredClone(versionedOnly);
-    recorded.positions[POSITION_KEY][1].supersedes = `${POSITION_KEY}@v1`;
-    assert.doesNotThrow(
-      () => validateManifest(classifiedManifest(to, { version: 2, supersedes: `${POSITION_KEY}@v1` }), SCHEMA, {
-        root: ROOT, validateProvenance: false, baseline: recorded,
-      }),
-      `${from} -> ${to} with both a version bump and a supersession record`,
-    );
+    const accepted = buildClassified({
+      positions: [{ ...successor, supersedes: `${POSITION_KEY}@v2` }],
+      retired: retired(),
+    });
+    const carrier = accepted.items.find((item) => item.id === SUCCESSOR_ID);
+    assert.equal(carrier.supersedes, `${POSITION_KEY}@v2`, `${from} -> ${to} records the link on the new key`);
+    assert.equal(carrier.stakeholder_context.position_key, SUCCESSOR_KEY);
+    assert.equal(carrier.stakeholder_context.position_type, to);
+    assert.equal(accepted.items.some((item) => item.stakeholder_context?.position_key === POSITION_KEY), false,
+      `${from} -> ${to} leaves the retired key absent from the manifest`);
   }
 });
 
-test("retiring a position tombstones it and re-adding one needs the supersession record", () => {
-  const active = ledger({ version: 1, position_type: "non_negotiable", supersedes: null });
-  const unclassified = buildManifestFromSources(sources(), { mode: "pre-cutover", metadata }).manifest;
-
+test("a supersession record without a stakeholder position is rejected", () => {
   assert.throws(
-    () => validateManifest(unclassified, SCHEMA, { root: ROOT, baseline: active }),
-    /classified at v1 in the baseline but absent from the manifest; record its retirement/,
-    "dropping a classified position without a tombstone is rejected",
-  );
-
-  const undocumentedTombstone = ledger(
-    { version: 1, position_type: "non_negotiable", supersedes: null },
-    { version: 2, retired: true, supersedes: null },
-  );
-  assert.throws(
-    () => validateManifest(unclassified, SCHEMA, { root: ROOT, baseline: undocumentedTombstone }),
-    /moves from non_negotiable to retired without a supersession record/,
-  );
-
-  const tombstone = ledger(
-    { version: 1, position_type: "non_negotiable", supersedes: null },
-    { version: 2, retired: true, supersedes: `${POSITION_KEY}@v1` },
-  );
-  assert.doesNotThrow(() => validateManifest(unclassified, SCHEMA, { root: ROOT, baseline: tombstone }));
-  assert.throws(
-    () => validateManifest(classifiedManifest("preference"), SCHEMA, {
-      root: ROOT, validateProvenance: false, baseline: tombstone,
+    () => buildManifestFromSources(sources(), {
+      mode: "pre-cutover",
+      validateProvenance: false,
+      metadata: { ...metadata, supersedes: { [CARRYING_ID]: `${POSITION_KEY}@v1` } },
     }),
-    /retired at v2 but is still classified in the manifest/,
+    /records supersedes .* without carrying a stakeholder position/,
   );
-
-  const laundered = ledger(
-    { version: 1, position_type: "non_negotiable", supersedes: null },
-    { version: 2, retired: true, supersedes: `${POSITION_KEY}@v1` },
-    { version: 3, position_type: "preference", supersedes: null },
-  );
-  assert.throws(
-    () => validateManifest(classifiedManifest("preference", { version: 3 }), SCHEMA, {
-      root: ROOT, validateProvenance: false, baseline: laundered,
-    }),
-    /moves from retired to preference without a supersession record/,
-    "delete-then-re-add must not launder a softening past the guard",
-  );
-
-  const readded = structuredClone(laundered);
-  readded.positions[POSITION_KEY][2].supersedes = `${POSITION_KEY}@v2`;
-  assert.doesNotThrow(() => validateManifest(
-    classifiedManifest("preference", { version: 3, supersedes: `${POSITION_KEY}@v2` }), SCHEMA,
-    { root: ROOT, validateProvenance: false, baseline: readded },
-  ));
-});
-
-test("a corrupted classification history is rejected rather than trusted", () => {
-  const classified = classifiedManifest("non_negotiable");
-  const corruptions = [
-    [{ positions: { [POSITION_KEY]: [] } }, /has no entries/],
-    [ledger({ version: 1, position_type: "non_negotiable", supersedes: `${POSITION_KEY}@v0` }), /predates its own history/],
-    [ledger({ version: 0, position_type: "non_negotiable", supersedes: null }), /non-versioned entry/],
-    [ledger({ version: 1, position_type: "nice_to_have", supersedes: null }), /unknown position_type/],
-    [ledger({ version: 2, position_type: "non_negotiable", supersedes: null }), /v1 in the manifest but v2 in the classification baseline/],
-    [ledger({ version: 1, position_type: "preference", supersedes: null }), /non_negotiable in the manifest but preference in the classification baseline/],
-    [ledger({ version: 1, position_type: "non_negotiable", supersedes: `${POSITION_KEY}@v1` }), /predates its own history/],
-  ];
-  for (const [baseline, expected] of corruptions) {
-    assert.throws(
-      () => validateManifest(classified, SCHEMA, { root: ROOT, validateProvenance: false, baseline }),
-      expected,
-      JSON.stringify(baseline),
-    );
-  }
 });
 
 test("rewording the authored sentence rotates the item id but not the position identity", () => {
@@ -557,61 +566,67 @@ test("rewording the authored sentence rotates the item id but not the position i
   };
   assert.notEqual(reworded.client, input.client);
 
-  const before = classifiedManifest("non_negotiable", { id: beforeId, input });
+  const before = buildClassified({
+    positions: [{ id: beforeId, key: POSITION_KEY, position_type: "non_negotiable" }], input,
+  });
   assert.equal(before.items.find((item) => item.id === beforeId).stakeholder_context.position_key, POSITION_KEY);
 
-  const after = classifiedManifest("preference", { id: afterId, input: reworded });
+  const after = buildClassified({
+    positions: [{ id: afterId, key: POSITION_KEY, position_type: "non_negotiable" }], input: reworded,
+  });
   assert.equal(after.items.some((item) => item.id === beforeId), false, "the display id rotated with the wording");
   assert.equal(after.items.find((item) => item.id === afterId).stakeholder_context.position_key, POSITION_KEY,
     "the durable position key did not rotate with the wording");
+  assert.equal(after.items.find((item) => item.id === afterId).stakeholder_context.position_type, "non_negotiable",
+    "a wording change carries the classification across unchanged");
 
-  const baseline = ledger(
-    { version: 1, position_type: "non_negotiable", supersedes: null },
-    { version: 1, position_type: "preference", supersedes: null },
-  );
   assert.throws(
-    () => validateManifest(after, SCHEMA, { root: ROOT, validateProvenance: false, baseline }),
-    /does not increment version past 1/,
-    "a wording change must not launder a softening past the guard",
+    () => buildClassified({
+      positions: [{ id: afterId, key: POSITION_KEY, position_type: "preference", version: 2, supersedes: `${POSITION_KEY}@v1` }],
+      retired: { [POSITION_KEY]: { position_type: "non_negotiable", version: 1, superseded_by: POSITION_KEY } },
+      input: reworded,
+    }),
+    /may not supersede itself/,
+    "a wording change must not carry a softening under the same key",
   );
-
-  const recorded = ledger(
-    { version: 1, position_type: "non_negotiable", supersedes: null },
-    { version: 2, position_type: "preference", supersedes: `${POSITION_KEY}@v1` },
-  );
-  const superseded = classifiedManifest("preference", {
-    id: afterId, input: reworded, version: 2, supersedes: `${POSITION_KEY}@v1`,
-  });
-  assert.doesNotThrow(() => validateManifest(superseded, SCHEMA, {
-    root: ROOT, validateProvenance: false, baseline: recorded,
-  }));
 });
 
-const runCheck = (mode = "pre-cutover") => spawnSync(
-  process.execPath,
-  ["tools/expectations/build.mjs", "--mode", mode, "--check"],
-  { cwd: ROOT, encoding: "utf8" },
-);
+function checkIn(root, mode = "post-cutover") {
+  return spawnSync(process.execPath, [join(root, "tools/expectations/build.mjs"), "--mode", mode, "--check"], {
+    cwd: root, encoding: "utf8",
+  });
+}
 
 test("CLI check is a drift guard and reports generated counts", () => {
-  const run = runCheck();
+  const run = spawnSync(process.execPath, ["tools/expectations/build.mjs", "--mode", "pre-cutover", "--check"], {
+    cwd: ROOT, encoding: "utf8",
+  });
   assert.equal(run.status, 0, run.stderr || run.stdout);
   assert.match(run.stdout, /packet=\d+ schedule=\d+ track=\d+ total=\d+/);
 });
 
 test("CLI check fails when the committed manifest no longer matches the sources", () => {
-  const manifestPath = join(ROOT, "content/expectations.v1.json");
-  const committed = readFileSync(manifestPath, "utf8");
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "expectations-drift-")));
   try {
-    const perturbed = JSON.parse(committed);
+    mkdirSync(join(dir, "tools/expectations"), { recursive: true });
+    mkdirSync(join(dir, "content"), { recursive: true });
+    for (const relative of [
+      "expectations.v1.schema.json", "client-delivery.html", "index.html", "delivery-track.html", "alt-research.html",
+      "tools/expectations/build.mjs", "tools/expectations/overrides.json", "content/expectations.v1.json",
+    ]) {
+      copyFileSync(join(ROOT, relative), join(dir, relative));
+    }
+    assert.equal(checkIn(dir).status, 0, "the copied tree starts current");
+
+    const manifestPath = join(dir, "content/expectations.v1.json");
+    const perturbed = JSON.parse(readFileSync(manifestPath, "utf8"));
     perturbed.items[0].text = `${perturbed.items[0].text} (hand-edited)`;
     writeFileSync(manifestPath, `${JSON.stringify(perturbed, null, 2)}\n`);
 
-    const drifted = runCheck();
+    const drifted = checkIn(dir);
     assert.equal(drifted.status, 1, drifted.stdout);
     assert.match(drifted.stderr, /expectations manifest drift detected/);
   } finally {
-    writeFileSync(manifestPath, committed);
+    rmSync(dir, { recursive: true, force: true });
   }
-  assert.equal(runCheck().status, 0, "the committed manifest is restored");
 });
