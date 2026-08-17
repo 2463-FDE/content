@@ -84,11 +84,14 @@ test("AC-1.6.4 pilot weeks W7–W10 carry both roles and at least one conflict p
   }
 });
 
-test("AC-1.6.5 positions are labelled fictional and match no real-client marker; source is page + commit", () => {
+test("AC-1.6.5 positions are labelled fictional and match no real-client marker; source is an authored page in this repo", () => {
   const patterns = markers.patterns.map((entry) => ({ ...entry, re: new RegExp(entry.regex, "u") }));
   for (const id of positionIds) {
     assert.match(positions[id].rationale, FICTION_LABEL, `${id} rationale carries the fictional-content label`);
-    assert.match(byId.get(id).source, /^[A-Za-z0-9_./-]+\.html#[^@]+@[0-9a-f]{40}$/, `${id} source is a page path + commit`);
+    // Provenance is the authored page path (+ the durable source-content hash once the
+    // content lane lands it); never a web page or model memory. Commit attestations are
+    // being removed, so nothing here depends on an @commit suffix.
+    assert.match(byId.get(id).source, /^[A-Za-z0-9_./-]+\.html#/, `${id} source is an authored page path in this repository`);
     for (const [path, value] of strings(positions[id])) {
       for (const pattern of patterns) {
         assert.doesNotMatch(value, pattern.re, `${id}.${path} matches real-client marker "${pattern.name}": ${value.slice(0, 80)}`);
