@@ -26,3 +26,5 @@ jobs:
           tools/expectations/build.test.mjs
       - name: Check post-cutover manifest drift
         run: node tools/expectations/build.mjs --mode post-cutover --check
+      - name: Lint authored stakeholder positions (AC-1.6.2–1.6.5)
+        run: node --test tools/expectations/stakeholder-authoring.test.mjs
