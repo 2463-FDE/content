@@ -56,6 +56,8 @@
   .cd-dig code { font-family:var(--mono); font-size:.8em; background:var(--code-bg); padding:1px 5px; border-radius:4px; }
   .cd-deliv { background:var(--surface-2); border:1px solid var(--good-line); border-radius:12px; padding:14px 16px; font-size:15.5px; line-height:1.55; }
   .cd-quota.callout { margin:14px 0 0; }
+  .trainer-manifest-status { color:var(--ink-soft); font-size:14px; margin:8px 0 0; }
+  .trainer-manifest-status.error { color:var(--bad-ink); }
 </style>
 </head>
 <body>
@@ -99,11 +101,10 @@
 <script>
 /* ============================================================================
    Per-project, per-week client material. Faithful to projects/<p>/client-packets.md.
-   Learner-visible: ask (client message), handover[], dig[] (questions to dig into),
-                    stated (known problems), deliverable, quota.
-   Trainer-only:    hidden[] + facilitator (rendered inside .trainer-only blocks).
-   Handover artifacts carry concrete CLUES that point toward the seeded latent
-   problems WITHOUT naming them; the answer key stays in the trainer-only block.
+   Public source contains learner-visible asks, handovers, discovery questions,
+   stated problems, deliverables, and quota guidance only. Trainer-only hidden
+   problems and facilitator notes are fetched from the authorized Worker route.
+   Handover artifacts carry concrete CLUES without publishing the answer key.
    ========================================================================== */
 window.CLIENT = {
   healthcare: {
@@ -133,12 +134,6 @@ window.CLIENT = {
           "The registration page feels slow.",
           "The board wants an AI feature — nothing exists yet."
         ],
-        hidden: [
-          "<b>Secrets in the repo (D9, #12)</b> — a single repo or log-aggregator leak is an instant ePHI compromise.",
-          "<b>PHI in plaintext logs (D1, #2)</b> — the logs that should be audit trails are an attack surface.",
-          "<b>'HIPAA compliant' is self-asserted, not architected (#1)</b> — TLS + plaintext-at-rest is not compliance."
-        ],
-        facilitator: "Steer with questions: 'What's in that log line?' 'Is the .env tracked?' 'Where is the encryption?' Why it matters: breach exposure, 164.308 risk-management failure, audit trail turned into attack surface.",
         deliverable: "Production LLM client wrapper (timeout, retry w/ backoff, structured-output parsing, token/cost guard) + a PHI-safe logging policy (no request bodies; redaction helper) + a 1-page onboarding seam map + a debt-log entry naming D1/D9/D3 in business-risk terms. Not 'build the AI feature' — the safe client + the finding."
       },
       2: {
@@ -162,11 +157,6 @@ window.CLIENT = {
           "Clinicians waste time hunting through patient history.",
           "Retrieval 'looks fine' on the contractor's gold-set."
         ],
-        hidden: [
-          "<b>No duplicate-patient / MPI strategy (#3, D5)</b> — self-service intake with no match key silently forks one patient into N chart fragments.",
-          "Retrieval looks fine but is grounded on a <b>partial</b> record — no retrieval tuning fixes a fragmented source of truth."
-        ],
-        facilitator: "Get them to notice the duplicate human in the dump before talking retrieval quality. Why it matters: patient-safety risk (clinician acts on incomplete allergy/med list) + data integrity.",
         quota: "Embedding a large record dump can burn Pro quota. Cap corpus size; embed once and cache — do not re-embed per run.",
         deliverable: "A RAG retrieval eval harness (recall/precision over the gold-set) whose report surfaces the fragmentation (duplicate-rate metric, fragment-coverage gap) + a short ADR proposing an MPI/match-key approach."
       },
@@ -191,11 +181,6 @@ window.CLIENT = {
           "Front-desk eligibility checks are painful.",
           "The portal 'freezes' / is slow sometimes."
         ],
-        hidden: [
-          "<b>Synchronous external calls with no timeout/circuit breaker (D4, #7)</b> — a payer outage takes down intake itself, not just eligibility.",
-          "It's an availability cliff with no contingency posture (164.308 contingency), mislabeled 'slow sometimes.'"
-        ],
-        facilitator: "Connect the support ticket to the payer outage window to the synchronous call — let them draw the line. Why it matters: clinic can't register patients during any payer blip; revenue + access risk.",
         deliverable: "A single-agent eligibility assistant (one check_eligibility tool + visit-scoped memory) built on a non-blocking, timeout-bounded, circuit-breaker-guarded eligibility call + an ADR: sync→async + graceful degradation (cache last-known eligibility, let intake proceed)."
       },
       4: {
@@ -219,11 +204,6 @@ window.CLIENT = {
           "Patients want their labs + visit summaries in one place.",
           "Some record pages are sluggish."
         ],
-        hidden: [
-          "<b>IDOR on record reads (D11, #9)</b> — guessable IDs + missing ownership checks let any authenticated user pull any chart.",
-          "<b>N+1 / no automatic logoff (D8/D10)</b> — and the 'assemble the full picture' feature amplifies the IDOR if shipped naively."
-        ],
-        facilitator: "Hand them the HAR and let them try the next sequential ID themselves. Why it matters: mass PHI exposure + minimum-necessary violation.",
         deliverable: "A knowledge-graph schema (patient→encounter→provider→record) + a small multi-agent retrieval prototype that assembles the patient view with an ownership/authorization check at the graph boundary + an IDOR finding writeup (repro from the HAR) and an N+1 note. Keep the KG to a seeded sample; the security finding is the headline."
       },
       5: {
@@ -248,11 +228,6 @@ window.CLIENT = {
           "Scheduling double-books the same slot.",
           "Client believes it's a calendar-UI bug — 'just fix the calendar.'"
         ],
-        hidden: [
-          "<b>No idempotency + no slot-concurrency control (D5, #8)</b> — 'double-booking' is a correctness defect (retry = duplicate; race on Slot), not a calendar-UI bug.",
-          "'Fixing the calendar' without idempotency just reshuffles the race."
-        ],
-        facilitator: "Reframe the ask: lead them from 'calendar bug' to 'retry produced a duplicate.' Why it matters: double-books clinician time, double-bills patients, erodes trust.",
         deliverable: "A spec package: problem-scoping doc (reframe 'calendar bug' → idempotency + concurrency), acceptance criteria, an idempotency-key + DB-constraint/transaction design for booking, and test vectors for retry + concurrent-booking. Spec only — implementation is scoped, not built."
       },
       6: {
@@ -277,10 +252,6 @@ window.CLIENT = {
           "The hospital feed integration needs to be 'solid.'",
           "It 'works' today — client just wants to trust it."
         ],
-        hidden: [
-          "<b>Brittle HL7v2→internal mapping silently drops allergy/med fields (D6, #11)</b> — 'the integration works' because it doesn't error; it just loses clinical data."
-        ],
-        facilitator: "Have them diff an inbound message against the produced internal record to find the dropped segments. Why it matters: a clinician sees an empty allergy list and prescribes against it — a patient-safety integrity risk (164.312(c)), invisible until harm occurs.",
         deliverable: "An AI-augmented legacy-comprehension report on the parser (what it maps, what it drops, by segment) + characterization tests that pin current behavior + a failing test demonstrating the dropped AL1/RXA + an ADR for a schema-validated mapping. Not a full rewrite."
       },
       7: {
@@ -305,11 +276,6 @@ window.CLIENT = {
           "The portal is flaky and the client is last to know.",
           "Wants the AI summary to not 'say anything crazy.'"
         ],
-        hidden: [
-          "<b>No observability on the intake/eligibility path</b> — availability cliffs are invisible (no alert, no MTTR); every outage is discovered by patients first.",
-          "<b>The LLM feature has no output guardrail</b> — hallucinated clinical content is a clinical-safety + liability risk."
-        ],
-        facilitator: "Two threads converge: the unmonitored availability cliff (from W3) and the ungrounded AI output. Keep scope to one instrumented path + one guardrail.",
         deliverable: "An observability instrument for the intake path: structured tracing on the critical span, a golden-signals dashboard spec, and one working alert (latency/error-rate SLO breach) + a content guardrail on the LLM summary (grounding/validation + refuse-unknown)."
       },
       8: {
@@ -334,11 +300,6 @@ window.CLIENT = {
           "Board wants automatic visit-summaries for every patient.",
           "Client believes the analytics export is already 'de-identified.'"
         ],
-        hidden: [
-          "<b>PHI to an LLM vendor with no BAA + no de-identification (D13, #5)</b> is an impermissible disclosure (164.502(e)).",
-          "<b>The 'de-identified' export is re-identifiable</b> — missing 17 of 18 Safe-Harbor identifiers (#14)."
-        ],
-        facilitator: "The flagship feature is an unsignaled breach; 'anonymized' data isn't. Let them enumerate the 18 Safe-Harbor identifiers against the export to feel the gap.",
         quota: "Multi-field LLM scrub — test the redactor offline with unit tests, not by spamming the LLM.",
         deliverable: "A responsible-AI design package: a Safe-Harbor de-identification scrub (18 identifiers, unit-tested redactor) used before any LLM/analytics path + a data-flow + BAA/vendor-governance memo (what leaves the PHI boundary, under what agreement) + a recommendation gate."
       },
@@ -361,11 +322,6 @@ window.CLIENT = {
           "Wants confidence the work survives the engagement.",
           "Wants to know what is left, and when.",
         ],
-        hidden: [
-          "<b>Work only you can run is not delivered</b> — an undocumented dependency is a defect the client finds after you have gone.",
-          "<b>An estimate never compared to an actual never improves</b> — this is the week the calibration loop closes.",
-        ],
-        facilitator: "No new technical scope. Burn-down and estimate calibration. CODE FREEZE FRIDAY. If W7/W8 slip into here the freeze slips and W10 is compromised — protect it.",
         deliverable: "Every outstanding item merged, or carrying a blocker card with a moved estimate and a named owner. Plus one page: what someone inheriting this repo on Monday needs to know."
       },
 10: {
@@ -386,11 +342,6 @@ window.CLIENT = {
           "Wants proof of value in language the board understands.",
           "Wants to keep using it after the engagement ends.",
         ],
-        hidden: [
-          "<b>A demo is not a delivery</b> — the handover package is what the client still has in six months.",
-          "<b>Every claim must trace to a commit on main</b> — one untraceable slide fails the deck.",
-        ],
-        facilitator: "No new code. Rehearse, package, hand over, show. Score the whole arc: the number, the roadmap, the recovery when something breaks. Failures are not rescued.",
         deliverable: "A rehearsed demo against main with a written script and a planned failure; a before/after number said aloud; a handover package (README that is true, runbook that runs, ADR trail where every citation resolves); and a dated roadmap with owners."
       },
 }
@@ -423,12 +374,6 @@ window.CLIENT = {
           "Polish the application form.",
           "Board wants 'AI' — stand up a loan-summary assistant."
         ],
-        hidden: [
-          "<b>PII/PAN/CVV in logs (D5, #7)</b> — storing CVV (Sensitive Authentication Data) is a flat PCI prohibition; PAN+SSN in plaintext is a breach already in prod.",
-          "<b>Secrets in repo (D13)</b> and <b>float money math (D1)</b> — a latent TILA/reconciliation bomb.",
-          "<b>\"PCI compliant\" is self-asserted, not architected (#7)</b> — the README claim survives only until you read one log line or the <code>payments</code> schema; nothing in the seven-service estate actually enforces it."
-        ],
-        facilitator: "All are spotted on first read. Steer with questions: 'What's a CVV doing in a log?' 'What happens to that float over a thousand payments?' 'Who actually enforces the PCI claim?' Why it matters: PCI failure + breach exposure today.",
         deliverable: "A production LLM client wrapper (timeout, retry, structured output, cost guard) with PCI/PII-redacting logging (never log PAN/CVV/SSN) + a LOS↔LSS seam map + a debt-log entry naming D5/D13/D1 in business-risk terms. Build the safe client + the finding, not the AI feature."
       },
       2: {
@@ -452,11 +397,6 @@ window.CLIENT = {
           "Loan officers repeat the same policy questions.",
           "Wants a helper over policy docs + past decisions."
         ],
-        hidden: [
-          "<b>The decision history isn't retrievable because it isn't recorded (D4, #1)</b> — you can't answer 'why denied?' today (fair-lending exposure, full reveal W3).",
-          "<b>The RAG corpus itself leaks PII/PAN (#7)</b> — raw applications in an embedding store is a fresh breach surface."
-        ],
-        facilitator: "Flag that Priya (Compliance) is forming on the horizon. Let the empty 'why denied?' result expose the missing decision record. Why it matters: fair-lending exposure + a new breach surface.",
         quota: "Embed only a sampled policy subset; cache embeddings; never re-embed per run. Do redaction checks offline (regex/validator), not via LLM calls.",
         deliverable: "A RAG retrieval eval harness over the policy corpus whose report surfaces (a) the missing decision-record gap and (b) PII/PAN in the corpus (a redaction check on ingest) + an ADR on corpus hygiene + a retrievable decision-record requirement."
       },
@@ -465,7 +405,7 @@ window.CLIENT = {
         tie: "A single tool-using agent with memory; tool-call design + failure handling.",
         ask: "Big news — we licensed a new AI credit-scoring model and it's noticeably more accurate. I want you to wrap it in an assistant that decisions an application and tells the officer the result, clean and simple. I attached some sample outputs. It does slow down when a lot of apps come in at once, but accuracy is what matters. Move fast on this one, the board's watching.",
         handover: [
-          "<code>services/decision-service/app/decision.py</code>: credit pull → bureau call → model run are a synchronous chain on the request thread (origination calls it inline over HTTP, so the block propagates back to the applicant); load-test note: \"timeouts at >20 concurrent apps.\"",
+          "<code>services/decision-service/app/decision.py</code>: credit pull → bureau call → model run are a synchronous chain on the request thread (origination calls it inline over HTTP, so the block propagates back to the applicant); load-test note: \"timeouts above 20 concurrent apps.\"",
           "Sample model output: <code>{score: 612, decision: 'deny', adverse_action_reason: 'purchasing history'}</code> — the same generic string recurs across many denials.",
           "No decision record is persisted: nothing stores the inputs, the model's actual top features, or a timestamp.",
           "A denied applicant's adverse-action letter draft: reason = \"purchasing history\" (a nearest-checkbox, not the real driver).",
@@ -481,11 +421,6 @@ window.CLIENT = {
           "Newly licensed AI scorer is 'more accurate.'",
           "Wants an assistant that decisions an app and reports the result."
         ],
-        hidden: [
-          "<b>The model gives generic adverse-action reasons → ECOA violation even though 'the model works' (#2)</b> — CFPB allows no AI exemption.",
-          "<b>No immutable decision audit trail (#1, D4)</b> — Meridian can't defend any denial."
-        ],
-        facilitator: "<b>Pull Compliance Officer Priya into the room.</b> A wrong/generic reason is a fair-lending violation; without an audit trail there's no defense. Sync→async is secondary here.",
         deliverable: "A single-agent decisioning assistant (score tool + decision memory) that persists an append-only decision-event record (inputs, model outputs, reason codes) + an ADR: map model features → specific, accurate adverse-action reasons + a sync→async note."
       },
       4: {
@@ -509,11 +444,6 @@ window.CLIENT = {
           "Auto-generate the offer + disclosure docs on approval.",
           "Client thinks the numbers 'look basically right.'"
         ],
-        hidden: [
-          "<b>Float rounding silently breaches TILA APR/finance-charge tolerance (#3, D1)</b> — every affected loan ships a legally inaccurate disclosure.",
-          "<b>Hardcoded, divergent fee logic (D6)</b> — tolerances make this a compliance defect, not a cosmetic rounding nit."
-        ],
-        facilitator: "Walk the float-vs-Decimal worked example until they see the disclosed APR cross the tolerance line. Why it matters: legally inaccurate disclosures at scale.",
         deliverable: "A knowledge-graph schema (borrower→application→decision→offer→disclosure) + a multi-agent disclosure-assembly prototype that pulls from the KG + a TILA-tolerance finding (the float-vs-Decimal example) + an ADR: Decimal/minor-units + externalized rule config + TILA test vectors. Full rules engine → roadmap."
       },
       5: {
@@ -537,11 +467,6 @@ window.CLIENT = {
           "Let customers pay online (card + ACH).",
           "Client believes it's 'just add a payment form.'"
         ],
-        hidden: [
-          "<b>No idempotency on payment POST (D2, #4)</b> — double-charges are a money-correctness + trust failure.",
-          "<b>PCI scope explosion: storing PAN, logging CVV/SAD (#7)</b> — a direct PCI-DSS violation; the right design reduces scope (tokenize, never store SAD)."
-        ],
-        facilitator: "Reframe 'add a payment form' → idempotency + PCI tokenization + no-SAD storage. The double-charge tickets are the entry point. Spec week — don't let them start building.",
         deliverable: "A spec package (spec, not build): reframe 'add a payment form' → idempotency-key design + PCI-tokenization + no-SAD storage; acceptance criteria; test vectors for retry + concurrent-payment + tokenization cases. Implementation scoped, not shipped."
       },
       6: {
@@ -567,11 +492,6 @@ window.CLIENT = {
           "Wants a servicing dashboard for reps to adjust balances + waive fees.",
           "Reps are 'trusted' — keep permissions light."
         ],
-        hidden: [
-          "<b>Weak authz / no segregation of duties (D8, #6)</b> — any rep (or compromised account) can silently move money: insider-fraud + SOX §404 control failure.",
-          "<b>Mutable balance with no ledger (D12)</b> — an overwritten balance has no provenance an auditor can trust."
-        ],
-        facilitator: "<b>Pull Controller Sam into the room.</b> Demonstrate the lost update with the concurrent payment + waiver. Why it matters: insider-fraud + SOX §404; the dashboard ask amplifies the authz gap.",
         deliverable: "An AI-augmented legacy-comprehension report on the servicing module (who can do what; how balance mutates) + characterization tests pinning current behavior + a failing test showing the lost update + an ADR: RBAC + maker-checker on money-affecting actions + append-only ledger (balance = projection). Not the dashboard build."
       },
       7: {
@@ -596,11 +516,6 @@ window.CLIENT = {
           "Payments feel flaky.",
           "Finance complains about month-end 'noise.'"
         ],
-        hidden: [
-          "<b>No reconciliation between ledger and settlement (D7, #5)</b> — the 'month-end noise' is a SOX-material control gap.",
-          "The unidempotent double-funds are invisible without instrumentation."
-        ],
-        facilitator: "<b>Sam is in the room now.</b> 'Noise' is the symptom of a missing control. Have them tie the settlement file to the ledger and watch the variance fail to reconcile.",
         quota: "Reconciliation — run on a sampled month, not the full history.",
         deliverable: "An observability + reconciliation instrument: structured tracing on the payment span, a daily reconciliation job + break-report (ledger vs settlement), and one alert on a reconciliation break or error-rate SLO. One instrumented path + one control."
       },
@@ -626,11 +541,6 @@ window.CLIENT = {
           "Board loves the AI scorer — roll it out wider.",
           "Wants a marketing page about how advanced it is."
         ],
-        hidden: [
-          "<b>The AI scorer is an ECOA liability at scale (#2, D10)</b> — generic reasons, no governance, no disparity monitoring, no model card.",
-          "12 CFR 1002.9 (the obligation CFPB Circular 2023-03 restated before it was withdrawn 2025-05-12) = no AI exemption; rolling it wider multiplies fair-lending exposure."
-        ],
-        facilitator: "Responsible-AI isn't a marketing page; it's reason accuracy + monitoring + documentation. The ZIP approval-rate pattern is the disparate-impact prompt.",
         quota: "Model reason-mapping — test the mapping logic with fixtures, don't spam the live model.",
         deliverable: "A responsible-AI / fair-lending governance package: a reason-code → specific-consumer-reason mapping (tested against the model's real drivers), a model card, and a fair-lending monitoring spec (denial-reason accuracy + disparity check). Governance artifacts; not a model rebuild."
       },
@@ -653,11 +563,6 @@ window.CLIENT = {
           "Wants confidence the work survives the engagement.",
           "Wants to know what is left, and when.",
         ],
-        hidden: [
-          "<b>Work only you can run is not delivered</b> — an undocumented dependency is a defect the client finds after you have gone.",
-          "<b>An estimate never compared to an actual never improves</b> — this is the week the calibration loop closes.",
-        ],
-        facilitator: "No new technical scope. Burn-down and estimate calibration. CODE FREEZE FRIDAY. If W7/W8 slip into here the freeze slips and W10 is compromised — protect it.",
         deliverable: "Every outstanding item merged, or carrying a blocker card with a moved estimate and a named owner. Plus one page: what someone inheriting this repo on Monday needs to know."
       },
 10: {
@@ -678,11 +583,6 @@ window.CLIENT = {
           "Wants proof of value in language the board understands.",
           "Wants to keep using it after the engagement ends.",
         ],
-        hidden: [
-          "<b>A demo is not a delivery</b> — the handover package is what the client still has in six months.",
-          "<b>Every claim must trace to a commit on main</b> — one untraceable slide fails the deck.",
-        ],
-        facilitator: "No new code. Rehearse, package, hand over, show. Score the whole arc: the number, the roadmap, the recovery when something breaks. Failures are not rescued.",
         deliverable: "A rehearsed demo against main with a written script and a planned failure; a before/after number said aloud; a handover package (README that is true, runbook that runs, ADR trail where every citation resolves); and a dated roadmap with owners."
       },
 }
@@ -729,6 +629,72 @@ window.CLIENT = {
   }
   function ol(items) {
     return `<ol>${items.map(i => `<li>${i}</li>`).join("")}</ol>`;
+  }
+
+  let trainerManifest = { status: "idle", items: [], error: "" };
+
+  function trainerIdentity() {
+    try { return typeof window.FDE_getIdentity === "function" ? window.FDE_getIdentity() : null; }
+    catch (e) { return null; }
+  }
+
+  function renderTrainerSection() {
+    const idt = trainerIdentity();
+    if (!idt || idt.role !== "trainer") return;
+
+    const section = document.createElement("div");
+    section.className = "cd-sec trainer-only trainer-manifest";
+    const heading = document.createElement("div");
+    heading.className = "cd-h";
+    heading.style.color = "#c2410c";
+    heading.textContent = "Hidden problems learners should surface";
+    section.appendChild(heading);
+
+    if (trainerManifest.status !== "ready") {
+      const status = document.createElement("p");
+      status.className = "trainer-manifest-status" + (trainerManifest.status === "error" ? " error" : "");
+      status.setAttribute("role", trainerManifest.status === "error" ? "alert" : "status");
+      status.textContent = trainerManifest.status === "error"
+        ? trainerManifest.error
+        : "Loading trainer-only guidance…";
+      section.appendChild(status);
+      panel.appendChild(section);
+      return;
+    }
+
+    const entries = trainerManifest.items.filter(item =>
+      item.project === state.proj && Number(item.week) === state.week);
+    const hidden = entries.filter(item => item.field === "hidden").sort((a, b) => a.id.localeCompare(b.id));
+    const facilitator = entries.find(item => item.field === "facilitator");
+    if (!hidden.length && !facilitator) {
+      const empty = document.createElement("p");
+      empty.className = "trainer-manifest-status";
+      empty.textContent = "No trainer-only guidance is available for this week.";
+      section.appendChild(empty);
+    }
+    if (hidden.length) {
+      const list = document.createElement("ul");
+      list.className = "cd-list trainer-hidden";
+      hidden.forEach(item => {
+        const row = document.createElement("li");
+        row.textContent = item.text;
+        list.appendChild(row);
+      });
+      section.appendChild(list);
+    }
+    if (facilitator) {
+      const note = document.createElement("div");
+      note.className = "trainer-note";
+      const label = document.createElement("div");
+      label.className = "k";
+      label.textContent = "Facilitator note";
+      const text = document.createElement("p");
+      text.style.margin = "0";
+      text.textContent = facilitator.text;
+      note.append(label, text);
+      section.appendChild(note);
+    }
+    panel.appendChild(section);
   }
 
   function render() {
@@ -784,21 +750,26 @@ window.CLIENT = {
         (wk.quota ? `<div class="callout warn cd-quota"><div class="k">⚠ Quota / scope risk</div><p style="margin:0">${wk.quota}</p></div>` : "") +
       `</div>`;
 
-    // Hidden problems + facilitator notes (TRAINER ONLY)
-    html +=
-      `<div class="cd-sec trainer-only">` +
-        `<div class="cd-h" style="color:#c2410c">🔑 Hidden problems learners should surface</div>` +
-        ul(wk.hidden) +
-        `<div class="trainer-note"><div class="k">Facilitator note</div><p style="margin:0">${wk.facilitator}</p></div>` +
-      `</div>`;
-
     panel.innerHTML = html;
+    renderTrainerSection();
   }
 
+  window.addEventListener("fde:trainer-manifest", event => {
+    trainerManifest = event.detail;
+    render();
+  });
+  window.addEventListener("load", () => {
+    const idt = trainerIdentity();
+    if (!idt || idt.role !== "trainer" || typeof window.FDE_loadTrainerManifest !== "function") return;
+    trainerManifest = window.FDE_getTrainerManifestState();
+    render();
+    window.FDE_loadTrainerManifest();
+  });
   render();
 })();
 </script>
 <script src="assets/js/roster.js?v=20260706"></script>
 <script src="assets/js/auth.js"></script>
+<script src="assets/js/trainer-manifest.js?v=20260817-coworker-p2"></script>
 </body>
 </html>
