@@ -30,8 +30,7 @@ const metadata = {
 };
 const SCHEMA = JSON.parse(read("expectations.v1.schema.json"));
 
-const stakeholderContext = (positionKey, positionType) => ({
-  position_key: positionKey,
+const stakeholderContext = (positionType) => ({
   stakeholder_role: "client_business",
   position_type: positionType,
   approval_authority: ["client_business"],
@@ -42,6 +41,11 @@ const stakeholderContext = (positionKey, positionType) => ({
   trade_space: [],
   escalation_triggers: ["Synthetic authored escalation trigger."],
   conflicts: [],
+});
+
+const emittedContext = (positionKey, positionType) => ({
+  position_key: positionKey,
+  ...stakeholderContext(positionType),
 });
 
 const standaloneSources = (marker = "") => ({
@@ -160,6 +164,13 @@ test("a trainer-only marker sharing an element with other classes is still strip
   assert.equal(stripHtml('learner <span class="trainer-only-ish">visible</span> ok'), "learner visible ok");
 });
 
+test("an unquoted trainer-only class attribute is stripped rather than emitted", () => {
+  assert.equal(stripHtml("learner <span class=trainer-only>SECRET</span> ok"), "learner ok");
+  assert.equal(stripHtml("learner <span class=trainer-only data-x=1>SECRET</span> ok"), "learner ok");
+  assert.equal(stripHtml("learner <img class=trainer-only src=x> ok"), "learner ok");
+  assert.equal(stripHtml("learner <span class=visible-note>visible</span> ok"), "learner visible ok");
+});
+
 test("a void element carrying the trainer marker is stripped instead of aborting the build", () => {
   assert.equal(stripHtml('learner <img class="trainer-only" src=x> ok'), "learner ok");
   assert.equal(stripHtml('learner <br class="trainer-only"> ok'), "learner ok");
@@ -213,7 +224,7 @@ test("captain amendment schema preserves two roles, demand/preference, authority
   const technical = modeled.items[1];
   business.owner_role = "client_business";
   business.stakeholder_context = {
-    ...stakeholderContext("healthcare.w01.phi-logging", "non_negotiable"),
+    ...emittedContext("healthcare.w07.business.guardrail-proof", "non_negotiable"),
     conflicts: [{
       with_id: technical.id,
       dimensions: ["delivery", "reliability"],
@@ -223,7 +234,7 @@ test("captain amendment schema preserves two roles, demand/preference, authority
   };
   technical.owner_role = "client_technical_lead";
   technical.stakeholder_context = {
-    ...stakeholderContext("healthcare.w01.parser-maintainability", "preference"),
+    ...emittedContext("healthcare.w07.techlead.intake-path-safety", "preference"),
     stakeholder_role: "client_technical_lead",
     approval_authority: ["client_technical_lead", "security"],
     rationale: "Synthetic authored technical rationale.",
@@ -341,110 +352,266 @@ test("provenance is pinned to source content, validates without git, and catches
   }
 });
 
-const POSITION_KEY = "healthcare.w01.phi-logging";
+const CARRYING_ID = "healthcare.w07.ask";
+const POSITION_KEY = "healthcare.w07.business.guardrail-proof";
+const ledger = (...entries) => ({ positions: { [POSITION_KEY]: entries } });
 
-function classifiedBaseline(positionType) {
-  const manifest = buildManifestFromSources(sources(), { mode: "pre-cutover", metadata }).manifest;
-  manifest.items[0].owner_role = "client_business";
-  manifest.items[0].stakeholder_context = stakeholderContext(POSITION_KEY, positionType);
+function classifiedManifest(positionType, { id = CARRYING_ID, version = 1, supersedes = null, input = sources() } = {}) {
+  const manifest = buildManifestFromSources(input, {
+    mode: "pre-cutover",
+    metadata: {
+      ...metadata,
+      versions: { [id]: version },
+      supersedes: supersedes ? { [id]: supersedes } : {},
+      owner_roles: { [id]: "client_business" },
+      stakeholder_position_keys: { [id]: POSITION_KEY },
+      stakeholder_context: { [id]: stakeholderContext(positionType) },
+    },
+    validateProvenance: false,
+  }).manifest;
   return manifest;
 }
 
-function reclassified(previous, positionType) {
-  const next = structuredClone(previous);
-  next.items[0].stakeholder_context.position_type = positionType;
-  return next;
-}
+test("the authored position keys resolve to real expectations and never inline the key", () => {
+  const authored = JSON.parse(read("tools/expectations/overrides.json"));
+  const keys = authored.stakeholder_position_keys;
+  assert.equal(Object.keys(keys).length, 16, "the sixteen authoring-lane position keys are preserved");
+  for (const key of Object.values(keys)) {
+    assert.match(key, /^[a-z][a-z0-9-]*\.w[0-9]{2}\.(business|techlead)\.[a-z0-9][a-z0-9-]*$/, key);
+  }
+  assert.equal(new Set(Object.values(keys)).size, 16, "each carrying item maps to a distinct position key");
+
+  const { manifest } = buildManifestFromSources(sources(), { mode: "pre-cutover", metadata: authored });
+  const ids = new Set(manifest.items.map((item) => item.id));
+  for (const id of Object.keys(keys)) assert.ok(ids.has(id), `${id} is a real expectation id`);
+  assert.equal(manifest.items.every((item) => item.stakeholder_context === null), true,
+    "reserving keys establishes no client position");
+
+  assert.throws(
+    () => buildManifestFromSources(sources(), {
+      mode: "pre-cutover",
+      validateProvenance: false,
+      metadata: { ...metadata, stakeholder_context: { [CARRYING_ID]: stakeholderContext("preference") } },
+    }),
+    /has no stakeholder_position_keys entry/,
+  );
+  assert.throws(
+    () => buildManifestFromSources(sources(), {
+      mode: "pre-cutover",
+      validateProvenance: false,
+      metadata: {
+        ...metadata,
+        stakeholder_position_keys: { [CARRYING_ID]: POSITION_KEY },
+        stakeholder_context: { [CARRYING_ID]: { ...stakeholderContext("preference"), position_key: "other.w01.business.x" } },
+      },
+    }),
+    /must not inline position_key/,
+  );
+});
 
 test("classifying previously unclassified content is an ordinary versioned addition", () => {
-  const previous = buildManifestFromSources(sources(), { mode: "pre-cutover", metadata }).manifest;
-  assert.equal(previous.items.every((item) => item.stakeholder_context === null), true);
+  const unclassified = buildManifestFromSources(sources(), { mode: "pre-cutover", metadata }).manifest;
+  assert.equal(unclassified.items.every((item) => item.stakeholder_context === null), true);
+  assert.doesNotThrow(() => validateManifest(unclassified, SCHEMA, { root: ROOT, baseline: { positions: {} } }));
 
-  const classified = structuredClone(previous);
-  classified.items[0].owner_role = "client_business";
-  classified.items[0].stakeholder_context = stakeholderContext(POSITION_KEY, "non_negotiable");
-  assert.equal(classified.items[0].version, 1);
-  assert.equal(classified.items[0].supersedes, null);
-  assert.doesNotThrow(() => validateManifest(classified, SCHEMA, { root: ROOT, previous }));
+  const classified = classifiedManifest("non_negotiable");
+  const carrier = classified.items.find((item) => item.id === CARRYING_ID);
+  assert.equal(carrier.version, 1);
+  assert.equal(carrier.supersedes, null);
+  assert.doesNotThrow(() => validateManifest(classified, SCHEMA, {
+    root: ROOT, validateProvenance: false,
+    baseline: ledger({ version: 1, position_type: "non_negotiable", supersedes: null }),
+  }));
 
-  const dropped = structuredClone(previous);
-  assert.doesNotThrow(() => validateManifest(dropped, SCHEMA, { root: ROOT, previous: classified }));
+  assert.throws(
+    () => validateManifest(classified, SCHEMA, { root: ROOT, validateProvenance: false, baseline: { positions: {} } }),
+    /classified in the manifest but absent from the classification baseline/,
+  );
 });
 
 test("reclassifying a position in either direction needs an explicit version and supersession", () => {
   for (const [from, to] of [["non_negotiable", "preference"], ["preference", "non_negotiable"]]) {
-    const previous = classifiedBaseline(from);
-    const moved = reclassified(previous, to);
-
-    assert.doesNotThrow(() => validateManifest(moved, SCHEMA, { root: ROOT }),
-      `the ${from} to ${to} manifest is schema-valid on its own, so only the reclassification rule can catch it`);
+    const sameVersion = ledger(
+      { version: 1, position_type: from, supersedes: null },
+      { version: 2, position_type: to, supersedes: null },
+    );
+    sameVersion.positions[POSITION_KEY][1].version = 1;
     assert.throws(
-      () => validateManifest(moved, SCHEMA, { root: ROOT, previous }),
-      new RegExp(`position ${POSITION_KEY.replace(/\./g, "\\.")} moves from ${from} to ${to} without incrementing version`),
+      () => validateManifest(classifiedManifest(to), SCHEMA, { root: ROOT, validateProvenance: false, baseline: sameVersion }),
+      /does not increment version past 1/,
       `${from} -> ${to} at the same version`,
     );
 
-    const versionedOnly = structuredClone(moved);
-    versionedOnly.items[0].version = previous.items[0].version + 1;
+    const versionedOnly = ledger(
+      { version: 1, position_type: from, supersedes: null },
+      { version: 2, position_type: to, supersedes: null },
+    );
     assert.throws(
-      () => validateManifest(versionedOnly, SCHEMA, { root: ROOT, previous }),
-      /without a supersession record naming/,
+      () => validateManifest(classifiedManifest(to, { version: 2 }), SCHEMA, {
+        root: ROOT, validateProvenance: false, baseline: versionedOnly,
+      }),
+      new RegExp(`position ${POSITION_KEY.replace(/\./g, "\\.")} moves from ${from} to ${to} without a supersession record`),
       `${from} -> ${to} with a version bump but no supersession`,
     );
 
-    const recorded = structuredClone(versionedOnly);
-    recorded.items[0].supersedes = `${POSITION_KEY}@v${previous.items[0].version}`;
-    assert.doesNotThrow(() => validateManifest(recorded, SCHEMA, { root: ROOT, previous }),
-      `${from} -> ${to} with both a version bump and a supersession record`);
-
     const wrongKey = structuredClone(versionedOnly);
-    wrongKey.items[0].supersedes = `${previous.items[0].id}@v${previous.items[0].version}`;
-    assert.throws(() => validateManifest(wrongKey, SCHEMA, { root: ROOT, previous }),
+    wrongKey.positions[POSITION_KEY][1].supersedes = `${CARRYING_ID}@v1`;
+    assert.throws(
+      () => validateManifest(classifiedManifest(to, { version: 2, supersedes: `${CARRYING_ID}@v1` }), SCHEMA, {
+        root: ROOT, validateProvenance: false, baseline: wrongKey,
+      }),
       /without a supersession record naming/,
-      `${from} -> ${to} superseding the item id instead of the durable position key`);
+      `${from} -> ${to} superseding the carrying item id instead of the durable position key`,
+    );
+
+    const recorded = structuredClone(versionedOnly);
+    recorded.positions[POSITION_KEY][1].supersedes = `${POSITION_KEY}@v1`;
+    assert.doesNotThrow(
+      () => validateManifest(classifiedManifest(to, { version: 2, supersedes: `${POSITION_KEY}@v1` }), SCHEMA, {
+        root: ROOT, validateProvenance: false, baseline: recorded,
+      }),
+      `${from} -> ${to} with both a version bump and a supersession record`,
+    );
+  }
+});
+
+test("retiring a position tombstones it and re-adding one needs the supersession record", () => {
+  const active = ledger({ version: 1, position_type: "non_negotiable", supersedes: null });
+  const unclassified = buildManifestFromSources(sources(), { mode: "pre-cutover", metadata }).manifest;
+
+  assert.throws(
+    () => validateManifest(unclassified, SCHEMA, { root: ROOT, baseline: active }),
+    /classified at v1 in the baseline but absent from the manifest; record its retirement/,
+    "dropping a classified position without a tombstone is rejected",
+  );
+
+  const undocumentedTombstone = ledger(
+    { version: 1, position_type: "non_negotiable", supersedes: null },
+    { version: 2, retired: true, supersedes: null },
+  );
+  assert.throws(
+    () => validateManifest(unclassified, SCHEMA, { root: ROOT, baseline: undocumentedTombstone }),
+    /moves from non_negotiable to retired without a supersession record/,
+  );
+
+  const tombstone = ledger(
+    { version: 1, position_type: "non_negotiable", supersedes: null },
+    { version: 2, retired: true, supersedes: `${POSITION_KEY}@v1` },
+  );
+  assert.doesNotThrow(() => validateManifest(unclassified, SCHEMA, { root: ROOT, baseline: tombstone }));
+  assert.throws(
+    () => validateManifest(classifiedManifest("preference"), SCHEMA, {
+      root: ROOT, validateProvenance: false, baseline: tombstone,
+    }),
+    /retired at v2 but is still classified in the manifest/,
+  );
+
+  const laundered = ledger(
+    { version: 1, position_type: "non_negotiable", supersedes: null },
+    { version: 2, retired: true, supersedes: `${POSITION_KEY}@v1` },
+    { version: 3, position_type: "preference", supersedes: null },
+  );
+  assert.throws(
+    () => validateManifest(classifiedManifest("preference", { version: 3 }), SCHEMA, {
+      root: ROOT, validateProvenance: false, baseline: laundered,
+    }),
+    /moves from retired to preference without a supersession record/,
+    "delete-then-re-add must not launder a softening past the guard",
+  );
+
+  const readded = structuredClone(laundered);
+  readded.positions[POSITION_KEY][2].supersedes = `${POSITION_KEY}@v2`;
+  assert.doesNotThrow(() => validateManifest(
+    classifiedManifest("preference", { version: 3, supersedes: `${POSITION_KEY}@v2` }), SCHEMA,
+    { root: ROOT, validateProvenance: false, baseline: readded },
+  ));
+});
+
+test("a corrupted classification history is rejected rather than trusted", () => {
+  const classified = classifiedManifest("non_negotiable");
+  const corruptions = [
+    [{ positions: { [POSITION_KEY]: [] } }, /has no entries/],
+    [ledger({ version: 1, position_type: "non_negotiable", supersedes: `${POSITION_KEY}@v0` }), /predates its own history/],
+    [ledger({ version: 0, position_type: "non_negotiable", supersedes: null }), /non-versioned entry/],
+    [ledger({ version: 1, position_type: "nice_to_have", supersedes: null }), /unknown position_type/],
+    [ledger({ version: 2, position_type: "non_negotiable", supersedes: null }), /v1 in the manifest but v2 in the classification baseline/],
+    [ledger({ version: 1, position_type: "preference", supersedes: null }), /non_negotiable in the manifest but preference in the classification baseline/],
+    [ledger({ version: 1, position_type: "non_negotiable", supersedes: `${POSITION_KEY}@v1` }), /predates its own history/],
+  ];
+  for (const [baseline, expected] of corruptions) {
+    assert.throws(
+      () => validateManifest(classified, SCHEMA, { root: ROOT, validateProvenance: false, baseline }),
+      expected,
+      JSON.stringify(baseline),
+    );
   }
 });
 
 test("rewording the authored sentence rotates the item id but not the position identity", () => {
   const input = sources();
-  const anchor = "The registration page feels slow.";
-  const reworded = { ...input, client: input.client.replace(anchor, "The registration page is slow for the front desk.") };
-  assert.notEqual(reworded.client, input.client);
-
   const beforeId = "healthcare.w01.stated.the-registration-page-feels-slow";
   const afterId = "healthcare.w01.stated.the-registration-page-is-slow-for-the-front-desk";
+  const reworded = {
+    ...input,
+    client: input.client.replace("The registration page feels slow.", "The registration page is slow for the front desk."),
+  };
+  assert.notEqual(reworded.client, input.client);
 
-  const previous = buildManifestFromSources(input, { mode: "pre-cutover", metadata }).manifest;
-  const classified = previous.items.find((item) => item.id === beforeId);
-  classified.owner_role = "client_business";
-  classified.stakeholder_context = stakeholderContext(POSITION_KEY, "non_negotiable");
+  const before = classifiedManifest("non_negotiable", { id: beforeId, input });
+  assert.equal(before.items.find((item) => item.id === beforeId).stakeholder_context.position_key, POSITION_KEY);
 
-  const next = buildManifestFromSources(reworded, {
-    mode: "pre-cutover", metadata, validateProvenance: false,
-  }).manifest;
-  assert.equal(next.items.some((item) => item.id === beforeId), false);
+  const after = classifiedManifest("preference", { id: afterId, input: reworded });
+  assert.equal(after.items.some((item) => item.id === beforeId), false, "the display id rotated with the wording");
+  assert.equal(after.items.find((item) => item.id === afterId).stakeholder_context.position_key, POSITION_KEY,
+    "the durable position key did not rotate with the wording");
 
-  const rotated = next.items.find((item) => item.id === afterId);
-  assert.ok(rotated, "the reworded sentence gets a fresh display id");
-  rotated.owner_role = "client_business";
-  rotated.stakeholder_context = stakeholderContext(POSITION_KEY, "preference");
-
+  const baseline = ledger(
+    { version: 1, position_type: "non_negotiable", supersedes: null },
+    { version: 1, position_type: "preference", supersedes: null },
+  );
   assert.throws(
-    () => validateManifest(next, SCHEMA, { root: ROOT, validateProvenance: false, previous }),
-    new RegExp(`position ${POSITION_KEY.replace(/\./g, "\\.")} moves from non_negotiable to preference`),
+    () => validateManifest(after, SCHEMA, { root: ROOT, validateProvenance: false, baseline }),
+    /does not increment version past 1/,
     "a wording change must not launder a softening past the guard",
   );
 
-  rotated.version = classified.version + 1;
-  rotated.supersedes = `${POSITION_KEY}@v${classified.version}`;
-  assert.doesNotThrow(() => validateManifest(next, SCHEMA, { root: ROOT, validateProvenance: false, previous }));
+  const recorded = ledger(
+    { version: 1, position_type: "non_negotiable", supersedes: null },
+    { version: 2, position_type: "preference", supersedes: `${POSITION_KEY}@v1` },
+  );
+  const superseded = classifiedManifest("preference", {
+    id: afterId, input: reworded, version: 2, supersedes: `${POSITION_KEY}@v1`,
+  });
+  assert.doesNotThrow(() => validateManifest(superseded, SCHEMA, {
+    root: ROOT, validateProvenance: false, baseline: recorded,
+  }));
 });
 
+const runCheck = (mode = "pre-cutover") => spawnSync(
+  process.execPath,
+  ["tools/expectations/build.mjs", "--mode", mode, "--check"],
+  { cwd: ROOT, encoding: "utf8" },
+);
+
 test("CLI check is a drift guard and reports generated counts", () => {
-  const run = spawnSync(process.execPath, ["tools/expectations/build.mjs", "--mode", "pre-cutover", "--check"], {
-    cwd: ROOT,
-    encoding: "utf8",
-  });
+  const run = runCheck();
   assert.equal(run.status, 0, run.stderr || run.stdout);
   assert.match(run.stdout, /packet=\d+ schedule=\d+ track=\d+ total=\d+/);
+});
+
+test("CLI check fails when the committed manifest no longer matches the sources", () => {
+  const manifestPath = join(ROOT, "content/expectations.v1.json");
+  const committed = readFileSync(manifestPath, "utf8");
+  try {
+    const perturbed = JSON.parse(committed);
+    perturbed.items[0].text = `${perturbed.items[0].text} (hand-edited)`;
+    writeFileSync(manifestPath, `${JSON.stringify(perturbed, null, 2)}\n`);
+
+    const drifted = runCheck();
+    assert.equal(drifted.status, 1, drifted.stdout);
+    assert.match(drifted.stderr, /expectations manifest drift detected/);
+  } finally {
+    writeFileSync(manifestPath, committed);
+  }
+  assert.equal(runCheck().status, 0, "the committed manifest is restored");
 });

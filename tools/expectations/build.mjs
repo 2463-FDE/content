@@ -10,6 +10,8 @@ const ROOT = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const SCHEMA_PATH = resolve(ROOT, "expectations.v1.schema.json");
 const OUTPUT_PATH = resolve(ROOT, "content/expectations.v1.json");
 const OVERRIDES_PATH = resolve(ROOT, "tools/expectations/overrides.json");
+const BASELINE_PATH = resolve(ROOT, "tools/expectations/classification-baseline.json");
+const CLASSIFICATIONS = new Set(["non_negotiable", "preference"]);
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const PACKET_FIELDS = ["ask", "handover", "dig", "stated", "deliverable", "quota"];
 const OWNER_DEFAULTS = {
@@ -123,11 +125,12 @@ function extractElementById(html, id) {
 }
 
 function extractElementsByClass(html, className, tag = "[a-z][a-z0-9-]*") {
-  const opening = new RegExp(`<(${tag})\\b[^>]*\\bclass=(['"])([^'"]*)\\2[^>]*>`, "gi");
+  const opening = new RegExp(`<(${tag})\\b[^>]*\\bclass=(?:(['"])([^'"]*)\\2|([^\\s>]+))[^>]*>`, "gi");
   const elements = [];
   let match;
   while ((match = opening.exec(html))) {
-    if (!match[3].trim().split(/\s+/).includes(className)) continue;
+    const classList = match[3] ?? match[4] ?? "";
+    if (!classList.trim().split(/\s+/).includes(className)) continue;
     elements.push(extractElementAt(html, match.index));
   }
   return elements;
@@ -169,6 +172,19 @@ function sourceRef(file, path, hash) {
   return `${file}#${path}@sha256:${hash}`;
 }
 
+function stakeholderContextFor(metadata, id) {
+  const context = metadata.stakeholder_context?.[id];
+  if (!context) return null;
+  if (Object.hasOwn(context, "position_key")) {
+    throw new Error(`stakeholder_context for ${id} must not inline position_key; author it in stakeholder_position_keys`);
+  }
+  const positionKey = metadata.stakeholder_position_keys?.[id];
+  if (!positionKey) {
+    throw new Error(`stakeholder_context for ${id} has no stakeholder_position_keys entry`);
+  }
+  return { position_key: positionKey, ...context };
+}
+
 function makeItem(metadata, values) {
   const id = values.id;
   return {
@@ -178,7 +194,7 @@ function makeItem(metadata, values) {
     owner_role: metadata.owner_roles?.[id] || values.owner_role,
     supersedes: metadata.supersedes?.[id] || null,
     version: metadata.versions?.[id] || 1,
-    stakeholder_context: metadata.stakeholder_context?.[id] || null,
+    stakeholder_context: stakeholderContextFor(metadata, id),
   };
 }
 
@@ -404,24 +420,69 @@ function classifiedPositions(manifest) {
   return positions;
 }
 
-function assertNoSilentReclassification(previous, manifest) {
-  const before = classifiedPositions(previous);
-  for (const [key, { position_type: now, item }] of classifiedPositions(manifest)) {
-    const prior = before.get(key);
-    if (!prior) continue;
-    const was = prior.position_type;
-    if (was === now) continue;
-    const change = `position ${key} moves from ${was} to ${now}`;
-    if (!(item.version > prior.item.version)) {
-      throw new Error(`${change} without incrementing version past ${prior.item.version}`);
+function ledgerState(entry) {
+  return entry.retired ? "retired" : entry.position_type;
+}
+
+function assertLedgerIsAppendOnly(key, entries) {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    throw new Error(`classification baseline for ${key} has no entries`);
+  }
+  if (entries[0].supersedes != null) {
+    throw new Error(`classification baseline for ${key} supersedes a record that predates its own history`);
+  }
+  entries.forEach((entry, index) => {
+    if (!Number.isInteger(entry.version) || entry.version < 1) {
+      throw new Error(`classification baseline for ${key} has a non-versioned entry`);
     }
-    if (item.supersedes !== `${key}@v${prior.item.version}`) {
-      throw new Error(`${change} without a supersession record naming ${key}@v${prior.item.version}`);
+    if (!entry.retired && !CLASSIFICATIONS.has(entry.position_type)) {
+      throw new Error(`classification baseline for ${key} has an unknown position_type: ${entry.position_type}`);
+    }
+    if (index === 0) return;
+    const prior = entries[index - 1];
+    if (entry.version <= prior.version) {
+      throw new Error(`classification baseline for ${key} does not increment version past ${prior.version}`);
+    }
+    if (ledgerState(entry) === ledgerState(prior)) return;
+    const change = `position ${key} moves from ${ledgerState(prior)} to ${ledgerState(entry)}`;
+    if (entry.supersedes !== `${key}@v${prior.version}`) {
+      throw new Error(`${change} without a supersession record naming ${key}@v${prior.version}`);
+    }
+  });
+}
+
+function assertClassificationMatchesBaseline(baseline, manifest) {
+  const positions = classifiedPositions(manifest);
+  const recorded = baseline?.positions || {};
+  for (const [key, entries] of Object.entries(recorded)) {
+    assertLedgerIsAppendOnly(key, entries);
+    const current = entries[entries.length - 1];
+    const live = positions.get(key);
+    if (current.retired) {
+      if (live) throw new Error(`position ${key} is retired at v${current.version} but is still classified in the manifest`);
+      continue;
+    }
+    if (!live) {
+      throw new Error(`position ${key} is classified at v${current.version} in the baseline but absent from the manifest; record its retirement`);
+    }
+    if (live.position_type !== current.position_type) {
+      throw new Error(`position ${key} is ${live.position_type} in the manifest but ${current.position_type} in the classification baseline`);
+    }
+    if (live.item.version !== current.version) {
+      throw new Error(`position ${key} is v${live.item.version} in the manifest but v${current.version} in the classification baseline`);
+    }
+    if ((live.item.supersedes ?? null) !== (current.supersedes ?? null)) {
+      throw new Error(`position ${key} carries supersedes ${live.item.supersedes} in the manifest but ${current.supersedes} in the classification baseline`);
+    }
+  }
+  for (const key of positions.keys()) {
+    if (!Object.hasOwn(recorded, key)) {
+      throw new Error(`position ${key} is classified in the manifest but absent from the classification baseline`);
     }
   }
 }
 
-export function validateManifest(manifest, schema, { root, validateProvenance = true, previous } = {}) {
+export function validateManifest(manifest, schema, { root, validateProvenance = true, baseline } = {}) {
   checkSchema(manifest, schema, schema);
   const ids = new Set();
   const hashes = new Map();
@@ -435,7 +496,7 @@ export function validateManifest(manifest, schema, { root, validateProvenance = 
     throw new Error("A manifest cannot mix learner and trainer visibility");
   }
   classifiedPositions(manifest);
-  if (previous) assertNoSilentReclassification(previous, manifest);
+  if (baseline) assertClassificationMatchesBaseline(baseline, manifest);
   return manifest;
 }
 
@@ -445,6 +506,7 @@ function assertOverridesAreBound(metadata, ids) {
     ["versions", Object.keys(metadata.versions || {})],
     ["supersedes", Object.keys(metadata.supersedes || {})],
     ["stakeholder_context", Object.keys(metadata.stakeholder_context || {})],
+    ["stakeholder_position_keys", Object.keys(metadata.stakeholder_position_keys || {})],
     ["persistent", metadata.persistent || []],
   ];
   for (const [name, keys] of bindings) {
@@ -481,7 +543,7 @@ export function buildManifestFromSources(sources, options = {}) {
   validateManifest(manifest, schema, {
     root: options.root || ROOT,
     validateProvenance: options.validateProvenance !== false,
-    previous: options.previous,
+    baseline: options.baseline,
   });
   if (manifest.items.some((item) => item.visibility !== "learner")) {
     throw new Error("Public learner manifest contains a trainer-visible item");
@@ -517,10 +579,9 @@ function runCli() {
   };
   let committed = "";
   try { committed = readFileSync(OUTPUT_PATH, "utf8"); } catch { /* first generation has no prior manifest */ }
-  let previous;
-  try { previous = committed ? JSON.parse(committed) : undefined; } catch { previous = undefined; }
+  const baseline = JSON.parse(readFileSync(BASELINE_PATH, "utf8"));
 
-  const { manifest, counts } = buildManifestFromSources(sourceFiles, { mode: args.mode, metadata, root: ROOT, previous });
+  const { manifest, counts } = buildManifestFromSources(sourceFiles, { mode: args.mode, metadata, root: ROOT, baseline });
   const output = `${JSON.stringify(manifest, null, 2)}\n`;
   const countText = `packet=${counts.packet} schedule=${counts.schedule} track=${counts.track} total=${manifest.items.length}`;
 
