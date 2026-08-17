@@ -1,0 +1,28 @@
+name: Expectations manifest
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Test generator with coverage floor
+        run: >-
+          node --test --experimental-test-coverage
+          --test-coverage-lines=70 --test-coverage-branches=70
+          --test-coverage-include=tools/expectations/build.mjs
+          tools/expectations/build.test.mjs
+      - name: Check post-cutover manifest drift
+        run: node tools/expectations/build.mjs --mode post-cutover --check
