@@ -3,7 +3,7 @@
 **Status:** review-ready; inactive until trainer-approved (every position is trainer-reviewed before it becomes active — ADR-004 §7, AC-1.6.2).
 **Scope:** pilot weeks **W7–W10 × both fictional projects × both roles** — 16 positions, 8 reciprocal conflict pairs, all learner-visible.
 **Authoring record:** `tools/expectations/overrides.json` (`stakeholder_context`, `owner_roles`, `versions`, `stakeholder_position_keys`); rendered into `content/expectations.v1.json` by `node tools/expectations/build.mjs --mode post-cutover`.
-**Checks:** `node --test tools/expectations/stakeholder-authoring.test.mjs` (reciprocity, same visibility, version bump, fictional label, real-client marker lint, durable keys, S13 phrase hygiene) — wired into `.github/workflows/expectations.yml`.
+**Checks:** `node --test tools/expectations/stakeholder-authoring.test.mjs` (intra-week reciprocity, same visibility, cross-role, version bump, fictional label, real-client marker lint, durable keys, S13 phrase hygiene, and §5/§6 below matching the delivered manifest) — wired into `.github/workflows/expectations.yml`.
 
 ## 1. This is fictional training-simulation content
 
@@ -97,7 +97,7 @@ What makes each pair hard (both sides reasonable; the learner has to name the tr
 1. Edit `stakeholder_context` in `tools/expectations/overrides.json`; bump the carrying item's `version`; keep the durable key unchanged (keys change only if the *position* is replaced, never for wording).
 2. A genuine change between `non_negotiable` and `preference` needs a supersession record; wording edits do not.
 3. `node tools/expectations/build.mjs --mode post-cutover` → `node --test tools/expectations/build.test.mjs tools/expectations/stakeholder-authoring.test.mjs` → `node tools/expectations/build.mjs --mode post-cutover --check`.
-4. PR body lists every position (id, role, type, authority) and every conflict pair (ids, dimensions) — regenerate §5/§6 from the data rather than by hand.
+4. Update §5/§6 from the data rather than by hand — the authoring test compares those two tables to the delivered manifest and fails on drift. The PR body lists every position (id, role, type, authority) and every conflict pair (ids, dimensions); copy it from those tables.
 
 ## 9. Trainer-review effort (honest estimate)
 

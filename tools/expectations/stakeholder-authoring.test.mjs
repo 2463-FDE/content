@@ -119,6 +119,77 @@ test("AC-1.6.5 positions are labelled fictional and match no real-client marker;
   }
 });
 
+// docs/stakeholder-positions.md §5/§6 are the trainer/PR review surface required by
+// AC-1.6.2 — the PR body is copied from them. They are an owned text contract over the
+// same authored data, so they are parsed into a normalized model and compared field by
+// field with the delivered manifest; a drifted table means the review surface lies.
+function markdownTables(markdown) {
+  const cells = (line) => line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+  const plain = (cell) => cell.replaceAll("`", "").replaceAll("**", "").trim();
+  const tables = [];
+  let current = null;
+  for (const line of markdown.split("\n")) {
+    if (!line.trim().startsWith("|")) { current = null; continue; }
+    const row = cells(line);
+    if (!current) { current = { header: row.map(plain), rows: [] }; tables.push(current); continue; }
+    if (row.every((cell) => /^-{3,}$/.test(cell))) continue;
+    current.rows.push(Object.fromEntries(row.map((cell, index) => [current.header[index], plain(cell)])));
+  }
+  return tables;
+}
+
+test("AC-1.6.2 the documented review surface (docs/stakeholder-positions.md §5/§6) matches the delivered manifest", () => {
+  const doc = readFileSync(new URL("../../docs/stakeholder-positions.md", import.meta.url), "utf8");
+  const tables = markdownTables(doc);
+  const keys = overrides.stakeholder_position_keys || {};
+
+  const positionTable = tables.find((table) => table.header.includes("Durable key") && table.header.includes("Carrying item id"));
+  assert.ok(positionTable, "§5 lists every position");
+  const documented = positionTable.rows.map((row) => ({
+    key: row["Durable key"],
+    id: row["Carrying item id"],
+    week: Number(row.Week.slice(1)),
+    stakeholder_role: row.stakeholder_role,
+    position_type: row.position_type,
+    approval_authority: row.approval_authority.split(",").map((entry) => entry.trim()).sort(),
+    owner_role: row["owner_role →"],
+    version: Number(row.version),
+  }));
+  const actual = positionIds.map((id) => ({
+    key: keys[id],
+    id,
+    week: byId.get(id).week,
+    stakeholder_role: positions[id].stakeholder_role,
+    position_type: positions[id].position_type,
+    approval_authority: [...positions[id].approval_authority].sort(),
+    owner_role: byId.get(id).owner_role,
+    version: byId.get(id).version,
+  }));
+  const sort = (rows) => [...rows].sort((a, b) => a.id.localeCompare(b.id));
+  assert.deepEqual(sort(documented), sort(actual), "§5 row set equals the authored positions in the manifest");
+
+  const conflictTable = tables.find((table) => table.header.some((cell) => cell.startsWith("Pair (id")));
+  assert.ok(conflictTable, "§6 lists every conflict pair");
+  const documentedPairs = conflictTable.rows.map((row) => {
+    const [left, right] = row[conflictTable.header.find((cell) => cell.startsWith("Pair (id"))].split("↔").map((entry) => entry.trim());
+    return {
+      pair: [left, right].sort().join("↔"),
+      dimensions: row["dimensions[]"].split(",").map((entry) => entry.trim()).sort(),
+      keys: row["Durable keys"].split("↔").map((entry) => entry.trim()).sort().join("↔"),
+    };
+  });
+  const actualPairs = [...new Map(positionIds.flatMap((id) => positions[id].conflicts.map((conflict) => {
+    const pair = [id, conflict.with_id].sort();
+    return [pair.join("↔"), {
+      pair: pair.join("↔"),
+      dimensions: [...conflict.dimensions].sort(),
+      keys: pair.map((member) => keys[member]).sort().join("↔"),
+    }];
+  }))).values()];
+  const sortPairs = (rows) => [...rows].sort((a, b) => a.pair.localeCompare(b.pair));
+  assert.deepEqual(sortPairs(documentedPairs), sortPairs(actualPairs), "§6 pair set, dimensions and keys equal the authored conflicts");
+});
+
 test("every authored position carries a durable, human-assigned key that is unique and wording-independent", () => {
   const keys = overrides.stakeholder_position_keys || {};
   for (const id of positionIds) {
