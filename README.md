@@ -19,7 +19,10 @@ assets/
                         per-trainee tracking (localStorage + central POST seam)
 ```
 
-Zero build step, zero dependencies. Edit HTML/CSS/JS, commit, Pages redeploys.
+The served site has zero runtime dependencies and no build step — edit HTML/CSS/JS, commit, Pages
+redeploys. The one generated artifact is the expectations manifest (`content/expectations.v1.json`),
+which must be regenerated when `client-delivery.html`, `index.html` or `delivery-track.html` change;
+CI fails on drift. See `AGENTS.md` for the command.
 
 ## Authoring a reading page
 
