@@ -9,7 +9,7 @@
   "use strict";
 
   var DOW = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-  var AVAILABILITY = { available: true, missing: true };
+  var AVAILABILITY = { available: true, missing: true, planned: true };
   var SOURCES = { seed: true, assignment: true, override: true };
   var UNIT_KEY = /^w(0[1-9]|10)d([1-5])$/;
   var PHASE_KEY = /^[a-z][a-z0-9_-]{0,31}$/;
@@ -100,7 +100,8 @@
           !matchesString(PHASE_KEY, unit.phase_key) || !Object.prototype.hasOwnProperty.call(curriculum.phases, unit.phase_key) ||
           !boundedString(unit.phase_label, 1, 100) || !matchesString(COLOR, unit.phase_color) ||
           unit.phase_label !== curriculum.phases[unit.phase_key].label || unit.phase_color.toLowerCase() !== curriculum.phases[unit.phase_key].color.toLowerCase() ||
-          !boundedString(unit.week_title, 1, 200) || !boundedString(unit.title, 1, 200) || !boundedString(unit.subtitle, 0, 500) ||
+          !boundedString(unit.week_title, 1, 200) || !boundedString(unit.title, 1, 200) ||
+          (unit.subtitle !== null && !boundedString(unit.subtitle, 0, 500)) ||
           (unit.href !== null && !safeHref(unit.href)) || !Array.isArray(unit.parts) || unit.parts.length > 10 ||
           typeof unit.star !== "boolean" || !ownMember(AVAILABILITY, unit.availability)) return null;
 
@@ -128,7 +129,7 @@
       cleanUnits.push({
         unit_key: unit.unit_key, week: unit.week, day: unit.day, phase_key: unit.phase_key,
         phase_label: unit.phase_label, phase_color: unit.phase_color, week_title: unit.week_title,
-        title: unit.title, subtitle: unit.subtitle, href: unit.href, parts: cleanParts,
+        title: unit.title, subtitle: unit.subtitle === null ? "" : unit.subtitle, href: unit.href, parts: cleanParts,
         star: unit.star, availability: unit.availability, position: unit.position,
       });
     }
@@ -275,22 +276,25 @@
 
       week.days.forEach(function (day, index) {
         var available = day.availability === "available";
+        var planned = day.availability === "planned";
         var hasHref = available && !!day.href;
         var hasParts = available && day.parts.length > 0;
-        var card = element(doc, "div", "cal-cell " + (!available ? "missing" : (hasHref ? "live" : (hasParts ? "parts" : "soon"))));
+        var stateClass = available ? (hasHref ? "live" : (hasParts ? "parts" : "soon")) : (planned ? "planned" : "missing");
+        var card = element(doc, "div", "cal-cell " + stateClass);
         card.style.setProperty("--pc", phase.c);
         card.setAttribute("data-unit-key", day.unit_key);
         var content = card;
         if (!available) {
-          var unavailableId = "unavailable-" + day.unit_key;
+          var availabilityText = planned ? "Planned" : "Unavailable";
+          var unavailableId = "availability-" + day.unit_key;
           card.setAttribute("role", "group");
           card.setAttribute("aria-label", day.t);
           card.setAttribute("aria-describedby", unavailableId);
-          content = element(doc, "div", "cell-unavailable");
+          content = element(doc, "div", "cell-unavailable" + (planned ? " cell-unavailable--planned" : ""));
           content.setAttribute("id", unavailableId);
           content.setAttribute("role", "group");
           content.setAttribute("aria-disabled", "true");
-          content.setAttribute("aria-label", day.t + " — curriculum content unavailable");
+          content.setAttribute("aria-label", day.t + " — curriculum content " + availabilityText.toLowerCase());
           card.appendChild(content);
         }
 
@@ -302,7 +306,7 @@
         content.appendChild(title);
         content.appendChild(element(doc, "div", "cs", day.s));
         if (!available) {
-          content.appendChild(element(doc, "span", "availability-badge", "Unavailable"));
+          content.appendChild(element(doc, "span", "availability-badge" + (planned ? " availability-badge--planned" : ""), planned ? "Planned" : "Unavailable"));
         } else if (hasParts) {
           var parts = element(doc, "div", "cell-parts");
           day.parts.forEach(function (part, partIndex) {

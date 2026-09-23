@@ -253,6 +253,85 @@ test("API strings render as inert text and phase colors pass a strict grammar", 
   assert.equal(api.validateResponse(badColor), null);
 });
 
+test("backend contract accepts planned units and normalizes nullable subtitle", () => {
+  const payload = clone(fixture);
+  payload.curriculum.units[0].availability = "planned";
+  payload.curriculum.units[0].subtitle = null;
+  payload.curriculum.units[1].availability = "planned";
+  const validated = api.validateResponse(payload);
+  assert.ok(validated);
+  assert.equal(validated.units[0].availability, "planned");
+  assert.equal(validated.units[0].subtitle, "");
+  assert.equal(validated.units[1].parts.length, 2, "validated planned data retains safe parts for a future available render");
+  [false, 0, {}, []].forEach((subtitle) => {
+    const malformed = clone(fixture);
+    malformed.curriculum.units[0].subtitle = subtitle;
+    assert.equal(api.validateResponse(malformed), null, `subtitle ${JSON.stringify(subtitle)} must fail closed`);
+  });
+
+  const model = api.toCalendar(validated);
+  assert.equal(model.weeks[0].days[0].s, "");
+  const doc = new TinyDocument();
+  api.renderCalendar(model, doc, { FDE_PROGRESS: { status: () => "started" } });
+  for (const key of ["w01d1", "w01d2"]) {
+    const card = descendants(doc.cal).find((node) => node.getAttribute && node.getAttribute("data-unit-key") === key);
+    assert.ok((card.className || "").split(/\s+/).includes("planned"));
+    assert.equal((card.className || "").split(/\s+/).includes("missing"), false);
+    assert.equal(card.getAttribute("aria-disabled"), null);
+    const region = descendants(card).find((node) => node.getAttribute && node.getAttribute("id") === card.getAttribute("aria-describedby"));
+    assert.ok(region);
+    assert.equal(region.getAttribute("aria-disabled"), "true");
+    assert.match(region.getAttribute("aria-label"), /curriculum content planned$/);
+    assert.equal(byClass(region, "availability-badge--planned")[0].textContent, "Planned");
+    assert.equal(byClass(card, "ct-link").length, 0);
+    assert.equal(byClass(card, "cell-parts").length, 0);
+    assert.equal(byClass(card, "day-prog").length, 0);
+  }
+});
+
+test("available unit with nullable subtitle keeps its keyboard-operable content and progress actions", () => {
+  const payload = clone(fixture);
+  payload.curriculum.units[0].subtitle = null;
+  const validated = api.validateResponse(payload);
+  assert.ok(validated);
+  const doc = new TinyDocument();
+  api.renderCalendar(api.toCalendar(validated), doc, {});
+  const card = descendants(doc.cal).find((node) => node.getAttribute && node.getAttribute("data-unit-key") === "w01d1");
+  assert.equal(byClass(card, "cs")[0].textContent, "");
+  assert.equal(byClass(card, "ct-link").length, 1);
+  assert.equal(byClass(card, "day-prog").length, 1);
+  byClass(card, "ct-link")[0].focus();
+  assert.equal(doc.activeElement, byClass(card, "ct-link")[0]);
+});
+
+test("planned rituals stay active outside disabled content and retain focus across rerender", () => {
+  const payload = clone(fixture);
+  payload.curriculum.units[1].availability = "planned";
+  const model = api.toCalendar(api.validateResponse(payload));
+  const doc = new TinyDocument();
+  api.renderCalendar(model, doc, {});
+  const card = () => descendants(doc.cal).find((node) => node.getAttribute && node.getAttribute("data-unit-key") === "w01d2");
+  const disabledAncestor = (node) => {
+    for (let current = node; current; current = current.parentNode) {
+      if (current.getAttribute && current.getAttribute("aria-disabled") === "true") return current;
+    }
+    return null;
+  };
+  const rituals = descendants(card()).filter((node) => node.tagName === "A" && (node.className || "").split(/\s+/).includes("ritual"));
+  assert.ok(rituals.length > 0);
+  rituals.forEach((link) => {
+    assert.equal(disabledAncestor(link), null);
+    assert.ok(link.getAttribute("href"));
+  });
+  const before = rituals[0];
+  before.focus();
+  api.renderCalendar(model, doc, {});
+  const after = descendants(card()).filter((node) => node.tagName === "A" && (node.className || "").split(/\s+/).includes("ritual"))[0];
+  assert.notEqual(after, before);
+  assert.equal(doc.activeElement, after);
+  assert.equal(disabledAncestor(after), null);
+});
+
 test("maximum phase and week labels render intact for narrow-screen wrapping", () => {
   const payload = clone(fixture);
   const phaseLabel = "P".repeat(100);
@@ -513,6 +592,8 @@ test("320 px stylesheet contract reflows to one column without fixed-width cards
   assert.match(html, /overflow-wrap:anywhere/);
   assert.match(html, /\.legend \.lg \{ max-width:100%; overflow-wrap:anywhere; \}/);
   assert.match(html, /\.cal-week \.wt, \.cal-week \.wp \{ overflow-wrap:anywhere; \}/);
+  assert.match(html, /\.cal-cell\.planned \{[^}]*border-style:dotted/);
+  assert.match(html, /\.availability-badge--planned \{/);
 });
 
 test("loader never persists curriculum, provenance, identity, or bearer material", async () => {

@@ -10,8 +10,10 @@
 <style>
 /* Dynamic curriculum availability is explicit, not color-only. */
 .cal-cell.missing { opacity:.72; border-style:dashed; }
+.cal-cell.planned { opacity:.84; border-style:dotted; }
 .cell-unavailable { display:flex; flex-direction:column; min-width:0; }
 .availability-badge { align-self:flex-start; margin-top:9px; padding:2px 8px; border:1px solid var(--line); border-radius:20px; color:var(--ink-soft); background:var(--surface-2); font-size:11px; font-weight:700; }
+.availability-badge--planned { color:var(--accent-ink); border-color:var(--accent); background:var(--accent-soft); }
 .cal-cell, .cal-cell .ct, .cal-cell .cs { min-width:0; overflow-wrap:anywhere; }
 .legend, .legend .lg, .cal-week, .cal-week .wt, .cal-week .wp { min-width:0; }
 .legend .lg { max-width:100%; overflow-wrap:anywhere; }
