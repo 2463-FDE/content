@@ -23,7 +23,7 @@ Zero build step, zero dependencies. Edit HTML/CSS/JS, commit, Pages redeploys.
 
 ## Curriculum resolution (dark rollout)
 
-`index.html` keeps the committed `window.PHASES` / `window.WEEKS` ten-week calendar as the immediate and authoritative fallback. After `assets/js/roster.js` and `assets/js/auth.js` expose the existing backend URL and session helper, `assets/js/curriculum-loader.js` may request `GET /curriculum/resolved` with the current bearer. It swaps the grid only after strict whole-response validation. A missing session, disabled/404 endpoint, 401 after one refresh, timeout, network error, or malformed response leaves the static calendar fully usable.
+`index.html` keeps the committed `window.PHASES` / `window.WEEKS` ten-week calendar as the immediate and authoritative fallback. A static-only inline renderer draws that calendar and owns progress-sync until the optional loader safely takes over, so the grid, content links, rituals, and progress controls remain usable even if `assets/js/curriculum-loader.js` is missing or blocked. After `assets/js/roster.js` and `assets/js/auth.js` expose the existing backend URL and session helper, the loader may request `GET /curriculum/resolved` with the current bearer. It swaps the grid only after strict whole-response validation. A missing session, disabled/404 endpoint, 401 after one refresh, timeout, network error, or malformed response leaves the static calendar fully usable.
 
 The backend contract was merged in `2463-FDE/fde-backend#7` (main squash `c17215a744509354cb7a0ad8d1c301c666e30e38`) but is **not deployed**. Its code-level `CURR_ENABLED` default remains `false`. This content change modifies no backend, binding, configuration, secret, data store, or deployment and cannot enable dynamic curriculum resolution. No curriculum response or provenance is persisted by the page.
 
@@ -34,6 +34,8 @@ Focused checks use committed synthetic fixtures only and make no live endpoint c
 ```bash
 node --test tests/curriculum-loader.test.cjs
 ```
+
+Fresh real-browser correction evidence for a synthetically blocked loader asset and valid maximum-length unbroken phase/week labels at 320 px is recorded in `tests/evidence/curriculum-correction-browser.txt`.
 
 ## Authoring a reading page
 

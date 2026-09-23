@@ -1,0 +1,44 @@
+Phase 2 curriculum correction browser QA
+Recorded: 2026-09-23T20:30:42Z
+Tool: chrome-devtools-axi, isolated Chromium profile
+Server: local Python static servers only; no live backend/provider request
+Viewport: 320x800, DPR 2, mobile/touch emulation
+Fixture: tests/fixtures/curriculum-resolved.seed-v1.json (synthetic)
+
+Scenario: valid maximum-length unbroken labels
+- phase label: 100 unbroken characters (schema maximum)
+- week title: 200 unbroken characters (schema maximum)
+- viewport: 320
+- document scroll width: 320
+- horizontal overflow: 0
+- calendar computed columns: 296px (one column)
+- card width: 296
+- legend item width: 292
+- week cell width: 296
+- rendered cells: 50
+- rendered phase label length: 100
+- rendered week title length: 200
+
+Scenario: curriculum-loader asset returns synthetic 404
+- assets/js/curriculum-loader.js: synthetic 404
+- typeof window.FDE_CURRICULUM: undefined
+- typeof window.FDE_STATIC_CALENDAR_RENDER: function
+- viewport: 320
+- document scroll width: 320
+- horizontal overflow: 0
+- calendar computed columns: 296px (one column)
+- rendered weeks: 10
+- rendered cells: 50
+- rendered legend entries: 6
+- rendered progress controls: 40
+- rendered curriculum content links: 43
+- rendered ritual links: 91
+- first title: LLM fundamentals
+- first progress control: ▶ Start
+- after replacing FDE_PROGRESS.status with completed and dispatching fde-progress-sync:
+  - rendered cells: 50
+  - rendered progress controls: 40
+  - first progress control: ✓ Completed
+  - typeof window.FDE_CURRICULUM: undefined
+
+Expected console evidence: one 404 for the deliberately blocked curriculum-loader asset. No runtime JavaScript error occurred; the static calendar remained usable.

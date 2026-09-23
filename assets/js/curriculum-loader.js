@@ -34,6 +34,14 @@
     return typeof value === "string" && value.length >= min && value.length <= max;
   }
 
+  function ownMember(values, value) {
+    return typeof value === "string" && Object.prototype.hasOwnProperty.call(values, value) && values[value] === true;
+  }
+
+  function matchesString(pattern, value) {
+    return typeof value === "string" && pattern.test(value);
+  }
+
   function safeHref(value) {
     if (typeof value !== "string" || value.length < 1 || value.length > 240) return false;
     if (value[0] === "/" || value.indexOf("\\") !== -1 || value.indexOf("?") !== -1 ||
@@ -52,12 +60,12 @@
     var curriculum = payload.curriculum;
     var provenance = payload.provenance;
     if (!exactKeys(curriculum, ["slug", "title", "phases", "units"]) ||
-        !SLUG.test(curriculum.slug || "") || !boundedString(curriculum.title, 1, 200) ||
+        !matchesString(SLUG, curriculum.slug) || !boundedString(curriculum.title, 1, 200) ||
         !ownObject(curriculum.phases) || !Array.isArray(curriculum.units)) return null;
 
     if (!exactKeys(provenance, ["version_id", "version_no", "source_kind", "curriculum_slug", "effective_from", "resolved_at"]) ||
-        !HEX_32.test(provenance.version_id || "") || !Number.isSafeInteger(provenance.version_no) || provenance.version_no < 1 ||
-        !SOURCES[provenance.source_kind] || provenance.curriculum_slug !== curriculum.slug ||
+        !matchesString(HEX_32, provenance.version_id) || !Number.isSafeInteger(provenance.version_no) || provenance.version_no < 1 ||
+        !ownMember(SOURCES, provenance.source_kind) || typeof provenance.curriculum_slug !== "string" || provenance.curriculum_slug !== curriculum.slug ||
         !Number.isSafeInteger(provenance.resolved_at) || provenance.resolved_at < 0) return null;
     if (provenance.source_kind === "seed") {
       if (provenance.effective_from !== null) return null;
@@ -69,8 +77,8 @@
     for (var p = 0; p < phaseKeys.length; p += 1) {
       var phaseKey = phaseKeys[p];
       var phase = curriculum.phases[phaseKey];
-      if (!PHASE_KEY.test(phaseKey) || !exactKeys(phase, ["label", "color"]) ||
-          !boundedString(phase.label, 1, 100) || !COLOR.test(phase.color || "") || labels[phase.label]) return null;
+      if (!matchesString(PHASE_KEY, phaseKey) || !exactKeys(phase, ["label", "color"]) ||
+          !boundedString(phase.label, 1, 100) || !matchesString(COLOR, phase.color) || labels[phase.label]) return null;
       labels[phase.label] = true;
     }
 
@@ -86,15 +94,15 @@
     for (var i = 0; i < curriculum.units.length; i += 1) {
       var unit = curriculum.units[i];
       if (!exactKeys(unit, ["unit_key", "week", "day", "phase_key", "phase_label", "phase_color", "week_title", "title", "subtitle", "href", "parts", "star", "availability", "position"]) ||
-          !UNIT_KEY.test(unit.unit_key || "") || !Number.isSafeInteger(unit.week) || unit.week < 1 || unit.week > 10 ||
+          !matchesString(UNIT_KEY, unit.unit_key) || !Number.isSafeInteger(unit.week) || unit.week < 1 || unit.week > 10 ||
           !Number.isSafeInteger(unit.day) || unit.day < 1 || unit.day > 5 || !Number.isSafeInteger(unit.position) ||
           unit.position !== unit.week * 100 + unit.day || unit.position <= previousPosition ||
-          !PHASE_KEY.test(unit.phase_key || "") || !Object.prototype.hasOwnProperty.call(curriculum.phases, unit.phase_key) ||
-          !boundedString(unit.phase_label, 1, 100) || !COLOR.test(unit.phase_color || "") ||
+          !matchesString(PHASE_KEY, unit.phase_key) || !Object.prototype.hasOwnProperty.call(curriculum.phases, unit.phase_key) ||
+          !boundedString(unit.phase_label, 1, 100) || !matchesString(COLOR, unit.phase_color) ||
           unit.phase_label !== curriculum.phases[unit.phase_key].label || unit.phase_color.toLowerCase() !== curriculum.phases[unit.phase_key].color.toLowerCase() ||
           !boundedString(unit.week_title, 1, 200) || !boundedString(unit.title, 1, 200) || !boundedString(unit.subtitle, 0, 500) ||
           (unit.href !== null && !safeHref(unit.href)) || !Array.isArray(unit.parts) || unit.parts.length > 10 ||
-          typeof unit.star !== "boolean" || !AVAILABILITY[unit.availability]) return null;
+          typeof unit.star !== "boolean" || !ownMember(AVAILABILITY, unit.availability)) return null;
 
       var expectedKey = "w" + String(unit.week).padStart(2, "0") + "d" + unit.day;
       var slot = unit.week + ":" + unit.day;
@@ -342,13 +350,15 @@
     var generation = 0;
     var state = "fallback";
     var renderFn = options.render || renderCalendar;
+    var skipNextFallbackRender = options.fallbackAlreadyRendered === true;
 
     function render() { return renderFn(active, doc, hostRoot); }
     function activateFallback() {
       active = fallback;
       hostRoot.PHASES = fallback.phases;
       hostRoot.WEEKS = fallback.weeks;
-      render();
+      if (skipNextFallbackRender) skipNextFallbackRender = false;
+      else render();
     }
 
     async function resolve() {
@@ -432,9 +442,14 @@
 
   function boot() {
     if (!root.document || root.__FDE_CURRICULUM_LOADER__) return root.__FDE_CURRICULUM_LOADER__ || null;
-    var loader = createLoader();
+    var staticRenderer = root.FDE_STATIC_CALENDAR_RENDER;
+    var fallbackAlreadyRendered = typeof staticRenderer === "function";
+    if (fallbackAlreadyRendered && typeof root.removeEventListener === "function") {
+      root.removeEventListener("fde-progress-sync", staticRenderer);
+    }
+    var loader = createLoader({ fallbackAlreadyRendered: fallbackAlreadyRendered });
     root.__FDE_CURRICULUM_LOADER__ = loader;
-    loader.render();
+    if (!fallbackAlreadyRendered) loader.render();
     root.addEventListener("fde-progress-sync", loader.render);
     loader.resolve();
     return loader;

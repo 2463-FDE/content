@@ -11,12 +11,17 @@ const api = require(loaderPath);
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/curriculum-resolved.seed-v1.json"), "utf8"));
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
-function staticCalendar() {
+function calendarInlineScript() {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-  const start = html.indexOf("window.PHASES");
-  const source = html.slice(start, html.indexOf("</script>", start));
+  const start = html.lastIndexOf("<script>", html.indexOf("window.PHASES")) + "<script>".length;
+  return html.slice(start, html.indexOf("</script>", start));
+}
+
+function staticCalendar() {
+  const source = calendarInlineScript();
+  const dataOnly = source.slice(0, source.indexOf("/* Static-only renderer"));
   const context = { window: {} };
-  vm.runInNewContext(source, context);
+  vm.runInNewContext(dataOnly, context);
   return api.fallbackCalendar(context.window.PHASES, context.window.WEEKS);
 }
 
@@ -173,6 +178,43 @@ test("full response validation fails closed for malformed, duplicate, and out-of
   });
 });
 
+test("enum values must be own properties, not inherited object names", () => {
+  const inheritedSources = ["toString", "constructor", "__proto__"];
+  inheritedSources.forEach((value) => {
+    const payload = clone(fixture);
+    payload.provenance.source_kind = value;
+    payload.provenance.effective_from = 1;
+    assert.equal(api.validateResponse(payload), null, `source ${value}`);
+  });
+  inheritedSources.forEach((value) => {
+    const payload = clone(fixture);
+    payload.curriculum.units[0].availability = value;
+    assert.equal(api.validateResponse(payload), null, `availability ${value}`);
+  });
+});
+
+test("scalar identifiers reject non-strings without invoking coercion hooks", () => {
+  const mutations = [
+    (p, value) => { p.curriculum.slug = value; },
+    (p, value) => { p.provenance.version_id = value; },
+    (p, value) => { p.provenance.source_kind = value; },
+    (p, value) => { p.provenance.curriculum_slug = value; },
+    (p, value) => { p.curriculum.phases.found.color = value; },
+    (p, value) => { p.curriculum.units[0].unit_key = value; },
+    (p, value) => { p.curriculum.units[0].phase_key = value; },
+    (p, value) => { p.curriculum.units[0].phase_color = value; },
+    (p, value) => { p.curriculum.units[0].availability = value; },
+  ];
+  mutations.forEach((mutate, index) => {
+    let coercions = 0;
+    const value = { toString() { coercions += 1; return "seed"; }, valueOf() { coercions += 1; return "seed"; } };
+    const payload = clone(fixture);
+    mutate(payload, value);
+    assert.equal(api.validateResponse(payload), null, `mutation ${index}`);
+    assert.equal(coercions, 0, `mutation ${index} coerced an untrusted identifier`);
+  });
+});
+
 test("only narrow site-relative curriculum hrefs and parts are accepted", () => {
   const bad = [
     "https://evil.invalid/x.html", "//evil.invalid/x.html", "/weeks/w01/d1.html",
@@ -209,6 +251,24 @@ test("API strings render as inert text and phase colors pass a strict grammar", 
   const badColor = clone(fixture);
   badColor.curriculum.phases.found.color = "red; background:url(javascript:x)";
   assert.equal(api.validateResponse(badColor), null);
+});
+
+test("maximum phase and week labels render intact for narrow-screen wrapping", () => {
+  const payload = clone(fixture);
+  const phaseLabel = "P".repeat(100);
+  const weekTitle = "W".repeat(200);
+  payload.curriculum.phases.found.label = phaseLabel;
+  payload.curriculum.units.forEach((unit) => {
+    if (unit.phase_key === "found") unit.phase_label = phaseLabel;
+    if (unit.week === 1) unit.week_title = weekTitle;
+  });
+  const validated = api.validateResponse(payload);
+  assert.ok(validated);
+  const doc = new TinyDocument();
+  api.renderCalendar(api.toCalendar(validated), doc, {});
+  assert.equal(byClass(doc.legend, "lg")[0].textContent, phaseLabel);
+  assert.equal(byClass(doc.cal, "wt")[0].textContent, weekTitle);
+  assert.equal(byClass(doc.cal, "wp")[0].textContent, phaseLabel);
 });
 
 test("missing units expose text and aria state with no curriculum link or progress control", () => {
@@ -351,6 +411,53 @@ test("late older resolution cannot clobber a newer valid render", async () => {
   assert.equal(root.WEEKS[0].days[0].t, "Newest assignment");
 });
 
+test("inline static renderer keeps the calendar fully usable when the loader asset is absent", () => {
+  const doc = new TinyDocument();
+  const listeners = {};
+  let progress = "started";
+  const window = {
+    document: doc,
+    FDE_PROGRESS: { status: () => progress },
+    addEventListener: (name, fn) => { (listeners[name] ||= []).push(fn); },
+  };
+  const context = vm.createContext({ window, document: doc });
+  vm.runInContext(calendarInlineScript(), context);
+  assert.equal(typeof window.FDE_STATIC_CALENDAR_RENDER, "function");
+  assert.equal(byClass(doc.cal, "cal-cell").length, 50);
+  assert.equal(byClass(doc.cal, "cal-week").length, 10);
+  assert.equal(byClass(doc.cal, "day-prog").length, 40);
+  assert.equal(byClass(doc.cal, "ritual").length > 0, true);
+  assert.equal(byClass(doc.cal, "day-prog")[0].textContent, "↻ Resume");
+  assert.equal(listeners["fde-progress-sync"].length, 1);
+  progress = "completed";
+  listeners["fde-progress-sync"][0]();
+  assert.equal(byClass(doc.cal, "day-prog")[0].textContent, "✓ Completed");
+  assert.equal(byClass(doc.cal, "cal-cell").length, 50);
+});
+
+test("dynamic loader takes ownership from the static renderer without duplicate listeners", async () => {
+  const source = fs.readFileSync(loaderPath, "utf8");
+  const doc = new TinyDocument();
+  const listeners = {};
+  const window = {
+    document: doc,
+    FDE_PROGRESS: { status: () => "none" },
+    FDE_RUN_URL: "https://api.invalid",
+    FDE_ensureSession: async () => "",
+    fetch: async () => response({}, 404),
+    addEventListener: (name, fn) => { (listeners[name] ||= []).push(fn); },
+    removeEventListener: (name, fn) => { listeners[name] = (listeners[name] || []).filter((item) => item !== fn); },
+  };
+  const context = vm.createContext({ window, document: doc, globalThis: window, AbortController, setTimeout, clearTimeout, module: undefined });
+  vm.runInContext(calendarInlineScript(), context);
+  const originalCards = byClass(doc.cal, "cal-cell");
+  vm.runInContext(source, context);
+  assert.equal(listeners["fde-progress-sync"].length, 1);
+  assert.equal(byClass(doc.cal, "cal-cell").length, 50);
+  assert.equal(byClass(doc.cal, "cal-cell")[0], originalCards[0], "loader should adopt the already-rendered fallback without replacing it");
+  await new Promise((done) => setTimeout(done, 0));
+});
+
 test("auto-boot installs one progress listener and never duplicates calendar DOM", async () => {
   const source = fs.readFileSync(loaderPath, "utf8");
   const doc = new TinyDocument();
@@ -404,6 +511,8 @@ test("320 px stylesheet contract reflows to one column without fixed-width cards
   assert.match(html, /@media \(max-width:600px\)/);
   assert.match(html, /\.cal-wrap \{ padding:12px 12px 40px; \}/);
   assert.match(html, /overflow-wrap:anywhere/);
+  assert.match(html, /\.legend \.lg \{ max-width:100%; overflow-wrap:anywhere; \}/);
+  assert.match(html, /\.cal-week \.wt, \.cal-week \.wp \{ overflow-wrap:anywhere; \}/);
 });
 
 test("loader never persists curriculum, provenance, identity, or bearer material", async () => {

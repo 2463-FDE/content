@@ -13,6 +13,9 @@
 .cell-unavailable { display:flex; flex-direction:column; min-width:0; }
 .availability-badge { align-self:flex-start; margin-top:9px; padding:2px 8px; border:1px solid var(--line); border-radius:20px; color:var(--ink-soft); background:var(--surface-2); font-size:11px; font-weight:700; }
 .cal-cell, .cal-cell .ct, .cal-cell .cs { min-width:0; overflow-wrap:anywhere; }
+.legend, .legend .lg, .cal-week, .cal-week .wt, .cal-week .wp { min-width:0; }
+.legend .lg { max-width:100%; overflow-wrap:anywhere; }
+.cal-week .wt, .cal-week .wp { overflow-wrap:anywhere; }
 @media (max-width:600px) {
   .topbar { flex-wrap:wrap; padding:8px 12px; }
   .topbar-center { order:3; flex:1 0 100%; overflow-x:auto; justify-content:flex-start; }
@@ -137,6 +140,137 @@ window.WEEKS = [
     { t:"Dry run, unrescued", s:"hostile questions · the number said aloud" },
     { t:"Client showcase", s:"final delivery · architecture defense · assessment", star:true } ]}
 ];
+
+/* Static-only renderer: keeps the committed calendar usable even when the
+   optional curriculum-loader asset is missing or blocked. The loader removes
+   this progress listener before taking ownership of dynamic rendering. */
+(function (root, doc) {
+  "use strict";
+  if (!doc || !doc.createElement) return;
+  var DOW = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+  function el(tag, cls, text) {
+    var node = doc.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+  function link(parent, cls, href, text, title, role) {
+    var node = el("a", cls, text);
+    node.setAttribute("href", href);
+    if (title) node.setAttribute("title", title);
+    if (role) node.setAttribute("data-focus-role", role);
+    parent.appendChild(node);
+    return node;
+  }
+  function ritual(row, key, href, text, title) {
+    link(row, "ritual " + key, href, text, title, "ritual-" + key);
+  }
+  function rituals(row, week, day) {
+    var dayKey = "w" + String(week).padStart(2, "0") + "d" + day;
+    if (!(week === 1 && day === 1)) ritual(row, "iv", "gauntlet.html?day=" + dayKey, "🎤 AI Interview", "Daily AI Interview — do it before end of day");
+    if (day === 1) ritual(row, "cr", "client-delivery.html?w=" + week, "📋 Client request");
+    if (week >= 2 && day === 4) {
+      var session = el("span", "ritual fde", "◆ FDE Situation");
+      session.setAttribute("title", "Weekly FDE Situation session — Thursday");
+      row.appendChild(session);
+    }
+    if (week <= 8 && day === 2) ritual(row, "sd", "system-design.html?w=" + week, "🎯 Sys-design · start", "This week's System Design challenge — start pre-planning before Friday");
+    if (week <= 8 && day === 3) ritual(row, "ar", "alt-research.html?w=" + week, "🔬 Alt research");
+    if (week <= 8 && day === 5) {
+      ritual(row, "sd", "system-design.html?w=" + week, "🎯 Sys-design · due", "System Design due — open this week's challenge");
+      ritual(row, "ar", "alt-research.html?w=" + week, "🔬 Alt research · due", "Alt Research presentation due — present this week's findings");
+    }
+  }
+  function focusToken(cal) {
+    var active = doc.activeElement;
+    if (!active || !cal.contains(active)) return null;
+    var card = typeof active.closest === "function" ? active.closest("[data-unit-key]") : null;
+    var role = active.getAttribute && active.getAttribute("data-focus-role");
+    return card && role ? { key: card.getAttribute("data-unit-key"), role: role } : null;
+  }
+  function restoreFocus(token) {
+    if (!token) return;
+    var target = doc.querySelector('[data-unit-key="' + token.key + '"] [data-focus-role="' + token.role + '"]');
+    if (target && typeof target.focus === "function") target.focus({ preventScroll: true });
+  }
+  function render() {
+    var legend = doc.querySelector(".legend");
+    var cal = doc.getElementById("cal");
+    if (!legend || !cal) return false;
+    var token = focusToken(cal);
+    var legendFragment = doc.createDocumentFragment();
+    var calFragment = doc.createDocumentFragment();
+
+    Object.keys(root.PHASES).forEach(function (key) {
+      var phase = root.PHASES[key];
+      var item = el("span", "lg");
+      var swatch = el("i");
+      swatch.style.backgroundColor = phase.c;
+      swatch.setAttribute("aria-hidden", "true");
+      item.appendChild(swatch);
+      item.appendChild(doc.createTextNode(phase.label));
+      legendFragment.appendChild(item);
+    });
+    calFragment.appendChild(el("div", "cal-corner", ""));
+    DOW.forEach(function (day) { calFragment.appendChild(el("div", "cal-dayhead", day)); });
+
+    root.WEEKS.forEach(function (week) {
+      var phase = root.PHASES[week.phase];
+      var weekCell = el("div", "cal-week");
+      weekCell.style.setProperty("--pc", phase.c);
+      weekCell.appendChild(el("div", "ww", "Week " + week.w));
+      weekCell.appendChild(el("div", "wt", week.title));
+      weekCell.appendChild(el("div", "wp", phase.label));
+      calFragment.appendChild(weekCell);
+
+      week.days.forEach(function (day, index) {
+        var hasHref = !!day.href;
+        var hasParts = !!(day.parts && day.parts.length);
+        var unitKey = "w" + String(week.w).padStart(2, "0") + "d" + (index + 1);
+        var card = el("div", "cal-cell " + (hasHref ? "live" : (hasParts ? "parts" : "soon")));
+        card.style.setProperty("--pc", phase.c);
+        card.setAttribute("data-unit-key", unitKey);
+        var title = el("div", "ct");
+        if (hasHref) link(title, "ct-link", day.href, day.t, "", "title");
+        else title.textContent = day.t;
+        card.appendChild(title);
+        card.appendChild(el("div", "cs", day.s || ""));
+        if (hasParts) {
+          var parts = el("div", "cell-parts");
+          day.parts.forEach(function (part, partIndex) { link(parts, "", part.href, part.t, "", "part-" + partIndex); });
+          card.appendChild(parts);
+        }
+        var foot = el("div", "cell-foot");
+        var firstHref = day.href || (hasParts && day.parts[0].href) || null;
+        if (firstHref) {
+          var actions = el("div", "day-actions");
+          var status = root.FDE_PROGRESS ? root.FDE_PROGRESS.status(unitKey) : "none";
+          var label = status === "completed" ? "✓ Completed" : (status === "started" ? "↻ Resume" : "▶ Start");
+          var statusClass = status === "completed" ? "done" : (status === "started" ? "resume" : "start");
+          link(actions, "day-prog day-prog--" + statusClass, firstHref, label, "", "progress");
+          foot.appendChild(actions);
+        }
+        var tags = el("div", "ritual-row");
+        if (day.star) tags.appendChild(el("span", "mk star", "★"));
+        rituals(tags, week.w, index + 1);
+        if (tags.childNodes.length) foot.appendChild(tags);
+        if (foot.childNodes.length) card.appendChild(foot);
+        calFragment.appendChild(card);
+      });
+    });
+
+    legend.replaceChildren(legendFragment);
+    cal.replaceChildren(calFragment);
+    restoreFocus(token);
+    return true;
+  }
+
+  if (render()) {
+    root.FDE_STATIC_CALENDAR_RENDER = render;
+    root.addEventListener("fde-progress-sync", render);
+  }
+})(window, document);
 </script>
 <script src="assets/js/roster.js?v=20260706"></script>
 <script src="assets/js/auth.js"></script>
