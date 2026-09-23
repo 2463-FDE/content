@@ -583,17 +583,80 @@ test("curriculum resolution emits the existing progress-sync signal once without
   assert.equal(byClass(doc.cal, "cal-cell").length, 50);
 });
 
+function parseStylesheet(source) {
+  const text = source.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [];
+  const walk = (start, media) => {
+    let index = start;
+    let prelude = "";
+    while (index < text.length) {
+      const char = text[index];
+      if (char === "}") return index + 1;
+      if (char === "{") {
+        const head = prelude.trim();
+        prelude = "";
+        if (head.startsWith("@")) {
+          const context = head.startsWith("@media") ? head.slice("@media".length) : head;
+          index = walk(index + 1, context.trim().replace(/\s+/g, " "));
+          continue;
+        }
+        const end = text.indexOf("}", index);
+        const declarations = {};
+        for (const part of text.slice(index + 1, end).split(";")) {
+          const colon = part.indexOf(":");
+          if (colon > 0) declarations[part.slice(0, colon).trim()] = part.slice(colon + 1).trim();
+        }
+        for (const selector of head.split(",")) rules.push({ media, selector: selector.trim().replace(/\s+/g, " "), declarations });
+        index = end + 1;
+        continue;
+      }
+      prelude += char;
+      index += 1;
+    }
+    return index;
+  };
+  walk(0, null);
+  return rules;
+}
+
+function computedRule(rules, selector, media = null) {
+  return rules
+    .filter((rule) => rule.selector === selector && rule.media === media)
+    .reduce((merged, rule) => Object.assign(merged, rule.declarations), {});
+}
+
+function inlineStylesheet(html) {
+  const start = html.indexOf("<style>") + "<style>".length;
+  return html.slice(start, html.indexOf("</style>", start));
+}
+
 test("320 px stylesheet contract reflows to one column without fixed-width cards", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-  const css = fs.readFileSync(path.join(__dirname, "..", "assets/css/style.css"), "utf8");
-  assert.match(css, /@media \(max-width:1000px\)\{ \.cal \{ grid-template-columns:1fr;/);
-  assert.match(html, /@media \(max-width:600px\)/);
-  assert.match(html, /\.cal-wrap \{ padding:12px 12px 40px; \}/);
-  assert.match(html, /overflow-wrap:anywhere/);
-  assert.match(html, /\.legend \.lg \{ max-width:100%; overflow-wrap:anywhere; \}/);
-  assert.match(html, /\.cal-week \.wt, \.cal-week \.wp \{ overflow-wrap:anywhere; \}/);
-  assert.match(html, /\.cal-cell\.planned \{[^}]*border-style:dotted/);
-  assert.match(html, /\.availability-badge--planned \{/);
+  const page = parseStylesheet(inlineStylesheet(html));
+  const site = parseStylesheet(fs.readFileSync(path.join(__dirname, "..", "assets/css/style.css"), "utf8"));
+  assert.equal(computedRule(site, ".cal", "(max-width:1000px)")["grid-template-columns"], "1fr");
+  assert.equal(computedRule(page, ".cal-wrap", "(max-width:600px)").padding, "12px 12px 40px");
+  for (const selector of [".cal-cell", ".cal-cell .ct", ".cal-cell .cs"]) {
+    assert.equal(computedRule(page, selector)["min-width"], "0", selector);
+    assert.equal(computedRule(page, selector)["overflow-wrap"], "anywhere", selector);
+  }
+  assert.deepEqual(
+    { maxWidth: computedRule(page, ".legend .lg")["max-width"], wrap: computedRule(page, ".legend .lg")["overflow-wrap"] },
+    { maxWidth: "100%", wrap: "anywhere" },
+  );
+  for (const selector of [".cal-week .wt", ".cal-week .wp"]) {
+    assert.equal(computedRule(page, selector)["overflow-wrap"], "anywhere", selector);
+  }
+  const missing = computedRule(page, ".cal-cell.missing");
+  const planned = computedRule(page, ".cal-cell.planned");
+  assert.equal(planned["border-style"], "dotted");
+  assert.notEqual(planned["border-style"], missing["border-style"]);
+  const badge = computedRule(page, ".availability-badge");
+  const plannedBadge = computedRule(page, ".availability-badge--planned");
+  assert.ok(plannedBadge.color, "planned badge sets a text color");
+  assert.ok(plannedBadge.background, "planned badge sets a background");
+  assert.notEqual(plannedBadge.color, badge.color);
+  assert.notEqual(plannedBadge.background, badge.background);
 });
 
 test("loader never persists curriculum, provenance, identity, or bearer material", async () => {
