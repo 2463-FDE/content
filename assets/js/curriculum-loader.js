@@ -196,20 +196,26 @@
     return link;
   }
 
+  function appendRitual(doc, row, key, href, text, title) {
+    var link = appendLink(doc, row, "ritual " + key, href, text, title);
+    link.setAttribute("data-focus-role", "ritual-" + key);
+    return link;
+  }
+
   function appendRituals(doc, row, weekNumber, dayNumber) {
     var dayKey = "w" + String(weekNumber).padStart(2, "0") + "d" + dayNumber;
-    if (!(weekNumber === 1 && dayNumber === 1)) appendLink(doc, row, "ritual iv", "gauntlet.html?day=" + dayKey, "🎤 AI Interview", "Daily AI Interview — do it before end of day");
-    if (dayNumber === 1) appendLink(doc, row, "ritual cr", "client-delivery.html?w=" + weekNumber, "📋 Client request");
+    if (!(weekNumber === 1 && dayNumber === 1)) appendRitual(doc, row, "iv", "gauntlet.html?day=" + dayKey, "🎤 AI Interview", "Daily AI Interview — do it before end of day");
+    if (dayNumber === 1) appendRitual(doc, row, "cr", "client-delivery.html?w=" + weekNumber, "📋 Client request");
     if (weekNumber >= 2 && dayNumber === 4) {
       var fde = element(doc, "span", "ritual fde", "◆ FDE Situation");
       fde.setAttribute("title", "Weekly FDE Situation session — Thursday");
       row.appendChild(fde);
     }
-    if (weekNumber <= 8 && dayNumber === 2) appendLink(doc, row, "ritual sd", "system-design.html?w=" + weekNumber, "🎯 Sys-design · start", "This week's System Design challenge — start pre-planning before Friday");
-    if (weekNumber <= 8 && dayNumber === 3) appendLink(doc, row, "ritual ar", "alt-research.html?w=" + weekNumber, "🔬 Alt research");
+    if (weekNumber <= 8 && dayNumber === 2) appendRitual(doc, row, "sd", "system-design.html?w=" + weekNumber, "🎯 Sys-design · start", "This week's System Design challenge — start pre-planning before Friday");
+    if (weekNumber <= 8 && dayNumber === 3) appendRitual(doc, row, "ar", "alt-research.html?w=" + weekNumber, "🔬 Alt research");
     if (weekNumber <= 8 && dayNumber === 5) {
-      appendLink(doc, row, "ritual sd", "system-design.html?w=" + weekNumber, "🎯 Sys-design · due", "System Design due — open this week's challenge");
-      appendLink(doc, row, "ritual ar", "alt-research.html?w=" + weekNumber, "🔬 Alt research · due", "Alt Research presentation due — present this week's findings");
+      appendRitual(doc, row, "sd", "system-design.html?w=" + weekNumber, "🎯 Sys-design · due", "System Design due — open this week's challenge");
+      appendRitual(doc, row, "ar", "alt-research.html?w=" + weekNumber, "🔬 Alt research · due", "Alt Research presentation due — present this week's findings");
     }
   }
 
@@ -281,7 +287,6 @@
         card.appendChild(element(doc, "div", "cs", day.s));
         if (!available) {
           var badge = element(doc, "span", "availability-badge", "Unavailable");
-          badge.setAttribute("role", "status");
           card.appendChild(badge);
         } else if (hasParts) {
           var parts = element(doc, "div", "cell-parts");

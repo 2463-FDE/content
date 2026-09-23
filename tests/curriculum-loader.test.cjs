@@ -222,6 +222,7 @@ test("missing units expose text and aria state with no curriculum link or progre
   assert.equal(card.getAttribute("aria-disabled"), "true");
   assert.match(card.getAttribute("aria-label"), /unavailable/);
   assert.equal(byClass(card, "availability-badge")[0].textContent, "Unavailable");
+  assert.equal(byClass(card, "availability-badge")[0].getAttribute("role"), null);
   assert.equal(byClass(card, "ct-link").length, 0);
   assert.equal(byClass(card, "cell-parts").length, 0);
   assert.equal(byClass(card, "day-prog").length, 0);
@@ -379,8 +380,50 @@ test("320 px stylesheet contract reflows to one column without fixed-width cards
   assert.match(html, /overflow-wrap:anywhere/);
 });
 
-test("loader never persists curriculum, provenance, identity, or bearer material", () => {
-  const source = fs.readFileSync(loaderPath, "utf8");
-  assert.doesNotMatch(source, /localStorage|sessionStorage|indexedDB|document\.cookie/);
-  assert.doesNotMatch(source, /JSON\.stringify\(payload\)/);
+test("loader never persists curriculum, provenance, identity, or bearer material", async () => {
+  const writes = [];
+  const storage = (name) => ({
+    getItem: () => null,
+    setItem: (key, value) => { writes.push([name, key, value]); },
+    removeItem: (key) => { writes.push([name, "remove", key]); },
+    clear: () => { writes.push([name, "clear"]); },
+  });
+  const doc = new TinyDocument();
+  Object.defineProperty(doc, "cookie", { get: () => "", set: (value) => { writes.push(["cookie", value]); } });
+  const payload = clone(fixture);
+  payload.provenance.source_kind = "override";
+  payload.provenance.effective_from = 1699999999000;
+  payload.provenance.version_no = 7;
+  const root = host({
+    localStorage: storage("localStorage"),
+    sessionStorage: storage("sessionStorage"),
+    indexedDB: { open: () => { writes.push(["indexedDB"]); } },
+    FDE_ensureSession: async () => "secret-bearer",
+  });
+  const before = new Set(Object.keys(root));
+  const loader = api.createLoader({ root, document: doc, timeoutMs: 1000, fetch: async () => response(payload) });
+  assert.equal(await loader.resolve(), true);
+  assert.equal(loader.getState(), "dynamic");
+  assert.deepEqual(writes, []);
+  assert.deepEqual(Object.keys(root).filter((key) => !before.has(key)), []);
+  const retained = JSON.stringify({ PHASES: root.PHASES, WEEKS: root.WEEKS });
+  for (const secret of ["secret-bearer", "provenance", "version_id", "source_kind", "override", payload.curriculum.slug]) {
+    assert.equal(retained.includes(secret), false, secret);
+  }
+  assert.equal(doc.cal.textContent.includes("secret-bearer"), false);
+  assert.equal(descendants(doc.cal).some((node) => Object.values(node.attributes).some((value) => value.includes("secret-bearer"))), false);
+});
+
+test("rerender restores focus to a ritual link on the same card", () => {
+  const model = api.toCalendar(api.validateResponse(clone(fixture)));
+  const doc = new TinyDocument();
+  api.renderCalendar(model, doc, {});
+  const card = () => descendants(doc.cal).find((node) => node.getAttribute && node.getAttribute("data-unit-key") === "w02d5");
+  const before = byClass(card(), "ar")[0];
+  before.focus();
+  api.renderCalendar(model, doc, {});
+  const after = byClass(card(), "ar")[0];
+  assert.notEqual(after, before);
+  assert.equal(doc.activeElement, after);
+  assert.equal(after.textContent, "🔬 Alt research · due");
 });
