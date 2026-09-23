@@ -7,6 +7,19 @@
 <link rel="stylesheet" href="assets/css/style.css?v=20260805-rc3">
 <script src="assets/js/theme.js"></script>
 <script src="assets/js/progress.js?v=20260630-2"></script>
+<style>
+/* Dynamic curriculum availability is explicit, not color-only. */
+.cal-cell.missing { opacity:.72; border-style:dashed; }
+.cal-cell.missing:after { content:"unavailable"; position:absolute; top:10px; right:11px; font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.06em; font-weight:700; }
+.availability-badge { align-self:flex-start; margin-top:9px; padding:2px 8px; border:1px solid var(--line); border-radius:20px; color:var(--ink-soft); background:var(--surface-2); font-size:11px; font-weight:700; }
+.cal-cell, .cal-cell .ct, .cal-cell .cs { min-width:0; overflow-wrap:anywhere; }
+@media (max-width:600px) {
+  .topbar { flex-wrap:wrap; padding:8px 12px; }
+  .topbar-center { order:3; flex:1 0 100%; overflow-x:auto; justify-content:flex-start; }
+  .topbar-right { min-width:0; }
+  .cal-wrap { padding:12px 12px 40px; }
+}
+</style>
 </head>
 <body>
 <div class="topbar">
@@ -124,90 +137,10 @@ window.WEEKS = [
     { t:"Dry run, unrescued", s:"hostile questions · the number said aloud" },
     { t:"Client showcase", s:"final delivery · architecture defense · assessment", star:true } ]}
 ];
-(function () {
-  function render() {
-  const DOW = ["Mon","Tue","Wed","Thu","Fri"];
-  const legend = document.querySelector(".legend");
-  legend.innerHTML = ""; document.getElementById("cal").innerHTML = "";
-  Object.values(window.PHASES).forEach(p => {
-    const s = document.createElement("span"); s.className = "lg";
-    s.innerHTML = `<i style="background:${p.c}"></i>${p.label}`; legend.appendChild(s);
-  });
-  const cal = document.getElementById("cal");
-  cal.appendChild(cell("cal-corner", ""));
-  DOW.forEach(d => cal.appendChild(cell("cal-dayhead", d)));
-  window.WEEKS.forEach(week => {
-    const ph = window.PHASES[week.phase];
-    const wc = document.createElement("div");
-    wc.className = "cal-week"; wc.style.setProperty("--pc", ph.c);
-    wc.innerHTML = `<div class="ww">Week ${week.w}</div><div class="wt">${week.title}</div><div class="wp">${ph.label}</div>`;
-    cal.appendChild(wc);
-    week.days.forEach((day, di) => {
-      const title = day.href ? `<a class="ct-link" href="${day.href}">${day.t}</a>` : day.t;
-      const marks = `${day.star ? '<span class="mk star">★</span>' : ''}`; // ◆ FDE is now a recurring Thursday ritual (below), not a per-day mark
-      // recurring weekly rituals
-      let rituals = "";
-      // Daily AI Interview — every day from program Day 2 onward. Day 1 (w1d1) has
-      // no material taught yet to interview on. Deep-links the gauntlet scoped to
-      // that day (cumulative through the prior day). Accent-filled so it stands out.
-      if (!(week.w === 1 && di === 0)) {
-        const dd = "w" + String(week.w).padStart(2, "0") + "d" + (di + 1);
-        rituals += `<a class="ritual iv" href="gauntlet.html?day=${dd}" title="Daily AI Interview — do it before end of day">🎤 AI Interview</a>`;
-      }
-      if (di === 0) rituals += `<a class="ritual cr" href="client-delivery.html?w=${week.w}">📋 Client request</a>`;
-      // Weekly FDE Session — Thursday, from week 2 onward (week 1 is onboarding).
-      if (week.w >= 2 && di === 3) rituals += `<span class="ritual fde" title="Weekly FDE Situation session — Thursday">◆ FDE Situation</span>`;
-      // Sys-design rituals link to the weekly-challenge prep page, scoped to the
-      // week (system-design.html?w=N). That page shows the curriculum-aware
-      // assigned scenario + a Start button into the simulator. Tue = start
-      // pre-planning, Fri = due / defend.
-      if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}" title="This week's System Design challenge — start pre-planning before Friday">🎯 Sys-design · start</a>`;
-      if (week.w <= 8 && di === 2) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}">🔬 Alt research</a>`;
-      if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}" title="System Design due — open this week's challenge">🎯 Sys-design · due</a>`;
-      // Alt Research presentation is due Friday — reminder badge (researched Wed).
-      if (week.w <= 8 && di === 4) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}" title="Alt Research presentation due — present this week's findings">🔬 Alt research · due</a>`;
-      const partsHtml = day.parts
-        ? `<div class="cell-parts">` + day.parts.map(p => `<a href="${p.href}">${p.t}</a>`).join("") + `</div>`
-        : "";
-      // Per-learner Start / Resume / Completed (server-backed via progress.js).
-      // A day flips to ✓ when the learner records the end-of-day STT summary.
-      // Only days with reading pages get a button; future "soon" days don't.
-      const firstHref = day.href || (day.parts && day.parts[0] && day.parts[0].href) || null;
-      let progHtml = "";
-      if (firstHref) {
-        const dayId = "w" + String(week.w).padStart(2, "0") + "d" + (di + 1);
-        const st = (window.FDE_PROGRESS ? window.FDE_PROGRESS.status(dayId) : "none");
-        const label = st === "completed" ? "✓ Completed" : (st === "started" ? "↻ Resume" : "▶ Start");
-        const cls = "day-prog day-prog--" + (st === "completed" ? "done" : (st === "started" ? "resume" : "start"));
-        progHtml = `<a class="${cls}" href="${firstHref}">${label}</a>`;
-      }
-      const el = document.createElement("div");
-      el.className = "cal-cell" + (day.href ? " live" : (day.parts ? " parts" : " soon"));
-      el.style.setProperty("--pc", ph.c);
-      // Layout contract: head (title+subtitle) at top, parts list in the body
-      // expanding downward, foot pinned to the bottom so Start + rituals land in
-      // the same spot on every card regardless of title-wrap / part count. Marks
-      // (◆ FDE / ★) are chips folded into the foot's tag row.
-      const tags = marks + rituals;
-      el.innerHTML =
-        `<div class="ct">${title}</div><div class="cs">${day.s || ""}</div>` +
-        partsHtml +
-        `<div class="cell-foot">` +
-          (progHtml ? `<div class="day-actions">${progHtml}</div>` : "") +
-          (tags ? `<div class="ritual-row">${tags}</div>` : "") +
-        `</div>`;
-      cal.appendChild(el);
-    });
-  });
-  function cell(cls, txt) { const d = document.createElement("div"); d.className = cls; d.textContent = txt; return d; }
-  }
-  render();
-  // Re-render when server progress arrives (browser-independent completion state).
-  window.addEventListener("fde-progress-sync", render);
-})();
 </script>
 <script src="assets/js/roster.js?v=20260706"></script>
 <script src="assets/js/auth.js"></script>
+<script src="assets/js/curriculum-loader.js?v=20260923-1"></script>
 <script src="assets/js/codex-usage.js?v=20260812"></script>
 <script src="assets/js/usage-notice.js?v=20260805-u1"></script>
 <script src="assets/js/reading-coach.js?v=20260805-r4"></script>
