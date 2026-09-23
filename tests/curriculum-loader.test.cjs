@@ -219,13 +219,39 @@ test("missing units expose text and aria state with no curriculum link or progre
   const card = descendants(doc.cal).find((node) => node.getAttribute && node.getAttribute("data-unit-key") === "w01d1");
   assert.ok((card.className || "").includes("missing"));
   assert.equal(card.getAttribute("role"), "group");
-  assert.equal(card.getAttribute("aria-disabled"), "true");
-  assert.match(card.getAttribute("aria-label"), /unavailable/);
-  assert.equal(byClass(card, "availability-badge")[0].textContent, "Unavailable");
+  assert.equal(card.getAttribute("aria-disabled"), null);
+  const region = descendants(card).find((node) => node.getAttribute && node.getAttribute("id") === card.getAttribute("aria-describedby"));
+  assert.ok(region);
+  assert.equal(region.getAttribute("aria-disabled"), "true");
+  assert.match(region.getAttribute("aria-label"), /unavailable/);
+  assert.ok(region.contains(byClass(card, "ct")[0]));
+  assert.equal(byClass(region, "availability-badge")[0].textContent, "Unavailable");
   assert.equal(byClass(card, "availability-badge")[0].getAttribute("role"), null);
   assert.equal(byClass(card, "ct-link").length, 0);
   assert.equal(byClass(card, "cell-parts").length, 0);
   assert.equal(byClass(card, "day-prog").length, 0);
+});
+
+test("missing unit ritual links stay active outside the disabled curriculum region", () => {
+  const payload = clone(fixture);
+  payload.curriculum.units[1].availability = "missing";
+  const doc = new TinyDocument();
+  api.renderCalendar(api.toCalendar(api.validateResponse(payload)), doc, {});
+  const card = descendants(doc.cal).find((node) => node.getAttribute && node.getAttribute("data-unit-key") === "w01d2");
+  const rituals = descendants(card).filter((node) => node.tagName === "A" && (node.className || "").split(" ").includes("ritual"));
+  assert.ok(rituals.length > 0);
+  const disabledAncestor = (node) => {
+    for (let current = node; current; current = current.parentNode) {
+      if (current.getAttribute && current.getAttribute("aria-disabled") === "true") return current;
+    }
+    return null;
+  };
+  rituals.forEach((link) => {
+    assert.equal(disabledAncestor(link), null);
+    assert.ok(link.getAttribute("href"));
+  });
+  assert.ok(disabledAncestor(byClass(card, "ct")[0]));
+  assert.ok(disabledAncestor(byClass(card, "availability-badge")[0]));
 });
 
 test("progress rerender preserves controls, stable identity, and focused control", () => {

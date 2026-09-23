@@ -272,10 +272,18 @@
         var card = element(doc, "div", "cal-cell " + (!available ? "missing" : (hasHref ? "live" : (hasParts ? "parts" : "soon"))));
         card.style.setProperty("--pc", phase.c);
         card.setAttribute("data-unit-key", day.unit_key);
+        var content = card;
         if (!available) {
+          var unavailableId = "unavailable-" + day.unit_key;
           card.setAttribute("role", "group");
-          card.setAttribute("aria-disabled", "true");
-          card.setAttribute("aria-label", day.t + " — curriculum content unavailable");
+          card.setAttribute("aria-label", day.t);
+          card.setAttribute("aria-describedby", unavailableId);
+          content = element(doc, "div", "cell-unavailable");
+          content.setAttribute("id", unavailableId);
+          content.setAttribute("role", "group");
+          content.setAttribute("aria-disabled", "true");
+          content.setAttribute("aria-label", day.t + " — curriculum content unavailable");
+          card.appendChild(content);
         }
 
         var title = element(doc, "div", "ct");
@@ -283,11 +291,10 @@
           var titleLink = appendLink(doc, title, "ct-link", day.href, day.t);
           titleLink.setAttribute("data-focus-role", "title");
         } else title.textContent = day.t;
-        card.appendChild(title);
-        card.appendChild(element(doc, "div", "cs", day.s));
+        content.appendChild(title);
+        content.appendChild(element(doc, "div", "cs", day.s));
         if (!available) {
-          var badge = element(doc, "span", "availability-badge", "Unavailable");
-          card.appendChild(badge);
+          content.appendChild(element(doc, "span", "availability-badge", "Unavailable"));
         } else if (hasParts) {
           var parts = element(doc, "div", "cell-parts");
           day.parts.forEach(function (part, partIndex) {
