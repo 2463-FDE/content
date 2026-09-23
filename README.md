@@ -35,7 +35,7 @@ Focused checks use committed synthetic fixtures only and make no live endpoint c
 node --test tests/curriculum-loader.test.cjs
 ```
 
-Fresh real-browser correction evidence for a synthetically blocked loader asset and valid maximum-length unbroken phase/week labels at 320 px is recorded in `tests/evidence/curriculum-correction-browser.txt`.
+Fresh real-browser correction evidence at 320 px — a synthetically blocked loader asset, valid maximum-length unbroken phase/week labels, backend-valid `planned` units, and `subtitle: null` — is recorded in `tests/evidence/curriculum-correction-browser.txt`.
 
 ## Authoring a reading page
 
