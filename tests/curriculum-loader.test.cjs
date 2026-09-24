@@ -1019,6 +1019,54 @@ test("active retry cancellation clears suppressed-week focus without a second re
   await assertActiveCancellationKeepsSingleFallbackRemount(divergent, false);
 });
 
+test("synchronous cancellation before dynamic render cannot leave fallback state with dynamic DOM", async () => {
+  const doc = new TinyDocument();
+  const fallback = staticCalendar();
+  renderCanonical(fallback, doc);
+  const listeners = {};
+  const emitted = [];
+  class FakeEvent { constructor(type) { this.type = type; } }
+  let payload = fixture;
+  let armed = false;
+  let renderAnnouncements = 0;
+  let loader;
+  const window = {
+    document: doc,
+    PHASES: fallback.phases,
+    WEEKS: fallback.weeks,
+    FDE_RUN_URL: "https://api.invalid",
+    FDE_ensureSession: async () => "token",
+    FDE_PROGRESS: { status: () => "none" },
+    CustomEvent: FakeEvent,
+    addEventListener: (name, fn) => { (listeners[name] ||= []).push(fn); },
+    dispatchEvent: (event) => {
+      emitted.push(event.type);
+      (listeners[event.type] || []).forEach((fn) => fn(event));
+    },
+  };
+  window.addEventListener("fde-curriculum-before-render", () => {
+    if (armed && ++renderAnnouncements === 3) loader.cancel();
+  });
+  loader = api.createLoader({
+    root: window, document: doc, timeoutMs: 1000, fallback, fallbackAlreadyRendered: true,
+    fetch: async () => response(payload),
+  });
+  window.addEventListener("fde-progress-sync", loader.render);
+  assert.equal(await loader.resolve(), true);
+  assert.equal(loader.getState(), "dynamic");
+
+  payload = assignmentFixture;
+  armed = true;
+  const beforeSignals = emitted.filter((name) => name === "fde-progress-sync").length;
+  assert.equal(await loader.resolve(), false);
+  assert.equal(renderAnnouncements, 3, "cancel fires from the dynamic render announcement after the retry fallback renders");
+  assert.equal(loader.getState(), "fallback");
+  assert.equal(byClass(doc.cal, "cal-cell").length, 50);
+  assert.equal(byClass(doc.cal, "ct")[0].textContent, "LLM fundamentals");
+  assert.equal(doc.cal.textContent.includes("Assigned dotted content"), false);
+  assert.equal(emitted.filter((name) => name === "fde-progress-sync").length, beforeSignals + 1);
+});
+
 test("a failed calendar render does not leave a stale week assistant focus request", async () => {
   const doc = new TinyDocument();
   const fallback = staticCalendar();

@@ -404,8 +404,9 @@
         try { hostRoot.dispatchEvent(new hostRoot.CustomEvent(name)); } catch (eventError) { /* optional focus handoff */ }
       }
     }
-    function renderModel(model) {
+    function renderModel(model, expectedGeneration) {
       announce("fde-curriculum-before-render");
+      if (expectedGeneration !== undefined && expectedGeneration !== generation) return false;
       try {
         return renderFn(model, doc, hostRoot, assistantWeekParity(model, fallback));
       } catch (renderError) {
@@ -435,13 +436,12 @@
       var controller = typeof AbortController === "function" ? new AbortController() : null;
       var settleCancellation;
       var cancellationPromise = new Promise(function (done) { settleCancellation = done; });
-      var requestState = { id: id, controller: controller, settle: settleCancellation, fallbackActivated: false };
+      var requestState = { id: id, controller: controller, settle: settleCancellation };
       activeRequest = requestState;
       var isRetry = hasResolved;
       hasResolved = true;
       state = "loading";
       activateFallback(isRetry);
-      requestState.fallbackActivated = true;
 
       var timeout;
       var timeoutPromise = new Promise(function (done) {
@@ -485,12 +485,13 @@
         if (expired || id !== generation) return false;
         // Build and replace the complete legend/grid before publishing the new
         // globals. If rendering throws, the prior fallback data and DOM survive.
-        renderModel(next);
+        renderModel(next, id);
         if (expired || id !== generation) return false;
         active = next;
         hostRoot.PHASES = next.phases;
         hostRoot.WEEKS = next.weeks;
         state = "dynamic";
+        if (activeRequest === requestState) activeRequest = null;
         // Existing calendar enhancements already remount on this signal after a
         // full grid replacement. Reuse it once; the loader's own listener only
         // renders and therefore cannot create an event loop.
@@ -521,8 +522,8 @@
           activeRequest = null;
           if (request.controller) request.controller.abort();
           request.settle(false);
-          if (!request.fallbackActivated) activateFallback(hasResolved);
-        } else if (previousState === "dynamic") activateFallback(hasResolved);
+        }
+        if (previousState === "dynamic") activateFallback(hasResolved);
       },
       getState: function () { return state; },
       getGeneration: function () { return generation; },

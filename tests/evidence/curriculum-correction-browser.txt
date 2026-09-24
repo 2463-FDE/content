@@ -264,3 +264,11 @@ Local-only mobile Lighthouse with Resume and Completed rendered
 - no calendar contrast finding; only reported contrast node was the pre-existing light topbar brand at 3.43:1
 - remaining pre-existing accessibility finding: missing main landmark
 - CLI wrapper exceeded its 300-second return deadline after report.json and report.html were fully written
+
+Post-review cancellation race confirmation
+Recorded: 2026-09-24T08:03:14Z
+- fresh local-only 320x800 session loaded exact seed dynamic state with six eligible assistants and zero horizontal overflow
+- active delayed retry midpoint emitted one signal and replaced the focused w01 assistant once
+- cancel settled false in 0.4 ms; state fallback; signal count stayed one; the same intermediate assistant remained connected and focused
+- after the late-response window, state/cells/assistants remained fallback/50/6 and the connected focused node was unchanged
+- synchronous cancel from the third before-render announcement (the would-be assignment render) returned false with fallback state, 50 canonical cards, `LLM fundamentals` visible, no assigned dotted content, and six assistants
