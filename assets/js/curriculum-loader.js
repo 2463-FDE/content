@@ -9,6 +9,7 @@
   "use strict";
 
   var DOW = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  var DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
   var AVAILABILITY = { available: true, missing: true, planned: true };
   var SOURCES = { seed: true, assignment: true, override: true };
   var UNIT_KEY = /^w(0[1-9]|10)d([1-5])$/;
@@ -298,6 +299,7 @@
         var card = element(doc, "div", "cal-cell cal-day-" + dayNumber + " " + stateClass);
         card.style.setProperty("--pc", phase.c);
         card.setAttribute("data-unit-key", day.unit_key);
+        card.appendChild(element(doc, "div", "cal-cell-day", DAY_NAMES[dayNumber - 1]));
         var content = card;
         if (!available) {
           var availabilityText = planned ? "Planned" : "Unavailable";

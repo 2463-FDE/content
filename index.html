@@ -18,6 +18,8 @@
 .legend, .legend .lg, .cal-week, .cal-week .wt, .cal-week .wp { min-width:0; }
 .legend .lg { max-width:100%; overflow-wrap:anywhere; }
 .cal-week .wt, .cal-week .wp { overflow-wrap:anywhere; }
+.cal-week .ww { color:var(--ink); }
+.cal-cell-day { display:none; }
 @media (min-width:1001px) {
   .cal-corner, .cal-week { grid-column:1; }
   .cal-day-1 { grid-column:2; }
@@ -25,6 +27,9 @@
   .cal-day-3 { grid-column:4; }
   .cal-day-4 { grid-column:5; }
   .cal-day-5 { grid-column:6; }
+}
+@media (max-width:1000px) {
+  .cal-cell-day { display:block; margin-bottom:6px; color:var(--ink-soft); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
 }
 @media (max-width:600px) {
   .topbar { flex-wrap:wrap; padding:8px 12px; }
@@ -158,6 +163,7 @@ window.WEEKS = [
   "use strict";
   if (!doc || !doc.createElement) return;
   var DOW = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  var DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
   function el(tag, cls, text) {
     var node = doc.createElement(tag);
@@ -241,6 +247,7 @@ window.WEEKS = [
         var card = el("div", "cal-cell " + (hasHref ? "live" : (hasParts ? "parts" : "soon")));
         card.style.setProperty("--pc", phase.c);
         card.setAttribute("data-unit-key", unitKey);
+        card.appendChild(el("div", "cal-cell-day", DAY_NAMES[index]));
         var title = el("div", "ct");
         if (hasHref) link(title, "ct-link", day.href, day.t, "", "title");
         else title.textContent = day.t;

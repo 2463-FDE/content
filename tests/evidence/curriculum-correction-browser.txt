@@ -123,3 +123,44 @@ Scenario: curriculum-loader asset returns synthetic 404
 - curriculum links/ritual links/progress controls: 43/91/40
 - after fde-progress-sync, first progress control: ✓ Completed
 - expected console output: the single deliberate loader-asset 404; no runtime JavaScript error
+
+Responsive accessibility final pass
+Recorded: 2026-09-24T04:07:15Z
+Tool: chrome-devtools-axi, fresh isolated Chromium profile
+Servers: local Python static servers only; synthetic responses remained in memory
+Storage throughout: localStorage=[], sessionStorage=[]
+
+Scenario: one-unit Wednesday assignment at 320x800, DPR 2
+- real createLoader result/state: true/dynamic
+- unit/cells: w01d3/1; computed calendar column: 296px
+- document width: 320; horizontal overflow: 0
+- visible responsive weekday: Wednesday (display:block, visibility:visible, no aria-hidden)
+- desktop Mon–Fri headers: display:none
+- accessibility snapshot includes one StaticText WEDNESDAY before the Assigned dotted content link; hidden Mon–Fri headers are absent
+- focused ritual survived rerender: AI Interview, data-focus-role=ritual-iv
+- active rituals: AI Interview and Alt research
+
+Scenario: same sparse Wednesday assignment at 1280x900
+- responsive Wednesday label: display:none
+- Wed desktop header: display:block
+- card and Wed header left edge: 535.59375px; card grid-column: 4
+- horizontal overflow: 0
+
+Scenario: Week N contrast independent of backend phase color
+- white phase, light theme: label rgb(31,35,41), surface rgb(255,255,255), contrast 15.78:1, decorative border rgb(255,255,255)
+- black phase, dark theme: label rgb(233,231,226), surface rgb(29,32,39), contrast 13.19:1, decorative border rgb(0,0,0)
+- null phase, dark theme: label rgb(233,231,226), surface rgb(29,32,39), contrast 13.19:1, decorative neutral border rgb(107,114,128)
+- computed label font size: 12px; all measured ratios exceed WCAG AA 4.5:1 for normal text
+
+Regression scenario: maximum labels at 320px
+- phase/week lengths: 100/200; rendered cells: 50
+- responsive weekday labels: 50, display:block
+- document width: 320; horizontal overflow: 0
+
+Regression scenario: curriculum-loader asset returns synthetic 404 at 320px
+- loader API/static renderer: undefined/function
+- rendered weeks/cells/progress: 10/50/40; progress-sync produced ✓ Completed
+- weekday labels: 50; first week Monday–Friday; display:block
+- desktop headers hidden; computed calendar column: 296px
+- document width: 320; horizontal overflow: 0
+- expected console output: the single deliberate loader-asset 404; no runtime JavaScript error

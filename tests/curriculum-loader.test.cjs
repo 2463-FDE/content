@@ -340,6 +340,9 @@ test("partial assigned curriculum uses the unit day for rituals instead of its a
   const doc = new TinyDocument();
   api.renderCalendar(api.toCalendar(api.validateResponse(payload)), doc, {});
   assert.equal(byClass(doc.cal, "cr").length, 0, "day-three unit must not receive day-one client ritual");
+  assert.equal(byClass(doc.cal, "cal-cell-day").length, 1);
+  assert.equal(byClass(doc.cal, "cal-cell-day")[0].textContent, "Wednesday");
+  assert.equal(byClass(doc.cal, "cal-cell-day")[0].getAttribute("aria-hidden"), null);
   assert.equal(byClass(doc.cal, "iv").length, 1);
   assert.equal(byClass(doc.cal, "ar").length, 1);
   assert.equal(byClass(doc.cal, "ar")[0].getAttribute("href"), "alt-research.html?w=1");
@@ -428,6 +431,10 @@ test("planned rituals stay active outside disabled content and retain focus acro
     assert.equal(disabledAncestor(link), null);
     assert.ok(link.getAttribute("href"));
   });
+  const dayLabel = byClass(card(), "cal-cell-day")[0];
+  assert.equal(dayLabel.textContent, "Tuesday");
+  assert.equal(dayLabel.getAttribute("aria-hidden"), null);
+  assert.equal(disabledAncestor(dayLabel), null);
   const before = rituals[0];
   before.focus();
   api.renderCalendar(model, doc, {});
@@ -609,6 +616,8 @@ test("inline static renderer keeps the calendar fully usable when the loader ass
   assert.equal(typeof window.FDE_STATIC_CALENDAR_RENDER, "function");
   assert.equal(byClass(doc.cal, "cal-cell").length, 50);
   assert.equal(byClass(doc.cal, "cal-week").length, 10);
+  assert.equal(byClass(doc.cal, "cal-cell-day").length, 50);
+  assert.deepEqual(byClass(doc.cal, "cal-cell-day").slice(0, 5).map((node) => node.textContent), ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
   assert.equal(byClass(doc.cal, "day-prog").length, 40);
   assert.equal(byClass(doc.cal, "ritual").length > 0, true);
   assert.equal(byClass(doc.cal, "day-prog")[0].textContent, "↻ Resume");
@@ -752,6 +761,9 @@ test("320 px stylesheet contract reflows to one column without fixed-width cards
   for (const selector of [".cal-week .wt", ".cal-week .wp"]) {
     assert.equal(computedRule(page, selector)["overflow-wrap"], "anywhere", selector);
   }
+  assert.equal(computedRule(page, ".cal-cell-day").display, "none");
+  assert.equal(computedRule(page, ".cal-cell-day", "(max-width:1000px)").display, "block");
+  assert.equal(computedRule(site, ".cal-dayhead", "(max-width:1000px)").display, "none");
   const missing = computedRule(page, ".cal-cell.missing");
   const planned = computedRule(page, ".cal-cell.planned");
   assert.equal(planned["border-style"], "dotted");
@@ -787,6 +799,41 @@ function desktopGridPlacement(cal, rules) {
   }
   return placed;
 }
+
+function relativeLuminance(hex) {
+  const channels = hex.slice(1).match(/.{2}/g).map((part) => parseInt(part, 16) / 255).map((value) => (
+    value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  ));
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function contrastRatio(foreground, background) {
+  const values = [relativeLuminance(foreground), relativeLuminance(background)].sort((a, b) => b - a);
+  return (values[0] + 0.05) / (values[1] + 0.05);
+}
+
+test("week labels use theme foreground contrast independently of phase color", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const page = parseStylesheet(inlineStylesheet(html));
+  const site = parseStylesheet(fs.readFileSync(path.join(__dirname, "..", "assets/css/style.css"), "utf8"));
+  assert.equal(computedRule(page, ".cal-week .ww").color, "var(--ink)");
+  assert.equal(computedRule(site, ".cal-week").background, "var(--surface)");
+  const light = computedRule(site, ":root");
+  const dark = computedRule(site, 'html[data-theme="dark"]');
+  assert.ok(contrastRatio(light["--ink"], light["--surface"]) >= 4.5);
+  assert.ok(contrastRatio(dark["--ink"], dark["--surface"]) >= 4.5);
+
+  for (const color of ["#ffffff", "#000000", null]) {
+    const payload = clone(assignmentFixture);
+    payload.curriculum.phases.found.color = color;
+    payload.curriculum.units[0].phase_color = color;
+    const doc = new TinyDocument();
+    api.renderCalendar(api.toCalendar(api.validateResponse(payload)), doc, {});
+    const week = byClass(doc.cal, "cal-week")[0];
+    assert.equal(week.style["--pc"], color === null ? "#6b7280" : color);
+    assert.equal(byClass(week, "ww")[0].style.color, undefined, "backend color must not become inline week-label text color");
+  }
+});
 
 test("partial assigned units land under their weekday column on the desktop grid", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
