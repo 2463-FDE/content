@@ -739,6 +739,44 @@ test("delayed dynamic resolution restores focus to the corresponding remounted w
   assert.equal(after.getAttribute("data-focus-role"), "week-assistant");
 });
 
+test("a failed calendar render does not leave a stale week assistant focus request", async () => {
+  const doc = new TinyDocument();
+  const fallback = staticCalendar();
+  api.renderCalendar(fallback, doc, {});
+  const listeners = {};
+  class FakeEvent { constructor(type) { this.type = type; } }
+  const window = {
+    document: doc,
+    PHASES: fallback.phases,
+    WEEKS: fallback.weeks,
+    FDE_PROGRESS: { status: () => "none" },
+    CustomEvent: FakeEvent,
+    addEventListener: (name, fn) => { (listeners[name] ||= []).push(fn); },
+    dispatchEvent: (event) => { (listeners[event.type] || []).forEach((fn) => fn(event)); },
+  };
+  const storage = { getItem: () => null, setItem() {}, removeItem() {} };
+  const context = vm.createContext({
+    window, document: doc, location: { pathname: "/index.html" }, navigator: {}, localStorage: storage,
+    setTimeout, clearTimeout, console,
+  });
+  vm.runInContext(fs.readFileSync(readingCoachPath, "utf8"), context);
+  const week = () => byClass(doc.cal, "cal-week").find((node) => node.getAttribute("data-week-key") === "w01");
+  week().querySelector(".rc-weekask").focus();
+
+  const loader = api.createLoader({
+    root: window, document: doc, timeoutMs: 1000, fallback, fallbackAlreadyRendered: true,
+    render: () => { throw new Error("render failed"); },
+  });
+  assert.throws(() => loader.render(), /render failed/);
+
+  doc.activeElement = doc.body;
+  api.renderCalendar(fallback, doc, {});
+  listeners["fde-progress-sync"].forEach((fn) => fn());
+  await new Promise((done) => setTimeout(done, 5));
+  assert.ok(week().querySelector(".rc-weekask"));
+  assert.equal(doc.activeElement, doc.body);
+});
+
 test("curriculum resolution emits the existing progress-sync signal once without a listener loop", async () => {
   const source = fs.readFileSync(loaderPath, "utf8");
   const doc = new TinyDocument();
@@ -917,6 +955,11 @@ test("unavailable and soon states preserve effective weekday and ritual contrast
   assert.equal(computedRule(page, ".cal-cell.missing").opacity, undefined);
   assert.equal(computedRule(page, ".cal-cell.planned").opacity, undefined);
   assert.equal(computedRule(page, ".cal-cell.soon").opacity, "1");
+  assert.equal(computedRule(page, ".cal-cell.live:after").color, "var(--accent-ink)");
+  for (const theme of ['html[data-theme="dark"]', ":root"]) {
+    const tokens = computedRule(site, theme);
+    assert.ok(contrastRatio(tokens["--accent-ink"], tokens["--surface"]) >= 4.5, `${theme} available card open label`);
+  }
   const resource = computedRule(page, ".fr-btn");
   assert.ok(contrastRatio(resource.color, resource.background) >= 4.5, "resource buttons retain normal-text contrast");
 

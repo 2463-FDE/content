@@ -374,14 +374,19 @@
     var renderFn = options.render || renderCalendar;
     var skipNextFallbackRender = options.fallbackAlreadyRendered === true;
 
-    function announceBeforeRender() {
+    function announce(name) {
       if (typeof hostRoot.dispatchEvent === "function" && typeof hostRoot.CustomEvent === "function") {
-        try { hostRoot.dispatchEvent(new hostRoot.CustomEvent("fde-curriculum-before-render")); } catch (eventError) { /* optional focus handoff */ }
+        try { hostRoot.dispatchEvent(new hostRoot.CustomEvent(name)); } catch (eventError) { /* optional focus handoff */ }
       }
     }
     function renderModel(model) {
-      announceBeforeRender();
-      return renderFn(model, doc, hostRoot);
+      announce("fde-curriculum-before-render");
+      try {
+        return renderFn(model, doc, hostRoot);
+      } catch (renderError) {
+        announce("fde-curriculum-render-failed");
+        throw renderError;
+      }
     }
     function render() { return renderModel(active); }
     function activateFallback() {

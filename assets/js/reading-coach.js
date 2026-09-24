@@ -726,6 +726,7 @@
       // Capture focused week controls before either calendar renderer replaces
       // the grid, then remount and restore only if focus was lost with that DOM.
       window.addEventListener("fde-curriculum-before-render", rememberWeekAssistantFocus);
+      window.addEventListener("fde-curriculum-render-failed", function () { pendingWeekFocus = null; });
       window.addEventListener("fde-progress-sync", function () { setTimeout(mountWeekButtons, 0); });
       window.FDE_openReading = open;
     }
