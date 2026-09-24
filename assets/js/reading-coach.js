@@ -684,9 +684,11 @@
   function restoreWeekAssistantFocus() {
     if (!pendingWeekFocus) return;
     var active = document.activeElement;
-    var focusWasLost = !active || active === document.body || active === document.documentElement ||
-      (typeof document.contains === "function" && !document.contains(active));
     var week = pendingWeekFocus;
+    var focusWasLost = !active || active === document.body || active === document.documentElement ||
+      (typeof document.contains === "function" && !document.contains(active)) ||
+      ((" " + (active.className || "") + " ").includes(" cal-week ") &&
+        active.getAttribute("data-week-key") === week);
     var target = document.querySelector('.cal-week[data-week-key="' + week + '"] .rc-weekask');
     pendingWeekFocus = null;
     if (!focusWasLost) return;
@@ -708,7 +710,15 @@
   }
 
   function suppressWeekButtons() {
+    var focusedWeek = focusedWeekAssistant();
     rememberWeekAssistantFocus();
+    if (focusedWeek) {
+      var heading = document.querySelector('.cal-week[data-week-key="' + focusedWeek + '"]');
+      if (heading && typeof heading.focus === "function") {
+        heading.setAttribute("tabindex", "-1");
+        heading.focus({ preventScroll: true });
+      }
+    }
     document.querySelectorAll(".rc-weekask").forEach(function (button) { button.remove(); });
   }
 

@@ -1059,22 +1059,41 @@ test("week launchers stay suppressed while resolution loads and return only afte
   let pending = wait;
   harness.setCurriculumFetch(() => pending.promise);
 
+  const { doc } = harness;
+  const heading = () => doc.querySelector('.cal-week[data-week-key="w01"]');
+  const launcher = () => doc.querySelector('.cal-week[data-week-key="w01"] .rc-weekask');
   assert.equal(byClass(harness.doc.cal, "rc-weekask").length, 6);
+  launcher().focus();
   const exactResolution = loader.resolve();
   await Promise.resolve();
   assert.equal(byClass(harness.doc.cal, "rc-weekask").length, 0, "launchers disappear when the authenticated request starts");
+  assert.equal(doc.activeElement, heading(), "focused launcher hands focus to its week heading while loading");
+  assert.equal(heading().getAttribute("tabindex"), "-1");
   wait.resolve(response(fixture));
   assert.equal(await exactResolution, true);
   assert.equal(byClass(harness.doc.cal, "rc-weekask").length, 6, "exact dynamic settlement remounts canonical launchers");
+  assert.equal(doc.activeElement, launcher(), "exact settlement restores focus to the remounted launcher");
 
   const failed = deferred();
   pending = failed;
   const fallbackResolution = loader.resolve();
   await Promise.resolve();
   assert.equal(byClass(harness.doc.cal, "rc-weekask").length, 0);
+  assert.equal(doc.activeElement, heading(), "retry loading keeps focus on the stable week heading");
   failed.resolve(response({}, 503));
   assert.equal(await fallbackResolution, false);
   assert.equal(byClass(harness.doc.cal, "rc-weekask").length, 6, "failed resolution remounts launchers only after fallback settles");
+  assert.equal(doc.activeElement, launcher(), "fallback settlement restores focus to the remounted launcher");
+
+  const unfocused = deferred();
+  pending = unfocused;
+  doc.activeElement = doc.body;
+  const quietResolution = loader.resolve();
+  await Promise.resolve();
+  assert.equal(doc.activeElement, doc.body, "loading does not steal focus that was not on a launcher");
+  unfocused.resolve(response(fixture));
+  assert.equal(await quietResolution, true);
+  assert.equal(doc.activeElement, doc.body);
   for (const cell of byClass(harness.doc.cal, "cal-week")) assert.ok(byClass(cell, "rc-weekask").length <= 1);
 });
 
