@@ -373,6 +373,7 @@
     var state = "fallback";
     var renderFn = options.render || renderCalendar;
     var skipNextFallbackRender = options.fallbackAlreadyRendered === true;
+    var hasResolved = false;
 
     function announce(name) {
       if (typeof hostRoot.dispatchEvent === "function" && typeof hostRoot.CustomEvent === "function") {
@@ -389,20 +390,29 @@
       }
     }
     function render() { return renderModel(active); }
-    function activateFallback() {
+    function activateFallback(signalRemount) {
       active = fallback;
       hostRoot.PHASES = fallback.phases;
       hostRoot.WEEKS = fallback.weeks;
       if (skipNextFallbackRender) skipNextFallbackRender = false;
-      else render();
+      else {
+        render();
+        // A repeated resolution replaces the week headers before its request can
+        // fail. Reuse the existing bounded integration signal so enhancements
+        // remount immediately; render() does not emit this event, so no loop is
+        // possible even when the loader's progress listener runs first.
+        if (signalRemount) announce("fde-progress-sync");
+      }
     }
 
     async function resolve() {
       var id = ++generation;
       var expired = false;
       var controller = typeof AbortController === "function" ? new AbortController() : null;
+      var isRetry = hasResolved;
+      hasResolved = true;
       state = "loading";
-      activateFallback();
+      activateFallback(isRetry);
 
       var timeout;
       var timeoutPromise = new Promise(function (done) {
@@ -470,7 +480,7 @@
     return {
       render: render,
       resolve: resolve,
-      cancel: function () { generation += 1; state = "fallback"; activateFallback(); },
+      cancel: function () { generation += 1; state = "fallback"; activateFallback(hasResolved); },
       getState: function () { return state; },
       getGeneration: function () { return generation; },
     };

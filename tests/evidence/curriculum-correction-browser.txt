@@ -199,3 +199,34 @@ Lighthouse mobile navigation audit (local stubbed-auth/mock-response server)
 - accessibility: 98; best practices: 96; SEO: 90
 - color-contrast audit: passed after resource-button foreground/background correction
 - sole remaining accessibility audit: pre-existing missing main landmark (not a contrast or focus finding)
+
+Final progress-contrast and failed-retry focus pass
+Recorded: 2026-09-24T06:07:59Z
+Tools: chrome-devtools-axi DOM/accessibility probes and mobile Lighthouse
+Isolation: fresh named browser session; local 127.0.0.1 fixture/stub server; dead external proxy; synthetic token/data only
+Viewport for direct probes: 320x800, DPR 2, mobile/touch emulation
+
+Rendered contrast matrix (computed foreground/background/effective ratio)
+- light progress: Start #c2410c/#fff1e8 4.69:1; Resume #fff/#c2410c 5.18:1; Completed #2f7d32/#ebfbee 4.77:1
+- dark progress: Start #ff9a5c/#2a1a10 8.00:1; Resume #fff/#c2410c 5.18:1; Completed #69db7c/effective rgb(35,53,47) 7.41:1
+- light milestone star: #8a4b00/#fff4e6 6.26:1; dark milestone star: #ffc04d/effective rgb(55,47,34) 8.08:1
+- light available title: normal 15.78:1; real hovered state 5.18:1 with underline
+- dark available title: normal 13.19:1; real hovered state 7.79:1 with underline
+- light weekday labels: available/planned 7.92:1; missing/soon 7.42:1
+- dark weekday labels: available/planned 7.21:1; missing/soon 6.62:1
+- light ritual variants: client 4.68:1; system-design 6.30:1; alt-research 5.62:1; AI interview 5.18:1; FDE situation 6.09:1
+- dark ritual variants: client 8.03:1; system-design 5.80:1; alt-research 6.81:1; AI interview 5.18:1; FDE situation 5.02:1
+- available/planned/missing/soon cards all computed opacity 1; document horizontal overflow 0
+- minimum measured calendar ratio: 4.68:1; all targeted normal text exceeds WCAG 2.1 AA 4.5:1
+
+Failed repeated-resolution focus probe
+- initial synthetic assignment: dynamic, 50 cells, 6 week assistants; focused w01 assistant
+- repeated local curriculum request returned synthetic 503
+- final state: fallback, 50 cells, 6 assistants; one assistant maximum per week
+- old focused node disconnected; corresponding new w01 node carried data-focus-role=week-assistant and received focus
+- a later unrelated progress render retained focus on an outside control, proving no stale week-focus request
+
+Mobile Lighthouse with real rendered Resume and Completed states
+- accessibility: 92; best practices: 96; SEO: 90; agentic browsing: 100
+- calendar progress labels produced no contrast failures
+- remaining accessibility findings are pre-existing and outside this bounded correction: light-theme topbar brand contrast and missing main landmark

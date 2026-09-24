@@ -739,6 +739,94 @@ test("delayed dynamic resolution restores focus to the corresponding remounted w
   assert.equal(after.getAttribute("data-focus-role"), "week-assistant");
 });
 
+async function assertFailedRetryRestoresWeekAssistant(failure) {
+  const doc = new TinyDocument();
+  const fallback = staticCalendar();
+  api.renderCalendar(fallback, doc, {});
+  const listeners = {};
+  const emitted = [];
+  class FakeEvent { constructor(type) { this.type = type; } }
+  let fetchAttempt = async () => response(assignmentFixture);
+  const window = {
+    document: doc,
+    PHASES: fallback.phases,
+    WEEKS: fallback.weeks,
+    FDE_RUN_URL: "https://api.invalid",
+    FDE_ensureSession: async () => "token",
+    FDE_PROGRESS: { status: () => "none" },
+    CustomEvent: FakeEvent,
+    addEventListener: (name, fn) => { (listeners[name] ||= []).push(fn); },
+    dispatchEvent: (event) => {
+      emitted.push(event.type);
+      (listeners[event.type] || []).forEach((fn) => fn(event));
+    },
+  };
+  const loader = api.createLoader({
+    root: window, document: doc, timeoutMs: 8, fallback, fallbackAlreadyRendered: true,
+    fetch: (...args) => fetchAttempt(...args),
+  });
+  // Match boot order: the loader's progress renderer is registered before the
+  // reading coach's remount listener.
+  window.addEventListener("fde-progress-sync", loader.render);
+  const storage = { getItem: () => null, setItem() {}, removeItem() {} };
+  const context = vm.createContext({
+    window, document: doc, location: { pathname: "/index.html" }, navigator: {}, localStorage: storage,
+    setTimeout, clearTimeout, console,
+  });
+  vm.runInContext(fs.readFileSync(readingCoachPath, "utf8"), context);
+
+  assert.equal(await loader.resolve(), true);
+  await new Promise((done) => setTimeout(done, 5));
+  assert.equal(loader.getState(), "dynamic");
+  const week = () => byClass(doc.cal, "cal-week").find((node) => node.getAttribute("data-week-key") === "w01");
+  const before = week().querySelector(".rc-weekask");
+  assert.ok(before);
+  before.focus();
+  const listenerCounts = Object.fromEntries(Object.entries(listeners).map(([name, entries]) => [name, entries.length]));
+  const integrationCount = emitted.filter((name) => name === "fde-progress-sync").length;
+
+  fetchAttempt = failure;
+  assert.equal(await loader.resolve(), false);
+  await new Promise((done) => setTimeout(done, 12));
+
+  const after = week().querySelector(".rc-weekask");
+  assert.equal(loader.getState(), "fallback");
+  assert.ok(after, "fallback remounts the corresponding week assistant");
+  assert.notEqual(after, before, "the replaced control is a new node");
+  assert.equal(doc.contains(before), false, "the focused old control is disconnected");
+  assert.equal(doc.activeElement, after, "focus follows the stable week token");
+  assert.equal(byClass(doc.cal, "rc-weekask").length, 6, "one assistant mounts for each readable fallback week");
+  for (const cell of byClass(doc.cal, "cal-week")) {
+    assert.ok(byClass(cell, "rc-weekask").length <= 1, "week assistants never duplicate");
+  }
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(listeners).map(([name, entries]) => [name, entries.length])),
+    listenerCounts,
+    "retry does not duplicate integration listeners",
+  );
+  assert.equal(
+    emitted.filter((name) => name === "fde-progress-sync").length,
+    integrationCount + 1,
+    "failed retry publishes one bounded remount signal",
+  );
+
+  // A later unrelated render must not reuse a stale focus token.
+  doc.activeElement = doc.body;
+  window.dispatchEvent(new FakeEvent("fde-progress-sync"));
+  await new Promise((done) => setTimeout(done, 5));
+  assert.equal(doc.activeElement, doc.body);
+}
+
+for (const [name, failure] of [
+  ["network rejection", async () => { throw new Error("offline"); }],
+  ["timeout", () => new Promise(() => {})],
+  ["invalid response", async () => response({ ok: true })],
+]) {
+  test(`failed retry (${name}) remounts week assistants once and restores focus`, async () => {
+    await assertFailedRetryRestoresWeekAssistant(failure);
+  });
+}
+
 test("a failed calendar render does not leave a stale week assistant focus request", async () => {
   const doc = new TinyDocument();
   const fallback = staticCalendar();
@@ -948,7 +1036,12 @@ function effectiveContrast(foreground, layer, surface) {
   return (values[0] + 0.05) / (values[1] + 0.05);
 }
 
-test("unavailable and soon states preserve effective weekday and ritual contrast in both themes", () => {
+function resolveCssColor(value, tokens) {
+  const variable = /^var\((--[^,)]+)(?:,[^)]+)?\)$/.exec(value || "");
+  return variable ? tokens[variable[1]] : value;
+}
+
+test("calendar interaction, progress, milestone, weekday, and ritual states retain AA contrast", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const page = parseStylesheet(inlineStylesheet(html));
   const site = parseStylesheet(fs.readFileSync(path.join(__dirname, "..", "assets/css/style.css"), "utf8"));
@@ -962,6 +1055,45 @@ test("unavailable and soon states preserve effective weekday and ritual contrast
   }
   const resource = computedRule(page, ".fr-btn");
   assert.ok(contrastRatio(resource.color, resource.background) >= 4.5, "resource buttons retain normal-text contrast");
+
+  const progressStates = ["start", "resume", "done"];
+  for (const theme of ["light", "dark"]) {
+    const tokenSelector = theme === "light" ? ":root" : 'html[data-theme="dark"]';
+    const tokens = computedRule(site, tokenSelector);
+    const surface = tokens["--surface"];
+    for (const state of progressStates) {
+      const rule = Object.assign(
+        {},
+        computedRule(site, `.day-prog--${state}`),
+        computedRule(page, `.cal-cell .day-prog--${state}`),
+      );
+      assert.ok(
+        effectiveContrast(resolveCssColor(rule.color, tokens), resolveCssColor(rule.background, tokens), surface) >= 4.5,
+        `${theme} ${state} progress label`,
+      );
+    }
+
+    const title = computedRule(page, ".cal-cell.live .ct-link");
+    const titleHover = Object.assign(
+      {},
+      computedRule(site, ".cal-cell.live .ct-link:hover"),
+      computedRule(page, ".cal-cell.live .ct-link:hover"),
+    );
+    assert.ok(contrastRatio(resolveCssColor(title.color, tokens), surface) >= 4.5, `${theme} live title`);
+    assert.ok(contrastRatio(resolveCssColor(titleHover.color, tokens), surface) >= 4.5, `${theme} hovered live title`);
+
+    const star = Object.assign(
+      {},
+      computedRule(site, ".cal-cell .mk.star"),
+      computedRule(page, ".cal-cell .mk.star"),
+      theme === "dark" ? computedRule(site, 'html[data-theme="dark"] .cal-cell .mk.star') : {},
+      theme === "dark" ? computedRule(page, 'html[data-theme="dark"] .cal-cell .mk.star') : {},
+    );
+    assert.ok(
+      effectiveContrast(resolveCssColor(star.color, tokens), resolveCssColor(star.background, tokens), surface) >= 4.5,
+      `${theme} milestone marker`,
+    );
+  }
 
   const variants = ["cr", "sd", "ar", "iv", "fde"];
   const states = ["available", "planned", "missing"];
