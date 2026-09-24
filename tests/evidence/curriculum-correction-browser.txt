@@ -164,3 +164,38 @@ Regression scenario: curriculum-loader asset returns synthetic 404 at 320px
 - desktop headers hidden; computed calendar column: 296px
 - document width: 320; horizontal overflow: 0
 - expected console output: the single deliberate loader-asset 404; no runtime JavaScript error
+
+Unavailable-state contrast and focus final pass
+Recorded: 2026-09-24T05:10:21Z
+Tools: chrome-devtools-axi DOM/accessibility probes and mobile Lighthouse
+Servers: local Python static/mock servers only; synthetic response and token; fresh empty-storage profiles
+Viewport for contrast/focus probes: 320x800, DPR 2, mobile/touch emulation
+
+Scenario: effective contrast by theme and card state
+- every available/planned/missing/soon card computed opacity: 1
+- light weekday-label minimum contrast: available 7.42:1; planned 7.92:1; missing 7.42:1; soon 7.42:1
+- dark weekday-label minimum contrast: available 6.62:1; planned 7.21:1; missing 6.62:1; soon 6.62:1
+- light ritual contrast by variant (same minima across available/planned/missing): client 4.68:1; system-design 6.30:1; alt-research 5.62:1; AI interview 5.18:1; FDE situation 6.09:1
+- dark ritual minimum across available/planned/missing: client 7.34:1; system-design 5.33:1; alt-research 6.22:1; AI interview 5.18:1; FDE situation 5.02:1
+- planned/missing curriculum actions: 0; active ritual links: 91
+- every measured value exceeds WCAG 2.1 AA 4.5:1 for normal text; document horizontal overflow: 0
+
+Scenario: delayed real-loader replacement preserves week-assistant focus
+- initial state/cells/title: loading/50/LLM fundamentals
+- focused control before response: w01 Ask about this week, data-focus-role=week-assistant
+- synthetic response delay: 3.5 seconds
+- final state/cells/title: dynamic/1/Assigned dotted content
+- week-assistant node was replaced and remounted: true
+- focus after replacement/integration signal: remounted w01 Ask about this week
+- accessibility snapshot marks the remounted button focusable and focused before the assigned title link
+- localStorage/sessionStorage remained empty
+
+Regression probes
+- maximum 100/200-character labels at 320px: 50 cards, 50 weekday labels, document width 320, overflow 0
+- loader asset synthetic 404 in dark mode: static renderer function, 10 weeks, 50 cards, 10 soon cards at opacity 1, 50 weekday labels, progress-sync produced ✓ Completed, overflow 0
+- expected loader-failure console output: one deliberate asset 404; no runtime JavaScript error
+
+Lighthouse mobile navigation audit (local stubbed-auth/mock-response server)
+- accessibility: 98; best practices: 96; SEO: 90
+- color-contrast audit: passed after resource-button foreground/background correction
+- sole remaining accessibility audit: pre-existing missing main landmark (not a contrast or focus finding)

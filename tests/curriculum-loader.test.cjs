@@ -7,6 +7,7 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 const loaderPath = path.join(__dirname, "..", "assets/js/curriculum-loader.js");
+const readingCoachPath = path.join(__dirname, "..", "assets/js/reading-coach.js");
 const api = require(loaderPath);
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/curriculum-resolved.seed-v1.json"), "utf8"));
 const assignmentFixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/curriculum-resolved.assignment-one-unit.json"), "utf8"));
@@ -58,6 +59,7 @@ class TinyNode {
     this.style = {
       setProperty: (name, value) => { this.style[name] = value; },
     };
+    this.listeners = {};
   }
   get childNodes() { return this.children; }
   set textContent(value) { this._text = String(value); this.children = []; }
@@ -80,6 +82,12 @@ class TinyNode {
   }
   setAttribute(name, value) { this.attributes[name] = String(value); }
   getAttribute(name) { return Object.hasOwn(this.attributes, name) ? this.attributes[name] : null; }
+  addEventListener(name, fn) { (this.listeners[name] ||= []).push(fn); }
+  querySelectorAll(selector) {
+    if (/^\.[A-Za-z0-9_-]+$/.test(selector)) return byClass(this, selector.slice(1));
+    return [];
+  }
+  querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
   contains(target) {
     return this === target || this.children.some((child) => child.contains && child.contains(target));
   }
@@ -93,6 +101,9 @@ class TinyNode {
 class TinyDocument {
   constructor() {
     this.activeElement = null;
+    this.readyState = "complete";
+    this.body = new TinyNode("body", this);
+    this.documentElement = new TinyNode("html", this);
     this.legend = new TinyNode("div", this);
     this.legend.className = "legend";
     this.cal = new TinyNode("div", this);
@@ -102,6 +113,12 @@ class TinyDocument {
   createTextNode(text) { const node = new TinyNode("#text", this); node.textContent = text; return node; }
   createDocumentFragment() { return new TinyNode("", this, true); }
   getElementById(id) { return id === "cal" ? this.cal : null; }
+  contains(target) { return this.cal.contains(target) || this.legend.contains(target) || this.body.contains(target); }
+  querySelectorAll(selector) {
+    if (selector === ".cal-week") return byClass(this.cal, "cal-week");
+    if (/^\.[A-Za-z0-9_-]+$/.test(selector)) return byClass(this.cal, selector.slice(1));
+    return [];
+  }
   querySelector(selector) {
     if (selector === ".legend") return this.legend;
     const match = /^\[data-unit-key="([^"]+)"\] \[data-focus-role="([^"]+)"\]$/.exec(selector);
@@ -109,7 +126,12 @@ class TinyDocument {
       const card = descendants(this.cal).find((node) => node.getAttribute && node.getAttribute("data-unit-key") === match[1]);
       return card && descendants(card).find((node) => node.getAttribute && node.getAttribute("data-focus-role") === match[2]) || null;
     }
-    return null;
+    const weekMatch = /^\.cal-week\[data-week-key="([^"]+)"\] \.rc-weekask$/.exec(selector);
+    if (weekMatch) {
+      const week = byClass(this.cal, "cal-week").find((node) => node.getAttribute("data-week-key") === weekMatch[1]);
+      return week && week.querySelector(".rc-weekask") || null;
+    }
+    return this.querySelectorAll(selector)[0] || null;
   }
 }
 
@@ -670,6 +692,53 @@ test("auto-boot installs one progress listener and never duplicates calendar DOM
   await new Promise((done) => setTimeout(done, 0));
 });
 
+test("delayed dynamic resolution restores focus to the corresponding remounted week assistant", async () => {
+  const doc = new TinyDocument();
+  const fallback = staticCalendar();
+  api.renderCalendar(fallback, doc, {});
+  const listeners = {};
+  class FakeEvent { constructor(type) { this.type = type; } }
+  const window = {
+    document: doc,
+    PHASES: fallback.phases,
+    WEEKS: fallback.weeks,
+    FDE_RUN_URL: "https://api.invalid",
+    FDE_ensureSession: async () => "token",
+    FDE_PROGRESS: { status: () => "none" },
+    CustomEvent: FakeEvent,
+    addEventListener: (name, fn) => { (listeners[name] ||= []).push(fn); },
+    dispatchEvent: (event) => { (listeners[event.type] || []).forEach((fn) => fn(event)); },
+  };
+  const storage = { getItem: () => null, setItem() {}, removeItem() {} };
+  const context = vm.createContext({
+    window, document: doc, location: { pathname: "/index.html" }, navigator: {}, localStorage: storage,
+    setTimeout, clearTimeout, console,
+  });
+  vm.runInContext(fs.readFileSync(readingCoachPath, "utf8"), context);
+  const week = () => byClass(doc.cal, "cal-week").find((node) => node.getAttribute("data-week-key") === "w01");
+  const before = week().querySelector(".rc-weekask");
+  assert.ok(before);
+  assert.equal(before.getAttribute("data-focus-role"), "week-assistant");
+  before.focus();
+
+  const wait = deferred();
+  const loader = api.createLoader({
+    root: window, document: doc, timeoutMs: 1000, fallback, fallbackAlreadyRendered: true,
+    fetch: () => wait.promise,
+  });
+  const resolving = loader.resolve();
+  await Promise.resolve();
+  wait.resolve(response(assignmentFixture));
+  assert.equal(await resolving, true);
+  await new Promise((done) => setTimeout(done, 5));
+
+  const after = week().querySelector(".rc-weekask");
+  assert.ok(after);
+  assert.notEqual(after, before);
+  assert.equal(doc.activeElement, after);
+  assert.equal(after.getAttribute("data-focus-role"), "week-assistant");
+});
+
 test("curriculum resolution emits the existing progress-sync signal once without a listener loop", async () => {
   const source = fs.readFileSync(loaderPath, "utf8");
   const doc = new TinyDocument();
@@ -692,7 +761,8 @@ test("curriculum resolution emits the existing progress-sync signal once without
     await new Promise((done) => setTimeout(done, 0));
   }
   assert.equal(window.__FDE_CURRICULUM_LOADER__.getState(), "dynamic");
-  assert.deepEqual(emitted, ["fde-progress-sync"]);
+  assert.deepEqual(emitted.filter((name) => name === "fde-progress-sync"), ["fde-progress-sync"]);
+  assert.ok(emitted.filter((name) => name === "fde-curriculum-before-render").length >= 1);
   assert.equal(listeners["fde-progress-sync"].length, 1);
   assert.equal(byClass(doc.cal, "cal-cell").length, 50);
 });
@@ -811,6 +881,62 @@ function contrastRatio(foreground, background) {
   const values = [relativeLuminance(foreground), relativeLuminance(background)].sort((a, b) => b - a);
   return (values[0] + 0.05) / (values[1] + 0.05);
 }
+
+function parseCssColor(value) {
+  if (value.startsWith("#")) {
+    const hex = value.length === 4 ? "#" + value.slice(1).split("").map((part) => part + part).join("") : value;
+    return [...hex.slice(1).matchAll(/.{2}/g)].map((part) => parseInt(part[0], 16)).concat(1);
+  }
+  const parts = value.match(/[\d.]+/g).map(Number);
+  return [parts[0], parts[1], parts[2], parts[3] === undefined ? 1 : parts[3]];
+}
+
+function compositeColor(foreground, background) {
+  const alpha = foreground[3];
+  return [0, 1, 2].map((index) => foreground[index] * alpha + background[index] * (1 - alpha)).concat(1);
+}
+
+function channelLuminance(color) {
+  const channels = color.slice(0, 3).map((value) => {
+    const normalized = value / 255;
+    return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function effectiveContrast(foreground, layer, surface) {
+  const background = compositeColor(parseCssColor(layer), parseCssColor(surface));
+  const values = [channelLuminance(parseCssColor(foreground)), channelLuminance(background)].sort((a, b) => b - a);
+  return (values[0] + 0.05) / (values[1] + 0.05);
+}
+
+test("unavailable and soon states preserve effective weekday and ritual contrast in both themes", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const page = parseStylesheet(inlineStylesheet(html));
+  const site = parseStylesheet(fs.readFileSync(path.join(__dirname, "..", "assets/css/style.css"), "utf8"));
+  assert.equal(computedRule(page, ".cal-cell.missing").opacity, undefined);
+  assert.equal(computedRule(page, ".cal-cell.planned").opacity, undefined);
+  assert.equal(computedRule(page, ".cal-cell.soon").opacity, "1");
+  const resource = computedRule(page, ".fr-btn");
+  assert.ok(contrastRatio(resource.color, resource.background) >= 4.5, "resource buttons retain normal-text contrast");
+
+  const variants = ["cr", "sd", "ar", "iv", "fde"];
+  const states = ["available", "planned", "missing"];
+  for (const theme of ["light", "dark"]) {
+    const tokens = computedRule(site, theme === "light" ? ":root" : 'html[data-theme="dark"]');
+    for (const state of states.concat("soon")) {
+      const surface = state === "missing" || state === "soon" ? tokens["--surface-2"] : tokens["--surface"];
+      assert.ok(contrastRatio(tokens["--ink-soft"], surface) >= 4.5, `${theme} ${state} weekday`);
+      if (state === "soon") continue;
+      for (const variant of variants) {
+        const base = Object.assign({}, computedRule(site, `.ritual.${variant}`), computedRule(page, `.ritual.${variant}`));
+        const themed = theme === "dark" ? computedRule(site, `html[data-theme="dark"] .ritual.${variant}`) : {};
+        const rule = Object.assign(base, themed);
+        assert.ok(effectiveContrast(rule.color, rule.background, surface) >= 4.5, `${theme} ${state} ritual ${variant}`);
+      }
+    }
+  }
+});
 
 test("week labels use theme foreground contrast independently of phase color", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");

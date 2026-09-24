@@ -40,6 +40,7 @@
 
   var WORKER = (window.FDE_RUN_URL || "https://fde-backend.jestercharles.workers.dev").replace(/\/$/, "");
   var SESSION_MAX_AGE = 6 * 60 * 60 * 1000; // matches READING_TTL_SECONDS
+  var pendingWeekFocus = null;
 
   var S = {
     mode: "reading", // "reading" (a day's page) or "week" (the curriculum page)
@@ -640,6 +641,30 @@
   // The curriculum page: one button per week header, opening this same modal
   // against the whole week. The grid is rendered by an inline script on that
   // page, so wait for the cells to exist rather than assuming they do.
+  function focusedWeekAssistant() {
+    var active = document.activeElement;
+    if (!active || !(" " + (active.className || "") + " ").includes(" rc-weekask ")) return null;
+    for (var node = active.parentNode; node; node = node.parentNode) {
+      if ((" " + (node.className || "") + " ").includes(" cal-week ")) return node.getAttribute("data-week-key");
+    }
+    return null;
+  }
+
+  function rememberWeekAssistantFocus() {
+    var week = focusedWeekAssistant();
+    if (week) pendingWeekFocus = week;
+  }
+
+  function restoreWeekAssistantFocus() {
+    if (!pendingWeekFocus) return;
+    var active = document.activeElement;
+    var focusWasLost = !active || active === document.body || active === document.documentElement ||
+      (typeof document.contains === "function" && !document.contains(active));
+    var target = document.querySelector('.cal-week[data-week-key="' + pendingWeekFocus + '"] .rc-weekask');
+    pendingWeekFocus = null;
+    if (focusWasLost && target && typeof target.focus === "function") target.focus({ preventScroll: true });
+  }
+
   function mountWeekButtons() {
     var cells = document.querySelectorAll(".cal-week");
     if (!cells.length) return false;
@@ -654,6 +679,7 @@
       var b = document.createElement("button");
       b.className = "rc-weekask";
       b.type = "button";
+      b.setAttribute("data-focus-role", "week-assistant");
       b.innerHTML = '<span aria-hidden="true">✳</span> Ask about this week';
       b.title = "Talk through the whole week with an assistant that has read all of it";
       b.addEventListener("click", function () {
@@ -669,6 +695,7 @@
       cell.appendChild(b);
       mounted++;
     });
+    restoreWeekAssistantFocus();
     return mounted > 0;
   }
 
@@ -696,8 +723,9 @@
         setTimeout(tick, 100);
       };
       tick();
-      // The grid re-renders when server progress lands, which throws the buttons
-      // away with it. Put them back.
+      // Capture focused week controls before either calendar renderer replaces
+      // the grid, then remount and restore only if focus was lost with that DOM.
+      window.addEventListener("fde-curriculum-before-render", rememberWeekAssistantFocus);
       window.addEventListener("fde-progress-sync", function () { setTimeout(mountWeekButtons, 0); });
       window.FDE_openReading = open;
     }

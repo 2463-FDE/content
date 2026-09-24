@@ -9,8 +9,16 @@
 <script src="assets/js/progress.js?v=20260630-2"></script>
 <style>
 /* Dynamic curriculum availability is explicit, not color-only. */
-.cal-cell.missing { opacity:.72; border-style:dashed; }
-.cal-cell.planned { opacity:.84; border-style:dotted; }
+.cal-cell.missing { border-style:dashed; background:var(--surface-2); }
+.cal-cell.planned { border-style:dotted; box-shadow:inset 0 0 0 1px var(--accent-line); }
+.cal-cell.soon { opacity:1; border-style:dashed; background:var(--surface-2); }
+.cal-cell.soon:after { color:var(--ink-soft); }
+.ritual.cr { color:#087f5b; }
+.ritual.sd { color:#5f3dc4; }
+.ritual.ar { color:#1864ab; }
+.ritual.iv { color:#fff; border-color:#c2410c; background:#c2410c; }
+.ritual.fde { color:#fff; border-color:#1864ab; background:#1864ab; }
+.fr-btn { color:#ffffff; border-color:#c2410c; background:#c2410c; }
 .cell-unavailable { display:flex; flex-direction:column; min-width:0; }
 .availability-badge { align-self:flex-start; margin-top:9px; padding:2px 8px; border:1px solid var(--line); border-radius:20px; color:var(--ink-soft); background:var(--surface-2); font-size:11px; font-weight:700; }
 .availability-badge--planned { color:var(--accent-ink); border-color:var(--accent); background:var(--accent-soft); }
@@ -214,6 +222,9 @@ window.WEEKS = [
     var legend = doc.querySelector(".legend");
     var cal = doc.getElementById("cal");
     if (!legend || !cal) return false;
+    if (typeof root.dispatchEvent === "function" && typeof root.CustomEvent === "function") {
+      try { root.dispatchEvent(new root.CustomEvent("fde-curriculum-before-render")); } catch (eventError) { /* optional focus handoff */ }
+    }
     var token = focusToken(cal);
     var legendFragment = doc.createDocumentFragment();
     var calFragment = doc.createDocumentFragment();
@@ -235,6 +246,7 @@ window.WEEKS = [
       var phase = root.PHASES[week.phase];
       var weekCell = el("div", "cal-week");
       weekCell.style.setProperty("--pc", phase.c);
+      weekCell.setAttribute("data-week-key", "w" + String(week.w).padStart(2, "0"));
       weekCell.appendChild(el("div", "ww", "Week " + week.w));
       weekCell.appendChild(el("div", "wt", week.title));
       weekCell.appendChild(el("div", "wp", phase.label));

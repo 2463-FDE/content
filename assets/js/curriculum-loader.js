@@ -284,6 +284,7 @@
       var phase = model.phases[week.phase];
       var weekCell = element(doc, "div", "cal-week");
       weekCell.style.setProperty("--pc", phase.c);
+      weekCell.setAttribute("data-week-key", "w" + String(week.w).padStart(2, "0"));
       weekCell.appendChild(element(doc, "div", "ww", "Week " + week.w));
       weekCell.appendChild(element(doc, "div", "wt", week.title));
       weekCell.appendChild(element(doc, "div", "wp", phase.label));
@@ -373,7 +374,16 @@
     var renderFn = options.render || renderCalendar;
     var skipNextFallbackRender = options.fallbackAlreadyRendered === true;
 
-    function render() { return renderFn(active, doc, hostRoot); }
+    function announceBeforeRender() {
+      if (typeof hostRoot.dispatchEvent === "function" && typeof hostRoot.CustomEvent === "function") {
+        try { hostRoot.dispatchEvent(new hostRoot.CustomEvent("fde-curriculum-before-render")); } catch (eventError) { /* optional focus handoff */ }
+      }
+    }
+    function renderModel(model) {
+      announceBeforeRender();
+      return renderFn(model, doc, hostRoot);
+    }
+    function render() { return renderModel(active); }
     function activateFallback() {
       active = fallback;
       hostRoot.PHASES = fallback.phases;
@@ -431,7 +441,7 @@
         if (expired || id !== generation) return false;
         // Build and replace the complete legend/grid before publishing the new
         // globals. If rendering throws, the prior fallback data and DOM survive.
-        renderFn(next, doc, hostRoot);
+        renderModel(next);
         if (expired || id !== generation) return false;
         active = next;
         hostRoot.PHASES = next.phases;
