@@ -817,6 +817,7 @@ test("week labels use theme foreground contrast independently of phase color", (
   const page = parseStylesheet(inlineStylesheet(html));
   const site = parseStylesheet(fs.readFileSync(path.join(__dirname, "..", "assets/css/style.css"), "utf8"));
   assert.equal(computedRule(page, ".cal-week .ww").color, "var(--ink)");
+  assert.equal(computedRule(page, ".cal-week .rc-weekask").color, "var(--ink)", "week assistant text must not inherit phase color");
   assert.equal(computedRule(site, ".cal-week").background, "var(--surface)");
   const light = computedRule(site, ":root");
   const dark = computedRule(site, 'html[data-theme="dark"]');
