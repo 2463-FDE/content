@@ -27,6 +27,10 @@ function staticCalendar() {
   return api.fallbackCalendar(context.window.PHASES, context.window.WEEKS);
 }
 
+function renderCanonical(calendar, doc, root = {}) {
+  return api.renderCalendar(calendar, doc, root, api.assistantWeekParity(calendar, calendar));
+}
+
 function response(payload, status = 200) {
   return { status, ok: status >= 200 && status < 300, json: async () => clone(payload) };
 }
@@ -160,6 +164,30 @@ test("seed-v1 API fixture has exact static grid parity", () => {
   const validated = api.validateResponse(clone(fixture));
   assert.ok(validated);
   assert.equal(JSON.stringify(api.toCalendar(validated)), JSON.stringify(staticCalendar()));
+});
+
+test("week-assistant grounding requires exact ordered canonical unit paths", () => {
+  const canonical = staticCalendar();
+  const exact = api.toCalendar(api.validateResponse(clone(fixture)));
+  const exactParity = api.assistantWeekParity(exact, canonical);
+  assert.equal(exactParity.w01, true);
+  assert.equal(exactParity.w06, true);
+
+  const partial = api.toCalendar(api.validateResponse(clone(assignmentFixture)));
+  assert.deepEqual(Object.keys(api.assistantWeekParity(partial, canonical)), []);
+
+  const divergentPayload = clone(fixture);
+  divergentPayload.curriculum.units[0].href = "weeks/w01/d1.v2.html";
+  const divergent = api.toCalendar(api.validateResponse(divergentPayload));
+  const divergentParity = api.assistantWeekParity(divergent, canonical);
+  assert.equal(divergentParity.w01, undefined);
+  assert.equal(divergentParity.w02, true);
+
+  const unavailablePayload = clone(fixture);
+  unavailablePayload.curriculum.units[0].availability = "planned";
+  unavailablePayload.curriculum.units[0].href = null;
+  const unavailable = api.toCalendar(api.validateResponse(unavailablePayload));
+  assert.equal(api.assistantWeekParity(unavailable, canonical).w01, undefined);
 });
 
 test("assigned and override provenance are accepted without being retained in the grid", () => {
@@ -351,6 +379,7 @@ test("real loader activates and publishes a one-unit assigned response over the 
   assert.equal(root.PHASES.found.c, "#6b7280");
   assert.equal(byClass(doc.cal, "cal-cell").length, 1);
   assert.equal(byClass(doc.cal, "ct-link")[0].getAttribute("href"), "weeks/w01/d1.v2.html");
+  assert.equal(byClass(doc.cal, "cal-week")[0].getAttribute("data-assistant-grounding"), null);
   assert.equal(doc.cal.textContent.includes("LLM fundamentals"), false);
 });
 
@@ -638,6 +667,7 @@ test("inline static renderer keeps the calendar fully usable when the loader ass
   assert.equal(typeof window.FDE_STATIC_CALENDAR_RENDER, "function");
   assert.equal(byClass(doc.cal, "cal-cell").length, 50);
   assert.equal(byClass(doc.cal, "cal-week").length, 10);
+  assert.equal(byClass(doc.cal, "cal-week").every((week) => week.getAttribute("data-assistant-grounding") === "canonical"), true);
   assert.equal(byClass(doc.cal, "cal-cell-day").length, 50);
   assert.deepEqual(byClass(doc.cal, "cal-cell-day").slice(0, 5).map((node) => node.textContent), ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
   assert.equal(byClass(doc.cal, "day-prog").length, 40);
@@ -695,7 +725,7 @@ test("auto-boot installs one progress listener and never duplicates calendar DOM
 test("delayed dynamic resolution restores focus to the corresponding remounted week assistant", async () => {
   const doc = new TinyDocument();
   const fallback = staticCalendar();
-  api.renderCalendar(fallback, doc, {});
+  renderCanonical(fallback, doc);
   const listeners = {};
   class FakeEvent { constructor(type) { this.type = type; } }
   const window = {
@@ -728,7 +758,7 @@ test("delayed dynamic resolution restores focus to the corresponding remounted w
   });
   const resolving = loader.resolve();
   await Promise.resolve();
-  wait.resolve(response(assignmentFixture));
+  wait.resolve(response(fixture));
   assert.equal(await resolving, true);
   await new Promise((done) => setTimeout(done, 5));
 
@@ -739,14 +769,79 @@ test("delayed dynamic resolution restores focus to the corresponding remounted w
   assert.equal(after.getAttribute("data-focus-role"), "week-assistant");
 });
 
+test("divergent resolved weeks suppress canonical assistants while exact seed and fallback remain eligible", async () => {
+  const doc = new TinyDocument();
+  const fallback = staticCalendar();
+  renderCanonical(fallback, doc);
+  const listeners = {};
+  class FakeEvent { constructor(type) { this.type = type; } }
+  let payload = fixture;
+  const window = {
+    document: doc,
+    PHASES: fallback.phases,
+    WEEKS: fallback.weeks,
+    FDE_RUN_URL: "https://api.invalid",
+    FDE_ensureSession: async () => "token",
+    FDE_PROGRESS: { status: () => "none" },
+    CustomEvent: FakeEvent,
+    addEventListener: (name, fn) => { (listeners[name] ||= []).push(fn); },
+    dispatchEvent: (event) => { (listeners[event.type] || []).forEach((fn) => fn(event)); },
+  };
+  const loader = api.createLoader({
+    root: window, document: doc, timeoutMs: 1000, fallback, fallbackAlreadyRendered: true,
+    fetch: async () => response(payload),
+  });
+  window.addEventListener("fde-progress-sync", loader.render);
+  const storage = { getItem: () => null, setItem() {}, removeItem() {} };
+  const context = vm.createContext({
+    window, document: doc, location: { pathname: "/index.html" }, navigator: {}, localStorage: storage,
+    setTimeout, clearTimeout, console,
+  });
+  vm.runInContext(fs.readFileSync(readingCoachPath, "utf8"), context);
+  assert.equal(byClass(doc.cal, "rc-weekask").length, 6, "static fallback exposes canonical weeks 1-6");
+
+  assert.equal(await loader.resolve(), true);
+  await new Promise((done) => setTimeout(done, 5));
+  assert.equal(byClass(doc.cal, "rc-weekask").length, 6, "exact seed dynamic response preserves assistants");
+
+  const focused = doc.querySelector('.cal-week[data-week-key="w01"] .rc-weekask');
+  focused.focus();
+  payload = clone(fixture);
+  payload.curriculum.units[0].href = "weeks/w01/d1.v2.html";
+  assert.equal(await loader.resolve(), true);
+  await new Promise((done) => setTimeout(done, 5));
+  assert.equal(doc.contains(focused), false);
+  assert.equal(doc.querySelector('.cal-week[data-week-key="w01"] .rc-weekask'), null, "divergent href suppresses w01");
+  assert.ok(doc.querySelector('.cal-week[data-week-key="w02"] .rc-weekask'), "unchanged exact-parity week remains eligible");
+  assert.equal(byClass(doc.cal, "rc-weekask").length, 5);
+  assert.ok(byClass(doc.cal, "ritual").length > 0, "ritual controls remain active");
+
+  doc.activeElement = doc.body;
+  window.dispatchEvent(new FakeEvent("fde-progress-sync"));
+  await new Promise((done) => setTimeout(done, 5));
+  assert.equal(doc.activeElement, doc.body, "suppression clears stale week focus");
+
+  payload = assignmentFixture;
+  assert.equal(await loader.resolve(), true);
+  await new Promise((done) => setTimeout(done, 5));
+  assert.equal(byClass(doc.cal, "rc-weekask").length, 0, "accepted partial dotted-path assignment cannot open canonical tutoring");
+  assert.ok(byClass(doc.cal, "ritual").length > 0, "partial assignment rituals remain available");
+
+  loader.cancel();
+  await new Promise((done) => setTimeout(done, 5));
+  assert.equal(loader.getState(), "fallback");
+  assert.equal(byClass(doc.cal, "rc-weekask").length, 6, "idle cancellation restores canonical fallback assistants once");
+  for (const cell of byClass(doc.cal, "cal-week")) assert.ok(byClass(cell, "rc-weekask").length <= 1);
+});
+
 async function assertFailedRetryRestoresWeekAssistant(failure) {
   const doc = new TinyDocument();
   const fallback = staticCalendar();
-  api.renderCalendar(fallback, doc, {});
+  renderCanonical(fallback, doc);
   const listeners = {};
   const emitted = [];
   class FakeEvent { constructor(type) { this.type = type; } }
-  let fetchAttempt = async () => response(assignmentFixture);
+  let fetchAttempt = async () => response(fixture);
   const window = {
     document: doc,
     PHASES: fallback.phases,
@@ -827,10 +922,107 @@ for (const [name, failure] of [
   });
 }
 
+async function assertActiveCancellationKeepsSingleFallbackRemount(primePayload, initiallyEligible) {
+  const doc = new TinyDocument();
+  const fallback = staticCalendar();
+  renderCanonical(fallback, doc);
+  const listeners = {};
+  const emitted = [];
+  class FakeEvent { constructor(type) { this.type = type; } }
+  let fetchAttempt = async () => response(primePayload);
+  let requestSignal = null;
+  const window = {
+    document: doc,
+    PHASES: fallback.phases,
+    WEEKS: fallback.weeks,
+    FDE_RUN_URL: "https://api.invalid",
+    FDE_ensureSession: async () => "token",
+    FDE_PROGRESS: { status: () => "none" },
+    CustomEvent: FakeEvent,
+    addEventListener: (name, fn) => { (listeners[name] ||= []).push(fn); },
+    dispatchEvent: (event) => {
+      emitted.push(event.type);
+      (listeners[event.type] || []).forEach((fn) => fn(event));
+    },
+  };
+  const loader = api.createLoader({
+    root: window, document: doc, timeoutMs: 1000, fallback, fallbackAlreadyRendered: true,
+    fetch: (...args) => fetchAttempt(...args),
+  });
+  window.addEventListener("fde-progress-sync", loader.render);
+  const storage = { getItem: () => null, setItem() {}, removeItem() {} };
+  const context = vm.createContext({
+    window, document: doc, location: { pathname: "/index.html" }, navigator: {}, localStorage: storage,
+    setTimeout, clearTimeout, console,
+  });
+  vm.runInContext(fs.readFileSync(readingCoachPath, "utf8"), context);
+  assert.equal(await loader.resolve(), true);
+  await new Promise((done) => setTimeout(done, 5));
+
+  const selector = '.cal-week[data-week-key="w01"] .rc-weekask';
+  const prior = doc.querySelector(selector);
+  assert.equal(!!prior, initiallyEligible);
+  if (prior) prior.focus();
+  else doc.activeElement = doc.body;
+  const beforeListeners = Object.fromEntries(Object.entries(listeners).map(([name, entries]) => [name, entries.length]));
+  const beforeSignals = emitted.filter((name) => name === "fde-progress-sync").length;
+  const pending = deferred();
+  fetchAttempt = async (url, options) => {
+    requestSignal = options.signal;
+    return pending.promise;
+  };
+
+  const resolving = loader.resolve();
+  await new Promise((done) => setTimeout(done, 5));
+  const intermediate = doc.querySelector(selector);
+  assert.ok(intermediate, "retry activates one canonical fallback assistant");
+  assert.equal(byClass(doc.cal, "rc-weekask").length, 6);
+  assert.equal(emitted.filter((name) => name === "fde-progress-sync").length, beforeSignals + 1);
+  if (initiallyEligible) assert.equal(doc.activeElement, intermediate, "eligible focused week follows the first remount");
+  else assert.equal(doc.activeElement, doc.body, "a previously suppressed week leaves no stale focus request");
+  intermediate.focus();
+
+  loader.cancel();
+  const settlement = await Promise.race([
+    resolving,
+    new Promise((done) => setTimeout(() => done("not-settled"), 30)),
+  ]);
+  assert.equal(settlement, false, "cancellation settles the active resolve promptly");
+  assert.equal(requestSignal.aborted, true, "cancellation aborts its generation's controller");
+  assert.equal(loader.getState(), "fallback");
+  assert.equal(doc.contains(intermediate), true, "cancel does not replace the first fallback remount");
+  assert.equal(doc.activeElement, intermediate, "cancel preserves focus on the connected intermediate control");
+  assert.equal(emitted.filter((name) => name === "fde-progress-sync").length, beforeSignals + 1, "cancel emits no second remount signal");
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(listeners).map(([name, entries]) => [name, entries.length])),
+    beforeListeners,
+    "cancel adds no listeners",
+  );
+  assert.equal(byClass(doc.cal, "rc-weekask").length, 6);
+  for (const cell of byClass(doc.cal, "cal-week")) assert.ok(byClass(cell, "rc-weekask").length <= 1);
+
+  pending.resolve(response(assignmentFixture));
+  await new Promise((done) => setTimeout(done, 5));
+  assert.equal(loader.getState(), "fallback");
+  assert.equal(doc.contains(intermediate), true, "late canceled response cannot render");
+  assert.equal(doc.activeElement, intermediate);
+  assert.equal(emitted.filter((name) => name === "fde-progress-sync").length, beforeSignals + 1);
+}
+
+test("active retry cancellation aborts promptly without a second eligible-week remount", async () => {
+  await assertActiveCancellationKeepsSingleFallbackRemount(fixture, true);
+});
+
+test("active retry cancellation clears suppressed-week focus without a second remount", async () => {
+  const divergent = clone(fixture);
+  divergent.curriculum.units[0].href = "weeks/w01/d1.v2.html";
+  await assertActiveCancellationKeepsSingleFallbackRemount(divergent, false);
+});
+
 test("a failed calendar render does not leave a stale week assistant focus request", async () => {
   const doc = new TinyDocument();
   const fallback = staticCalendar();
-  api.renderCalendar(fallback, doc, {});
+  renderCanonical(fallback, doc);
   const listeners = {};
   class FakeEvent { constructor(type) { this.type = type; } }
   const window = {
@@ -858,7 +1050,7 @@ test("a failed calendar render does not leave a stale week assistant focus reque
   assert.throws(() => loader.render(), /render failed/);
 
   doc.activeElement = doc.body;
-  api.renderCalendar(fallback, doc, {});
+  renderCanonical(fallback, doc);
   listeners["fde-progress-sync"].forEach((fn) => fn());
   await new Promise((done) => setTimeout(done, 5));
   assert.ok(week().querySelector(".rc-weekask"));

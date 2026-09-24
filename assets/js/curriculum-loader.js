@@ -184,6 +184,27 @@
     return { phases: phases, weeks: weeks };
   }
 
+  function assistantWeekParity(model, canonical) {
+    var result = Object.create(null);
+    var canonicalWeeks = (canonical && canonical.weeks) || [];
+    var modelWeeks = (model && model.weeks) || [];
+    canonicalWeeks.forEach(function (expected) {
+      if (!expected) return;
+      var actual = modelWeeks[expected.w - 1];
+      if (!actual || actual.w !== expected.w || actual.days.length !== expected.days.length) return;
+      var matches = actual.days.every(function (day, index) {
+        var canonicalDay = expected.days[index];
+        if (!canonicalDay || day.unit_key !== canonicalDay.unit_key || day.availability !== "available") return false;
+        if (day.href !== canonicalDay.href || day.parts.length !== canonicalDay.parts.length) return false;
+        return day.parts.every(function (part, partIndex) {
+          return part.href === canonicalDay.parts[partIndex].href;
+        });
+      });
+      if (matches) result["w" + String(expected.w).padStart(2, "0")] = true;
+    });
+    return result;
+  }
+
   function fallbackCalendar(phasesInput, weeksInput) {
     var phases = {};
     Object.keys(phasesInput || {}).forEach(function (key) {
@@ -257,7 +278,7 @@
     if (target && typeof target.focus === "function") target.focus({ preventScroll: true });
   }
 
-  function renderCalendar(model, doc, hostRoot) {
+  function renderCalendar(model, doc, hostRoot, assistantWeeks) {
     doc = doc || root.document;
     hostRoot = hostRoot || root;
     var legend = doc.querySelector(".legend");
@@ -284,7 +305,9 @@
       var phase = model.phases[week.phase];
       var weekCell = element(doc, "div", "cal-week");
       weekCell.style.setProperty("--pc", phase.c);
-      weekCell.setAttribute("data-week-key", "w" + String(week.w).padStart(2, "0"));
+      var weekKey = "w" + String(week.w).padStart(2, "0");
+      weekCell.setAttribute("data-week-key", weekKey);
+      if (assistantWeeks && assistantWeeks[weekKey] === true) weekCell.setAttribute("data-assistant-grounding", "canonical");
       weekCell.appendChild(element(doc, "div", "ww", "Week " + week.w));
       weekCell.appendChild(element(doc, "div", "wt", week.title));
       weekCell.appendChild(element(doc, "div", "wp", phase.label));
@@ -374,6 +397,7 @@
     var renderFn = options.render || renderCalendar;
     var skipNextFallbackRender = options.fallbackAlreadyRendered === true;
     var hasResolved = false;
+    var activeRequest = null;
 
     function announce(name) {
       if (typeof hostRoot.dispatchEvent === "function" && typeof hostRoot.CustomEvent === "function") {
@@ -383,7 +407,7 @@
     function renderModel(model) {
       announce("fde-curriculum-before-render");
       try {
-        return renderFn(model, doc, hostRoot);
+        return renderFn(model, doc, hostRoot, assistantWeekParity(model, fallback));
       } catch (renderError) {
         announce("fde-curriculum-render-failed");
         throw renderError;
@@ -409,10 +433,15 @@
       var id = ++generation;
       var expired = false;
       var controller = typeof AbortController === "function" ? new AbortController() : null;
+      var settleCancellation;
+      var cancellationPromise = new Promise(function (done) { settleCancellation = done; });
+      var requestState = { id: id, controller: controller, settle: settleCancellation, fallbackActivated: false };
+      activeRequest = requestState;
       var isRetry = hasResolved;
       hasResolved = true;
       state = "loading";
       activateFallback(isRetry);
+      requestState.fallbackActivated = true;
 
       var timeout;
       var timeoutPromise = new Promise(function (done) {
@@ -474,13 +503,27 @@
         return result;
       });
 
-      return Promise.race([work, timeoutPromise]).finally(function () { clearTimeout(timeout); });
+      return Promise.race([work, timeoutPromise, cancellationPromise]).finally(function () {
+        clearTimeout(timeout);
+        if (activeRequest === requestState) activeRequest = null;
+      });
     }
 
     return {
       render: render,
       resolve: resolve,
-      cancel: function () { generation += 1; state = "fallback"; activateFallback(hasResolved); },
+      cancel: function () {
+        var request = activeRequest && activeRequest.id === generation ? activeRequest : null;
+        var previousState = state;
+        generation += 1;
+        state = "fallback";
+        if (request) {
+          activeRequest = null;
+          if (request.controller) request.controller.abort();
+          request.settle(false);
+          if (!request.fallbackActivated) activateFallback(hasResolved);
+        } else if (previousState === "dynamic") activateFallback(hasResolved);
+      },
       getState: function () { return state; },
       getGeneration: function () { return generation; },
     };
@@ -506,6 +549,7 @@
     validateResponse: validateResponse,
     toCalendar: toCalendar,
     fallbackCalendar: fallbackCalendar,
+    assistantWeekParity: assistantWeekParity,
     renderCalendar: renderCalendar,
     createLoader: createLoader,
     boot: boot,

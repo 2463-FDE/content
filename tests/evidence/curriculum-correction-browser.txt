@@ -230,3 +230,37 @@ Mobile Lighthouse with real rendered Resume and Completed states
 - accessibility: 92; best practices: 96; SEO: 90; agentic browsing: 100
 - calendar progress labels produced no contrast failures
 - remaining accessibility findings are pre-existing and outside this bounded correction: light-theme topbar brand contrast and missing main landmark
+
+Assistant grounding and active-cancellation final pass
+Recorded: 2026-09-24T07:28:00Z
+Tools: chrome-devtools-axi DOM/focus/hover probes and mobile Lighthouse
+Isolation: fresh named browser session; local 127.0.0.1 fixture/stub server; dead external proxy; synthetic token/data only
+Viewport for direct probes: 320x800, DPR 2, mobile/touch emulation; horizontal overflow 0
+
+Canonical grounding parity
+- exact seed dynamic response: 50 cells, canonical markers on all exact weeks, six eligible assistants (w01-w06), maximum one per week
+- accepted one-unit dotted assignment: one `Assigned dotted content` card at `weeks/w01/d1.v2.html`, zero canonical markers, zero assistants, one active ritual
+- the previously focused canonical w01 button disconnected; browser focus moved to BODY; a later progress render left outside focus intact, proving stale focus was cleared
+- full divergent-href response: 50 cells, w01 assistant suppressed, unchanged w02 assistant retained, five total eligible assistants, 100 active rituals
+- no divergent week exposed a control capable of initiating canonical week-only tutoring
+
+Active request cancellation
+- exact dynamic state was primed, w01 assistant focused, and a synthetic 1.5-second local retry started
+- retry midpoint: state loading, exactly one integration signal, old node disconnected, one connected replacement focused, six assistants total, maximum one per week
+- cancel result: false settled in 0.4 ms; state fallback; integration-signal count remained one
+- the midpoint assistant remained connected and focused; no second fallback render/remount occurred
+- after the delayed response window: state remained fallback, the same control remained connected/focused, 50 fallback cells and six assistants remained; late assignment response did not render
+
+Fresh light/dark contrast preservation matrix
+- light progress Start/Resume/Completed: 4.69/5.18/4.77:1; dark: 8.00/5.18/7.41:1
+- light/dark milestone: 6.26/7.40:1; normal title: 15.78/13.19:1; real hovered title: 5.18/7.79:1
+- light weekdays available/planned/missing/soon: 7.92/7.92/7.42/7.42:1; dark: 7.21/7.21/6.62/6.62:1
+- light rituals client/system-design/alt-research/AI-interview/FDE: 4.68/6.30/5.62/5.18/6.09:1
+- dark rituals client/system-design/alt-research/AI-interview/FDE: 8.03/5.80/6.81/5.18/5.02:1
+- available/planned/missing/soon cards all computed opacity 1; minimum targeted ratio 4.68:1
+
+Local-only mobile Lighthouse with Resume and Completed rendered
+- report completed: accessibility 93; best practices 96; SEO 90; agentic browsing 100
+- no calendar contrast finding; only reported contrast node was the pre-existing light topbar brand at 3.43:1
+- remaining pre-existing accessibility finding: missing main landmark
+- CLI wrapper exceeded its 300-second return deadline after report.json and report.html were fully written

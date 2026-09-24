@@ -675,7 +675,10 @@
       var n = parseInt(String(m).replace(/[^0-9]/g, ""), 10);
       if (!n) return;
       var week = "w" + String(n).padStart(2, "0");
-      if (!WEEKS_WITH_READINGS[week]) return;   // future weeks have no readings yet
+      // Week-only sessions are grounded in the immutable reading catalog. The
+      // renderer grants this marker only when the visible unit IDs and paths
+      // exactly match that catalog's canonical seed week.
+      if (!WEEKS_WITH_READINGS[week] || cell.getAttribute("data-assistant-grounding") !== "canonical") return;
       var b = document.createElement("button");
       b.className = "rc-weekask";
       b.type = "button";
