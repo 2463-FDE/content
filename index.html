@@ -18,6 +18,14 @@
 .legend, .legend .lg, .cal-week, .cal-week .wt, .cal-week .wp { min-width:0; }
 .legend .lg { max-width:100%; overflow-wrap:anywhere; }
 .cal-week .wt, .cal-week .wp { overflow-wrap:anywhere; }
+@media (min-width:1001px) {
+  .cal-corner, .cal-week { grid-column:1; }
+  .cal-day-1 { grid-column:2; }
+  .cal-day-2 { grid-column:3; }
+  .cal-day-3 { grid-column:4; }
+  .cal-day-4 { grid-column:5; }
+  .cal-day-5 { grid-column:6; }
+}
 @media (max-width:600px) {
   .topbar { flex-wrap:wrap; padding:8px 12px; }
   .topbar-center { order:3; flex:1 0 100%; overflow-x:auto; justify-content:flex-start; }

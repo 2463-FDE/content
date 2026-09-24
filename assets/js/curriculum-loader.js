@@ -294,7 +294,8 @@
         var hasHref = available && !!day.href;
         var hasParts = available && day.parts.length > 0;
         var stateClass = available ? (hasHref ? "live" : (hasParts ? "parts" : "soon")) : (planned ? "planned" : "missing");
-        var card = element(doc, "div", "cal-cell " + stateClass);
+        var dayNumber = Number(day.unit_key.slice(-1));
+        var card = element(doc, "div", "cal-cell cal-day-" + dayNumber + " " + stateClass);
         card.style.setProperty("--pc", phase.c);
         card.setAttribute("data-unit-key", day.unit_key);
         var content = card;
@@ -344,7 +345,7 @@
 
         var tags = element(doc, "div", "ritual-row");
         if (day.star) tags.appendChild(element(doc, "span", "mk star", "★"));
-        appendRituals(doc, tags, week.w, Number(day.unit_key.slice(-1)));
+        appendRituals(doc, tags, week.w, dayNumber);
         if (tags.childNodes.length) foot.appendChild(tags);
         if (foot.childNodes.length) card.appendChild(foot);
         calFragment.appendChild(card);

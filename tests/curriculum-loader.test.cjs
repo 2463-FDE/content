@@ -764,6 +764,56 @@ test("320 px stylesheet contract reflows to one column without fixed-width cards
   assert.notEqual(plannedBadge.background, badge.background);
 });
 
+function desktopGridPlacement(cal, rules) {
+  const media = "(min-width:1001px)";
+  const columnFor = (node) => (node.className || "").split(/\s+/).filter(Boolean)
+    .map((name) => computedRule(rules, `.${name}`, media)["grid-column"])
+    .filter(Boolean).pop();
+  const placed = [];
+  let row = 1;
+  let column = 1;
+  for (const node of cal.childNodes) {
+    const explicit = columnFor(node) === undefined ? null : Number(columnFor(node));
+    if (explicit === null) {
+      if (column > 6) { row += 1; column = 1; }
+      placed.push({ node, row, column });
+      column += 1;
+      continue;
+    }
+    if (explicit < column) row += 1;
+    column = explicit;
+    placed.push({ node, row, column });
+    column += 1;
+  }
+  return placed;
+}
+
+test("partial assigned units land under their weekday column on the desktop grid", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const page = parseStylesheet(inlineStylesheet(html));
+  const payload = clone(assignmentFixture);
+  const template = payload.curriculum.units[0];
+  payload.curriculum.units = [[1, 3], [2, 2], [2, 5]].map(([week, day]) => Object.assign(clone(template), {
+    unit_key: `w0${week}d${day}`, week, day, position: week * 100 + day, href: `weeks/w0${week}/d${day}.html`,
+  }));
+  const doc = new TinyDocument();
+  api.renderCalendar(api.toCalendar(api.validateResponse(payload)), doc, {});
+  const placed = desktopGridPlacement(doc.cal, page);
+  const heads = placed.filter(({ node }) => node.className === "cal-dayhead");
+  const columnOf = (label) => heads.find(({ node }) => node.textContent === label).column;
+  const unit = (key) => placed.find(({ node }) => node.getAttribute && node.getAttribute("data-unit-key") === key);
+  const weeks = placed.filter(({ node }) => node.className === "cal-week");
+  assert.deepEqual(weeks.map(({ column }) => column), [1, 1]);
+  assert.equal(unit("w01d3").column, columnOf("Wed"));
+  assert.equal(unit("w01d3").row, weeks[0].row);
+  assert.equal(unit("w02d2").column, columnOf("Tue"));
+  assert.equal(unit("w02d5").column, columnOf("Fri"));
+  assert.equal(unit("w02d2").row, weeks[1].row);
+  assert.equal(unit("w02d5").row, weeks[1].row);
+  assert.equal(computedRule(parseStylesheet(fs.readFileSync(path.join(__dirname, "..", "assets/css/style.css"), "utf8")), ".cal", "(max-width:1000px)")["grid-template-columns"], "1fr");
+  assert.equal(computedRule(page, ".cal-day-3", "(max-width:1000px)")["grid-column"], undefined);
+});
+
 test("loader never persists curriculum, provenance, identity, or bearer material", async () => {
   const writes = [];
   const storage = (name) => ({
