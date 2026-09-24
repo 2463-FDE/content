@@ -400,6 +400,7 @@
     var activeRequest = null;
     var renderingRequest = null;
     var restoreAfterRender = null;
+    var authenticatedLoading = false;
 
     function announce(name) {
       if (typeof hostRoot.dispatchEvent === "function" && typeof hostRoot.CustomEvent === "function") {
@@ -441,6 +442,7 @@
       var requestState = { id: id, controller: controller, settle: settleCancellation };
       activeRequest = requestState;
       restoreAfterRender = null;
+      authenticatedLoading = false;
       var isRetry = hasResolved;
       hasResolved = true;
       state = "loading";
@@ -460,6 +462,8 @@
         if (typeof hostRoot.FDE_ensureSession !== "function" || !fetchFn || !hostRoot.FDE_RUN_URL) return false;
         var token = await hostRoot.FDE_ensureSession(false);
         if (expired || id !== generation || !token) return false;
+        authenticatedLoading = true;
+        announce("fde-curriculum-loading");
 
         async function request(bearer) {
           return fetchFn(String(hostRoot.FDE_RUN_URL).replace(/\/$/, "") + "/curriculum/resolved", {
@@ -496,7 +500,9 @@
           if (renderingRequest === requestState) renderingRequest = null;
           if (restoreAfterRender === requestState) {
             restoreAfterRender = null;
+            authenticatedLoading = false;
             if (rendered !== false) activateFallback(true);
+            announce("fde-curriculum-settled");
           }
         }
         if (expired || id !== generation) return false;
@@ -517,7 +523,13 @@
         return result;
       });
 
-      return Promise.race([work, timeoutPromise, cancellationPromise]).finally(function () {
+      return Promise.race([work, timeoutPromise, cancellationPromise]).then(function (result) {
+        if (id === generation) {
+          authenticatedLoading = false;
+          announce("fde-curriculum-settled");
+        }
+        return result;
+      }).finally(function () {
         clearTimeout(timeout);
         if (activeRequest === requestState) activeRequest = null;
       });
@@ -531,6 +543,7 @@
         var previousState = state;
         generation += 1;
         state = "fallback";
+        authenticatedLoading = false;
         if (request) {
           activeRequest = null;
           if (renderingRequest === request) restoreAfterRender = request;
@@ -538,8 +551,10 @@
           request.settle(false);
         }
         if (previousState === "dynamic") activateFallback(hasResolved);
+        if (renderingRequest !== request) announce("fde-curriculum-settled");
       },
       getState: function () { return state; },
+      isAuthenticatedLoading: function () { return authenticatedLoading; },
       getGeneration: function () { return generation; },
     };
   }

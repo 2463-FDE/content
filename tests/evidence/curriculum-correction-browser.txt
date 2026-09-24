@@ -272,3 +272,37 @@ Recorded: 2026-09-24T08:03:14Z
 - cancel settled false in 0.4 ms; state fallback; signal count stayed one; the same intermediate assistant remained connected and focused
 - after the late-response window, state/cells/assistants remained fallback/50/6 and the connected focused node was unchanged
 - synchronous cancel from the third before-render announcement (the would-be assignment render) returned false with fallback state, 50 canonical cards, `LLM fundamentals` visible, no assigned dotted content, and six assistants
+
+Open-assistant parity revocation pass
+Recorded: 2026-09-24T08:55:00Z
+Tools: chrome-devtools-axi DOM/focus probes and mobile Lighthouse
+Isolation: fresh named browser session; local 127.0.0.1 static/mock server; dead external proxy; synthetic token, identity, curriculum, session, digest, message, and prompt data only
+Viewport: 320x800, DPR 2, mobile/touch emulation; light and dark schemes; horizontal overflow 0
+
+Authenticated loading and divergent active-session revocation
+- exact seed began with six canonical assistants
+- during the authenticated deferred curriculum request: loader state loading, authenticated-loading flag true, zero launchers
+- divergent w01 href settled dynamic with five assistants; w01 launcher absent and maximum one launcher per week
+- the open w01 modal closed, body overflow lock cleared, and focus moved intentionally to the w01 week heading
+- `rc-digest-w01`, `rc-sid-week:w01`, and `rc-log-week:w01` were all absent immediately after revocation
+- after both deferred week-start/digest responses completed: modal remained closed; name, prompt, and transcript stayed empty; send remained unlocked; all three cache keys remained absent
+
+Parity-loss matrix
+- repeated from a newly exact/fallback-eligible open w01 session into divergent href, one-unit partial assignment, planned w01, and missing w01
+- every transition removed the w01 launcher, closed the modal, unlocked the body, focused the w01 heading (or calendar fallback), and cleared all three week-only cache keys
+- after each pair of delayed week-start/digest responses completed, modal/transcript/prompt/cache state remained empty
+- partial assignment had zero assistants; full planned/missing fixtures retained eligible unaffected weeks; every week had at most one launcher
+
+Deferred message and custom-prompt suppression
+- an exact w01 session first established a synthetic client session and digest
+- one delayed message and one delayed custom-prompt request were started, then w01 changed to a divergent href
+- after both late responses completed: modal stayed closed; transcript, recap, note, busy/capped controls, and week-only cache remained reset
+- restoring exact parity mounted one w01 launcher; a fresh session reopened successfully with `Week 1`, one opening message, and a new synthetic session cache
+- server transcript confirms delayed `/reading/message` and `/reading/prompt/custom` requests completed; no live host/provider was contacted
+
+Regression and audit
+- fresh exact-parity state: 50 cards, six assistants, maximum one per week, horizontal overflow 0
+- no runtime JavaScript error in the final pass; the sole expected console resource error was the local synthetic `/codex-usage` 404
+- local mobile Lighthouse: accessibility 92, best practices 96, SEO 90, agentic browsing 100
+- remaining Lighthouse findings are pre-existing: light topbar brand contrast 3.43:1, missing main landmark, missing meta description, and expected local mock 404
+- dependency-free contrast matrix remained green in the 53-test suite; calendar CSS was unchanged by this correction

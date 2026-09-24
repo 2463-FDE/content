@@ -59,15 +59,42 @@ class TinyNode {
     this.children = [];
     this.attributes = {};
     this.className = "";
+    this.dataset = {};
     this._text = "";
+    this._html = "";
+    this.classList = {
+      add: (...names) => { this.className = [...new Set(this.className.split(/\s+/).filter(Boolean).concat(names))].join(" "); },
+      remove: (...names) => { this.className = this.className.split(/\s+/).filter((name) => name && !names.includes(name)).join(" "); },
+      toggle: (name, force) => {
+        const present = this.className.split(/\s+/).includes(name);
+        const add = force === undefined ? !present : !!force;
+        if (add) this.classList.add(name); else this.classList.remove(name);
+        return add;
+      },
+    };
     this.style = {
       setProperty: (name, value) => { this.style[name] = value; },
     };
     this.listeners = {};
   }
   get childNodes() { return this.children; }
-  set textContent(value) { this._text = String(value); this.children = []; }
+  set textContent(value) { this._text = String(value); this._html = ""; this.children = []; }
   get textContent() { return this._text + this.children.map((child) => child.textContent).join(""); }
+  set innerHTML(value) {
+    this._html = String(value);
+    this._text = "";
+    this.children = [];
+    if (!this.ownerDocument || !this.ownerDocument.parseHtml) return;
+    const tags = this._html.matchAll(/<([a-z][a-z0-9-]*)([^>]*)>/gi);
+    for (const match of tags) {
+      const child = this.ownerDocument.createElement(match[1]);
+      for (const attr of match[2].matchAll(/([a-z][a-z0-9-]*)(?:="([^"]*)")?/gi)) {
+        child.setAttribute(attr[1], attr[2] === undefined ? "" : attr[2]);
+      }
+      this.appendChild(child);
+    }
+  }
+  get innerHTML() { return this._html; }
   appendChild(child) {
     if (child.isFragment) {
       child.children.slice().forEach((item) => this.appendChild(item));
@@ -84,9 +111,20 @@ class TinyNode {
     this._text = "";
     nodes.forEach((node) => this.appendChild(node));
   }
-  setAttribute(name, value) { this.attributes[name] = String(value); }
+  setAttribute(name, value) {
+    this.attributes[name] = String(value);
+    if (name === "class") this.className = String(value);
+    if (name.startsWith("data-")) this.dataset[name.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = String(value);
+    if (name === "hidden") this.hidden = true;
+  }
   getAttribute(name) { return Object.hasOwn(this.attributes, name) ? this.attributes[name] : null; }
   addEventListener(name, fn) { (this.listeners[name] ||= []).push(fn); }
+  click() { (this.listeners.click || []).forEach((fn) => fn({ target: this, preventDefault() {} })); }
+  remove() {
+    if (!this.parentNode) return;
+    this.parentNode.children = this.parentNode.children.filter((child) => child !== this);
+    this.parentNode = null;
+  }
   querySelectorAll(selector) {
     if (/^\.[A-Za-z0-9_-]+$/.test(selector)) return byClass(this, selector.slice(1));
     return [];
@@ -105,6 +143,8 @@ class TinyNode {
 class TinyDocument {
   constructor() {
     this.activeElement = null;
+    this.parseHtml = false;
+    this.listeners = {};
     this.readyState = "complete";
     this.body = new TinyNode("body", this);
     this.documentElement = new TinyNode("html", this);
@@ -116,7 +156,12 @@ class TinyDocument {
   createElement(tag) { return new TinyNode(tag, this); }
   createTextNode(text) { const node = new TinyNode("#text", this); node.textContent = text; return node; }
   createDocumentFragment() { return new TinyNode("", this, true); }
-  getElementById(id) { return id === "cal" ? this.cal : null; }
+  addEventListener(name, fn) { (this.listeners[name] ||= []).push(fn); }
+  getElementById(id) {
+    if (id === "cal") return this.cal;
+    return descendants(this.body).concat(descendants(this.cal), descendants(this.legend))
+      .find((node) => node.id === id || node.getAttribute && node.getAttribute("id") === id) || null;
+  }
   contains(target) { return this.cal.contains(target) || this.legend.contains(target) || this.body.contains(target); }
   querySelectorAll(selector) {
     if (selector === ".cal-week") return byClass(this.cal, "cal-week");
@@ -130,10 +175,10 @@ class TinyDocument {
       const card = descendants(this.cal).find((node) => node.getAttribute && node.getAttribute("data-unit-key") === match[1]);
       return card && descendants(card).find((node) => node.getAttribute && node.getAttribute("data-focus-role") === match[2]) || null;
     }
-    const weekMatch = /^\.cal-week\[data-week-key="([^"]+)"\] \.rc-weekask$/.exec(selector);
+    const weekMatch = /^\.cal-week\[data-week-key="([^"]+)"\](?: \.rc-weekask)?$/.exec(selector);
     if (weekMatch) {
       const week = byClass(this.cal, "cal-week").find((node) => node.getAttribute("data-week-key") === weekMatch[1]);
-      return week && week.querySelector(".rc-weekask") || null;
+      return selector.endsWith(" .rc-weekask") ? week && week.querySelector(".rc-weekask") || null : week || null;
     }
     return this.querySelectorAll(selector)[0] || null;
   }
@@ -811,6 +856,7 @@ test("divergent resolved weeks suppress canonical assistants while exact seed an
   assert.equal(await loader.resolve(), true);
   await new Promise((done) => setTimeout(done, 5));
   assert.equal(doc.contains(focused), false);
+  assert.equal(doc.activeElement, doc.querySelector('.cal-week[data-week-key="w01"]'), "suppressed focused launcher moves to its week heading");
   assert.equal(doc.querySelector('.cal-week[data-week-key="w01"] .rc-weekask'), null, "divergent href suppresses w01");
   assert.ok(doc.querySelector('.cal-week[data-week-key="w02"] .rc-weekask'), "unchanged exact-parity week remains eligible");
   assert.equal(byClass(doc.cal, "rc-weekask").length, 5);
@@ -832,6 +878,204 @@ test("divergent resolved weeks suppress canonical assistants while exact seed an
   assert.equal(loader.getState(), "fallback");
   assert.equal(byClass(doc.cal, "rc-weekask").length, 6, "idle cancellation restores canonical fallback assistants once");
   for (const cell of byClass(doc.cal, "cal-week")) assert.ok(byClass(cell, "rc-weekask").length <= 1);
+});
+
+function assistantResponse(data, status = 200) {
+  return { status, json: async () => clone(data) };
+}
+
+function revocationPayload(kind) {
+  if (kind === "partial") return clone(assignmentFixture);
+  const payload = clone(fixture);
+  if (kind === "divergent") payload.curriculum.units[0].href = "weeks/w01/d1.v2.html";
+  else if (kind === "planned" || kind === "missing") payload.curriculum.units[0].availability = kind;
+  return payload;
+}
+
+function revocationHarness(assistantFetch) {
+  const doc = new TinyDocument();
+  const fallback = staticCalendar();
+  renderCanonical(fallback, doc);
+  doc.parseHtml = true;
+  const listeners = {};
+  class FakeEvent { constructor(type) { this.type = type; } }
+  let curriculumPayload = fixture;
+  let curriculumFetch = async () => response(curriculumPayload);
+  const window = {
+    document: doc,
+    PHASES: fallback.phases,
+    WEEKS: fallback.weeks,
+    FDE_RUN_URL: "https://api.invalid",
+    FDE_ensureSession: async () => "token",
+    FDE_getIdentity: () => ({ code: "test-only" }),
+    FDE_PROGRESS: { status: () => "none" },
+    CustomEvent: FakeEvent,
+    addEventListener: (name, fn) => { (listeners[name] ||= []).push(fn); },
+    dispatchEvent: (event) => { (listeners[event.type] || []).slice().forEach((fn) => fn(event)); },
+  };
+  const loader = api.createLoader({
+    root: window, document: doc, timeoutMs: 1000, fallback, fallbackAlreadyRendered: true,
+    fetch: () => curriculumFetch(),
+  });
+  window.__FDE_CURRICULUM_LOADER__ = loader;
+  window.addEventListener("fde-progress-sync", loader.render);
+  const values = new Map();
+  const writes = [];
+  const storage = {
+    getItem: (key) => values.has(key) ? values.get(key) : null,
+    setItem: (key, value) => { values.set(key, String(value)); writes.push([key, String(value)]); },
+    removeItem: (key) => { values.delete(key); writes.push([key, null]); },
+  };
+  const context = vm.createContext({
+    window, document: doc, location: { pathname: "/index.html" }, navigator: {}, localStorage: storage,
+    fetch: assistantFetch, setTimeout, clearTimeout, console,
+  });
+  vm.runInContext(fs.readFileSync(readingCoachPath, "utf8"), context);
+  return {
+    doc, fallback, loader, window, storage, values, writes,
+    setCurriculum(payload) { curriculumPayload = payload; },
+    setCurriculumFetch(fn) { curriculumFetch = fn; },
+    weekButton(week = "w01") { return doc.querySelector(`.cal-week[data-week-key="${week}"] .rc-weekask`); },
+  };
+}
+
+const flushPromises = () => new Promise((done) => setTimeout(done, 0));
+
+for (const kind of ["divergent", "partial", "planned", "missing"]) {
+  test(`open week assistant is revoked before deferred start/digest can publish after ${kind} parity loss`, async () => {
+    const held = [];
+    const harness = revocationHarness(() => {
+      const wait = deferred();
+      held.push(wait);
+      return wait.promise;
+    });
+    const { doc, loader, values } = harness;
+    const launcher = harness.weekButton();
+    assert.ok(launcher);
+    launcher.click();
+    assert.equal(held.length, 2, "open owns one digest and one session-start request");
+    assert.equal(doc.getElementById("rcModal").hidden, false);
+    assert.equal(doc.body.style.overflow, "hidden");
+    values.set("rc-digest-w01", "stale digest");
+    values.set("rc-sid-week:w01", "stale session");
+    values.set("rc-log-week:w01", "stale transcript");
+
+    harness.setCurriculum(revocationPayload(kind));
+    assert.equal(await loader.resolve(), true);
+    assert.equal(harness.weekButton(), null);
+    assert.equal(doc.getElementById("rcModal").hidden, true);
+    assert.equal(doc.body.style.overflow, "");
+    assert.equal(doc.activeElement, doc.querySelector('.cal-week[data-week-key="w01"]') || doc.cal);
+    for (const key of ["rc-digest-w01", "rc-sid-week:w01", "rc-log-week:w01"]) assert.equal(values.has(key), false);
+
+    const late = assistantResponse({
+      ok: true,
+      sessionId: "revoked-session",
+      opening: "late opening",
+      digest: "late digest",
+      week: { label: "Late week", days: [{ id: "late", title: "Late", path: "weeks/w01/d1.html" }] },
+      budgetLeft: 9,
+      budgetTotal: 10,
+    });
+    held.forEach((wait) => wait.resolve(late));
+    await flushPromises();
+    await flushPromises();
+
+    assert.equal(doc.getElementById("rcModal").hidden, true);
+    assert.equal(doc.getElementById("rcLog").children.length, 0);
+    assert.equal(doc.getElementById("rcPromptBox").textContent, "");
+    assert.equal(doc.getElementById("rcName").textContent, "");
+    assert.equal(doc.getElementById("rcSend").disabled, false);
+    for (const key of ["rc-digest-w01", "rc-sid-week:w01", "rc-log-week:w01"]) assert.equal(values.has(key), false, `${key} stays revoked`);
+    for (const cell of byClass(doc.cal, "cal-week")) assert.ok(byClass(cell, "rc-weekask").length <= 1);
+  });
+}
+
+test("revoked week ignores deferred message and custom-prompt completions", async () => {
+  const messageWait = deferred();
+  const customWait = deferred();
+  const assistantFetch = (url) => {
+    if (url.endsWith("/reading/message")) return messageWait.promise;
+    if (url.endsWith("/reading/prompt/custom")) return customWait.promise;
+    return Promise.resolve(assistantResponse({
+      ok: true,
+      sessionId: "active-session",
+      opening: "canonical opening",
+      digest: "canonical digest",
+      week: { label: "Week 1", days: [{ id: "w01d1", title: "Day 1", path: "weeks/w01/d1.html" }] },
+      budgetLeft: 10,
+      budgetTotal: 10,
+    }));
+  };
+  const harness = revocationHarness(assistantFetch);
+  const { doc, loader, values, writes } = harness;
+  harness.weekButton().click();
+  await flushPromises();
+  await flushPromises();
+  assert.equal(values.has("rc-sid-week:w01"), true);
+
+  doc.getElementById("rcInput").value = "deferred question";
+  doc.getElementById("rcSend").click();
+  doc.getElementById("rcCustomNote").value = "deferred custom prompt";
+  doc.getElementById("rcCustomGo").click();
+  const writesBeforeRevocation = writes.length;
+
+  harness.setCurriculum(revocationPayload("divergent"));
+  assert.equal(await loader.resolve(), true);
+  const writesAfterRevocation = writes.length;
+  messageWait.resolve(assistantResponse({ ok: true, reply: "late answer", capped: true, budgetLeft: 0, budgetTotal: 10 }));
+  customWait.resolve(assistantResponse({ ok: true, prompt: "late custom prompt" }));
+  await flushPromises();
+  await flushPromises();
+
+  assert.ok(writesAfterRevocation > writesBeforeRevocation, "revocation clears prior week cache");
+  assert.equal(writes.length, writesAfterRevocation, "late completions cannot write storage");
+  assert.equal(doc.getElementById("rcModal").hidden, true);
+  assert.equal(doc.getElementById("rcLog").children.length, 0);
+  assert.equal(doc.getElementById("rcPromptBox").textContent, "");
+  assert.equal(doc.getElementById("rcPNote").textContent, "");
+  assert.equal(doc.getElementById("rcSend").disabled, false, "late capped state cannot relock chat");
+  assert.equal(doc.getElementById("rcCustomGo").disabled, false, "late custom completion cannot change busy state");
+  assert.equal(values.has("rc-sid-week:w01"), false);
+  assert.equal(values.has("rc-log-week:w01"), false);
+  assert.equal(values.has("rc-digest-w01"), false);
+
+  harness.setCurriculum(clone(fixture));
+  assert.equal(await loader.resolve(), true);
+  const reopened = harness.weekButton();
+  assert.ok(reopened, "exact parity remounts the revoked week's launcher");
+  reopened.click();
+  await flushPromises();
+  await flushPromises();
+  assert.equal(doc.getElementById("rcModal").hidden, false);
+  assert.equal(values.has("rc-sid-week:w01"), true, "fresh exact-parity session can start after revocation");
+  assert.ok(doc.getElementById("rcLog").children.length > 0);
+});
+
+test("week launchers stay suppressed while resolution loads and return only after exact or fallback settlement", async () => {
+  const wait = deferred();
+  const harness = revocationHarness(() => Promise.resolve(assistantResponse({ ok: false })));
+  const { loader } = harness;
+  let pending = wait;
+  harness.setCurriculumFetch(() => pending.promise);
+
+  assert.equal(byClass(harness.doc.cal, "rc-weekask").length, 6);
+  const exactResolution = loader.resolve();
+  await Promise.resolve();
+  assert.equal(byClass(harness.doc.cal, "rc-weekask").length, 0, "launchers disappear when the authenticated request starts");
+  wait.resolve(response(fixture));
+  assert.equal(await exactResolution, true);
+  assert.equal(byClass(harness.doc.cal, "rc-weekask").length, 6, "exact dynamic settlement remounts canonical launchers");
+
+  const failed = deferred();
+  pending = failed;
+  const fallbackResolution = loader.resolve();
+  await Promise.resolve();
+  assert.equal(byClass(harness.doc.cal, "rc-weekask").length, 0);
+  failed.resolve(response({}, 503));
+  assert.equal(await fallbackResolution, false);
+  assert.equal(byClass(harness.doc.cal, "rc-weekask").length, 6, "failed resolution remounts launchers only after fallback settles");
+  for (const cell of byClass(harness.doc.cal, "cal-week")) assert.ok(byClass(cell, "rc-weekask").length <= 1);
 });
 
 async function assertFailedRetryRestoresWeekAssistant(failure) {
@@ -974,13 +1218,10 @@ async function assertActiveCancellationKeepsSingleFallbackRemount(primePayload, 
 
   const resolving = loader.resolve();
   await new Promise((done) => setTimeout(done, 5));
-  const intermediate = doc.querySelector(selector);
-  assert.ok(intermediate, "retry activates one canonical fallback assistant");
-  assert.equal(byClass(doc.cal, "rc-weekask").length, 6);
+  const fallbackCard = byClass(doc.cal, "cal-cell")[0];
+  assert.equal(doc.querySelector(selector), null, "retry suppresses fallback launchers until resolution settles");
+  assert.equal(byClass(doc.cal, "rc-weekask").length, 0);
   assert.equal(emitted.filter((name) => name === "fde-progress-sync").length, beforeSignals + 1);
-  if (initiallyEligible) assert.equal(doc.activeElement, intermediate, "eligible focused week follows the first remount");
-  else assert.equal(doc.activeElement, doc.body, "a previously suppressed week leaves no stale focus request");
-  intermediate.focus();
 
   loader.cancel();
   const settlement = await Promise.race([
@@ -990,8 +1231,11 @@ async function assertActiveCancellationKeepsSingleFallbackRemount(primePayload, 
   assert.equal(settlement, false, "cancellation settles the active resolve promptly");
   assert.equal(requestSignal.aborted, true, "cancellation aborts its generation's controller");
   assert.equal(loader.getState(), "fallback");
-  assert.equal(doc.contains(intermediate), true, "cancel does not replace the first fallback remount");
-  assert.equal(doc.activeElement, intermediate, "cancel preserves focus on the connected intermediate control");
+  const settled = doc.querySelector(selector);
+  assert.ok(settled, "cancel settlement enables the canonical fallback launcher");
+  assert.equal(byClass(doc.cal, "cal-cell")[0], fallbackCard, "cancel does not replace the first fallback remount");
+  if (initiallyEligible) assert.equal(doc.activeElement, settled, "eligible focused week restores after fallback settles");
+  else assert.equal(doc.activeElement, doc.body, "a previously suppressed week leaves no stale focus request");
   assert.equal(emitted.filter((name) => name === "fde-progress-sync").length, beforeSignals + 1, "cancel emits no second remount signal");
   assert.deepEqual(
     Object.fromEntries(Object.entries(listeners).map(([name, entries]) => [name, entries.length])),
@@ -1004,8 +1248,8 @@ async function assertActiveCancellationKeepsSingleFallbackRemount(primePayload, 
   pending.resolve(response(assignmentFixture));
   await new Promise((done) => setTimeout(done, 5));
   assert.equal(loader.getState(), "fallback");
-  assert.equal(doc.contains(intermediate), true, "late canceled response cannot render");
-  assert.equal(doc.activeElement, intermediate);
+  assert.equal(doc.contains(settled), true, "late canceled response cannot render");
+  assert.equal(doc.activeElement, initiallyEligible ? settled : doc.body);
   assert.equal(emitted.filter((name) => name === "fde-progress-sync").length, beforeSignals + 1);
 }
 

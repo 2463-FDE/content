@@ -41,6 +41,10 @@
   var WORKER = (window.FDE_RUN_URL || "https://fde-backend.jestercharles.workers.dev").replace(/\/$/, "");
   var SESSION_MAX_AGE = 6 * 60 * 60 * 1000; // matches READING_TTL_SECONDS
   var pendingWeekFocus = null;
+  // This epoch changes only when curriculum parity revokes the active week.
+  // It intentionally does not redesign the assistant's existing scope-switching
+  // behavior; it only makes work owned by a revoked week inert.
+  var weekParityEpoch = 0;
 
   var S = {
     mode: "reading", // "reading" (a day's page) or "week" (the curriculum page)
@@ -71,6 +75,8 @@
   function sidKey() { return "rc-sid-" + scopeKey(); }
   function promptKey() { return "rc-prompt-" + S.id; }
   function digestKey() { return "rc-digest-" + S.week; }
+  function weekParityToken() { return S.mode === "week" ? weekParityEpoch : null; }
+  function weekParityCurrent(token) { return token === null || token === weekParityEpoch; }
 
   function loadSession() {
     try {
@@ -361,6 +367,7 @@
   }
 
   function startSession() {
+    var parityToken = weekParityToken();
     var idt = ident();
     if (!idt || !idt.code) {
       pushMsg("assistant", "Sign in with your cohort access code to talk about this reading — the button is in the top-right of the page. The delivery prompt tab still works without it.", { transient: true, sys: true });
@@ -370,6 +377,7 @@
     var path = S.mode === "week" ? "/reading/week/start" : "/reading/start";
     var payload = S.mode === "week" ? { passcode: idt.code, week: S.week } : { passcode: idt.code, reading: S.id };
     return post(path, payload).then(function (r) {
+      if (!weekParityCurrent(parityToken)) return false;
       if (!r.data || !r.data.ok) {
         var msg = r.data && r.data.error === "bad_passcode"
           ? "That access code isn't recognized — sign in again from the top-right of the page."
@@ -397,6 +405,7 @@
       usageNotice(r.data.budgetLeft, r.data.budgetTotal);
       return true;
     }).catch(function () {
+      if (!weekParityCurrent(parityToken)) return false;
       pushMsg("assistant", "Couldn't reach the assistant (network). The delivery prompt tab still works.", { transient: true, sys: true });
       lockChat("Assistant unavailable.");
       return false;
@@ -409,8 +418,13 @@
     var text = input.value.trim();
     if (!text) return;
     if (!S.sessionId) {
+      var startParityToken = weekParityToken();
       setBusy(true);
-      startSession().then(function (ok) { setBusy(false); if (ok) send(); });
+      startSession().then(function (ok) {
+        if (!weekParityCurrent(startParityToken)) return;
+        setBusy(false);
+        if (ok) send();
+      });
       return;
     }
     input.value = "";
@@ -419,7 +433,9 @@
     var thinking = pushMsg("assistant", "…", { transient: true });
     thinking.classList.add("rc-thinking");
 
+    var messageParityToken = weekParityToken();
     post("/reading/message", { sessionId: S.sessionId, text: text }).then(function (r) {
+      if (!weekParityCurrent(messageParityToken)) return;
       thinking.remove();
       setBusy(false);
       var d = r.data || {};
@@ -448,6 +464,7 @@
       usageNotice(d.budgetLeft, d.budgetTotal);
       if (d.capped) lockChat("Conversation cap reached for this reading.");
     }).catch(function () {
+      if (!weekParityCurrent(messageParityToken)) return;
       thinking.remove();
       setBusy(false);
       pushMsg("assistant", "Network hiccup — try that again.", { transient: true, sys: true });
@@ -502,11 +519,14 @@
     if (!idt || !idt.code) { el("rcPromptBox").textContent = "Sign in with your cohort access code to load the week."; return; }
     // Cached server-side per week, so this costs a KV read and no model call.
     // Keeps whatever session is already live — this call is only for the recap.
+    var digestParityToken = weekParityToken();
     post("/reading/week/start", { passcode: idt.code, week: S.week }).then(function (r) {
+      if (!weekParityCurrent(digestParityToken)) return;
       var d = r.data || {};
       if (d.ok && d.digest) { renderDigest(d.digest, d.week); if (!S.sessionId) { S.sessionId = d.sessionId; saveSession(d.sessionId); } }
       else el("rcPromptBox").textContent = "Couldn't load the week recap. The assistant still works.";
     }).catch(function () {
+      if (!weekParityCurrent(digestParityToken)) return;
       el("rcPromptBox").textContent = "Couldn't load the week recap. The assistant still works.";
     });
   }
@@ -567,10 +587,13 @@
       el("rcPNote").textContent = "Sign in with your cohort access code to get a customized prompt.";
       return;
     }
+    var customParityToken = weekParityToken();
     var run = function () {
+      if (!weekParityCurrent(customParityToken)) return;
       go.disabled = true;
       go.textContent = "Writing…";
       post("/reading/prompt/custom", { sessionId: S.sessionId, note: note }).then(function (r) {
+        if (!weekParityCurrent(customParityToken)) return;
         go.disabled = false;
         go.textContent = "Write me a custom prompt";
         var d = r.data || {};
@@ -584,13 +607,16 @@
           "Built from what you told the assistant. The generic version is one page reload away.");
         el("rcCustomWrap").hidden = true;
       }).catch(function () {
+        if (!weekParityCurrent(customParityToken)) return;
         go.disabled = false;
         go.textContent = "Write me a custom prompt";
         el("rcPNote").textContent = "Network hiccup — try that again.";
       });
     };
     // The custom prompt is written from the conversation, so it needs a session.
-    if (!S.sessionId) startSession().then(function (ok) { if (ok) run(); }); else run();
+    if (!S.sessionId) startSession().then(function (ok) {
+      if (weekParityCurrent(customParityToken) && ok) run();
+    }); else run();
   }
 
   // ---- open / close ----------------------------------------------------------
@@ -660,12 +686,84 @@
     var active = document.activeElement;
     var focusWasLost = !active || active === document.body || active === document.documentElement ||
       (typeof document.contains === "function" && !document.contains(active));
-    var target = document.querySelector('.cal-week[data-week-key="' + pendingWeekFocus + '"] .rc-weekask');
+    var week = pendingWeekFocus;
+    var target = document.querySelector('.cal-week[data-week-key="' + week + '"] .rc-weekask');
     pendingWeekFocus = null;
-    if (focusWasLost && target && typeof target.focus === "function") target.focus({ preventScroll: true });
+    if (!focusWasLost) return;
+    if (!target) {
+      target = document.querySelector('.cal-week[data-week-key="' + week + '"]') || el("cal");
+      if (target) target.setAttribute("tabindex", "-1");
+    }
+    if (target && typeof target.focus === "function") target.focus({ preventScroll: true });
+  }
+
+  function curriculumIsLoading() {
+    var loader = window.__FDE_CURRICULUM_LOADER__;
+    return !!(loader && typeof loader.isAuthenticatedLoading === "function" && loader.isAuthenticatedLoading());
+  }
+
+  function canonicalWeekCell(week) {
+    var cell = document.querySelector('.cal-week[data-week-key="' + week + '"]');
+    return cell && cell.getAttribute("data-assistant-grounding") === "canonical" ? cell : null;
+  }
+
+  function suppressWeekButtons() {
+    rememberWeekAssistantFocus();
+    document.querySelectorAll(".rc-weekask").forEach(function (button) { button.remove(); });
+  }
+
+  function resetRevokedWeekModal() {
+    // Keep rcPh itself intact: it owns the rcKind node that resetRail reuses.
+    var ids = ["rcName", "rcWeek", "rcTurns", "rcLog", "rcPromptBox", "rcKind", "rcPNote", "rcPhSub", "rcFoot"];
+    ids.forEach(function (id) { var node = el(id); if (node) node.textContent = ""; });
+    var turns = el("rcTurns"); if (turns) { turns.title = ""; turns.classList.remove("is-low"); }
+    var input = el("rcInput");
+    if (input) { input.value = ""; input.disabled = false; input.placeholder = ""; }
+    var customNote = el("rcCustomNote"); if (customNote) customNote.value = "";
+    var sendButton = el("rcSend"); if (sendButton) sendButton.disabled = false;
+    var customButton = el("rcCustomGo");
+    if (customButton) { customButton.disabled = false; customButton.textContent = "Write me a custom prompt"; }
+    var customWrap = el("rcCustomWrap"); if (customWrap) customWrap.hidden = true;
+  }
+
+  function revokeIneligibleWeek() {
+    if (S.mode !== "week" || canonicalWeekCell(S.week)) return false;
+    var week = S.week;
+    var modal = el("rcModal");
+    var moveFocus = !!(modal && !modal.hidden);
+
+    // Invalidate every deferred completion captured for this active week before
+    // clearing either DOM or storage. The Worker request may finish, but this
+    // client can no longer consume or persist its result.
+    weekParityEpoch++;
+    pendingWeekFocus = null;
+    close();
+    lsDel("rc-digest-" + week);
+    lsDel("rc-sid-week:" + week);
+    lsDel("rc-log-week:" + week);
+    resetRevokedWeekModal();
+    S.mode = "reading";
+    S.week = "";
+    S.title = "";
+    S.sessionId = null;
+    S.busy = false;
+    S.capped = false;
+    S.started = false;
+    S.messages = [];
+    S.prompt = null;
+
+    if (moveFocus) {
+      var target = document.querySelector('.cal-week[data-week-key="' + week + '"]') || el("cal");
+      if (target && typeof target.focus === "function") {
+        target.setAttribute("tabindex", "-1");
+        target.focus({ preventScroll: true });
+      }
+    }
+    return true;
   }
 
   function mountWeekButtons() {
+    if (curriculumIsLoading()) { suppressWeekButtons(); return false; }
     var cells = document.querySelectorAll(".cal-week");
     if (!cells.length) return false;
     var mounted = 0;
@@ -702,6 +800,11 @@
     return mounted > 0;
   }
 
+  function reconcileWeekAssistants() {
+    revokeIneligibleWeek();
+    return mountWeekButtons();
+  }
+
   // Weeks that actually have reading pages. Kept here rather than fetched so a
   // future week on the calendar doesn't sprout a button that 400s.
   var WEEKS_WITH_READINGS = { w01: 1, w02: 1, w03: 1, w04: 1, w05: 1, w06: 1 };
@@ -722,15 +825,19 @@
     if (document.getElementById("cal")) {
       var tries = 0;
       var tick = function () {
-        if (mountWeekButtons() || ++tries > 40) return;
+        if (reconcileWeekAssistants() || ++tries > 40) return;
         setTimeout(tick, 100);
       };
       tick();
       // Capture focused week controls before either calendar renderer replaces
-      // the grid, then remount and restore only if focus was lost with that DOM.
+      // the grid. Loading suppresses launchers; a settled fallback or exact
+      // dynamic render remounts them, while a divergent render revokes any open
+      // week session synchronously before deferred work can publish.
       window.addEventListener("fde-curriculum-before-render", rememberWeekAssistantFocus);
       window.addEventListener("fde-curriculum-render-failed", function () { pendingWeekFocus = null; });
-      window.addEventListener("fde-progress-sync", function () { setTimeout(mountWeekButtons, 0); });
+      window.addEventListener("fde-curriculum-loading", suppressWeekButtons);
+      window.addEventListener("fde-progress-sync", reconcileWeekAssistants);
+      window.addEventListener("fde-curriculum-settled", reconcileWeekAssistants);
       window.FDE_openReading = open;
     }
   }
