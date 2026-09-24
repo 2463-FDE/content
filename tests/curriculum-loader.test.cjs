@@ -1067,6 +1067,86 @@ test("synchronous cancellation before dynamic render cannot leave fallback state
   assert.equal(emitted.filter((name) => name === "fde-progress-sync").length, beforeSignals + 1);
 });
 
+function cancelHarness() {
+  const doc = new TinyDocument();
+  const fallback = staticCalendar();
+  renderCanonical(fallback, doc);
+  const listeners = {};
+  const emitted = [];
+  class FakeEvent { constructor(type) { this.type = type; } }
+  const window = {
+    document: doc,
+    PHASES: fallback.phases,
+    WEEKS: fallback.weeks,
+    FDE_RUN_URL: "https://api.invalid",
+    FDE_ensureSession: async () => "token",
+    FDE_PROGRESS: { status: () => "none" },
+    CustomEvent: FakeEvent,
+    addEventListener: (name, fn) => { (listeners[name] ||= []).push(fn); },
+    dispatchEvent: (event) => {
+      emitted.push(event.type);
+      (listeners[event.type] || []).forEach((fn) => fn(event));
+    },
+  };
+  return { doc, fallback, window, emitted, signals: () => emitted.filter((name) => name === "fde-progress-sync").length };
+}
+
+for (const [name, mutate] of [
+  ["eligible", () => {}],
+  ["parity-suppressed", (payload) => { payload.curriculum.units[0].href = "weeks/w01/d1.v2.html"; }],
+]) {
+  test(`cancellation inside the synchronous dynamic render (${name}) restores fallback DOM once`, async () => {
+    const { doc, fallback, window, signals } = cancelHarness();
+    const dynamic = clone(assignmentFixture);
+    mutate(dynamic);
+    let payload = fixture;
+    let armed = false;
+    let loader;
+    loader = api.createLoader({
+      root: window, document: doc, timeoutMs: 1000, fallback, fallbackAlreadyRendered: true,
+      fetch: async () => response(payload),
+      render: (model, d, host, parity) => {
+        const result = api.renderCalendar(model, d, host, parity);
+        if (armed && model !== fallback) { armed = false; loader.cancel(); }
+        return result;
+      },
+    });
+    window.addEventListener("fde-progress-sync", loader.render);
+    assert.equal(await loader.resolve(), true);
+
+    payload = dynamic;
+    armed = true;
+    const beforeSignals = signals();
+    assert.equal(await loader.resolve(), false);
+    assert.equal(armed, false, "cancel fired after the dynamic grid replaced the DOM");
+    assert.equal(loader.getState(), "fallback");
+    assert.equal(window.WEEKS, fallback.weeks);
+    assert.equal(byClass(doc.cal, "cal-cell").length, 50);
+    assert.equal(byClass(doc.cal, "ct")[0].textContent, "LLM fundamentals");
+    assert.equal(doc.cal.textContent.includes("Assigned dotted content"), false);
+    assert.equal(signals(), beforeSignals + 2, "retry remount plus one restore remount");
+  });
+}
+
+test("cancellation from the post-commit integration signal resolves false and restores fallback", async () => {
+  const { doc, fallback, window } = cancelHarness();
+  let loader;
+  let armed = true;
+  loader = api.createLoader({
+    root: window, document: doc, timeoutMs: 1000, fallback, fallbackAlreadyRendered: true,
+    fetch: async () => response(assignmentFixture),
+  });
+  window.addEventListener("fde-progress-sync", () => {
+    if (armed && loader.getState() === "dynamic") { armed = false; loader.cancel(); }
+  });
+  window.addEventListener("fde-progress-sync", loader.render);
+  assert.equal(await loader.resolve(), false);
+  assert.equal(armed, false);
+  assert.equal(loader.getState(), "fallback");
+  assert.equal(window.WEEKS, fallback.weeks);
+  assert.equal(doc.cal.textContent.includes("Assigned dotted content"), false);
+});
+
 test("a failed calendar render does not leave a stale week assistant focus request", async () => {
   const doc = new TinyDocument();
   const fallback = staticCalendar();

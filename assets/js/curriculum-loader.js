@@ -398,6 +398,8 @@
     var skipNextFallbackRender = options.fallbackAlreadyRendered === true;
     var hasResolved = false;
     var activeRequest = null;
+    var renderingRequest = null;
+    var restoreAfterRender = null;
 
     function announce(name) {
       if (typeof hostRoot.dispatchEvent === "function" && typeof hostRoot.CustomEvent === "function") {
@@ -438,6 +440,7 @@
       var cancellationPromise = new Promise(function (done) { settleCancellation = done; });
       var requestState = { id: id, controller: controller, settle: settleCancellation };
       activeRequest = requestState;
+      restoreAfterRender = null;
       var isRetry = hasResolved;
       hasResolved = true;
       state = "loading";
@@ -485,7 +488,17 @@
         if (expired || id !== generation) return false;
         // Build and replace the complete legend/grid before publishing the new
         // globals. If rendering throws, the prior fallback data and DOM survive.
-        renderModel(next, id);
+        var rendered;
+        renderingRequest = requestState;
+        try {
+          rendered = renderModel(next, id);
+        } finally {
+          if (renderingRequest === requestState) renderingRequest = null;
+          if (restoreAfterRender === requestState) {
+            restoreAfterRender = null;
+            if (rendered !== false) activateFallback(true);
+          }
+        }
         if (expired || id !== generation) return false;
         active = next;
         hostRoot.PHASES = next.phases;
@@ -498,7 +511,7 @@
         if (typeof hostRoot.dispatchEvent === "function" && typeof hostRoot.CustomEvent === "function") {
           try { hostRoot.dispatchEvent(new hostRoot.CustomEvent("fde-progress-sync")); } catch (eventError) { /* optional integration signal */ }
         }
-        return true;
+        return id === generation;
       })().catch(function () { return false; }).then(function (result) {
         if (!result && !expired && id === generation) state = "fallback";
         return result;
@@ -520,6 +533,7 @@
         state = "fallback";
         if (request) {
           activeRequest = null;
+          if (renderingRequest === request) restoreAfterRender = request;
           if (request.controller) request.controller.abort();
           request.settle(false);
         }
