@@ -72,3 +72,54 @@ Scenario: available unit with subtitle=null
 - progress control: ▶ Start; href=weeks/w01/d1.html
 - keyboard focus: A with data-focus-role=title
 - horizontal overflow: 0
+
+Final backend-contract review pass
+Recorded: 2026-09-24T03:35:33Z
+Tool: chrome-devtools-axi, fresh isolated Chromium profile
+Servers: local Python static servers only; no backend/provider request
+Viewport: 320x800, DPR 2, mobile/touch emulation
+Storage throughout: localStorage=[], sessionStorage=[]
+
+Scenario: valid maximum-length unbroken labels
+- phase label: 100 characters; week title: 200 characters
+- viewport/document width: 320/320; horizontal overflow: 0
+- computed calendar column/card width: 296/296
+- legend/week widths: 292/296
+- rendered cells: 50
+
+Scenario: real createLoader with synthetic one-unit assigned response
+- fetch was an in-memory stub; request target was synthetic.invalid and no network request occurred
+- resolved/state: true/dynamic
+- rendered weeks/cells: 1/1
+- published weeks: 1
+- assigned title replaced static seed: Assigned dotted content
+- static LLM fundamentals title present: false
+- subtitle=null rendered as empty text
+- phase/unit color=null published as code-owned #6b7280
+- computed swatch color: rgb(107, 114, 128); card accent: #6b7280
+- title and progress href: weeks/w01/d1.v2.html
+- horizontal overflow: 0
+
+Scenario: nullable color across available/planned/missing
+- all three states used computed swatch rgb(107, 114, 128) and card accent #6b7280
+- available: 2 curriculum actions, 1 active ritual
+- planned: Planned badge, 0 curriculum actions, 1 active ritual, disabled content-region label ends in curriculum content planned
+- missing: Unavailable badge, 0 curriculum actions, 1 active ritual, disabled content-region label ends in curriculum content unavailable
+- ritual focus survived each rerender and had no aria-disabled ancestor
+- horizontal overflow: 0
+
+Scenario: hostile encoded traversal through real createLoader
+- weeks/%2e%2e/escape.html resolution result/state: false/fallback
+- static fallback cells: 50; first title: LLM fundamentals
+- hostile rendered actions: 0
+- horizontal overflow: 0
+
+Scenario: curriculum-loader asset returns synthetic 404
+- typeof window.FDE_CURRICULUM: undefined
+- typeof window.FDE_STATIC_CALENDAR_RENDER: function
+- viewport/document width: 320/320; horizontal overflow: 0
+- computed calendar column: 296px
+- rendered weeks/cells/legend: 10/50/6
+- curriculum links/ritual links/progress controls: 43/91/40
+- after fde-progress-sync, first progress control: ✓ Completed
+- expected console output: the single deliberate loader-asset 404; no runtime JavaScript error

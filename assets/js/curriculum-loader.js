@@ -16,6 +16,7 @@
   var SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
   var COLOR = /^#[0-9a-fA-F]{6}$/;
   var HEX_32 = /^[0-9a-f]{32}$/;
+  var NEUTRAL_PHASE_COLOR = "#6b7280";
   var MAX_UNITS = 50;
   var TIMEOUT_MS = 5000;
 
@@ -42,15 +43,28 @@
     return typeof value === "string" && pattern.test(value);
   }
 
+  function validColor(value) {
+    return value === null || matchesString(COLOR, value);
+  }
+
+  function sameColor(left, right) {
+    if (left === null || right === null) return left === right;
+    return left.toLowerCase() === right.toLowerCase();
+  }
+
+  function presentationColor(value) {
+    return value === null ? NEUTRAL_PHASE_COLOR : value;
+  }
+
   function safeHref(value) {
     if (typeof value !== "string" || value.length < 1 || value.length > 240) return false;
-    if (value[0] === "/" || value.indexOf("\\") !== -1 || value.indexOf("?") !== -1 ||
-        value.indexOf("#") !== -1 || value.indexOf(":") !== -1 || value.indexOf("%") !== -1) return false;
+    if (value.slice(0, 6) !== "weeks/" || value[0] === "/" || /[\\?#:%\u0000-\u001f\u007f]/.test(value)) return false;
     var segments = value.split("/");
-    if (segments.some(function (segment) { return !segment || segment === "." || segment === ".."; })) return false;
+    if (segments.length < 2 || segments.some(function (segment) { return !segment || segment === "." || segment === ".."; })) return false;
     return segments.every(function (segment, index) {
+      if (index === 0) return segment === "weeks";
       return index === segments.length - 1
-        ? /^[A-Za-z0-9_-]+\.html$/.test(segment)
+        ? /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.html$/.test(segment)
         : /^[A-Za-z0-9_-]+$/.test(segment);
     });
   }
@@ -78,11 +92,11 @@
       var phaseKey = phaseKeys[p];
       var phase = curriculum.phases[phaseKey];
       if (!matchesString(PHASE_KEY, phaseKey) || !exactKeys(phase, ["label", "color"]) ||
-          !boundedString(phase.label, 1, 100) || !matchesString(COLOR, phase.color) || labels[phase.label]) return null;
+          !boundedString(phase.label, 1, 100) || !validColor(phase.color) || labels[phase.label]) return null;
       labels[phase.label] = true;
     }
 
-    if (curriculum.units.length !== MAX_UNITS) return null;
+    if (curriculum.units.length < 1 || curriculum.units.length > MAX_UNITS) return null;
     var seenKeys = Object.create(null);
     var seenSlots = Object.create(null);
     var seenPositions = Object.create(null);
@@ -98,8 +112,8 @@
           !Number.isSafeInteger(unit.day) || unit.day < 1 || unit.day > 5 || !Number.isSafeInteger(unit.position) ||
           unit.position !== unit.week * 100 + unit.day || unit.position <= previousPosition ||
           !matchesString(PHASE_KEY, unit.phase_key) || !Object.prototype.hasOwnProperty.call(curriculum.phases, unit.phase_key) ||
-          !boundedString(unit.phase_label, 1, 100) || !matchesString(COLOR, unit.phase_color) ||
-          unit.phase_label !== curriculum.phases[unit.phase_key].label || unit.phase_color.toLowerCase() !== curriculum.phases[unit.phase_key].color.toLowerCase() ||
+          !boundedString(unit.phase_label, 1, 100) || !validColor(unit.phase_color) ||
+          unit.phase_label !== curriculum.phases[unit.phase_key].label || !sameColor(unit.phase_color, curriculum.phases[unit.phase_key].color) ||
           !boundedString(unit.week_title, 1, 200) || !boundedString(unit.title, 1, 200) ||
           (unit.subtitle !== null && !boundedString(unit.subtitle, 0, 500)) ||
           (unit.href !== null && !safeHref(unit.href)) || !Array.isArray(unit.parts) || unit.parts.length > 10 ||
@@ -128,7 +142,7 @@
       if (unit.href !== null && cleanParts.length) return null;
       cleanUnits.push({
         unit_key: unit.unit_key, week: unit.week, day: unit.day, phase_key: unit.phase_key,
-        phase_label: unit.phase_label, phase_color: unit.phase_color, week_title: unit.week_title,
+        phase_label: unit.phase_label, phase_color: presentationColor(unit.phase_color), week_title: unit.week_title,
         title: unit.title, subtitle: unit.subtitle === null ? "" : unit.subtitle, href: unit.href, parts: cleanParts,
         star: unit.star, availability: unit.availability, position: unit.position,
       });
@@ -139,7 +153,7 @@
       slug: curriculum.slug,
       title: curriculum.title,
       phases: phaseKeys.reduce(function (result, key) {
-        result[key] = { label: curriculum.phases[key].label, color: curriculum.phases[key].color };
+        result[key] = { label: curriculum.phases[key].label, color: presentationColor(curriculum.phases[key].color) };
         return result;
       }, {}),
       units: cleanUnits,
@@ -330,7 +344,7 @@
 
         var tags = element(doc, "div", "ritual-row");
         if (day.star) tags.appendChild(element(doc, "span", "mk star", "★"));
-        appendRituals(doc, tags, week.w, index + 1);
+        appendRituals(doc, tags, week.w, Number(day.unit_key.slice(-1)));
         if (tags.childNodes.length) foot.appendChild(tags);
         if (foot.childNodes.length) card.appendChild(foot);
         calFragment.appendChild(card);

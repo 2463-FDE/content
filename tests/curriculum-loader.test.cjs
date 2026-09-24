@@ -9,6 +9,7 @@ const vm = require("node:vm");
 const loaderPath = path.join(__dirname, "..", "assets/js/curriculum-loader.js");
 const api = require(loaderPath);
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/curriculum-resolved.seed-v1.json"), "utf8"));
+const assignmentFixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/curriculum-resolved.assignment-one-unit.json"), "utf8"));
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 function calendarInlineScript() {
@@ -162,7 +163,8 @@ test("full response validation fails closed for malformed, duplicate, and out-of
     (p) => { p.curriculum.units[0].week = 0; },
     (p) => { p.curriculum.units[0].day = 6; },
     (p) => { p.curriculum.units.reverse(); },
-    (p) => { p.curriculum.units.pop(); },
+    (p) => { p.curriculum.units = []; },
+    (p) => { p.curriculum.units.push(clone(p.curriculum.units[0])); },
     (p) => { p.curriculum.units[0].phase_key = "unknown"; },
     (p) => { p.curriculum.units[0].phase_label = "Mismatch"; },
     (p) => { p.curriculum.units[1].week_title = "Inconsistent week"; },
@@ -215,23 +217,46 @@ test("scalar identifiers reject non-strings without invoking coercion hooks", ()
   });
 });
 
-test("only narrow site-relative curriculum hrefs and parts are accepted", () => {
+test("only safe relative weeks paths, including dotted filenames, are accepted", () => {
+  const good = [
+    "weeks/w01/d1.html", "weeks/w01/d1.v2.html", "weeks/topic-name_v2.html",
+    "weeks/w10/nested-name/file.release-2.html",
+  ];
   const bad = [
     "https://evil.invalid/x.html", "//evil.invalid/x.html", "/weeks/w01/d1.html",
-    "weeks\\w01\\d1.html", "../x.html", "weeks/../x.html", "./x.html",
-    "javascript:alert(1)", "x.html?src=javascript:alert(1)", "x.html#javascript:alert(1)",
-    "weeks/%2e%2e/x.html", "data:text/html,x", "",
+    "weeks\\w01\\d1.html", "../x.html", "weeks/../x.html", "weeks/./x.html",
+    "javascript:alert(1)", "weeks/w01/x.html?src=evil", "weeks/w01/x.html#fragment",
+    "weeks/%2e%2e/x.html", "weeks/%2E%2E/x.html", "weeks/%252e%252e/x.html",
+    "data:text/html,x", "x.html", "index.html", "other/w01/d1.html", "weeks.html",
+    "weeks//x.html", "weeks/w01/", "weeks/w01/.hidden.html", "weeks/w01/x..html",
+    "weeks/w01/x.html\n", "weeks/w01/x.html\u0000", "",
   ];
-  bad.forEach((href) => assert.equal(api.safeHref(href), false, href));
-  assert.equal(api.safeHref("weeks/w01/d1.html"), true);
+  good.forEach((href) => assert.equal(api.safeHref(href), true, href));
+  bad.forEach((href) => assert.equal(api.safeHref(href), false, JSON.stringify(href)));
   bad.forEach((href) => {
-    const payload = clone(fixture);
+    const payload = clone(assignmentFixture);
     payload.curriculum.units[0].href = href;
-    assert.equal(api.validateResponse(payload), null, `unit href ${href}`);
+    assert.equal(api.validateResponse(payload), null, `unit href ${JSON.stringify(href)}`);
   });
-  const payload = clone(fixture);
-  payload.curriculum.units[1].parts[0].href = "../escape.html";
-  assert.equal(api.validateResponse(payload), null);
+
+  const dotted = clone(assignmentFixture);
+  const dottedDoc = new TinyDocument();
+  api.renderCalendar(api.toCalendar(api.validateResponse(dotted)), dottedDoc, {});
+  assert.equal(byClass(dottedDoc.cal, "ct-link")[0].getAttribute("href"), "weeks/w01/d1.v2.html");
+  assert.equal(byClass(dottedDoc.cal, "day-prog")[0].getAttribute("href"), "weeks/w01/d1.v2.html");
+
+  const partPayload = clone(assignmentFixture);
+  partPayload.curriculum.units[0].href = null;
+  partPayload.curriculum.units[0].parts = [{ t: "Dotted part", href: "weeks/w01/d1.part-2.html" }];
+  const partDoc = new TinyDocument();
+  api.renderCalendar(api.toCalendar(api.validateResponse(partPayload)), partDoc, {});
+  assert.equal(byClass(partDoc.cal, "cell-parts")[0].children[0].getAttribute("href"), "weeks/w01/d1.part-2.html");
+  assert.equal(byClass(partDoc.cal, "day-prog")[0].getAttribute("href"), "weeks/w01/d1.part-2.html");
+
+  const hostilePart = clone(assignmentFixture);
+  hostilePart.curriculum.units[0].href = null;
+  hostilePart.curriculum.units[0].parts = [{ t: "Escape", href: "weeks/%2e%2e/escape.html" }];
+  assert.equal(api.validateResponse(hostilePart), null);
 });
 
 test("API strings render as inert text and phase colors pass a strict grammar", () => {
@@ -251,6 +276,86 @@ test("API strings render as inert text and phase colors pass a strict grammar", 
   const badColor = clone(fixture);
   badColor.curriculum.phases.found.color = "red; background:url(javascript:x)";
   assert.equal(api.validateResponse(badColor), null);
+});
+
+test("nullable phase colors normalize to a code-owned neutral across available, planned, and missing DOM", () => {
+  for (const availability of ["available", "planned", "missing"]) {
+    const payload = clone(assignmentFixture);
+    payload.curriculum.units[0].availability = availability;
+    const validated = api.validateResponse(payload);
+    assert.ok(validated, availability);
+    assert.equal(validated.phases.found.color, "#6b7280");
+    assert.equal(validated.units[0].phase_color, "#6b7280");
+    const model = api.toCalendar(validated);
+    const doc = new TinyDocument();
+    api.renderCalendar(model, doc, {});
+    assert.equal(byClass(doc.legend, "lg")[0].children[0].style.backgroundColor, "#6b7280");
+    assert.equal(byClass(doc.cal, "cal-week")[0].style["--pc"], "#6b7280");
+    assert.equal(byClass(doc.cal, "cal-cell")[0].style["--pc"], "#6b7280");
+    assert.equal(byClass(doc.cal, "ct-link").length, availability === "available" ? 1 : 0);
+    assert.equal(byClass(doc.cal, "day-prog").length, availability === "available" ? 1 : 0);
+    assert.equal(byClass(doc.cal, "ritual").length, 1, `${availability} rituals stay active`);
+  }
+
+  const mixedCaseHex = clone(assignmentFixture);
+  mixedCaseHex.curriculum.phases.found.color = "#ABCDEF";
+  mixedCaseHex.curriculum.units[0].phase_color = "#abcdef";
+  assert.ok(api.validateResponse(mixedCaseHex));
+
+  const nullPhaseOnly = clone(assignmentFixture);
+  nullPhaseOnly.curriculum.units[0].phase_color = "#6b7280";
+  assert.equal(api.validateResponse(nullPhaseOnly), null);
+  const nullUnitOnly = clone(assignmentFixture);
+  nullUnitOnly.curriculum.phases.found.color = "#6b7280";
+  assert.equal(api.validateResponse(nullUnitOnly), null);
+  for (const invalid of ["", "red", "#123", "#1234567", "#12345g", 0, false, {}, []]) {
+    const payload = clone(assignmentFixture);
+    payload.curriculum.phases.found.color = invalid;
+    payload.curriculum.units[0].phase_color = invalid;
+    assert.equal(api.validateResponse(payload), null, `invalid nullable color ${JSON.stringify(invalid)}`);
+  }
+});
+
+test("real loader activates and publishes a one-unit assigned response over the full static fallback", async () => {
+  const doc = new TinyDocument();
+  const root = host();
+  const loader = api.createLoader({ root, document: doc, timeoutMs: 1000, fetch: async () => response(assignmentFixture) });
+  assert.equal(await loader.resolve(), true);
+  assert.equal(loader.getState(), "dynamic");
+  assert.equal(root.WEEKS.filter(Boolean).length, 1);
+  assert.equal(root.WEEKS[0].days.length, 1);
+  assert.equal(root.WEEKS[0].days[0].t, "Assigned dotted content");
+  assert.equal(root.WEEKS[0].days[0].s, "");
+  assert.equal(root.PHASES.found.c, "#6b7280");
+  assert.equal(byClass(doc.cal, "cal-cell").length, 1);
+  assert.equal(byClass(doc.cal, "ct-link")[0].getAttribute("href"), "weeks/w01/d1.v2.html");
+  assert.equal(doc.cal.textContent.includes("LLM fundamentals"), false);
+});
+
+test("partial assigned curriculum uses the unit day for rituals instead of its array index", () => {
+  const payload = clone(assignmentFixture);
+  Object.assign(payload.curriculum.units[0], {
+    unit_key: "w01d3", day: 3, position: 103, href: "weeks/w01/d3.v2.html",
+  });
+  const doc = new TinyDocument();
+  api.renderCalendar(api.toCalendar(api.validateResponse(payload)), doc, {});
+  assert.equal(byClass(doc.cal, "cr").length, 0, "day-three unit must not receive day-one client ritual");
+  assert.equal(byClass(doc.cal, "iv").length, 1);
+  assert.equal(byClass(doc.cal, "ar").length, 1);
+  assert.equal(byClass(doc.cal, "ar")[0].getAttribute("href"), "alt-research.html?w=1");
+});
+
+test("hostile assigned href fails atomically and leaves static fallback actions active", async () => {
+  const payload = clone(assignmentFixture);
+  payload.curriculum.units[0].href = "weeks/%2e%2e/escape.html";
+  const doc = new TinyDocument();
+  const root = host();
+  const loader = api.createLoader({ root, document: doc, timeoutMs: 1000, fetch: async () => response(payload) });
+  assert.equal(await loader.resolve(), false);
+  assert.equal(loader.getState(), "fallback");
+  assert.equal(root.WEEKS[0].days[0].t, "LLM fundamentals");
+  assert.equal(byClass(doc.cal, "cal-cell").length, 50);
+  assert.equal(descendants(doc.cal).some((node) => node.getAttribute && (node.getAttribute("href") || "").includes("%2e")), false);
 });
 
 test("backend contract accepts planned units and normalizes nullable subtitle", () => {
