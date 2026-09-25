@@ -18,7 +18,7 @@
 
   function focusableIn(modal) {
     return Array.from(modal.querySelectorAll(focusableSelector)).filter(el =>
-      !el.hidden && el.getAttribute("aria-hidden") !== "true"
+      !el.hidden && el.getAttribute("aria-hidden") !== "true" && el.getClientRects().length > 0
     );
   }
 

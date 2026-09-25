@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w03d2">
 <meta name="fde-concepts" content="mcp-host-client-server,mcp-server-primitives,mcp-tool-invocation,mcp-transports,mcp-capability-negotiation,mcp-tool-safety-hitl">
 <title>W3·D2 — Tools &amp; MCP | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260924-w3">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -172,12 +172,13 @@
         stdin and stdout. It's local, it's simple, there's no network, and "clients SHOULD support stdio whenever
         possible." This is how a desktop app talks to a Filesystem or Git server running on the same machine — no ports,
         no auth, just a child process.</p>
-        <p>The second is <strong>Streamable HTTP</strong>: the server exposes "a single HTTP endpoint path" that
-        supports POST (client → server) and GET, optionally upgrading a response to <strong>Server-Sent Events
+        <p>The second is <strong>Streamable HTTP</strong>. In the <strong>2025-11-25 baseline</strong>, the server
+        exposes "a single HTTP endpoint path" that supports POST (client → server) and GET, optionally upgrading a response to <strong>Server-Sent Events
         (SSE)</strong> so the server can stream multiple messages back over one connection. This is for remote and
         multi-client servers — a hosted GitHub server your whole team hits. Two headers matter: HTTP clients "MUST send
         <code>MCP-Protocol-Version: &lt;revision&gt;</code>" on every request so the server knows which spec revision to
-        speak, and a session can be tracked with an <code>MCP-Session-Id</code> header.</p>
+        speak, and a baseline session can be tracked with an <code>MCP-Session-Id</code> header. The latest 2026-07-28
+        revision narrows this to POST-only messages with request-scoped streams (step 8).</p>
         <p>One historical footnote that saves you from stale tutorials: Streamable HTTP <strong>replaced the deprecated
         HTTP+SSE transport</strong> from protocol version 2024-11-05. If you find a guide wiring up two separate
         endpoints (one POST, one long-lived SSE), it's teaching the old two-endpoint design. The current model is a
@@ -457,7 +458,7 @@ window.DIAGRAM = {
 
     // transports
     { id:"trans", step:5, x:44, y:432, w:190, h:64, label:"TRANSPORT\nstdio (local subprocess)\nStreamable HTTP (POST + opt. SSE)",
-      detail:"Two standard transports. stdio: client launches the server as a subprocess, newline-delimited JSON-RPC over stdin/stdout. Streamable HTTP: a single endpoint, POST + optional SSE upgrade, with MCP-Protocol-Version and MCP-Session-Id headers. Streamable HTTP replaced the deprecated 2024-11-05 HTTP+SSE transport." },
+      detail:"Two standard transports. stdio: client launches the server as a subprocess, newline-delimited JSON-RPC over stdin/stdout. Streamable HTTP in the 2025-11-25 baseline: a single endpoint, POST/GET + optional SSE upgrade, with MCP-Protocol-Version and MCP-Session-Id headers; the latest 2026-07-28 revision sends each message as a POST with a JSON response or request-scoped SSE stream. Streamable HTTP replaced the deprecated 2024-11-05 HTTP+SSE transport." },
 
     // capability negotiation
     { id:"cap",  step:6, x:286, y:432, w:190, h:64, label:"2025-11-25 baseline\ninitialize → capabilities",
@@ -523,9 +524,9 @@ window.QUIZ = {
         "The two standard transports are stdio and Streamable HTTP",
         "A feature is usable only if it was declared during capability negotiation at init",
         "Streamable HTTP is deprecated in favor of the older HTTP+SSE transport",
-        "Stateless core, Tasks, and MCP Apps are stable, shippable APIs today" ],
+        "Stateless core, Tasks, and MCP Apps are stable, shippable APIs in the 2025-11-25 baseline" ],
       answer: [0, 1, 2],
-      explain: "The control-model split, two transports, and init-time capability negotiation are baseline 2025-11-25 behavior. Streamable HTTP REPLACED deprecated HTTP+SSE. The official specification now marks 2026-07-28 as latest published; it documents compatibility with initialization-based revisions such as this baseline." },
+      explain: "The control-model split, two transports, and init-time capability negotiation are baseline 2025-11-25 behavior. Streamable HTTP REPLACED deprecated HTTP+SSE. Stateless core, Tasks, and MCP Apps were not stable baseline APIs in 2025-11-25, so do not assume a baseline host supports them. The official specification now marks 2026-07-28 as latest published; it documents compatibility with initialization-based revisions such as this baseline." },
     { type: "match",
       stem: "Match each MCP concept to what it does.",
       pairs: [
@@ -547,7 +548,7 @@ window.QUIZ = {
 <script src="../../assets/js/auth.js"></script>
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
-<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js?v=20260714-w3f"></script>
 <script src="../../assets/js/interactive-agents.js?v=20260714-w3f"></script>
