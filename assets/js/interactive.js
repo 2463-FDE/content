@@ -95,8 +95,8 @@
         `<div class="ix-grid">` +
         `<label>Input tokens<input class="c-in" type="number" value="4800"></label>` +
         `<label>Output tokens<input class="c-out" type="number" value="400"></label>` +
-        `<label>$ / M input<input class="c-pin" type="number" step="0.1" value="3"></label>` +
-        `<label>$ / M output<input class="c-pout" type="number" step="0.1" value="15"></label>` +
+        `<label>$ / M input<input class="c-pin" type="number" step="0.1" value="2"></label>` +
+        `<label>$ / M output<input class="c-pout" type="number" step="0.1" value="10"></label>` +
         `<label>Calls / day<input class="c-n" type="number" value="50000"></label>` +
         `</div>` +
         `<div class="ix-out">Per call <b class="c-call">$0</b> · Per day <b class="c-day">$0</b> · Per month <b class="c-mo">$0</b></div>`;
