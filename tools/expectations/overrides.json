@@ -1,0 +1,727 @@
+{
+  "generated_from_commit": "1b1be3dd123b709306a53c3bc44a0204822c8d8c",
+  "reviewed_by_role": "trainer",
+  "reviewed_at_commit": "1b1be3dd123b709306a53c3bc44a0204822c8d8c",
+  "owner_roles": {
+    "finance.w07.ask": "client_business",
+    "finance.w07.deliverable": "client_technical_lead",
+    "finance.w08.ask": "client_business",
+    "finance.w08.deliverable": "client_technical_lead",
+    "finance.w09.ask": "client_business",
+    "finance.w09.deliverable": "client_technical_lead",
+    "finance.w10.deliverable": "client_technical_lead",
+    "finance.w10.stated.1": "client_business",
+    "healthcare.w07.ask": "client_business",
+    "healthcare.w07.deliverable": "client_technical_lead",
+    "healthcare.w08.ask": "client_business",
+    "healthcare.w08.deliverable": "client_technical_lead",
+    "healthcare.w09.ask": "client_business",
+    "healthcare.w09.deliverable": "client_technical_lead",
+    "healthcare.w10.deliverable": "client_technical_lead",
+    "healthcare.w10.stated.1": "client_business"
+  },
+  "versions": {
+    "finance.w07.ask": 2,
+    "finance.w07.deliverable": 2,
+    "finance.w08.ask": 2,
+    "finance.w08.deliverable": 2,
+    "finance.w09.ask": 2,
+    "finance.w09.deliverable": 2,
+    "finance.w10.deliverable": 2,
+    "finance.w10.stated.1": 2,
+    "healthcare.w07.ask": 2,
+    "healthcare.w07.deliverable": 2,
+    "healthcare.w08.ask": 2,
+    "healthcare.w08.deliverable": 2,
+    "healthcare.w09.ask": 2,
+    "healthcare.w09.deliverable": 2,
+    "healthcare.w10.deliverable": 2,
+    "healthcare.w10.stated.1": 2
+  },
+  "supersedes": {},
+  "stakeholder_context": {
+    "finance.w07.ask": {
+      "stakeholder_role": "client_business",
+      "position_type": "preference",
+      "approval_authority": [
+        "client_business"
+      ],
+      "rationale": "Dana wants visibility so she is not the last to know when payments misbehave, and wants the month-end 'noise' her finance team writes off to be understood rather than adjusted away. This is stated as a want — 'help me get ahead of this' — and carried as a preference: she cares that someone at Meridian knows before a customer does, less about how. Fictional training-simulation position; describes no real client.",
+      "pressure": "The 'charged twice' complaints from W5 reached her from customers, not from her own systems; finance says the numbers 'mostly tie out'; and Sam — the finance-side stakeholder whose job is the numbers and whether the ledger ties out — is in the room and does not treat month-end noise as noise.",
+      "success_criteria": [
+        "Meridian hears about a payment-path problem before a customer or a finance clerk does.",
+        "The month-end variance has a number, a direction and an owner instead of a shrug.",
+        "The next double charge is caught by Meridian, not reported by a borrower."
+      ],
+      "boundaries": [
+        "Will not take 'finance says it mostly ties out' as the answer.",
+        "Will not have an alert that goes to nobody."
+      ],
+      "trade_space": [
+        "How visibility arrives (dashboard, a daily break report, an alert) is open.",
+        "Would take one reliable signal on a sampled month over a full dashboard on the full history.",
+        "Open to engineering seeing an alert before she does, provided she sees a break report the same day."
+      ],
+      "escalation_triggers": [
+        "A reconciliation break with no owner.",
+        "Another 'charged twice' complaint that a customer reports first.",
+        "A month-end close where finance again 'adjusts to the bank number' with nobody asking why."
+      ],
+      "conflicts": [
+        {
+          "with_id": "finance.w07.deliverable",
+          "dimensions": [
+            "reliability",
+            "delivery",
+            "stakeholder_confidence"
+          ],
+          "rationale": "Dana wants to be told first; the platform lead will not route an untuned break or error-rate alert to the business — it will fire at every month-end close until the threshold is understood, and a muted alert is worse than none. And the break report will surface a persistent variance that finance has been adjusting away, which is Sam's territory, not engineering's: the platform lead will run the control but will not own the breaks it finds. Both want the control; they disagree on who is paged, when, and who owns what it surfaces.",
+          "escalation_trigger": "Disagreement over who receives the alert and at what threshold, or a break with no business owner — decision brief to Dana (with Sam as the ruling authority on who owns a break), question brief to the platform lead on threshold, routing and on-call."
+        }
+      ]
+    },
+    "finance.w07.deliverable": {
+      "stakeholder_role": "client_technical_lead",
+      "position_type": "non_negotiable",
+      "approval_authority": [
+        "client_technical_lead"
+      ],
+      "rationale": "Meridian's platform engineering lead (an authored role: the in-house technical decision-maker who inherited the services when the vendor went under, carries payments on-call and owns the processor, bureau and model-vendor integrations) has three hard lines. Nothing new sits synchronously in the payment request path — the path already double-funds on retry, and anything that adds latency there adds retries. The reconciliation job runs off-path, read-only, on a schedule; it reports breaks, it never adjusts a balance. And the first alert routes to engineering on-call with a runbook until its false-page rate is known; only a tuned signal goes to the business, and breaks belong to finance, not to on-call. Fictional training-simulation position; the technical-lead role is authored for this scenario and describes no real person.",
+      "pressure": "The platform lead is paged for payments and will be paged by whatever alert this week creates; a break alert that fires at every close gets muted within a month, and a tracing hook that slows POST /payments creates the exact retries that already double-charge borrowers.",
+      "success_criteria": [
+        "Tracing across payment-service and servicing-service with one shared trace id, added so that a collector outage cannot slow a charge.",
+        "A daily reconciliation job that reads the ledger and the settlement file, writes a break report, and changes nothing.",
+        "One alert with a named on-call responder, a runbook, and a watched false-page rate before anyone outside engineering is paged."
+      ],
+      "boundaries": [
+        "No synchronous dependency added to the payment request path.",
+        "The reconciliation job never writes to balances or payments.",
+        "No alert to the business before its threshold has been watched over at least one close."
+      ],
+      "trade_space": [
+        "Which span is traced first, which threshold, and how the break report is delivered are open.",
+        "Open to Dana and Sam receiving the daily break report from day one, as a report rather than a page.",
+        "Open to running on a sampled month first, as the quota guidance says."
+      ],
+      "escalation_triggers": [
+        "A design that adds a synchronous call to the payment path.",
+        "A request to page the business on an untuned alert.",
+        "A break the report surfaces that nobody in finance will own — this goes to Dana and Sam, not to on-call."
+      ],
+      "conflicts": [
+        {
+          "with_id": "finance.w07.ask",
+          "dimensions": [
+            "reliability",
+            "delivery",
+            "stakeholder_confidence"
+          ],
+          "rationale": "Dana wants to be told first; the platform lead will not route an untuned break or error-rate alert to the business — it will fire at every month-end close until the threshold is understood, and a muted alert is worse than none. And the break report will surface a persistent variance that finance has been adjusting away, which is Sam's territory, not engineering's: the platform lead will run the control but will not own the breaks it finds. Both want the control; they disagree on who is paged, when, and who owns what it surfaces.",
+          "escalation_trigger": "Disagreement over who receives the alert and at what threshold, or a break with no business owner — decision brief to Dana (with Sam as the ruling authority on who owns a break), question brief to the platform lead on threshold, routing and on-call."
+        }
+      ]
+    },
+    "finance.w08.ask": {
+      "stakeholder_role": "client_business",
+      "position_type": "preference",
+      "approval_authority": [
+        "client_business"
+      ],
+      "rationale": "The board loves the AI scorer and Dana wants to roll it out to more products and publish a page on how advanced Meridian's underwriting is — a marketing moment. Stated as 'let's' and 'wider is better, right?', it is carried as a preference: she is attached to keeping the board's momentum and having something to show, not to a particular product order or launch date. Fictional training-simulation position; describes no real client.",
+      "pressure": "The scorer is the board's favourite thing Meridian has done with AI; Dana asked for it in W3 and it is 'humming along'. Slowing it down with governance work the board never asked for looks, from the boardroom, like the engineer moving the goalposts.",
+      "success_criteria": [
+        "The scorer decisions more products than it did last quarter, on a schedule she can tell the board.",
+        "A public-facing page about the underwriting that compliance has looked at.",
+        "No surprises: if something has to come first, she knows what and by when."
+      ],
+      "boundaries": [
+        "Will not carry a bare 'no' to the board without a reason in her language and a date.",
+        "Will not have the marketing page say anything Priya in compliance has not seen."
+      ],
+      "trade_space": [
+        "Which product goes first is open.",
+        "Open to the marketing page waiting for the rollout, or the rollout waiting for a named prerequisite with a date.",
+        "Open to a governance package if it comes with a rollout date attached."
+      ],
+      "escalation_triggers": [
+        "Anyone telling the board or marketing the model is fair or compliant before Priya has ruled.",
+        "A rollout stopped with no prerequisite named and no date.",
+        "A denial reason on a letter that turns out to be wrong for that applicant."
+      ],
+      "conflicts": [
+        {
+          "with_id": "finance.w08.deliverable",
+          "dimensions": [
+            "delivery",
+            "risk",
+            "maintainability",
+            "stakeholder_confidence"
+          ],
+          "rationale": "Dana's preference is a wider rollout and a marketing page now; the platform lead's hard line is no new product on the scorer until each decision records model id, version and features (there is no registry, so nothing can be rolled back or explained) and until the reason mapping has been through Priya in compliance. Widening a model that emits one generic denial reason multiplies exposure per product; not widening it costs the board's momentum. Both are defending Meridian — one its story, the other its ability to explain and undo a decision.",
+          "escalation_trigger": "Pressure to enable the scorer on a new product before the decision record and reason mapping exist, or marketing copy that describes the model's fairness — decision brief to Dana on sequence and date, question brief to the platform lead on what the decision record must carry, with Priya (compliance) as the ruling authority on reasons."
+        }
+      ]
+    },
+    "finance.w08.deliverable": {
+      "stakeholder_role": "client_technical_lead",
+      "position_type": "non_negotiable",
+      "approval_authority": [
+        "client_technical_lead",
+        "domain_expert"
+      ],
+      "rationale": "Meridian's platform engineering lead (authored role) owns the decision service and the model-vendor integration. Their hard lines: the scorer is not enabled for any new product until every decision persists the model id, version, feature set and reason codes it was made with — without that there is nothing to roll back to and nothing to explain; and no reason-code mapping reaches an adverse-action letter until Priya in compliance has ruled on it. Governance artifacts, not a rebuild. Fictional training-simulation position; the technical-lead role is authored for this scenario and describes no real person.",
+      "pressure": "The platform lead would be the one asked to roll the model back or reproduce a decision when a letter is challenged, and today they could do neither; each product added before that exists is another set of decisions they cannot account for.",
+      "success_criteria": [
+        "Every decision written with model id, version, features and reason codes, in an append-only record the team can query.",
+        "A reason-code to consumer-reason mapping tested against the model's real drivers, ruled on by compliance before it reaches a letter.",
+        "A model card and a monitoring spec their team can run without the engineer."
+      ],
+      "boundaries": [
+        "No new product on the scorer without the per-decision record in place.",
+        "No adverse-action reason mapping in production that compliance has not ruled on.",
+        "The marketing page describes nothing about the model that the model card does not."
+      ],
+      "trade_space": [
+        "Which product goes first once the record exists is Dana's call.",
+        "Open to a rollout date being named now, conditional on the record and the ruling.",
+        "Which monitoring cadence and which card format are open."
+      ],
+      "escalation_triggers": [
+        "A request to widen the scorer before the decision record exists.",
+        "Any letter text or marketing copy that asserts a reason or fairness the mapping cannot support.",
+        "A monitoring spec with no owner on the team."
+      ],
+      "conflicts": [
+        {
+          "with_id": "finance.w08.ask",
+          "dimensions": [
+            "delivery",
+            "risk",
+            "maintainability",
+            "stakeholder_confidence"
+          ],
+          "rationale": "Dana's preference is a wider rollout and a marketing page now; the platform lead's hard line is no new product on the scorer until each decision records model id, version and features (there is no registry, so nothing can be rolled back or explained) and until the reason mapping has been through Priya in compliance. Widening a model that emits one generic denial reason multiplies exposure per product; not widening it costs the board's momentum. Both are defending Meridian — one its story, the other its ability to explain and undo a decision.",
+          "escalation_trigger": "Pressure to enable the scorer on a new product before the decision record and reason mapping exist, or marketing copy that describes the model's fairness — decision brief to Dana on sequence and date, question brief to the platform lead on what the decision record must carry, with Priya (compliance) as the ruling authority on reasons."
+        }
+      ]
+    },
+    "finance.w09.ask": {
+      "stakeholder_role": "client_business",
+      "position_type": "non_negotiable",
+      "approval_authority": [
+        "client_business",
+        "domain_expert"
+      ],
+      "rationale": "Dana needs to know the work does not fall over when the engineer leaves, and Sam — whose job it is — wants the numbers that were promised set against what landed. Both are stated as needs and carried as a hard requirement: an honest, dated account of every outstanding item and its owner, and estimate-versus-actual for what she repeated upward from the W7 and W8 blocker cards. Fictional training-simulation position; describes no real client.",
+      "pressure": "Sam's question is not hostile but it is on the record; the estimates on the blocker cards are numbers Dana has already used, and every one that moved without her knowing is a conversation she has with Sam and the board, not the engineer.",
+      "success_criteria": [
+        "For every promise on a W7/W8 blocker card: what landed, what moved, and why, in one line each.",
+        "A named person — not 'engineering' — for everything that could fall over.",
+        "Sam can read the numbers without a meeting."
+      ],
+      "boundaries": [
+        "Will not take a department as an owner.",
+        "Will not take 'should be done next week' as a status.",
+        "Does not want new scope; wants the existing promises accounted for."
+      ],
+      "trade_space": [
+        "Would rather have fewer things landed and honestly labelled than everything nearly done.",
+        "A moved estimate with a reason she can repeat is something she can work with; a silent one is not.",
+        "Open to items moving to a dated roadmap with an owner if she and Sam are told before Friday."
+      ],
+      "escalation_triggers": [
+        "An estimate that will move and she has not been told before it does.",
+        "An owner that is a department, or a Path B date that has been true twice.",
+        "A number Sam asks for that has no answer."
+      ],
+      "conflicts": [
+        {
+          "with_id": "finance.w09.deliverable",
+          "dimensions": [
+            "maintainability",
+            "stakeholder_confidence",
+            "delivery",
+            "risk"
+          ],
+          "rationale": "Dana and Sam want the promised numbers landed and owned by someone at Meridian; the platform lead freezes on Friday and will not put their team's name to the reconciliation job or the reason mapping until the team has run them. With W7 and W8 items still open, some promises will show as 'not landed' on Sam's sheet precisely because they were not merged under pressure — a reliability decision that reads, on the numbers page, as a delivery miss. Both readings are honest.",
+          "escalation_trigger": "An item that cannot be both landed and run by the team before Friday; or pressure to merge under freeze so that Sam's numbers land — decision brief to Dana (Sam ruling on the numbers) on land-versus-roadmap, question brief to the platform lead on which runbooks the team will execute this week."
+        }
+      ]
+    },
+    "finance.w09.deliverable": {
+      "stakeholder_role": "client_technical_lead",
+      "position_type": "non_negotiable",
+      "approval_authority": [
+        "client_technical_lead"
+      ],
+      "rationale": "Meridian's platform engineering lead (authored role) inherits the services. Hard lines: nothing merges after Friday's code freeze except a demo-blocking bug; the W7 reconciliation job and the W8 reason mapping merge only if someone on the team has run them from the runbook; anything else is carried on a blocker card with the engineer's moved estimate and an owner who is not 'engineering'. A reconciliation job merged unrun is a control that will fail silently at the next close, with the team's name on it. Fictional training-simulation position; the technical-lead role is authored for this scenario and describes no real person.",
+      "pressure": "The team is on-call for payments and will be the ones woken by whatever merged in a hurry; and Sam's numbers sheet will show 'not landed' beside items they refused to merge unrun — the platform lead will be asked why.",
+      "success_criteria": [
+        "A runbook per landed item, executed by a team member before Friday.",
+        "The one-page 'what someone inheriting this on Monday needs to know' written for the team.",
+        "Blocker cards for the rest, with a moved estimate and a named owner."
+      ],
+      "boundaries": [
+        "No merges after Friday's freeze other than a demo-blocking bug.",
+        "Will not put the team's name on an item the team has not run.",
+        "Will not take new scope in W9."
+      ],
+      "trade_space": [
+        "The order in which W7/W8 items are brought to run-by-the-team is the engineer's call if the lead is told by Tuesday.",
+        "Open to owning an item from W10 if its walkthrough happens this week.",
+        "Open to a working subset behind a switch, with the switch state written down."
+      ],
+      "escalation_triggers": [
+        "A merge proposed after freeze that is not a demo-blocking bug.",
+        "An item shown to Dana or Sam as landed that the team has not run.",
+        "A blocker card naming 'engineering' as owner."
+      ],
+      "conflicts": [
+        {
+          "with_id": "finance.w09.ask",
+          "dimensions": [
+            "maintainability",
+            "stakeholder_confidence",
+            "delivery",
+            "risk"
+          ],
+          "rationale": "Dana and Sam want the promised numbers landed and owned by someone at Meridian; the platform lead freezes on Friday and will not put their team's name to the reconciliation job or the reason mapping until the team has run them. With W7 and W8 items still open, some promises will show as 'not landed' on Sam's sheet precisely because they were not merged under pressure — a reliability decision that reads, on the numbers page, as a delivery miss. Both readings are honest.",
+          "escalation_trigger": "An item that cannot be both landed and run by the team before Friday; or pressure to merge under freeze so that Sam's numbers land — decision brief to Dana (Sam ruling on the numbers) on land-versus-roadmap, question brief to the platform lead on which runbooks the team will execute this week."
+        }
+      ]
+    },
+    "finance.w10.deliverable": {
+      "stakeholder_role": "client_technical_lead",
+      "position_type": "non_negotiable",
+      "approval_authority": [
+        "client_technical_lead"
+      ],
+      "rationale": "Meridian's platform engineering lead (authored role) hard lines for delivery week: the demo runs against main under the freeze held since Friday of W9 — no demo branch, no demo-only data fixes, no merges other than a demo-blocking bug; the scorer is shown only on the products W8 left it on and in the governed state; and the handover package must let the team clone, run and operate it from the README and runbook alone, and let Sam's team run the reconciliation break report on Monday. Fictional training-simulation position; the technical-lead role is authored for this scenario and describes no real person.",
+      "pressure": "The team keeps the system after this week; a demo that runs on a branch is a demo of something they do not have, and a scorer shown wider for the room becomes the thing the board asks to keep.",
+      "success_criteria": [
+        "A team member clones main and has it running from the README without asking the engineer.",
+        "The demo script names the planned failure and the recovery, rehearsed against main.",
+        "The reconciliation job runs on Monday under Sam's team from the runbook, and the roadmap's dated items each have an owner who has been asked."
+      ],
+      "boundaries": [
+        "No merges during freeze except a demo-blocking bug.",
+        "The scorer is not enabled wider than W8 left it, for anyone, including the board.",
+        "No claim in the deck about something the team could not run themselves."
+      ],
+      "trade_space": [
+        "Which screen, which number and which planned failure are the engineer's call.",
+        "Open to Dana's framing of the story, provided every claim points at something on main.",
+        "Open to a demo-blocking bug being fixed under freeze with the lead told first."
+      ],
+      "escalation_triggers": [
+        "Any request to merge a non-bug during freeze.",
+        "Any request to enable the scorer wider for the demo.",
+        "A README step the team cannot follow — a defect, not a note."
+      ],
+      "conflicts": [
+        {
+          "with_id": "finance.w10.stated.1",
+          "dimensions": [
+            "stakeholder_confidence",
+            "risk",
+            "scope",
+            "maintainability"
+          ],
+          "rationale": "Dana's preferred headline is the AI scorer the board loves; the platform lead will show only what is on main under freeze — the scorer appears as governed and unchanged, and the reconciliation control and reason mapping are the landed work. The most valuable true story is not the story the board was primed for, and neither stakeholder is wrong about their audience.",
+          "escalation_trigger": "A request to show the scorer on a product it is not enabled for, or to merge anything during freeze that is not a demo-blocking bug — decision brief to Dana on which headline is true on the day, question brief to the platform lead on what will run against main."
+        }
+      ]
+    },
+    "finance.w10.stated.1": {
+      "stakeholder_role": "client_business",
+      "position_type": "preference",
+      "approval_authority": [
+        "client_business"
+      ],
+      "rationale": "Dana wants something she can show the board — and the board's favourite thing is the AI scorer, so her preferred headline is the scorer's story; Sam wants something his team can pick up on Monday. Stated as wants and carried as a preference: she will present a different headline if it is true and she is told why. Fictional training-simulation position; describes no real client.",
+      "pressure": "The board has heard 'AI scorer' since W3 and 'wider' since W8; a showcase whose headline is a reconciliation break report lands as less than the story they were primed for, even if it is the thing that stops money leaking.",
+      "success_criteria": [
+        "A before number and an after number she can say in the first two minutes.",
+        "A screen the board recognises as the thing Meridian hired an engineer to fix.",
+        "Something Sam's team can pick up on Monday without the engineer."
+      ],
+      "boundaries": [
+        "Will not stand in front of the board with a claim she cannot see running.",
+        "Will not present something that needs the engineer's laptop."
+      ],
+      "trade_space": [
+        "Which screen and which number is the engineer's call, if it is true and hers to repeat.",
+        "Open to a smaller true number over a bigger projected one.",
+        "Open to the scorer being shown as governed (model card, reason mapping) rather than as 'rolled out wider', if the reason is in her language."
+      ],
+      "escalation_triggers": [
+        "A slide claim about something that is not running against main.",
+        "A demo path that only the engineer can drive.",
+        "A roadmap item with no owner and no date."
+      ],
+      "conflicts": [
+        {
+          "with_id": "finance.w10.deliverable",
+          "dimensions": [
+            "stakeholder_confidence",
+            "risk",
+            "scope",
+            "maintainability"
+          ],
+          "rationale": "Dana's preferred headline is the AI scorer the board loves; the platform lead will show only what is on main under freeze — the scorer appears as governed and unchanged, and the reconciliation control and reason mapping are the landed work. The most valuable true story is not the story the board was primed for, and neither stakeholder is wrong about their audience.",
+          "escalation_trigger": "A request to show the scorer on a product it is not enabled for, or to merge anything during freeze that is not a demo-blocking bug — decision brief to Dana on which headline is true on the day, question brief to the platform lead on what will run against main."
+        }
+      ]
+    },
+    "healthcare.w07.ask": {
+      "stakeholder_role": "client_business",
+      "position_type": "non_negotiable",
+      "approval_authority": [
+        "client_business"
+      ],
+      "rationale": "The COO learns about intake outages from patients and front-desk phone calls, and the AI visit summary is already live in front of clinicians with nothing standing between the model and the chart. Her position has two parts and she stated the second as a hard line: she wants to be shown that the summary cannot present unsupported clinical content, not told that it has not done so yet. Fictional training-simulation position; describes no real client.",
+      "pressure": "Every outage the front desk reports before she hears of it costs her standing with the board and with clinicians; a summary that says something wrong about a patient is a clinical-safety exposure she owns personally, and the feature is already live.",
+      "success_criteria": [
+        "An intake freeze pages someone at Riverbend before a patient or the front desk calls.",
+        "A demonstration, run in front of her, that unsupported content in the AI summary is blocked or refused before a clinician sees it — evidence, not assurance.",
+        "One alert that fires on the intake path and names who answers it."
+      ],
+      "boundaries": [
+        "Will not take 'it has not said anything wrong so far' as an answer about the summary.",
+        "Will not have the summary quietly left live and unguarded while a dashboard is designed.",
+        "Does not want a wall of graphs; wants to be first to know, in plain terms."
+      ],
+      "trade_space": [
+        "How visibility is delivered (dashboard, daily page, alert channel) is the engineer's call.",
+        "Which single alert fires first is open, as long as an intake freeze pages someone.",
+        "Open to the summary being paused or narrowed to grounded-only output if that is what a demonstrable guardrail requires — she wants to be told before it happens, not after."
+      ],
+      "escalation_triggers": [
+        "Another intake outage discovered by a patient before Riverbend staff.",
+        "The summary shown, in any test, presenting content the record does not support.",
+        "Any proposal to keep the summary live without a guardrail she can be shown."
+      ],
+      "conflicts": [
+        {
+          "with_id": "healthcare.w07.deliverable",
+          "dimensions": [
+            "risk",
+            "stakeholder_confidence",
+            "reliability"
+          ],
+          "rationale": "The COO's line is 'show me it can't'; the IT lead's line is that nobody at Riverbend certifies an absolute about model output. A guardrail that structurally rejects ungrounded content and refuses when unsure can satisfy 'cannot present unsupported content' as a claim about the system, but only if the claim is worded that way — the engineer sits between a demand for certainty and a refusal to state one, and neither stakeholder is being unreasonable.",
+          "escalation_trigger": "The learner is asked to state, in any client-facing artifact, that the summary cannot be wrong or cannot hallucinate; or the IT lead declines to let the guardrail be described as proof — decision brief to the COO on what 'shown it can't' will mean in practice, question brief to the IT lead on the wording they will stand behind."
+        }
+      ]
+    },
+    "healthcare.w07.deliverable": {
+      "stakeholder_role": "client_technical_lead",
+      "position_type": "non_negotiable",
+      "approval_authority": [
+        "client_technical_lead"
+      ],
+      "rationale": "Riverbend's IT lead (an authored role: the in-house technical decision-maker who runs the portal, its payer and hospital-feed integrations, and whatever on-call exists after the engagement) has two hard lines on this week's instrument. First, nothing new goes onto the intake request path synchronously — the last synchronous dependency on that path froze intake for twenty minutes in W3 — so tracing and guardrail checks must be added so that their own failure cannot take intake down, and rolled out behind a switch the IT lead can flip back. Second, no one at Riverbend certifies an absolute about model output: the IT lead will stand behind 'the system rejects or refuses content it cannot ground in the record, and here is the test set and the miss rate', not behind 'it cannot say something wrong'. Fictional training-simulation position; the technical-lead role is authored for this scenario and describes no real person.",
+      "pressure": "The IT lead answers the phone when the portal is down and will be the one explaining a 2 a.m. false page or a tracing agent that slowed intake; they will also be the one asked by the COO, months from now, why 'can't' turned out to mean 'usually doesn't'.",
+      "success_criteria": [
+        "Tracing on the intake span that fails open: if the collector is down, intake still works.",
+        "One alert whose page goes to a named person with a runbook, and whose false-page rate has been watched for at least a few days before it is trusted.",
+        "A guardrail described to the COO as a validator with a measured miss rate and a refuse-unknown fallback, never as a guarantee."
+      ],
+      "boundaries": [
+        "No synchronous call to any new service on the intake request path.",
+        "No alert that pages without a runbook and a named responder.",
+        "Will not put their name to a claim that the summary cannot produce unsupported content."
+      ],
+      "trade_space": [
+        "Which span is instrumented first, which golden signals are on the dashboard spec, and how the alert threshold is set are open.",
+        "Open to the guardrail refusing more often than clinicians would like, in exchange for a smaller miss rate.",
+        "Open to a rollout behind a feature switch whose state the COO can see."
+      ],
+      "escalation_triggers": [
+        "A design that puts a new synchronous dependency in the intake request path.",
+        "Pressure to describe the guardrail as proof that the summary cannot be wrong.",
+        "An alert routed straight to the COO's phone before its false-page rate is known."
+      ],
+      "conflicts": [
+        {
+          "with_id": "healthcare.w07.ask",
+          "dimensions": [
+            "risk",
+            "stakeholder_confidence",
+            "reliability"
+          ],
+          "rationale": "The COO's line is 'show me it can't'; the IT lead's line is that nobody at Riverbend certifies an absolute about model output. A guardrail that structurally rejects ungrounded content and refuses when unsure can satisfy 'cannot present unsupported content' as a claim about the system, but only if the claim is worded that way — the engineer sits between a demand for certainty and a refusal to state one, and neither stakeholder is being unreasonable.",
+          "escalation_trigger": "The learner is asked to state, in any client-facing artifact, that the summary cannot be wrong or cannot hallucinate; or the IT lead declines to let the guardrail be described as proof — decision brief to the COO on what 'shown it can't' will mean in practice, question brief to the IT lead on the wording they will stand behind."
+        }
+      ]
+    },
+    "healthcare.w08.ask": {
+      "stakeholder_role": "client_business",
+      "position_type": "preference",
+      "approval_authority": [
+        "client_business"
+      ],
+      "rationale": "The board is excited about the AI visit summary and wants it on for every patient, automatically, as the headline feature; the COO wants that to happen this week and believes the privacy side is handled because data is already flowing to the AI service. This is stated as a want with urgency, not as a hard requirement, and is carried as a preference: the outcome she is attached to is a board-visible AI feature and a date she can name, not the specific switch or scope. Fictional training-simulation position; describes no real client.",
+      "pressure": "The board's enthusiasm is the COO's political capital: she carried 'do something with AI' from the first week and the summary is the visible payoff. A delay with no reason and no date reads, to the board, as her not delivering.",
+      "success_criteria": [
+        "The board can be told the visit summary is live for patients, with a date, and it holds.",
+        "Clinicians do not have to change how they work to get a summary.",
+        "No surprise later that the feature was never allowed to be on."
+      ],
+      "boundaries": [
+        "Will not carry a 'no' to the board without a reason in her language and a plan with a date.",
+        "Will not be the last to learn that a rollout was quietly stopped."
+      ],
+      "trade_space": [
+        "Open to a phased rollout (a clinic, a visit type, a subset of patients) if the phase has a date and the board can be told the shape of it.",
+        "Open to a delay for a legal or contractual reason, provided the reason is written down and the plan names who is chasing it.",
+        "Which AI vendor, which scrubbing step and which memo format are the engineer's and the IT lead's call."
+      ],
+      "escalation_triggers": [
+        "The feature is switched on for everyone before the governance questions in this week's material are answered in writing.",
+        "The feature is refused or paused without a written reason she can carry to the board.",
+        "Anything that puts a board announcement at risk that she was not warned about first."
+      ],
+      "conflicts": [
+        {
+          "with_id": "healthcare.w08.deliverable",
+          "dimensions": [
+            "security",
+            "delivery",
+            "stakeholder_confidence",
+            "scope"
+          ],
+          "rationale": "The COO's preference is a board-visible rollout to every patient this week; the IT lead's hard line is that no PHI leaves the boundary to a vendor without a documented data flow, a written answer on the vendor agreement and a scrub in front of it. Applied honestly the IT lead's line reaches the summary that is already live, not only the wider rollout — so the choice is not 'expand or wait' but 'expand, wait, or pause what the board already thinks is done', and each of the three costs someone credibility.",
+          "escalation_trigger": "Pressure to flip the feature on before the data-flow and vendor-agreement questions are answered; or a recognition that the current live summary sits on the same unanswered questions — decision brief to the COO on scope and date, question brief to the IT lead (with security as a ruling authority) on what must be true before any PHI crosses to the vendor."
+        }
+      ]
+    },
+    "healthcare.w08.deliverable": {
+      "stakeholder_role": "client_technical_lead",
+      "position_type": "non_negotiable",
+      "approval_authority": [
+        "client_technical_lead",
+        "security"
+      ],
+      "rationale": "Riverbend's IT lead (authored role) owns the vendor integration and the network the record travels over. Their hard line: no patient record, in whole or in part, crosses to an AI vendor on a path they cannot draw on one page, under an agreement someone has read, with the de-identification scrub running and unit-tested in front of it. They will not turn the automatic summary on for every patient this week and — read honestly — they cannot defend the summary that is already live, because it sits on the same unanswered questions. Fictional training-simulation position; the technical-lead role is authored for this scenario and describes no real person.",
+      "pressure": "The IT lead is the one who would have to answer, to a regulator or the board, 'what left the building, to whom, under what agreement' — and today the answer is 'the full encounter record, to a vendor nobody has papered, with nothing stripped'. They also just watched W7 add the first alert to a portal that had none; scaling an egress path to every patient on that footing is a second exposure.",
+      "success_criteria": [
+        "A one-page data-flow diagram of what leaves the PHI boundary, to whom, under what agreement — reviewed by the IT lead before any rollout decision.",
+        "The Safe-Harbor scrub running before any record reaches the vendor, with unit tests the IT lead's team can run.",
+        "A written answer, from someone with authority, on whether the vendor is under a Business Associate Agreement and what its retention terms are."
+      ],
+      "boundaries": [
+        "No PHI to a vendor without the scrub in front of it and the agreement question answered in writing.",
+        "No automatic rollout to every patient before a phased path has run for real.",
+        "Will not describe the current live summary as compliant on the strength of 'data is already flowing'."
+      ],
+      "trade_space": [
+        "Open to a phased rollout to a defined subset once the scrub and the agreement are in place, and to the COO choosing which subset.",
+        "Open to the board framing being written by the COO, provided the data-flow page is what it rests on.",
+        "Which vendor, which redaction library and which memo format are open."
+      ],
+      "escalation_triggers": [
+        "A request to enable the summary for everyone before the scrub and the agreement question are settled.",
+        "Any artifact that tells the board or clinicians the privacy side is handled.",
+        "Discovery that the live summary is sending unscrubbed records — this goes to the COO the same day, not at Friday's review."
+      ],
+      "conflicts": [
+        {
+          "with_id": "healthcare.w08.ask",
+          "dimensions": [
+            "security",
+            "delivery",
+            "stakeholder_confidence",
+            "scope"
+          ],
+          "rationale": "The COO's preference is a board-visible rollout to every patient this week; the IT lead's hard line is that no PHI leaves the boundary to a vendor without a documented data flow, a written answer on the vendor agreement and a scrub in front of it. Applied honestly the IT lead's line reaches the summary that is already live, not only the wider rollout — so the choice is not 'expand or wait' but 'expand, wait, or pause what the board already thinks is done', and each of the three costs someone credibility.",
+          "escalation_trigger": "Pressure to flip the feature on before the data-flow and vendor-agreement questions are answered; or a recognition that the current live summary sits on the same unanswered questions — decision brief to the COO on scope and date, question brief to the IT lead (with security as a ruling authority) on what must be true before any PHI crosses to the vendor."
+        }
+      ]
+    },
+    "healthcare.w09.ask": {
+      "stakeholder_role": "client_business",
+      "position_type": "non_negotiable",
+      "approval_authority": [
+        "client_business"
+      ],
+      "rationale": "The COO's two questions — who her staff ask in three months, and where things stand against what she was told a month ago — are stated as needs, not wants: she has to plan around the answer and answer for it to the board. What she requires is an honest, dated account: each outstanding item either finished or carrying a moved estimate with a reason and a named person, and a support route her staff can actually use after the engineer is gone. Fictional training-simulation position; describes no real client.",
+      "pressure": "In three months a front-desk lead will hit a problem and the COO will be the one asked 'who do we call'; and the estimates she repeated upward a month ago are hers now, so every one that moves without warning is a conversation she has to have with the board.",
+      "success_criteria": [
+        "Every open item has a named person (not a department) her staff can go to.",
+        "Every estimate that moved comes with the reason it moved, said plainly.",
+        "No new surprises in W10: what is going to be shown is what she has been told."
+      ],
+      "boundaries": [
+        "Will not take 'IT' or 'engineering' as an owner.",
+        "Will not take an estimate that has moved twice without a changed plan.",
+        "Does not want new scope this week; wants the existing promises accounted for."
+      ],
+      "trade_space": [
+        "Would rather have fewer things finished and honestly labelled than everything 'nearly done'.",
+        "Open to an item moving to a dated roadmap with an owner instead of landing, if she is told before Friday.",
+        "Open to the support route being 'the IT lead's team from W10, after a walkthrough' rather than the engineer, as long as it is a name and a date."
+      ],
+      "escalation_triggers": [
+        "An open item whose owner is a department, or whose date has been true twice running without moving.",
+        "A promised date that will be missed and she has not been told before the date.",
+        "Any answer to 'who do they ask' that is 'not sure yet'."
+      ],
+      "conflicts": [
+        {
+          "with_id": "healthcare.w09.deliverable",
+          "dimensions": [
+            "maintainability",
+            "stakeholder_confidence",
+            "delivery"
+          ],
+          "rationale": "The COO needs a name her staff can call in three months; the IT lead will only put their team's name to code that team has run from the runbook before Friday's freeze, and nothing merges after Friday. With W7 and W8 items still open, not everything can be both landed and handed over by Friday — so some items end the week as 'merged but owned by nobody at Riverbend', 'owned but not landed', or 'landed but never run'. Both stakeholders' 'done' is reasonable, and they are not the same word.",
+          "escalation_trigger": "An item the COO expects to be supported that the IT lead's team has not run; pressure on the IT lead's team to own un-run code; or an item that cannot reach the freeze — decision brief to the COO on which items land versus move to the roadmap with a named owner, question brief to the IT lead on which runbooks their team will execute this week."
+        }
+      ]
+    },
+    "healthcare.w09.deliverable": {
+      "stakeholder_role": "client_technical_lead",
+      "position_type": "non_negotiable",
+      "approval_authority": [
+        "client_technical_lead"
+      ],
+      "rationale": "Riverbend's IT lead (authored role) inherits everything left behind. Their hard lines: nothing merges after Friday's code freeze except a demo-blocking bug; nothing counts as handed over until someone on their team has run it from the runbook without the engineer in the room; and their team's name goes on an item only after that has happened. A half-merged W7 alert or W8 scrub is, to them, worse than one carried honestly on a blocker card, because their team will be the ones paged by it. Fictional training-simulation position; the technical-lead role is authored for this scenario and describes no real person.",
+      "pressure": "The IT lead's team is small and will be on the phone for whatever breaks after W10; every item merged under deadline pressure that they have never run is a future incident with their name on it, and every item left un-owned is a call the COO will route to them anyway.",
+      "success_criteria": [
+        "A runbook for each landed item, executed once by an IT-lead team member before Friday.",
+        "The one-page 'what someone inheriting this repo on Monday needs to know' written for their team, not for the trainer.",
+        "Blocker cards for anything not landed, with the engineer's moved estimate and an owner who is not 'engineering'."
+      ],
+      "boundaries": [
+        "No merges after Friday's freeze other than a demo-blocking bug.",
+        "Will not put their team's name on an item nobody on the team has run.",
+        "Will not absorb new scope in W9 to make W10 look fuller."
+      ],
+      "trade_space": [
+        "Which W7/W8 items are brought to 'run by the team' first is the engineer's call, if the IT lead is told the order by Tuesday.",
+        "Open to owning an item from W10 on if the runbook walkthrough happens this week.",
+        "Open to a working subset merged behind a switch, if the switch state is documented."
+      ],
+      "escalation_triggers": [
+        "Any merge proposed after Friday's freeze that is not a demo-blocking bug.",
+        "An item presented to the COO as supported by the IT lead's team that the team has not run.",
+        "A blocker card that names 'IT' as the owner."
+      ],
+      "conflicts": [
+        {
+          "with_id": "healthcare.w09.ask",
+          "dimensions": [
+            "maintainability",
+            "stakeholder_confidence",
+            "delivery"
+          ],
+          "rationale": "The COO needs a name her staff can call in three months; the IT lead will only put their team's name to code that team has run from the runbook before Friday's freeze, and nothing merges after Friday. With W7 and W8 items still open, not everything can be both landed and handed over by Friday — so some items end the week as 'merged but owned by nobody at Riverbend', 'owned but not landed', or 'landed but never run'. Both stakeholders' 'done' is reasonable, and they are not the same word.",
+          "escalation_trigger": "An item the COO expects to be supported that the IT lead's team has not run; pressure on the IT lead's team to own un-run code; or an item that cannot reach the freeze — decision brief to the COO on which items land versus move to the roadmap with a named owner, question brief to the IT lead on which runbooks their team will execute this week."
+        }
+      ]
+    },
+    "healthcare.w10.deliverable": {
+      "stakeholder_role": "client_technical_lead",
+      "position_type": "non_negotiable",
+      "approval_authority": [
+        "client_technical_lead"
+      ],
+      "rationale": "Riverbend's IT lead (authored role) hard lines for delivery week: the demo runs against main under the code freeze that has held since Friday of W9 — no demo branch, no demo-only data fixes, no merges other than a demo-blocking bug; the AI summary is shown only in the state W8 left it in (scrubbed, gated, refusing when ungrounded), never switched wider for the room; and the handover package must let their team clone, run and operate it from the README and runbook alone. Fictional training-simulation position; the technical-lead role is authored for this scenario and describes no real person.",
+      "pressure": "The IT lead's team keeps the system after this week; a demo that runs on a branch or on a laptop is a demo of something they do not have, and a summary switched on for the room becomes the thing the board asks to keep on.",
+      "success_criteria": [
+        "A team member clones main and has it running from the README without asking the engineer.",
+        "The demo script names the planned failure and the recovery, and both are rehearsed against main.",
+        "The roadmap's dated items each have an owner who has been asked."
+      ],
+      "boundaries": [
+        "No merges during freeze except a demo-blocking bug.",
+        "The summary is not switched on wider than W8 left it, for anyone, including the board.",
+        "No claim in the deck about something the team could not run themselves."
+      ],
+      "trade_space": [
+        "Which screen, which number and which planned failure are the engineer's call.",
+        "Open to the COO's framing of the story, provided every claim points at something on main.",
+        "Open to a demo-blocking bug being fixed under freeze with the IT lead told first."
+      ],
+      "escalation_triggers": [
+        "Any request to merge a non-bug during freeze.",
+        "Any request to enable the summary wider for the demo.",
+        "A README step the team cannot follow — this is a defect, not a note."
+      ],
+      "conflicts": [
+        {
+          "with_id": "healthcare.w10.stated.1",
+          "dimensions": [
+            "stakeholder_confidence",
+            "security",
+            "risk",
+            "scope"
+          ],
+          "rationale": "The COO's preferred headline is the AI visit summary the board has been excited about; the IT lead will show only what is on main under freeze and in the gated state W8 left it in — so the summary appears, if at all, as a guarded system that refuses, not as 'on for every patient'. The most valuable true story (intake visibility, a guardrail that refuses) is not the story the board was primed for, and neither stakeholder is wrong about what their audience needs.",
+          "escalation_trigger": "A request to switch the summary on for the demo patient set, or to merge anything during freeze that is not a demo-blocking bug — decision brief to the COO on which headline is true and defensible on the day, question brief to the IT lead on what will run against main."
+        }
+      ]
+    },
+    "healthcare.w10.stated.1": {
+      "stakeholder_role": "client_business",
+      "position_type": "preference",
+      "approval_authority": [
+        "client_business"
+      ],
+      "rationale": "The COO wants a board-ready story: one screen, one before-and-after number in words she can repeat, and — because the board's excitement since W8 has been about the AI visit summary — she would like the summary to be the headline. That is stated as a want and carried as a preference: she can present a different headline if it is true and she is told why. Fictional training-simulation position; describes no real client.",
+      "pressure": "She carried 'do something with AI' to the board from the first week and the board now expects to see it; a showcase whose headline is 'we added an alert' lands with the board as less than what she promised, even if it is the more valuable thing.",
+      "success_criteria": [
+        "A before number and an after number she can say in the first two minutes without a slide.",
+        "A screen the board recognises as the thing Riverbend hired an engineer to fix.",
+        "Nothing shown that she cannot see working on the day."
+      ],
+      "boundaries": [
+        "Will not stand in front of the board with a claim she cannot see running.",
+        "Will not present something that needs the engineer's laptop to work."
+      ],
+      "trade_space": [
+        "Which screen and which number is the engineer's call, if it is true and hers to repeat.",
+        "Open to a smaller true number over a bigger projected one.",
+        "Open to the AI summary being shown as a guarded, refusing system rather than as 'on for everyone', if the reason is in her language."
+      ],
+      "escalation_triggers": [
+        "A slide claim about something that is not running against main.",
+        "A demo path that only the engineer can drive.",
+        "A 'coming next sprint' item with no owner and no date."
+      ],
+      "conflicts": [
+        {
+          "with_id": "healthcare.w10.deliverable",
+          "dimensions": [
+            "stakeholder_confidence",
+            "security",
+            "risk",
+            "scope"
+          ],
+          "rationale": "The COO's preferred headline is the AI visit summary the board has been excited about; the IT lead will show only what is on main under freeze and in the gated state W8 left it in — so the summary appears, if at all, as a guarded system that refuses, not as 'on for every patient'. The most valuable true story (intake visibility, a guardrail that refuses) is not the story the board was primed for, and neither stakeholder is wrong about what their audience needs.",
+          "escalation_trigger": "A request to switch the summary on for the demo patient set, or to merge anything during freeze that is not a demo-blocking bug — decision brief to the COO on which headline is true and defensible on the day, question brief to the IT lead on what will run against main."
+        }
+      ]
+    }
+  },
+  "persistent": [],
+  "stakeholder_position_keys": {
+    "finance.w07.ask": "finance.w07.business.first-to-know",
+    "finance.w07.deliverable": "finance.w07.techlead.payment-path-safety",
+    "finance.w08.ask": "finance.w08.business.scorer-rollout",
+    "finance.w08.deliverable": "finance.w08.techlead.decision-record-gate",
+    "finance.w09.ask": "finance.w09.business.promised-vs-landed",
+    "finance.w09.deliverable": "finance.w09.techlead.handover-freeze",
+    "finance.w10.deliverable": "finance.w10.techlead.demo-on-main",
+    "finance.w10.stated.1": "finance.w10.business.board-headline",
+    "healthcare.w07.ask": "healthcare.w07.business.guardrail-proof",
+    "healthcare.w07.deliverable": "healthcare.w07.techlead.intake-path-safety",
+    "healthcare.w08.ask": "healthcare.w08.business.summary-rollout",
+    "healthcare.w08.deliverable": "healthcare.w08.techlead.phi-egress-gate",
+    "healthcare.w09.ask": "healthcare.w09.business.support-route",
+    "healthcare.w09.deliverable": "healthcare.w09.techlead.handover-freeze",
+    "healthcare.w10.deliverable": "healthcare.w10.techlead.demo-on-main",
+    "healthcare.w10.stated.1": "healthcare.w10.business.board-headline"
+  }
+}

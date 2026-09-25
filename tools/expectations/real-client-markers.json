@@ -1,0 +1,14 @@
+{
+  "description": "Trainer-maintained marker list for AC-1.6.5. Every string inside an authored stakeholder position (tools/expectations/overrides.json → stakeholder_context) is tested against these regular expressions; a match fails tools/expectations/stakeholder-authoring.test.mjs. Positions are fictional training-simulation content: they must never carry a real organisation, person, address, URL, calendar date or claim sourced from web research or model memory. This repository is public, so keep the list generic (shapes of real-world identifiers) rather than naming real clients here; extend it in a private location if a specific real name must be guarded.",
+  "patterns": [
+    { "name": "url", "regex": "https?://", "why": "web research is not a source for a position" },
+    { "name": "email", "regex": "[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\\.[A-Za-z]{2,}", "why": "no real contact details" },
+    { "name": "corporate-suffix", "regex": "\\b(Inc|LLC|Ltd|PLC|GmbH|Corp|Corporation|Incorporated)\\b\\.?", "why": "reads as a real legal entity" },
+    { "name": "iso-date", "regex": "\\b(19|20)[0-9]{2}-[0-9]{2}-[0-9]{2}\\b", "why": "positions carry relative timing only; the manifest never contains a calendar date" },
+    { "name": "month-day-date", "regex": "\\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\\.?\\s+[0-9]{1,2}(st|nd|rd|th)?\\b", "why": "positions carry relative timing only" },
+    { "name": "year", "regex": "\\b(19|20)[0-9]{2}\\b", "why": "no absolute years in fictional positions" },
+    { "name": "real-client-claim", "regex": "\\b(the|our|this|a|an) (real|actual|genuine) (client|customer|stakeholder|CTO|COO|CFO)\\b", "why": "no claim that a position belongs to a real client (the fiction label 'describes no real client' is deliberately not matched)" },
+    { "name": "web-or-memory-source", "regex": "\\b(according to (the )?(web|internet|a search)|as reported (online|in the press)|from (my|model) memory)\\b", "why": "source is always the page path + commit" },
+    { "name": "phone-number", "regex": "\\b\\+?[0-9]{1,2}[ -.]?\\(?[0-9]{3}\\)?[ -.]?[0-9]{3}[ -.]?[0-9]{4}\\b", "why": "no real contact details" }
+  ]
+}
