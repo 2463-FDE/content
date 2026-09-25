@@ -16,44 +16,41 @@
     Object.freeze({
       id: "agent", parentId: null, depth: 0, startMs: 0, durationMs: 2480,
       name: "invoke_agent intake_triage", purpose: "agent root", kind: "INTERNAL", status: "ERROR",
-      operation: "invoke_agent", model: "none", inputTokens: 0, outputTokens: 0,
-      tool: "none", errorType: "DownstreamTimeout", estimatedCostUsd: 0.02554,
-      note: "Synthetic root span. The agent returned a safe degraded response after a tool timeout."
+      operation: "invoke_agent", errorType: "DownstreamTimeout", aggregateDescendantCostUsd: 0.02554,
+      note: "Synthetic trace boundary; payload content is intentionally absent."
     }),
     Object.freeze({
       id: "plan", parentId: "agent", depth: 1, startMs: 35, durationMs: 190,
       name: "chat claude-haiku-4-5", purpose: "planning step", kind: "CLIENT", status: "OK",
-      operation: "chat", model: "claude-haiku-4-5", inputTokens: 640, outputTokens: 38,
-      tool: "none", errorType: "none", estimatedCostUsd: 0.00083,
-      note: "Chooses the eligibility lookup before drafting a response."
+      operation: "chat", provider: "anthropic", model: "claude-haiku-4-5",
+      inputTokens: 640, outputTokens: 38, estimatedCostUsd: 0.00083,
+      note: "Synthetic planning call; compare its timing and token evidence with sibling spans."
     }),
     Object.freeze({
       id: "primary", parentId: "agent", depth: 1, startMs: 245, durationMs: 430,
       name: "chat claude-sonnet-5", purpose: "primary draft", kind: "CLIENT", status: "OK",
-      operation: "chat", model: "claude-sonnet-5", inputTokens: 7600, outputTokens: 46,
-      tool: "eligibility_lookup requested", errorType: "none", estimatedCostUsd: 0.01566,
-      note: "Largest estimated cost contributor: a long context is sent before the tool call."
+      operation: "chat", provider: "anthropic", model: "claude-sonnet-5",
+      inputTokens: 7600, outputTokens: 46, estimatedCostUsd: 0.01566,
+      note: "Synthetic drafting call; payload content is intentionally absent."
     }),
     Object.freeze({
       id: "tool", parentId: "agent", depth: 1, startMs: 700, durationMs: 1180,
       name: "execute_tool eligibility_lookup", purpose: "tool call", kind: "INTERNAL", status: "ERROR",
-      operation: "execute_tool", model: "none", inputTokens: 0, outputTokens: 0,
-      tool: "eligibility_lookup", errorType: "TimeoutError", estimatedCostUsd: 0,
-      note: "Longest direct child of the root. Expand it to inspect the failing dependency."
+      operation: "execute_tool", tool: "eligibility_lookup", errorType: "TimeoutError",
+      note: "Synthetic tool call; inspect its status and descendant evidence."
     }),
     Object.freeze({
       id: "payer", parentId: "tool", depth: 2, startMs: 735, durationMs: 1050,
       name: "HTTP GET payer-sandbox.local", purpose: "tool dependency", kind: "CLIENT", status: "ERROR",
-      operation: "http.client", model: "none", inputTokens: 0, outputTokens: 0,
-      tool: "eligibility_lookup", errorType: "TimeoutError", estimatedCostUsd: 0,
-      note: "Synthetic dependency only. No request URL or patient payload is captured."
+      httpMethod: "GET", serverAddress: "payer-sandbox.local", errorType: "TimeoutError",
+      note: "Synthetic dependency span; no URL path or patient payload is captured."
     }),
     Object.freeze({
       id: "fallback", parentId: "agent", depth: 1, startMs: 1905, durationMs: 510,
       name: "chat claude-haiku-4-5", purpose: "fallback response", kind: "CLIENT", status: "OK",
-      operation: "chat", model: "claude-haiku-4-5", inputTokens: 8200, outputTokens: 170,
-      tool: "none", errorType: "none", estimatedCostUsd: 0.00905,
-      note: "Produces a bounded fallback after the failed tool. Payload content is intentionally absent."
+      operation: "chat", provider: "anthropic", model: "claude-haiku-4-5",
+      inputTokens: 8200, outputTokens: 170, estimatedCostUsd: 0.00905,
+      note: "Synthetic fallback call; payload content is intentionally absent."
     })
   ]);
 
@@ -71,17 +68,38 @@
   });
 
   const INPUT_LIMITS = Object.freeze({
-    inputTokens: Object.freeze({ min: 0, max: 200000 }),
-    outputTokens: Object.freeze({ min: 0, max: 64000 }),
-    requestsPerDay: Object.freeze({ min: 1, max: 100000 }),
-    dailyBudgetUsd: Object.freeze({ min: 0.01, max: 100000 })
+    inputTokens: Object.freeze({ min: 0, max: 200000, step: 1, integer: true }),
+    outputTokens: Object.freeze({ min: 0, max: 64000, step: 1, integer: true }),
+    requestsPerDay: Object.freeze({ min: 1, max: 100000, step: 1, integer: true }),
+    dailyBudgetUsd: Object.freeze({ min: 0.01, max: 100000, step: 0.01 })
+  });
+
+  const TRACE_EXPECTED = Object.freeze({
+    latency: "tool",
+    error: "payer",
+    cost: "primary",
+    observedError: "10-percent",
+    burnRate: "100x",
+    response: "aggregate-gate"
+  });
+
+  const TRACE_EXPLANATIONS = Object.freeze({
+    latency: "The 1.18-second tool span is the longest direct child of the root.",
+    error: "The HTTP dependency leaf carries error.type=TimeoutError.",
+    cost: "The Sonnet 5 span has the largest span-local token estimate: $0.01566.",
+    observedError: "One failure among ten requests is 1 ÷ 10 = 10%.",
+    burnRate: "A 99.9% SLO allows 0.1% errors, so 10% ÷ 0.1% = 100×.",
+    response: "Aggregate a larger surface or window and use a minimum-volume gate; do not hide failures."
   });
 
   function createTraceState(seed) {
     return {
       seed: seed || TRACE_SEED,
       expanded: ["agent"],
-      answers: { latency: "", error: "", cost: "" }
+      answers: {
+        latency: "", error: "", cost: "",
+        observedError: "", burnRate: "", response: ""
+      }
     };
   }
 
@@ -111,14 +129,31 @@
   }
 
   function evaluateTraceAnswers(answers) {
-    const expected = { latency: "tool", error: "payer", cost: "primary" };
     const results = {};
+    const details = {};
     let score = 0;
-    Object.keys(expected).forEach(function (key) {
-      results[key] = answers[key] === expected[key];
+    Object.keys(TRACE_EXPECTED).forEach(function (key) {
+      results[key] = answers[key] === TRACE_EXPECTED[key];
+      details[key] = TRACE_EXPLANATIONS[key];
       if (results[key]) score += 1;
     });
-    return { score: score, total: 3, results: results };
+    return { score: score, total: Object.keys(TRACE_EXPECTED).length, results: results, details: details };
+  }
+
+  function deriveLowTrafficScenario(requestsPerHour, failures, sloPercent) {
+    const observedErrorRate = failures / requestsPerHour;
+    const budgetErrorRate = 1 - (sloPercent / 100);
+    const monthlyRequests = requestsPerHour * 24 * 30;
+    const monthlyErrorBudget = monthlyRequests * budgetErrorRate;
+    return {
+      observedErrorRate: observedErrorRate,
+      budgetErrorRate: budgetErrorRate,
+      burnRate: observedErrorRate / budgetErrorRate,
+      monthlyRequests: monthlyRequests,
+      monthlyErrorBudget: monthlyErrorBudget,
+      budgetConsumed: failures / monthlyErrorBudget,
+      allowedWholeFailures: Math.floor(monthlyErrorBudget)
+    };
   }
 
   function parseBoundedNumber(value, limits, key, label, errors, fieldErrors) {
@@ -133,6 +168,19 @@
       fieldErrors[key] = label + " must be between " + limits.min + " and " + limits.max + ".";
       errors.push(fieldErrors[key]);
       return null;
+    }
+    if (limits.integer && !Number.isInteger(number)) {
+      fieldErrors[key] = label + " must be a whole number.";
+      errors.push(fieldErrors[key]);
+      return null;
+    }
+    if (limits.step) {
+      const steps = (number - limits.min) / limits.step;
+      if (Math.abs(steps - Math.round(steps)) > 1e-8) {
+        fieldErrors[key] = label + " must use increments of " + limits.step + ".";
+        errors.push(fieldErrors[key]);
+        return null;
+      }
     }
     return number;
   }
@@ -210,7 +258,7 @@
 
     const heading = appendText(rootNode, "h3", "w7-practice-title", "Inspect a synthetic GenAI trace");
     heading.id = "w7-trace-title";
-    appendText(rootNode, "p", "w7-practice-intro", "Expand the seeded spans, then identify the latency, error, and estimated-cost contributors. This fixture is OTel-GenAI-shaped, payload-free, and never connected to live telemetry or a vendor export.");
+    appendText(rootNode, "p", "w7-practice-intro", "Expand the seeded spans, inspect exact applicable semantic-convention attributes, and make each incident call from the evidence. This fixture is OTel-GenAI-shaped, payload-free, and never connected to live telemetry or a vendor export.");
 
     const toolbar = makeElement("div", "w7-toolbar");
     const expandButton = makeButton("Expand all spans", "w7-secondary-btn");
@@ -222,7 +270,7 @@
 
     const summary = makeElement("div", "w7-trace-summary");
     summary.setAttribute("aria-label", "Synthetic trace summary");
-    [["Trace duration", "2.48 s"], ["Span count", "6"], ["Status", "ERROR"], ["Estimated token cost", "$0.0255"]].forEach(function (item) {
+    [["Trace duration", "2.48 s"], ["Span count", "6"], ["Status", "ERROR"], ["Aggregate descendant token cost", "$0.0255"]].forEach(function (item) {
       const metric = makeElement("div", "w7-trace-metric");
       appendText(metric, "span", "w7-metric-label", item[0]);
       appendText(metric, "strong", "w7-metric-value", item[1]);
@@ -241,10 +289,20 @@
     const questions = [
       { key: "latency", label: "Which direct child dominates root latency?", answerOptions: [["", "Choose a span"], ["plan", "chat claude-haiku-4-5 (planning step)"], ["primary", "chat claude-sonnet-5"], ["tool", "execute_tool eligibility_lookup"], ["fallback", "chat claude-haiku-4-5 (fallback response)"]] },
       { key: "error", label: "Which leaf span exposes the failing dependency?", answerOptions: [["", "Choose a span"], ["primary", "chat claude-sonnet-5"], ["payer", "HTTP GET payer-sandbox.local"], ["fallback", "chat claude-haiku-4-5 (fallback response)"]] },
-      { key: "cost", label: "Which span contributes the most estimated token cost?", answerOptions: [["", "Choose a span"], ["plan", "chat claude-haiku-4-5 (planning step)"], ["primary", "chat claude-sonnet-5"], ["fallback", "chat claude-haiku-4-5 (fallback response)"]] }
+      { key: "cost", label: "Which model span has the largest span-local token estimate?", answerOptions: [["", "Choose a model span"], ["plan", "chat claude-haiku-4-5 (planning step)"], ["primary", "chat claude-sonnet-5"], ["fallback", "chat claude-haiku-4-5 (fallback response)"]] },
+      { key: "observedError", group: "low-traffic", label: "At 10 requests/hour with one failure, what is the observed error rate?", answerOptions: [["", "Choose a rate"], ["1-percent", "1%"], ["10-percent", "10%"], ["100-percent", "100%"]] },
+      { key: "burnRate", group: "low-traffic", label: "Against a 99.9% SLO, what burn rate does that produce?", answerOptions: [["", "Choose a burn rate"], ["10x", "10×"], ["100x", "100×"], ["1000x", "1,000×"]] },
+      { key: "response", group: "low-traffic", label: "What is the safest low-volume alert response?", answerOptions: [["", "Choose a response"], ["mute", "Mute single-failure pages"], ["aggregate-gate", "Aggregate a larger surface/window and add a minimum-volume gate"], ["exclude", "Exclude dependency failures from the SLI"]] }
     ];
     const selectNodes = {};
+    const diagnosticNodes = {};
+    let lowTrafficHeadingAdded = false;
     questions.forEach(function (question) {
+      if (question.group === "low-traffic" && !lowTrafficHeadingAdded) {
+        appendText(guide, "h4", "w7-guide-subtitle", "Check the low-traffic arithmetic");
+        appendText(guide, "p", "w7-guide-context", "Use 10 requests/hour, one failure, and a 99.9% SLO. Derive the rate and choose a response before checking.");
+        lowTrafficHeadingAdded = true;
+      }
       const label = makeElement("label", "w7-guide-field");
       appendText(label, "span", "w7-guide-label", question.label);
       const select = makeElement("select", "w7-guide-select");
@@ -258,14 +316,21 @@
         state = setTraceAnswer(state, question.key, select.value);
       });
       label.appendChild(select);
+      const diagnostic = appendText(label, "span", "w7-guide-diagnostic", "");
+      diagnostic.id = "w7-guide-diagnostic-" + question.key;
+      select.setAttribute("aria-describedby", diagnostic.id);
       guide.appendChild(label);
       selectNodes[question.key] = select;
+      diagnosticNodes[question.key] = diagnostic;
     });
-    const checkButton = makeButton("Check findings", "w7-primary-btn");
+    const checkButton = makeButton("Check all six findings", "w7-primary-btn");
     guide.appendChild(checkButton);
-    const feedback = appendText(guide, "div", "w7-feedback", "Open the suspicious spans before you decide.");
+    const feedback = appendText(guide, "div", "w7-feedback", "Inspect the trace and derive the low-traffic rate before checking.");
     feedback.setAttribute("role", "status");
     feedback.setAttribute("aria-live", "polite");
+    const treeStatus = appendText(guide, "div", "w7-visually-hidden", "");
+    treeStatus.setAttribute("role", "status");
+    treeStatus.setAttribute("aria-live", "polite");
     rootNode.appendChild(guide);
 
     function spanById(spanId) {
@@ -287,7 +352,14 @@
         toggle.setAttribute("aria-controls", "w7-span-detail-" + span.id);
         const parent = spanById(span.parentId);
         const childCount = childSpans(span.id).length;
+        const durationLabel = span.durationMs >= 1000
+          ? (span.durationMs / 1000).toFixed(2) + " seconds"
+          : span.durationMs + " milliseconds";
+        const offsetLabel = span.startMs >= 1000
+          ? (span.startMs / 1000).toFixed(3).replace(/0+$/, "").replace(/\.$/, "") + " seconds"
+          : span.startMs + " milliseconds";
         toggle.setAttribute("aria-label", span.name + ", " + span.purpose + ", " + span.status +
+          ", starts at " + offsetLabel + ", duration " + durationLabel +
           (parent ? ", child of " + parent.name : ", root span") +
           (childCount ? ", " + childCount + " child span" + (childCount === 1 ? "" : "s") : ""));
         toggles[span.id] = toggle;
@@ -310,11 +382,20 @@
         detail.id = "w7-span-detail-" + span.id;
         detail.hidden = !open;
         const metadata = [
-          ["operation", span.operation], ["model", span.model],
-          ["tokens", span.inputTokens + " input / " + span.outputTokens + " output"],
-          ["tool", span.tool], ["error.type", span.errorType],
-          ["estimated cost", "$" + span.estimatedCostUsd.toFixed(5)]
+          ["duration", durationLabel],
+          ["start offset", offsetLabel]
         ];
+        if (span.operation) metadata.push(["gen_ai.operation.name", span.operation]);
+        if (span.provider) metadata.push(["gen_ai.provider.name", span.provider]);
+        if (span.model) metadata.push(["gen_ai.request.model", span.model]);
+        if (span.inputTokens !== undefined) metadata.push(["gen_ai.usage.input_tokens", String(span.inputTokens)]);
+        if (span.outputTokens !== undefined) metadata.push(["gen_ai.usage.output_tokens", String(span.outputTokens)]);
+        if (span.tool) metadata.push(["gen_ai.tool.name", span.tool]);
+        if (span.httpMethod) metadata.push(["http.request.method", span.httpMethod]);
+        if (span.serverAddress) metadata.push(["server.address", span.serverAddress]);
+        if (span.errorType) metadata.push(["error.type", span.errorType]);
+        if (span.estimatedCostUsd !== undefined) metadata.push(["span-local estimated token cost", "$" + span.estimatedCostUsd.toFixed(5)]);
+        if (span.aggregateDescendantCostUsd !== undefined) metadata.push(["aggregate descendant token cost", "$" + span.aggregateDescendantCostUsd.toFixed(5)]);
         metadata.forEach(function (item) {
           const pair = makeElement("span", "w7-meta-pair");
           appendText(pair, "b", "", item[0] + ": ");
@@ -326,7 +407,7 @@
         toggle.addEventListener("click", function () {
           state = toggleSpan(state, span.id);
           paintTree(span.id);
-          feedback.textContent = (state.expanded.indexOf(span.id) >= 0 ? "Expanded " : "Collapsed ") + span.name + ".";
+          treeStatus.textContent = (state.expanded.indexOf(span.id) >= 0 ? "Expanded " : "Collapsed ") + span.name + ".";
         });
         tree.appendChild(row);
       });
@@ -336,27 +417,52 @@
     expandButton.addEventListener("click", function () {
       state = expandAllSpans(state);
       paintTree();
-      feedback.textContent = "All six seeded spans are expanded.";
+      treeStatus.textContent = "All six seeded spans are expanded.";
     });
     resetButton.addEventListener("click", function () {
       state = createTraceState(rootNode.getAttribute("data-seed") || TRACE_SEED);
-      Object.keys(selectNodes).forEach(function (key) { selectNodes[key].value = ""; });
+      Object.keys(selectNodes).forEach(function (key) {
+        selectNodes[key].value = "";
+        diagnosticNodes[key].textContent = "";
+        diagnosticNodes[key].className = "w7-guide-diagnostic";
+      });
       paintTree();
-      feedback.textContent = "Seed reset. Only the root span is expanded.";
+      feedback.className = "w7-feedback";
+      feedback.textContent = "Inspect the trace and derive the low-traffic rate before checking.";
+      treeStatus.textContent = "Seed reset. Only the root span is expanded and all answers are cleared.";
     });
     checkButton.addEventListener("click", function () {
       const result = evaluateTraceAnswers(state.answers);
-      if (result.score === result.total) {
-        feedback.textContent = "3/3. The tool dominates latency, its HTTP child exposes the timeout, and the Sonnet 5 call contributes the most estimated token cost.";
-      } else {
-        feedback.textContent = result.score + "/3. Re-open the longest bar, follow its child error.type, and compare token counts with the priced model.";
-      }
+      Object.keys(result.results).forEach(function (key) {
+        const diagnostic = diagnosticNodes[key];
+        diagnostic.className = "w7-guide-diagnostic " + (result.results[key] ? "is-ok" : "is-error");
+        diagnostic.textContent = (result.results[key] ? "Correct — " : "Review — ") + result.details[key];
+      });
+      feedback.className = "w7-feedback " + (result.score === result.total ? "is-ok" : "is-error");
+      feedback.textContent = result.score + "/" + result.total + ". Per-question guidance remains below each answer while you inspect or revise spans.";
     });
     paintTree();
   }
 
   function formatUsd(value, digits) {
     return "$" + value.toFixed(digits);
+  }
+
+  function formatRate(value) {
+    let text = value.toFixed(4);
+    while (text.indexOf(".") >= 0 && text.endsWith("0") && text.split(".")[1].length > 2) {
+      text = text.slice(0, -1);
+    }
+    return text;
+  }
+
+  function formatPercentDelta(value) {
+    const absolute = Math.abs(value);
+    const digits = absolute >= 10 ? 1 : absolute >= 0.1 ? 2 : 4;
+    if (digits <= 2) return absolute.toFixed(digits);
+    let text = absolute.toFixed(digits);
+    while (text.endsWith("0") && text.split(".")[1].length > 2) text = text.slice(0, -1);
+    return text;
   }
 
   function renderCalculator(rootNode) {
@@ -416,7 +522,7 @@
         input.min = String(config.min);
         input.max = String(config.max);
         input.step = String(config.step);
-        input.inputMode = "decimal";
+        input.inputMode = config.integer ? "numeric" : "decimal";
       }
       label.appendChild(input);
       if (config.help) appendText(label, "span", "w7-field-help", config.help);
@@ -424,9 +530,9 @@
       fields[key] = input;
     }
     addField("model", "Model", "select", {});
-    addField("inputTokens", "Input tokens / request", "number", { min: 0, max: 200000, step: 100, help: "0 to 200,000" });
-    addField("outputTokens", "Output tokens / request", "number", { min: 0, max: 64000, step: 10, help: "0 to 64,000" });
-    addField("requestsPerDay", "Requests / day", "number", { min: 1, max: 100000, step: 1, help: "1 to 100,000" });
+    addField("inputTokens", "Input tokens / request", "number", { min: 0, max: 200000, step: 1, integer: true, help: "Whole number, 0 to 200,000" });
+    addField("outputTokens", "Output tokens / request", "number", { min: 0, max: 64000, step: 1, integer: true, help: "Whole number, 0 to 64,000" });
+    addField("requestsPerDay", "Requests / day", "number", { min: 1, max: 100000, step: 1, integer: true, help: "Whole number, 1 to 100,000" });
     addField("dailyBudgetUsd", "Daily cost budget (USD)", "number", { min: 0.01, max: 100000, step: 0.01, help: "$0.01 to $100,000" });
     form.appendChild(controls);
 
@@ -465,8 +571,10 @@
       Object.keys(fields).forEach(function (key) { raw[key] = fields[key].value; });
       const result = calculateCost(raw);
       Object.keys(fields).forEach(function (key) {
-        if (Object.prototype.hasOwnProperty.call(result.fieldErrors, key)) fields[key].setAttribute("aria-invalid", "true");
+        const error = result.fieldErrors[key] || "";
+        if (error) fields[key].setAttribute("aria-invalid", "true");
         else fields[key].removeAttribute("aria-invalid");
+        if (typeof fields[key].setCustomValidity === "function") fields[key].setCustomValidity(error);
       });
       if (!result.valid) {
         ["perRequest", "daily", "monthly", "burnRate"].forEach(function (key) { outputNodes[key].textContent = "Not calculated"; });
@@ -477,13 +585,15 @@
       outputNodes.perRequest.textContent = formatUsd(result.perRequest, 6);
       outputNodes.daily.textContent = formatUsd(result.daily, 2);
       outputNodes.monthly.textContent = formatUsd(result.monthly, 2);
-      outputNodes.burnRate.textContent = result.burnRate.toFixed(2) + "×";
+      const displayedRate = formatRate(result.burnRate);
+      const budgetDeltaPercent = (result.burnRate - 1) * 100;
+      outputNodes.burnRate.textContent = displayedRate + "×";
       status.className = "w7-feedback " + (result.budgetState === "over" ? "is-error" : "is-ok");
       status.textContent = result.budgetState === "over"
-        ? "Budget is burning too fast. At this volume, projected daily spend exceeds the daily cost budget."
+        ? "Burn rate " + displayedRate + "× is " + formatPercentDelta(budgetDeltaPercent) + "% over the daily cost budget."
         : result.budgetState === "at"
           ? "Burn rate is 1.00×: this workload uses exactly the daily cost budget."
-          : "Within budget. A burn rate below 1.00× leaves budget headroom at this volume.";
+          : "Burn rate " + displayedRate + "× is " + formatPercentDelta(budgetDeltaPercent) + "% under the daily cost budget.";
     }
 
     Object.keys(fields).forEach(function (key) {
@@ -515,6 +625,7 @@
     expandAllSpans: expandAllSpans,
     setTraceAnswer: setTraceAnswer,
     evaluateTraceAnswers: evaluateTraceAnswers,
+    deriveLowTrafficScenario: deriveLowTrafficScenario,
     calculateCost: calculateCost,
     init: init
   });

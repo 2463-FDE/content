@@ -43,9 +43,15 @@
 .reading-col .step .w7-span-note { flex-basis:100%; margin:3px 0 0; font-size:12px; color:var(--ink-soft); }
 .w7-trace-guide { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding-top:15px; border-top:1px solid var(--line); }
 .w7-guide-title { grid-column:1/-1; margin:0; font-size:17px; }
+.w7-guide-subtitle { grid-column:1/-1; margin:10px 0 0; padding-top:14px; border-top:1px solid var(--line); font-size:15px; }
+.reading-col .step .w7-guide-context { grid-column:1/-1; margin:-4px 0 2px; color:var(--ink-soft); font-size:12px; }
 .w7-guide-field, .w7-cost-field { display:flex; min-width:0; flex-direction:column; gap:5px; }
 .w7-guide-label, .w7-cost-label { color:var(--ink); font-size:12px; font-weight:700; line-height:1.35; }
 .w7-guide-select, .w7-cost-input { width:100%; min-width:0; min-height:42px; padding:7px 9px; border:1.5px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); font:inherit; font-size:13px; }
+.w7-guide-diagnostic { min-height:2.8em; color:var(--ink-soft); font-size:11px; line-height:1.35; }
+.w7-guide-diagnostic:empty { min-height:0; }
+.w7-guide-diagnostic.is-error { color:var(--bad-ink); }
+.w7-guide-diagnostic.is-ok { color:var(--good-ink); }
 .w7-trace-guide .w7-primary-btn { grid-column:1; justify-self:start; }
 .w7-feedback { flex:1; align-self:center; min-width:180px; color:var(--ink-soft); font-size:12.5px; line-height:1.45; }
 .w7-trace-guide .w7-feedback { grid-column:2/-1; }
@@ -254,10 +260,11 @@
         <div class="tag">The trap</div>
         <h2>Low traffic breaks the table outright</h2>
         <p>Copy that 14.4/6/1 table onto a low-volume path and you ship an alarm that is useless in both directions.
-        The Workbook is explicit: "if a system receives 10 requests per hour, then a single failed request results in an
-        hourly error rate of 10%. For a 99.9% SLO, this request constitutes a <strong>1,000x burn rate</strong> and
-        would page immediately, as it consumed 13.9% of the 30-day error budget. This scenario allows for only
-        <strong>seven failed requests in 30 days</strong>."</p>
+        The Workbook's low-traffic paragraph prints <strong>1,000×</strong> for one failure among 10 requests against a
+        99.9% SLO, but that figure conflicts with its burn-rate definition. The independent arithmetic is
+        <strong>100×</strong>: 10% observed errors ÷ the SLO's 0.1% allowed error rate. The paragraph's adjacent
+        figures remain coherent — one failure consumes about <strong>13.9% of the 30-day budget</strong>, and the path
+        allows roughly <strong>seven whole failed requests in 30 days</strong>.</p>
         <p>That is the shape of a pilot AI feature, or a clinical intake queue at 2 a.m. — one retryable blip pages a
         human, someone silences the alert, and the real outage becomes invisible. The mitigations are boring: widen the
         window, aggregate across a bigger surface, set a minimum-volume precondition, or accept a looser SLO honestly
@@ -267,11 +274,10 @@
         days, sending an active notification is appropriate. Otherwise, a ticket-based notification… the next working
         day is more appropriate." A slow reconciliation drift is a ticket, not a 3 a.m. page — and now you have a
         principled reason rather than a preference.</p>
-        <p>Work the trap by hand before you open a trace. At <strong>10 requests/hour</strong>, one failure is
-        1 ÷ 10 = a 10% hourly error rate. A 99.9% SLO budgets 0.1% errors, so 10% ÷ 0.1% = a <strong>1,000× burn
-        rate</strong> from a single failed request. The synthetic trace below is that one failure: the page fires, and
-        the on-call engineer's first job is to open the trace and decide whether it is a real dependency outage or a
-        retryable blip — before anyone mutes the alert.</p>
+        <p>Now check the trap rather than trusting a copied number. At <strong>10 requests/hour</strong>, the synthetic
+        trace below represents one failure. Inspect the span evidence, derive the observed error rate and burn rate in
+        the checked fields, then choose a low-volume response. The same volume over 30 days is 7,200 requests; a 0.1%
+        error budget permits 7.2 failures, so one failure spends about 13.9% of it.</p>
         <div class="w7-practice" data-w7-trace data-seed="intake-timeout-07">
           <noscript>This synthetic trace inspection requires JavaScript. No live telemetry or vendor export is used.</noscript>
         </div>
@@ -427,10 +433,11 @@ severity: ticket</pre>
       of an hour later.</p>
     </div>
     <p style="margin-top:14px"><strong>Now the sanity check that saves you.</strong> Before you ship those rules, count
-    the requests. If the path runs at 10 req/hour overnight, one failure is a 1,000× burn and pages instantly — the
-    Workbook's own example allows only seven failed requests in 30 days at that volume. Widen the window, aggregate
-    across a larger surface, or add a minimum-volume precondition. Shipping the table unchecked is the single most
-    common way a good SLO becomes a muted alert.</p>
+    the requests. At 10 req/hour, one failure creates a 10% observed error rate; against the 0.1% allowance for a 99.9%
+    SLO, that is a <strong>100× burn</strong> and can page immediately. The Workbook paragraph prints 1,000× here, but
+    that conflicts with its definition; its 13.9%-of-budget and roughly-seven-failures figures agree with the 100×
+    result. Widen the window, aggregate across a larger surface, or add a minimum-volume precondition. Shipping the
+    table unchecked is the single most common way a good SLO becomes a muted alert.</p>
   </div>
 </div>
 
@@ -502,8 +509,8 @@ window.DIAGRAM = {
     { id:"burn", step:5, x:26, y:430, w:460, h:60, label:"BURN RATE ALERTS\n14.4× / 1h page · 6× / 6h page · 1× / 3d ticket",
       detail:"consumed = burn rate × window ÷ period. Burn 1 = exactly empty at the window's end; burn 1,000 = 43 minutes. One threshold has low recall: '35x never alerts, but consumes all of the 30-day budget in 20.5 hours.'" },
 
-    { id:"lowq", step:6, x:26, y:504, w:222, h:56, label:"⚠ low-traffic trap\n10 req/hr → 1 failure = 1,000×",
-      detail:"At 10 req/hour a single failure is a 10% hourly error rate — a 1,000× burn that pages immediately and allows only seven failed requests in 30 days. Check volume before you copy the table." },
+    { id:"lowq", step:6, x:26, y:504, w:222, h:56, label:"⚠ low-traffic trap\n10 req/hr → 1 failure = 100×",
+      detail:"At 10 req/hour a single failure is a 10% hourly error rate. Against a 99.9% SLO's 0.1% allowance, that is 100× burn. The Workbook paragraph prints 1,000×, but its definition and adjacent 13.9% budget figure support 100×. Check volume before copying the table." },
     { id:"otel", step:7, x:264, y:504, w:222, h:56, label:"OTel GenAI · status: Development\ngen_ai.client.*",
       detail:"operation.duration (s), token.usage ({token}, type input/output), operation.time_to_first_chunk (streaming only). Server-side: time_to_first_token, time_per_output_token. error.type is Stable. Conventions moved repos; no tagged release; pin your version." },
 
@@ -527,7 +534,7 @@ window.DIAGRAM = {
     "The <b>SLO</b> is only real when three parties agree: product, developers, and whoever carries the pager. <b>100% is the wrong target</b>, for four documented reasons. <span style='opacity:.7'>(tap)</span>",
     "<b>Error budget = 100% − SLO</b>, spendable. It depoliticizes the tradeoff — and once it's draining, the feature team argues for the reliability work themselves. <span style='opacity:.7'>(tap)</span>",
     "Alert on <b>burn rate</b>, multiwindow: 14.4×/1h and 6×/6h page, 1×/3d tickets. One threshold has low recall — a 35× burn never fires and empties the month in 20.5 hours.",
-    "The trap: on a <b>low-traffic path</b>, one failure at 10 req/hour is a 1,000× burn. Count requests before you copy the thresholds. <span style='opacity:.7'>(tap)</span>",
+    "The trap: on a <b>low-traffic path</b>, one failure at 10 req/hour is a <b>100× burn</b> against a 99.9% SLO. Count requests before you copy the thresholds. <span style='opacity:.7'>(tap)</span>",
     "Name the instruments properly — <b>OTel GenAI</b> client metrics — and run the currency check: the conventions <b>moved repos</b> and are still <b>Development</b> status. <span style='opacity:.7'>(tap)</span>",
     "Last signal: <b>cost</b>. Nothing emits it, so derive it from tokens — and give it a budget, because a cache-hit collapse is a <b>10× bill that latency never sees</b>. <span style='opacity:.7'>(tap)</span>"
   ]
@@ -561,13 +568,13 @@ window.QUIZ = {
     { type: "mcq",
       stem: "Which of these are real problems with shipping the 14.4×/1h + 6×/6h + 1×/3d table unchanged onto a low-volume pilot path? (select all that apply)",
       options: [
-        "A single failed request at 10 req/hour is a 1,000× burn rate and pages immediately",
+        "A single failed request at 10 req/hour is a 100× burn rate and can page immediately",
         "The path allows only about seven failed requests in 30 days at that volume",
-        "The burn-rate formula stops being arithmetically valid below 1,000 req/hour",
+        "The burn-rate formula stops being arithmetically valid below a particular request volume",
         "Constant nuisance pages get the alert muted, so the real outage goes unnoticed",
         "Multiwindow alerting is only defined for latency SLOs, not availability" ],
       answer: [0, 1, 3],
-      explain: "The Workbook's own example: at 10 requests/hour one failure is a 10% hourly error rate, a 1,000× burn against a 99.9% SLO, consuming 13.9% of the monthly budget and allowing only seven failures in 30 days. The formula stays valid — it's the signal-to-noise that collapses. Mitigations: widen the window, aggregate across a bigger surface, add a minimum-volume precondition, or loosen the SLO honestly." },
+      explain: "Independent arithmetic: at 10 requests/hour one failure is a 10% hourly error rate; a 99.9% SLO allows 0.1%, so the burn is 100×. Over 30 days, 7,200 requests yield a 7.2-failure budget, so one failure consumes 13.9% and only about seven whole failures fit. The Workbook paragraph prints 1,000× for this scenario, but that conflicts with its definition and adjacent figures. The formula stays valid — signal-to-noise collapses. Mitigations: widen the window, aggregate across a bigger surface, add a minimum-volume precondition, or loosen the SLO honestly." },
     { type: "match",
       stem: "Match each artifact or claim to what it actually is.",
       pairs: [
