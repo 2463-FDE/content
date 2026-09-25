@@ -8,6 +8,97 @@
 <title>W7·D4 — SRE for AI Systems: SLOs, Error Budgets &amp; OTel GenAI | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
 <script src="../../assets/js/theme.js"></script>
+<style>
+/* W7D4 practices are page-scoped so this lane does not alter shared curriculum chrome. */
+.w7-practice { margin:24px 0; padding:18px; border:1px solid var(--line); border-radius:14px; background:var(--surface); box-shadow:0 5px 20px var(--shadow); }
+.reading-col .step .w7-practice p { font-size:15px; line-height:1.55; }
+.w7-practice-title { margin:0 0 6px; font-size:22px; line-height:1.25; }
+.w7-practice-intro { margin:0 0 15px !important; color:var(--ink-soft); }
+.w7-toolbar, .w7-cost-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0; }
+.w7-secondary-btn, .w7-primary-btn { min-height:40px; padding:8px 12px; border-radius:9px; border:1.5px solid var(--line); background:var(--surface-2); color:var(--ink); font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+.w7-primary-btn { border-color:var(--accent); background:var(--accent); color:#fff; }
+.w7-secondary-btn:hover { border-color:var(--accent); color:var(--accent); }
+.w7-secondary-btn:active, .w7-primary-btn:active { transform:translateY(1px); }
+.w7-secondary-btn:focus-visible, .w7-primary-btn:focus-visible, .w7-span-toggle:focus-visible, .w7-guide-select:focus-visible, .w7-cost-input:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+.w7-seed { margin-left:auto; color:var(--ink-soft); font:12px/1.4 var(--mono); }
+.w7-trace-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; margin:14px 0; overflow:hidden; border:1px solid var(--line); border-radius:10px; background:var(--line); }
+.w7-trace-metric { min-width:0; padding:9px 10px; background:var(--surface-2); }
+.w7-metric-label, .w7-output-label { display:block; color:var(--ink-soft); font-size:11px; line-height:1.25; }
+.w7-metric-value, .w7-output-value { display:block; margin-top:3px; color:var(--ink); font:700 13px/1.3 var(--mono); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.w7-trace-tree { display:flex; flex-direction:column; gap:5px; margin:14px 0 20px; }
+.w7-span-row { margin-left:calc(var(--trace-depth) * 18px); border:1px solid var(--line); border-radius:9px; background:var(--surface-2); overflow:hidden; }
+.w7-span-row.is-error { border-color:var(--bad-line); }
+.w7-span-toggle { width:100%; display:grid; grid-template-columns:minmax(160px,1fr) minmax(100px,1.2fr) 58px; gap:10px; align-items:center; padding:9px 10px; border:0; background:transparent; color:var(--ink); font:inherit; text-align:left; cursor:pointer; }
+.w7-span-caret { grid-column:1; grid-row:1; align-self:start; width:18px; color:var(--accent); font:700 16px/1 var(--mono); }
+.w7-span-identity { grid-column:1; grid-row:1; min-width:0; padding-left:24px; }
+.w7-span-name { display:block; font:600 12px/1.35 var(--mono); overflow-wrap:anywhere; }
+.w7-span-kind { display:block; margin-top:2px; color:var(--ink-soft); font-size:10px; line-height:1.3; }
+.w7-waterfall-track { grid-column:2; position:relative; height:18px; border-radius:5px; background:var(--code-bg); overflow:hidden; }
+.w7-waterfall-bar { position:absolute; top:3px; bottom:3px; left:var(--trace-start); width:var(--trace-width); min-width:3px; border-radius:3px; background:var(--accent); }
+.w7-span-row.is-error .w7-waterfall-bar { background:var(--bad); }
+.w7-span-duration { grid-column:3; justify-self:end; font:600 11px/1 var(--mono); font-variant-numeric:tabular-nums; }
+.w7-span-detail { display:flex; flex-wrap:wrap; gap:5px 12px; padding:9px 12px 11px 34px; border-top:1px solid var(--line); color:var(--ink-soft); font-size:11px; line-height:1.45; }
+.w7-span-detail[hidden] { display:none; }
+.w7-meta-pair b { color:var(--ink); }
+.reading-col .step .w7-span-note { flex-basis:100%; margin:3px 0 0; font-size:12px; color:var(--ink-soft); }
+.w7-trace-guide { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding-top:15px; border-top:1px solid var(--line); }
+.w7-guide-title { grid-column:1/-1; margin:0; font-size:17px; }
+.w7-guide-field, .w7-cost-field { display:flex; min-width:0; flex-direction:column; gap:5px; }
+.w7-guide-label, .w7-cost-label { color:var(--ink); font-size:12px; font-weight:700; line-height:1.35; }
+.w7-guide-select, .w7-cost-input { width:100%; min-width:0; min-height:42px; padding:7px 9px; border:1.5px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); font:inherit; font-size:13px; }
+.w7-trace-guide .w7-primary-btn { grid-column:1; justify-self:start; }
+.w7-feedback { flex:1; align-self:center; min-width:180px; color:var(--ink-soft); font-size:12.5px; line-height:1.45; }
+.w7-trace-guide .w7-feedback { grid-column:2/-1; }
+.w7-feedback.is-error { color:var(--bad-ink); }
+.w7-feedback.is-ok { color:var(--good-ink); }
+.w7-price-date { margin:0 0 12px !important; color:var(--ink-soft); }
+.w7-price-date a { color:var(--accent); font-weight:700; }
+.w7-price-table { width:100%; border-collapse:collapse; margin:8px 0 16px; font-size:12px; font-variant-numeric:tabular-nums; }
+.w7-price-table th, .w7-price-table td { padding:7px 8px; border-bottom:1px solid var(--line); text-align:right; }
+.w7-price-table th:first-child { text-align:left; }
+.w7-price-table thead th { color:var(--ink-soft); font-size:11px; }
+.w7-cost-controls { display:grid; grid-template-columns:1.25fr repeat(4,minmax(0,1fr)); gap:10px; }
+.w7-field-help { color:var(--ink-soft); font-size:10px; line-height:1.3; }
+.w7-cost-input[aria-invalid="true"] { border-color:var(--bad); }
+.reading-col .step .w7-formula { margin:15px 0 !important; padding:10px 12px; border-radius:8px; background:var(--code-bg); color:var(--ink-soft); font:12px/1.55 var(--mono); }
+.w7-cost-outputs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.w7-cost-output { padding:10px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); }
+.w7-cost-output .w7-output-value { font-size:15px; }
+.reading-col .step .w7-assumptions { margin:13px 0 0; color:var(--ink-soft); font-size:12px; }
+.w7-visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+@media (max-width:700px) {
+  .w7-practice { padding:14px; }
+  .w7-trace-summary, .w7-cost-outputs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .w7-trace-guide, .w7-cost-controls { grid-template-columns:1fr 1fr; }
+  .w7-trace-guide .w7-primary-btn { grid-column:1; }
+  .w7-trace-guide .w7-feedback { grid-column:2; }
+  .w7-cost-field:first-child { grid-column:1/-1; }
+}
+@media (max-width:430px) {
+  .topbar { padding:8px 10px; gap:8px; }
+  .topbar-center, .topbar-left .topnav { display:none; }
+  .topbar-left { flex:1 1 auto; }
+  .topbar-right { flex:0 0 auto; gap:8px; }
+  .progressbar { flex-basis:72px; }
+  .reading-col code { overflow-wrap:anywhere; word-break:break-word; }
+  .w7-practice { margin-left:-6px; margin-right:-6px; padding:12px; }
+  .w7-toolbar { align-items:stretch; }
+  .w7-toolbar .w7-secondary-btn { flex:1 1 120px; }
+  .w7-seed { flex-basis:100%; margin-left:0; }
+  .w7-span-row { margin-left:calc(var(--trace-depth) * 10px); }
+  .w7-span-toggle { grid-template-columns:minmax(0,1fr) 54px; gap:7px; }
+  .w7-waterfall-track { grid-column:1/-1; margin-left:24px; }
+  .w7-span-duration { grid-column:2; grid-row:1; }
+  .w7-span-detail { padding-left:12px; }
+  .w7-trace-guide, .w7-cost-controls { grid-template-columns:1fr; }
+  .w7-trace-guide .w7-primary-btn, .w7-trace-guide .w7-feedback, .w7-cost-field:first-child { grid-column:1; }
+  .w7-cost-actions { align-items:stretch; }
+  .w7-cost-actions .w7-feedback { flex-basis:100%; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .w7-secondary-btn:active, .w7-primary-btn:active { transform:none; }
+}
+</style>
 </head>
 <body>
 
@@ -182,9 +273,9 @@
         days, sending an active notification is appropriate. Otherwise, a ticket-based notification… the next working
         day is more appropriate." A slow reconciliation drift is a ticket, not a 3 a.m. page — and now you have a
         principled reason rather than a preference.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a low-traffic simulator — dial
-        requests/hour from 10,000 down to 10 and watch one failure swing from invisible to a 1,000× page. Needs backend
-        standup.</p></div>
+        <div class="w7-practice" data-w7-trace data-seed="intake-timeout-07">
+          <noscript>This synthetic trace inspection requires JavaScript. No live telemetry or vendor export is used.</noscript>
+        </div>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -229,9 +320,9 @@
         "if both <code>cache_creation_input_tokens</code> and <code>cache_read_input_tokens</code> are 0, the prompt was
         not cached" — so a daily hit-ratio check catches it. Give cost a dollars-per-day budget and the same burn-rate
         machinery.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a cost-burn panel — toggle the
-        cache-hit ratio on a week of token usage and watch derived spend cross its budget while latency and errors stay
-        flat green. Needs backend standup.</p></div>
+        <div class="w7-practice" data-w7-cost>
+          <noscript>The token-cost burn calculator requires JavaScript. It never calls a provider or reads live usage.</noscript>
+        </div>
         <p>One last discipline. The conventions are default-private: instructions, messages and outputs "SHOULD NOT" be
         captured by default, and every content attribute is <strong>Opt-In</strong>, flagged as likely PII. That's a
         gift — metrics and spans <em>without payloads</em> give you every golden signal plus token cost, with no
@@ -546,6 +637,7 @@ def call_model(messages, model=MODEL):
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive-w7-trace.js"></script>
 <script src="../../assets/js/codeviewer.js"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
