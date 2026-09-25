@@ -245,37 +245,98 @@ process.stdout.write(JSON.stringify({states, networkEvents}));
         self.assertEqual(14, sum(counts.values()))
         self.assertEqual(1, len(ParsedPage(ROOT / "weeks" / "w04" / "w04d2.html").root.find_all("div", "ix-checkpoint")))
 
-    def test_w4d2_publishes_keyboard_hook_and_reset_restores_initial_state(self) -> None:
+    def test_w4d2_mounted_simulator_handles_keyboard_focus_and_reset(self) -> None:
         page = ParsedPage(ROOT / "weeks" / "w04" / "w04d2.html")
         roots = [node for node in page.root.find_all("div", "ix-checkpoint") if "data-checkpoint-sim" in node.attrs]
         self.assertEqual(1, len(roots))
         self.assertEqual("0", roots[0].attrs.get("tabindex"))
-        self.assertEqual("Alt+S Alt+C Alt+R Alt+0", roots[0].attrs.get("data-keyboard-shortcuts"))
+        self.assertEqual("group", roots[0].attrs.get("role"))
+        self.assertTrue(roots[0].attrs.get("aria-label"))
         scripts = [script.attrs.get("src", "") for script in page.root.find_all("script")]
         self.assertEqual(1, len([src for src in scripts if "interactive-w4-checkpoint.js" in src]))
 
-        module_probe = r"""
+        probe = r"""
 const api = require(process.argv[1]);
-const machine = api.createMachine();
-machine.step();
-machine.step();
-machine.crash();
-machine.resume();
-const reset = machine.reset();
-process.stdout.write(JSON.stringify(reset));
+const doc = { activeElement: null };
+function el(extra) {
+  const listeners = {};
+  return Object.assign({
+    dataset: {}, disabled: false, innerHTML: "", textContent: "", className: "",
+    addEventListener(type, fn) { (listeners[type] = listeners[type] || []).push(fn); },
+    dispatchEvent(event) { (listeners[event.type] || []).forEach(fn => fn(event)); return true; },
+    focus() { doc.activeElement = this; },
+    fire(type, props) {
+      const event = Object.assign({ type, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; } }, props);
+      this.dispatchEvent(event);
+      return event;
+    },
+  }, extra);
+}
+globalThis.CustomEvent = class { constructor(type, init) { this.type = type; this.detail = init && init.detail; } };
+const buttons = ["step", "crash", "resume", "reset"].map(action => {
+  const button = el();
+  button.dataset.cpAction = action;
+  return button;
+});
+const statusSpan = el();
+const parts = {
+  ".cp-graph": el(), ".cp-status": el({ querySelector: () => statusSpan }), ".cp-checkpoint": el(),
+  "[data-cp-skipped]": el(), "[data-cp-replayed]": el(), ".cp-log ol": el(),
+};
+const container = el({ querySelectorAll: () => buttons, querySelector: selector => parts[selector] });
+let view = null;
+container.addEventListener("w4checkpoint:change", event => { view = event.detail; });
+const [step, crash, resume, reset] = buttons;
+const name = node => node ? (node.dataset.cpAction || "other") : null;
+const record = (label, event) => ({
+  label, phase: view.phase, checkpoint: view.checkpoint, focus: name(doc.activeElement),
+  status: parts[".cp-status"].innerHTML,
+  disabled: { step: step.disabled, crash: crash.disabled, resume: resume.disabled },
+  prevented: event ? event.defaultPrevented : null,
+});
+api.mount(container);
+const log = [record("mounted")];
+const macKey = (key, code) => container.fire("keydown", { altKey: true, ctrlKey: false, metaKey: false, key, code });
+log.push(record("alt-s", macKey("ß", "KeyS")));
+step.focus();
+step.fire("click");
+log.push(record("click-step"));
+log.push(record("alt-c", macKey("ç", "KeyC")));
+log.push(record("alt-r", macKey("®", "KeyR")));
+step.fire("click");
+step.fire("click");
+step.fire("click");
+log.push(record("complete"));
+log.push(record("alt-0", macKey("º", "Digit0")));
+log.push(record("plain-s", container.fire("keydown", { altKey: false, key: "s", code: "KeyS" })));
+process.stdout.write(JSON.stringify(log));
 """
         result = subprocess.run(
-            ["node", "-e", module_probe, str(SIMULATOR)],
+            ["node", "-e", probe, str(SIMULATOR)],
             text=True,
             capture_output=True,
             check=True,
         )
-        reset = json.loads(result.stdout)
-        self.assertEqual("ready", reset["phase"])
-        self.assertEqual(0, reset["checkpoint"])
-        self.assertEqual([], reset["skipped"])
-        self.assertEqual([], reset["replayed"])
-
+        log = {entry["label"]: entry for entry in json.loads(result.stdout)}
+        self.assertEqual("ready", log["mounted"]["phase"])
+        self.assertEqual(1, log["alt-s"]["checkpoint"])
+        self.assertTrue(log["alt-s"]["prevented"])
+        self.assertEqual(2, log["click-step"]["checkpoint"])
+        self.assertEqual("crash", log["click-step"]["focus"])
+        self.assertTrue(log["click-step"]["disabled"]["step"])
+        self.assertEqual("crashed", log["alt-c"]["phase"])
+        self.assertEqual("resume", log["alt-c"]["focus"])
+        self.assertIn("Inspect the durable checkpoint", log["alt-c"]["status"])
+        self.assertEqual("resumed", log["alt-r"]["phase"])
+        self.assertEqual("step", log["alt-r"]["focus"])
+        self.assertEqual("complete", log["complete"]["phase"])
+        self.assertEqual("reset", log["complete"]["focus"])
+        self.assertTrue(log["complete"]["disabled"]["step"])
+        self.assertEqual("ready", log["alt-0"]["phase"])
+        self.assertEqual(0, log["alt-0"]["checkpoint"])
+        self.assertEqual("step", log["alt-0"]["focus"])
+        self.assertFalse(log["plain-s"]["prevented"])
+        self.assertEqual(0, log["plain-s"]["checkpoint"])
 
 if __name__ == "__main__":
     unittest.main()
