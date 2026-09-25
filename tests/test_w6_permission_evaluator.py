@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "assets" / "js" / "interactive-w6-permissions.js"
+SCRIPT_URL = "../../assets/js/interactive-w6-permissions.js?v=20260924"
 PAGES = {
     "w06d2.html": ("all", 2),
     "w06d4.html": ("legacy", 2),
@@ -19,13 +20,15 @@ PAGES = {
 EXPECTED = {
     "docs-guide": ("allow", "F-02"),
     "source-read": ("allow", "F-03"),
-    "secret-file": ("deny", "F-01"),
+    "restricted-read": ("deny", "F-01"),
     "sensitive-arg": ("deny", "S-01"),
     "unit-tests": ("allow", "T-01"),
     "deployment-tests": ("deny", "T-02"),
     "public-fetch": ("allow", "H-01"),
     "unknown-fetch": ("deny", "D-01"),
     "shell-command": ("deny", "D-01"),
+    "outside-source": ("deny", "D-01"),
+    "case-variant": ("deny", "D-01"),
 }
 
 
@@ -51,364 +54,233 @@ class PageContractParser(HTMLParser):
 
 
 def run_node(script: str) -> dict:
-    result = subprocess.run(
-        ["node", "-e", script],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        check=True,
-    )
+    result = subprocess.run(["node", "-e", script], cwd=ROOT, text=True, capture_output=True, check=True)
     return json.loads(result.stdout)
 
 
 class Week6PermissionEvaluatorTests(unittest.TestCase):
     def test_seeded_fixture_verdicts_and_exact_deciding_rules(self) -> None:
-        script = textwrap.dedent(
-            """
+        contract = run_node(textwrap.dedent("""
             const policy = require('./assets/js/interactive-w6-permissions.js');
             const results = {};
-            for (const item of policy.CASES) {
-              const evaluated = policy.evaluateCall(item.call);
-              results[item.id] = {
-                verdict: evaluated.verdict,
-                decidingRule: evaluated.decidingRule,
-                fixtureVerdict: item.verdict
-              };
+            for (const item of policy.fixtures()) {
+              const result = policy.evaluateCall(item.call);
+              results[item.id] = { verdict: result.verdict, decidingRule: result.decidingRule };
             }
-            process.stdout.write(JSON.stringify({ count: policy.CASES.length, results }));
-            """
-        )
-        contract = run_node(script)
-        self.assertGreaterEqual(contract["count"], 8)
+            process.stdout.write(JSON.stringify({ results, rules: policy.rules(), sets: policy.sets() }));
+        """))
+        self.assertGreaterEqual(len(contract["results"]), 8)
         self.assertEqual(set(EXPECTED), set(contract["results"]))
         for case_id, (verdict, rule_id) in EXPECTED.items():
             with self.subTest(case=case_id):
-                result = contract["results"][case_id]
-                self.assertEqual(verdict, result["verdict"])
-                self.assertEqual(verdict, result["fixtureVerdict"])
-                self.assertEqual(rule_id, result["decidingRule"])
+                self.assertEqual({"verdict": verdict, "decidingRule": rule_id}, contract["results"][case_id])
+        self.assertEqual("src/**", next(rule["target"] for rule in contract["rules"] if rule["id"] == "F-03"))
+        self.assertNotIn("**", [rule["target"] for rule in contract["rules"] if rule["tool"] == "file.read"])
 
-    def test_precedence_trace_explains_specific_wildcard_and_sensitive_matches(self) -> None:
-        script = textwrap.dedent(
-            """
+    def test_precedence_trace_covers_specific_wildcard_and_sensitive_rules(self) -> None:
+        result = run_node(textwrap.dedent("""
             const policy = require('./assets/js/interactive-w6-permissions.js');
-            const byId = Object.fromEntries(policy.CASES.map(item => [item.id, item]));
+            const cases = Object.fromEntries(policy.fixtures().map(item => [item.id, item]));
             const inspect = id => {
-              const result = policy.evaluateCall(byId[id].call);
-              return {
-                decidingRule: result.decidingRule,
-                matched: result.trace.filter(row => row.matched).map(row => ({
-                  id: row.id, decision: row.decision, precedence: row.precedence
-                }))
-              };
+              const result = policy.evaluateCall(cases[id].call);
+              return { decidingRule: result.decidingRule, matched: result.trace.filter(row => row.matched) };
             };
             process.stdout.write(JSON.stringify({
-              restricted: inspect('secret-file'),
-              unit: inspect('unit-tests'),
-              sensitive: inspect('sensitive-arg')
+              restricted: inspect('restricted-read'), unit: inspect('unit-tests'), sensitive: inspect('sensitive-arg')
             }));
-            """
-        )
-        result = run_node(script)
+        """))
         self.assertEqual("F-01", result["restricted"]["decidingRule"])
-        self.assertEqual(["F-01", "F-03", "D-01"], [row["id"] for row in result["restricted"]["matched"]])
+        self.assertEqual(["F-01", "D-01"], [row["id"] for row in result["restricted"]["matched"]])
         self.assertTrue(result["restricted"]["matched"][1]["precedence"])
-        self.assertEqual("T-01", result["unit"]["decidingRule"])
         self.assertEqual(["T-01", "T-02", "D-01"], [row["id"] for row in result["unit"]["matched"]])
         self.assertEqual("S-01", result["sensitive"]["decidingRule"])
-        self.assertIn("F-02", [row["id"] for row in result["sensitive"]["matched"]])
+        self.assertIn("args.api_token", result["sensitive"]["matched"][0]["reason"])
 
-    def test_malformed_and_nested_sensitive_inputs_are_handled_deterministically(self) -> None:
-        script = textwrap.dedent(
-            """
+    def test_bounded_posix_relative_path_grammar_and_surprising_reads(self) -> None:
+        result = run_node(textwrap.dedent("""
             const policy = require('./assets/js/interactive-w6-permissions.js');
-            const malformed = [null, {}, {tool: ''}, {tool: 'file.read', args: []}]
-              .map(value => policy.evaluateCall(value));
-            const nested = policy.evaluateCall({
-              tool: 'file.read',
-              args: { path: 'docs/setup.md', metadata: { private_key: 'synthetic-only' } }
+            const paths = [
+              'docs/guide.md', 'src/app.js', 'restricted/x', 'vendor/x', 'Docs/guide.md',
+              '/restricted/x', String.raw`\\restricted\\x`, './restricted/x', 'docs/./x',
+              'docs/../restricted/x', 'docs//x', 'docs/x/', ' docs/x', 'docs/x ',
+              String.raw`docs\\x`, 'docs/' + String.fromCharCode(0) + 'x', ''
+            ];
+            const rows = paths.map(path => {
+              const result = policy.evaluateCall({tool:'file.read', args:{path}});
+              return {path, ok:result.ok, verdict:result.verdict, rule:result.decidingRule || null, error:result.error || null};
             });
-            process.stdout.write(JSON.stringify({ malformed, nested }));
-            """
-        )
-        result = run_node(script)
-        self.assertTrue(all(not item["ok"] and item["error"] for item in result["malformed"]))
-        self.assertEqual("deny", result["nested"]["verdict"])
-        self.assertEqual("S-01", result["nested"]["decidingRule"])
+            process.stdout.write(JSON.stringify(rows));
+        """))
+        rows = {row["path"]: row for row in result}
+        self.assertEqual((True, "allow", "F-02"), (rows["docs/guide.md"]["ok"], rows["docs/guide.md"]["verdict"], rows["docs/guide.md"]["rule"]))
+        self.assertEqual((True, "allow", "F-03"), (rows["src/app.js"]["ok"], rows["src/app.js"]["verdict"], rows["src/app.js"]["rule"]))
+        for path, rule in [("restricted/x", "F-01"), ("vendor/x", "D-01"), ("Docs/guide.md", "D-01")]:
+            self.assertTrue(rows[path]["ok"], path)
+            self.assertEqual(("deny", rule), (rows[path]["verdict"], rows[path]["rule"]))
+        malformed = set(rows) - {"docs/guide.md", "src/app.js", "restricted/x", "vendor/x", "Docs/guide.md"}
+        for path in malformed:
+            with self.subTest(path=repr(path)):
+                self.assertFalse(rows[path]["ok"])
+                self.assertEqual("deny", rows[path]["verdict"])
+                self.assertTrue(rows[path]["error"])
 
-    def test_predict_check_retry_and_reset_session_behavior(self) -> None:
-        script = textwrap.dedent(
-            """
+    def test_sensitive_rule_has_bounded_positive_and_negative_controls(self) -> None:
+        result = run_node(textwrap.dedent("""
             const policy = require('./assets/js/interactive-w6-permissions.js');
-            const session = policy.createSession(['docs-guide', 'deployment-tests']);
-            const before = session.check();
-            session.predict('deny');
-            const wrong = session.check();
-            session.retry();
-            const retried = session.state();
-            session.predict('allow');
-            const right = session.check();
-            session.next();
-            session.predict('deny');
-            const second = session.check();
+            const check = args => policy.evaluateCall({tool:'file.read', args:{path:'docs/setup.md', ...args}});
+            const positive = [
+              {api_token:'synthetic'}, {meta:{' Private-Key ':'synthetic'}},
+              {path:'docs/setup.md', note:' .ENV.local '}, {header:'Bearer abcdefgh'},
+              {nested:{PASSWORD:'synthetic'}}, {material:'-----BEGIN PRIVATE KEY-----'}
+            ].map(check);
+            const negative = [
+              {max_tokens:4096}, {file:'src/tokenizer.py'}, {topic:'docs/secrets-management.md'},
+              {role:'secretary'}, {note:'tokenization'}, {header:'Bearer short'}
+            ].map(check);
+            process.stdout.write(JSON.stringify({positive, negative}));
+        """))
+        for item in result["positive"]:
+            self.assertEqual(("deny", "S-01"), (item["verdict"], item["decidingRule"]))
+            self.assertIn("args.", item["trace"][0]["reason"])
+        for item in result["negative"]:
+            self.assertEqual(("allow", "F-02"), (item["verdict"], item["decidingRule"]))
+
+    def test_public_evaluator_rejects_prototypes_accessors_cycles_and_excess_depth(self) -> None:
+        result = run_node(textwrap.dedent("""
+            const policy = require('./assets/js/interactive-w6-permissions.js');
+            const inherited = Object.create({tool:'file.read', args:{path:'docs/x'}});
+            const accessor = {}; Object.defineProperty(accessor, 'tool', {get(){throw new Error('read getter')}});
+            Object.defineProperty(accessor, 'args', {value:{path:'docs/x'}, enumerable:true});
+            const cyclicArgs = {}; cyclicArgs.self = cyclicArgs;
+            let deep = {}; let cursor = deep; for(let i=0;i<8;i++){cursor.next={}; cursor=cursor.next;}
+            const values = [inherited, accessor, {tool:'file.read',args:cyclicArgs}, {tool:'file.read',args:deep},
+              {tool:'unknown',args:{}}, {tool:' file.read',args:{path:'docs/x'}}];
+            const results = values.map(value => { try { return policy.evaluateCall(value); } catch(error) { return {threw:error.message}; } });
+            const fixtures = policy.fixtures(); const rules = policy.rules();
+            let fixtureFrozen = Object.isFrozen(fixtures) && Object.isFrozen(fixtures[0]) && Object.isFrozen(fixtures[0].call.args);
+            let rulesFrozen = Object.isFrozen(rules) && Object.isFrozen(rules[0]);
+            process.stdout.write(JSON.stringify({results, fixtureFrozen, rulesFrozen}));
+        """))
+        self.assertTrue(result["fixtureFrozen"])
+        self.assertTrue(result["rulesFrozen"])
+        self.assertFalse(any("threw" in item for item in result["results"]))
+        for item in result["results"][:4] + result["results"][5:]:
+            self.assertFalse(item["ok"])
+            self.assertEqual("deny", item["verdict"])
+        self.assertEqual(("deny", "D-01"), (result["results"][4]["verdict"], result["results"][4]["decidingRule"]))
+
+    def test_predict_check_retry_reset_and_changed_prediction_session_state(self) -> None:
+        result = run_node(textwrap.dedent("""
+            const policy = require('./assets/js/interactive-w6-permissions.js');
+            const session = policy.createSession(['docs-guide','deployment-tests']);
+            const before=session.check(); session.predict('deny'); const wrong=session.check();
+            session.predict('allow'); const changed=session.state(); const right=session.check();
+            session.next(); session.predict('deny'); const second=session.check(); session.retry(); const retried=session.state();
             session.reset();
-            process.stdout.write(JSON.stringify({
-              before, wrong, retried, right, second,
-              reset: session.state(), resetCase: session.current().id
-            }));
-            """
-        )
-        result = run_node(script)
+            process.stdout.write(JSON.stringify({before,wrong,changed,right,second,retried,reset:session.state(),current:session.current()}));
+        """))
         self.assertFalse(result["before"]["ok"])
         self.assertFalse(result["wrong"]["correct"])
-        self.assertIsNone(result["retried"]["prediction"])
-        self.assertFalse(result["retried"]["checked"])
+        self.assertFalse(result["changed"]["checked"])
         self.assertTrue(result["right"]["correct"])
         self.assertTrue(result["second"]["correct"])
+        self.assertEqual({"index": 1, "prediction": None, "checked": False, "total": 2}, result["retried"])
         self.assertEqual({"index": 0, "prediction": None, "checked": False, "total": 2}, result["reset"])
-        self.assertEqual("docs-guide", result["resetCase"])
+        self.assertNotIn("verdict", result["current"])
 
-    def test_pages_replace_one_placeholder_and_load_the_matching_drill(self) -> None:
+    def test_pages_replace_placeholders_and_load_exact_script_url(self) -> None:
         for filename, (case_set, future_count) in PAGES.items():
             with self.subTest(page=filename):
                 parser = PageContractParser()
                 parser.feed((ROOT / "weeks" / "w06" / filename).read_text(encoding="utf-8"))
-                parser.close()
                 self.assertEqual(1, len(parser.widgets))
-                widget = parser.widgets[0]
-                self.assertTrue(widget.get("id"))
-                self.assertEqual(case_set, widget.get("data-case-set"))
+                self.assertEqual(case_set, parser.widgets[0].get("data-case-set"))
                 self.assertEqual(future_count, parser.future_count)
-                self.assertEqual(1, sum("interactive-w6-permissions.js" in src for src in parser.scripts))
+                self.assertEqual(1, parser.scripts.count(SCRIPT_URL))
         primary = PageContractParser()
         primary.feed((ROOT / "weeks" / "w06" / "w06d2.html").read_text(encoding="utf-8"))
         self.assertIn("w06d4.html#permission-evaluator-legacy", primary.links)
         self.assertIn("w06d5.html#permission-evaluator-delivery", primary.links)
 
-    def test_module_parses_and_executes_without_network_storage_or_host_credentials(self) -> None:
+    def test_module_executes_without_network_storage_credentials_or_broad_browser_api(self) -> None:
         subprocess.run(["node", "--check", str(MODULE)], cwd=ROOT, check=True, capture_output=True, text=True)
-        script = textwrap.dedent(
-            """
-            const fs = require('fs');
-            const vm = require('vm');
-            let calls = 0;
-            const forbidden = () => { calls += 1; throw new Error('external API accessed'); };
-            const sandbox = {
-              module: { exports: {} }, exports: {}, fetch: forbidden,
-              XMLHttpRequest: function () { forbidden(); }
-            };
-            Object.defineProperty(sandbox, 'localStorage', { get: forbidden });
-            Object.defineProperty(sandbox, 'sessionStorage', { get: forbidden });
-            Object.defineProperty(sandbox, 'process', { get: forbidden });
-            sandbox.globalThis = sandbox;
-            vm.runInNewContext(
-              fs.readFileSync('./assets/js/interactive-w6-permissions.js', 'utf8'),
-              sandbox,
-              { filename: 'interactive-w6-permissions.js' }
-            );
-            const policy = sandbox.module.exports;
-            const verdicts = policy.CASES.map(item => policy.evaluateCall(item.call).verdict);
-            console.log(JSON.stringify({ calls, verdicts, initialized: typeof policy.init === 'function' }));
-            """
-        )
-        result = run_node(script)
+        result = run_node(textwrap.dedent("""
+            const fs=require('fs'), vm=require('vm'); let calls=0;
+            const forbidden=()=>{calls++;throw new Error('external API accessed')};
+            const sandbox={module:{exports:{}},exports:{},fetch:forbidden,XMLHttpRequest:function(){forbidden()}};
+            for(const name of ['localStorage','sessionStorage','indexedDB','process']) Object.defineProperty(sandbox,name,{get:forbidden});
+            sandbox.globalThis=sandbox;
+            vm.runInNewContext(fs.readFileSync('./assets/js/interactive-w6-permissions.js','utf8'),sandbox,{filename:'interactive-w6-permissions.js'});
+            const testing=sandbox.module.exports;
+            const verdicts=testing.fixtures().map(item=>testing.evaluateCall(item.call).verdict);
+            process.stdout.write(JSON.stringify({calls,verdicts,browserKeys:Object.keys(sandbox.Week6Permissions),testingKeys:Object.keys(testing)}));
+        """))
         self.assertEqual(0, result["calls"])
         self.assertEqual(len(EXPECTED), len(result["verdicts"]))
-        self.assertTrue(result["initialized"])
+        self.assertEqual(["init"], result["browserKeys"])
+        self.assertNotIn("CASES", result["testingKeys"])
+        self.assertNotIn("RULES", result["testingKeys"])
 
-    def test_traversal_segments_are_rejected_before_path_rules(self) -> None:
-        script = textwrap.dedent(
-            """
-            const policy = require('./assets/js/interactive-w6-permissions.js');
-            const paths = ['docs/../restricted/x', 'docs\\\\..\\\\restricted\\\\x', '../restricted/x', 'docs/..'];
-            const rejected = paths.map(path => policy.evaluateCall({ tool: 'file.read', args: { path } }));
-            const dotted = policy.evaluateCall({ tool: 'file.read', args: { path: 'docs/v1..v2-notes.md' } });
-            process.stdout.write(JSON.stringify({ rejected, dotted }));
-            """
-        )
-        result = run_node(script)
-        for item in result["rejected"]:
-            self.assertFalse(item["ok"])
-            self.assertIn("traversal", item["error"])
-        self.assertEqual("F-02", result["dotted"]["decidingRule"])
-
-    def test_widget_renders_accessible_text_only_ui_and_handles_events_offline(self) -> None:
-        script = textwrap.dedent(
-            """
-            const fs = require('fs');
-            const vm = require('vm');
-            let calls = 0;
-            const forbidden = () => { calls += 1; throw new Error('forbidden API accessed'); };
-
-            class TextNode {
-              constructor(data) { this.nodeType = 3; this.data = String(data); }
-              get textContent() { return this.data; }
-            }
-            class Element {
-              constructor(tag) {
-                this.nodeType = 1; this.tagName = tag.toUpperCase(); this.children = [];
-                this.attributes = {}; this.listeners = {}; this.className = ''; this.id = '';
-                this.value = ''; this.checked = false; this.type = ''; this.name = '';
-              }
-              get textContent() { return this.children.map(child => child.textContent).join(''); }
-              set textContent(value) { this.children = value === '' ? [] : [new TextNode(value)]; }
-              set innerHTML(value) { forbidden(); }
-              get innerHTML() { return forbidden(); }
-              set outerHTML(value) { forbidden(); }
-              insertAdjacentHTML() { forbidden(); }
-              appendChild(child) { this.children.push(child); child.parentNode = this; return child; }
-              setAttribute(name, value) { this.attributes[name] = String(value); }
-              getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attributes, name) ? this.attributes[name] : null; }
-              addEventListener(type, handler) { (this.listeners[type] = this.listeners[type] || []).push(handler); }
-              dispatch(type) { (this.listeners[type] || []).forEach(handler => handler({ type, target: this })); }
-              focus() { document.activeElement = this; }
-            }
-            const all = node => [node].concat((node.children || []).filter(c => c.nodeType === 1).flatMap(all));
-            const body = new Element('body');
-            const head = new Element('head');
-            const widget = new Element('div');
-            widget.className = 'ix-permission';
-            widget.id = 'perm';
-            widget.setAttribute('data-case-set', 'all');
-            body.appendChild(widget);
-            const document = {
-              readyState: 'complete', head, body, activeElement: null,
-              createElement: tag => new Element(tag),
-              createTextNode: text => new TextNode(text),
-              getElementById: id => all(head).concat(all(body)).find(node => node.id === id) || null,
-              querySelectorAll: selector => selector === '.ix-permission' ? all(body).filter(n => n.className.split(' ').includes('ix-permission')) : [],
-              addEventListener() {},
-              write: forbidden
-            };
-            const sandbox = {
-              module: { exports: {} }, exports: {}, document, fetch: forbidden,
-              XMLHttpRequest: function () { forbidden(); },
-              WebSocket: function () { forbidden(); },
-              EventSource: function () { forbidden(); }
-            };
-            Object.defineProperty(sandbox, 'localStorage', { get: forbidden });
-            Object.defineProperty(sandbox, 'sessionStorage', { get: forbidden });
-            Object.defineProperty(sandbox, 'indexedDB', { get: forbidden });
-            Object.defineProperty(sandbox, 'process', { get: forbidden });
-            sandbox.globalThis = sandbox;
-            vm.runInNewContext(
-              fs.readFileSync('./assets/js/interactive-w6-permissions.js', 'utf8'),
-              sandbox,
-              { filename: 'interactive-w6-permissions.js' }
-            );
-            const policy = sandbox.module.exports;
-            const nodes = () => all(widget);
-            const byTag = tag => nodes().filter(n => n.tagName === tag.toUpperCase());
-            const button = label => byTag('button').find(n => n.textContent === label);
-            const select = byTag('select')[0];
-            const fieldset = byTag('fieldset')[0];
-            const radios = byTag('input').filter(n => n.type === 'radio');
-            const status = nodes().find(n => n.getAttribute('role') === 'status');
-            const feedback = nodes().find(n => n.className === 'perm-feedback');
-            const liveNodes = nodes().filter(n => n.getAttribute('aria-live')).map(n => n.className);
-            const snapshot = () => ({
-              status: status.textContent,
-              traceItems: byTag('li').map(li => ({ text: li.textContent, className: li.className })),
-              selected: select.value,
-              progress: nodes().find(n => n.className === 'perm-progress').textContent,
-              checked: radios.map(r => r.checked)
-            });
-
-            const structure = {
-              styleCount: head.children.filter(n => n.id === 'w6-permission-styles').length,
-              selectLabelFor: byTag('label').find(n => n.getAttribute('for'))?.getAttribute('for'),
-              selectId: select.id,
-              optionCount: byTag('option').length,
-              ruleRows: nodes().filter(n => n.className === 'perm-rule').length,
-              legendFirst: fieldset.children[0].tagName,
-              legendText: fieldset.children[0].textContent,
-              radioLabels: radios.map(r => ({ parent: r.parentNode.tagName, label: r.parentNode.textContent, name: r.name, value: r.value })),
-              statusAttrs: { live: status.getAttribute('aria-live'), atomic: status.getAttribute('aria-atomic') },
-              feedbackLive: [feedback.getAttribute('role'), feedback.getAttribute('aria-live')],
-              liveNodes,
-              buttonTypes: byTag('button').map(b => b.type),
-              hasTextInput: byTag('input').some(n => n.type !== 'radio') || byTag('textarea').length > 0
-            };
-
-            button('Check prediction').dispatch('click');
-            const missing = snapshot();
-            radios[0].checked = true;
-            radios[0].dispatch('change');
-            button('Check prediction').dispatch('click');
-            const checkedCase = snapshot();
-            button('Retry case').dispatch('click');
-            const retried = snapshot();
-            button('Next case').dispatch('click');
-            radios[1].checked = true;
-            radios[1].dispatch('change');
-            button('Check prediction').dispatch('click');
-            const second = snapshot();
-            select.value = 'sensitive-arg';
-            select.dispatch('change');
-            const chosen = snapshot();
-            button('Reset drill').dispatch('click');
-            const reset = snapshot();
-            const resetFocus = document.activeElement === select;
-
-            console.log(JSON.stringify({
-              calls, structure, missing, checkedCase, retried, second, chosen, reset, resetFocus,
-              ruleCount: policy.RULES.length, caseCount: policy.CASES.length
-            }));
-            """
-        )
-        result = run_node(script)
+    def test_widget_dom_has_no_presubmit_leak_and_clears_stale_feedback(self) -> None:
+        result = run_node(DOM_TEST_SCRIPT)
         self.assertEqual(0, result["calls"])
         structure = result["structure"]
-        self.assertEqual(1, structure["styleCount"])
         self.assertEqual(structure["selectId"], structure["selectLabelFor"])
-        self.assertEqual(result["caseCount"], structure["optionCount"])
-        self.assertEqual(result["ruleCount"], structure["ruleRows"])
         self.assertEqual("LEGEND", structure["legendFirst"])
-        self.assertEqual("Your prediction", structure["legendText"])
-        self.assertEqual(
-            [
-                {"parent": "LABEL", "label": "Allow", "name": "perm-prediction", "value": "allow"},
-                {"parent": "LABEL", "label": "Deny", "name": "perm-prediction", "value": "deny"},
-            ],
-            structure["radioLabels"],
-        )
         self.assertEqual({"live": "polite", "atomic": "true"}, structure["statusAttrs"])
-        self.assertEqual([None, None], structure["feedbackLive"])
         self.assertEqual(["perm-verdict"], structure["liveNodes"])
-        self.assertTrue(all(kind == "button" for kind in structure["buttonTypes"]))
         self.assertFalse(structure["hasTextInput"])
-
+        self.assertTrue(all(kind == "button" for kind in structure["buttonTypes"]))
+        self.assertTrue(all(class_name == "perm-check" for class_name in structure["checkClasses"]))
+        for surface in result["preSubmit"] + result["subsetSurfaces"]:
+            lowered = surface.lower()
+            for _, rule in EXPECTED.values():
+                self.assertNotIn(rule.lower(), lowered)
+            self.assertNotIn("focus:", lowered)
+            self.assertNotIn("specific allow", lowered)
+            self.assertNotIn("wildcard deny", lowered)
+            self.assertNotIn("least-privilege fallback", lowered)
+            self.assertNotIn("data-verdict", lowered)
+            self.assertNotIn('value="allow"', lowered)
+            self.assertNotIn('value="deny"', lowered)
         self.assertIn("Choose allow or deny", result["missing"]["status"])
-        self.assertEqual([], result["missing"]["traceItems"])
-
-        checked = result["checkedCase"]
-        self.assertEqual("Correct: ALLOW — deciding rule F-02.", checked["status"])
-        self.assertEqual(result["ruleCount"], len(checked["traceItems"]))
-        deciding = [item for item in checked["traceItems"] if item["className"] == "deciding"]
-        self.assertEqual(1, len(deciding))
-        self.assertTrue(deciding[0]["text"].startswith("F-02: matched."))
-        self.assertIn("Exact deciding rule → ALLOW", deciding[0]["text"])
-        self.assertNotIn("deciding rule", checked["traceItems"][0]["text"].lower())
-
-        self.assertEqual("", result["retried"]["status"])
-        self.assertEqual([], result["retried"]["traceItems"])
-        self.assertEqual([False, False], result["retried"]["checked"])
-
-        second = result["second"]
-        self.assertEqual("source-read", second["selected"])
-        self.assertTrue(second["progress"].startswith("Case 2 of 9"))
-        self.assertEqual("Not yet: ALLOW — deciding rule F-03.", second["status"])
-
-        self.assertEqual("sensitive-arg", result["chosen"]["selected"])
-        self.assertTrue(result["chosen"]["progress"].startswith("Case 4 of 9"))
-
-        reset = result["reset"]
-        self.assertEqual("docs-guide", reset["selected"])
-        self.assertTrue(reset["progress"].startswith("Case 1 of 9"))
-        self.assertEqual([False, False], reset["checked"])
-        self.assertEqual("", reset["status"])
-        self.assertEqual([], reset["traceItems"])
+        self.assertEqual([], result["missing"]["trace"])
+        self.assertIn("deciding rule F-02", result["checked"]["status"])
+        self.assertEqual(8, len(result["checked"]["trace"]))
+        self.assertEqual("Prediction changed—check again.", result["changed"]["status"])
+        self.assertEqual([], result["changed"]["trace"])
+        self.assertIn("deciding rule F-02", result["rechecked"]["status"])
+        self.assertEqual("", result["reset"]["status"])
+        self.assertEqual([], result["reset"]["trace"])
+        self.assertEqual([False, False], result["reset"]["checked"])
         self.assertTrue(result["resetFocus"])
+        self.assertIn("Real permission engines vary", result["boundary"])
+
+
+DOM_TEST_SCRIPT = textwrap.dedent(r"""
+const fs=require('fs'),vm=require('vm');let calls=0;const forbidden=()=>{calls++;throw new Error('forbidden API')};
+class TextNode{constructor(data){this.nodeType=3;this.data=String(data)}get textContent(){return this.data}}
+class Element{
+ constructor(tag){this.nodeType=1;this.tagName=tag.toUpperCase();this.children=[];this.attributes={};this.listeners={};this.className='';this.id='';this.value='';this.checked=false;this.type='';this.name=''}
+ get textContent(){return this.children.map(c=>c.textContent).join('')}set textContent(v){this.children=v===''?[]:[new TextNode(v)]}
+ set innerHTML(v){forbidden()}get innerHTML(){return forbidden()}appendChild(c){this.children.push(c);c.parentNode=this;return c}
+ setAttribute(n,v){this.attributes[n]=String(v)}getAttribute(n){return Object.prototype.hasOwnProperty.call(this.attributes,n)?this.attributes[n]:null}
+ addEventListener(t,h){(this.listeners[t]=this.listeners[t]||[]).push(h)}dispatch(t){(this.listeners[t]||[]).forEach(h=>h({type:t,target:this}))}focus(){document.activeElement=this}
+}
+const all=n=>[n].concat((n.children||[]).filter(c=>c.nodeType===1).flatMap(all));
+const head=new Element('head'),body=new Element('body'),widget=new Element('div');widget.className='ix-permission';widget.id='perm';widget.setAttribute('data-case-set','all');body.appendChild(widget);
+const document={readyState:'complete',head,body,activeElement:null,createElement:t=>new Element(t),createTextNode:t=>new TextNode(t),getElementById:id=>all(head).concat(all(body)).find(n=>n.id===id)||null,querySelectorAll:s=>s==='.ix-permission'?[widget]:[],addEventListener(){},write:forbidden};
+const sandbox={module:{exports:{}},exports:{},document,fetch:forbidden,XMLHttpRequest:function(){forbidden()},WebSocket:function(){forbidden()},EventSource:function(){forbidden()}};
+for(const name of ['localStorage','sessionStorage','indexedDB','process'])Object.defineProperty(sandbox,name,{get:forbidden});sandbox.globalThis=sandbox;
+vm.runInNewContext(fs.readFileSync('./assets/js/interactive-w6-permissions.js','utf8'),sandbox,{filename:'interactive-w6-permissions.js'});
+const policy=sandbox.module.exports,nodes=()=>all(widget),byTag=t=>nodes().filter(n=>n.tagName===t.toUpperCase()),button=t=>byTag('button').find(n=>n.textContent===t),select=byTag('select')[0],radios=byTag('input'),status=nodes().find(n=>n.getAttribute('role')==='status');
+const snap=()=>({status:status.textContent,trace:byTag('li').map(n=>n.textContent),checked:radios.map(r=>r.checked)});
+const preSubmit=[];for(const option of byTag('option')){select.value=option.value;select.dispatch('change');const progress=nodes().find(n=>n.className==='perm-progress').textContent,call=nodes().find(n=>n.className==='perm-call').textContent;preSubmit.push(JSON.stringify({option:{text:option.textContent,value:option.value,className:option.className,attributes:option.attributes},progress,call,status:status.textContent}));}
+select.value='case-1';select.dispatch('change');button('Check prediction').dispatch('click');const missing=snap();radios[0].checked=true;radios[0].dispatch('change');button('Check prediction').dispatch('click');const checked=snap();radios[0].checked=false;radios[1].checked=true;radios[1].dispatch('change');const changed=snap();button('Check prediction').dispatch('click');const rechecked=snap();button('Reset drill').dispatch('click');const reset=snap();
+const structure={selectLabelFor:byTag('label').find(n=>n.getAttribute('for'))?.getAttribute('for'),selectId:select.id,legendFirst:byTag('fieldset')[0].children[0].tagName,statusAttrs:{live:status.getAttribute('aria-live'),atomic:status.getAttribute('aria-atomic')},liveNodes:nodes().filter(n=>n.getAttribute('aria-live')).map(n=>n.className),hasTextInput:radios.some(n=>n.type!=='radio')||byTag('textarea').length>0,buttonTypes:byTag('button').map(n=>n.type),checkClasses:byTag('button').filter(n=>n.textContent==='Check prediction').map(n=>n.className)};
+const subsetSurfaces=[];for(const set of ['legacy','delivery']){widget.setAttribute('data-case-set',set);policy.init(document);const subsetSelect=byTag('select')[0];for(const option of byTag('option')){subsetSelect.value=option.value;subsetSelect.dispatch('change');subsetSurfaces.push(JSON.stringify({set,option:{text:option.textContent,value:option.value,className:option.className,attributes:option.attributes},progress:nodes().find(n=>n.className==='perm-progress').textContent,call:nodes().find(n=>n.className==='perm-call').textContent,status:nodes().find(n=>n.getAttribute('role')==='status').textContent}));}}
+console.log(JSON.stringify({calls,structure,preSubmit,subsetSurfaces,missing,checked,changed,rechecked,reset,resetFocus:document.activeElement===select,boundary:nodes().find(n=>n.className==='perm-boundary').textContent}));
+""")
 
 
 if __name__ == "__main__":
