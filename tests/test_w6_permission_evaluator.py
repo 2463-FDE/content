@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import textwrap
 import unittest
@@ -131,14 +132,17 @@ class Week6PermissionEvaluatorTests(unittest.TestCase):
             const positive = [
               {api_token:'synthetic'}, {meta:{' Private-Key ':'synthetic'}},
               {path:'docs/setup.md', note:' .ENV.local '}, {header:'Bearer abcdefgh'},
-              {nested:{PASSWORD:'synthetic'}}, {material:'-----BEGIN PRIVATE KEY-----'}
+              {nested:{PASSWORD:'synthetic'}}, {material:'-----BEGIN PRIVATE KEY-----'},
+              {apiKey:'synthetic'}, {APIKey:'synthetic'}, {nested:{privateKey:'synthetic'}}, {'API-Token':'synthetic'}
             ].map(check);
             const negative = [
               {max_tokens:4096}, {file:'src/tokenizer.py'}, {topic:'docs/secrets-management.md'},
-              {role:'secretary'}, {note:'tokenization'}, {header:'Bearer short'}
+              {role:'secretary'}, {note:'tokenization'}, {header:'Bearer short'},
+              {maxTokens:4096}, {tokenizerName:'bpe'}, {secretsDoc:'docs/secrets.md'}
             ].map(check);
             process.stdout.write(JSON.stringify({positive, negative}));
         """))
+        self.assertEqual(10, len(result["positive"]))
         for item in result["positive"]:
             self.assertEqual(("deny", "S-01"), (item["verdict"], item["decidingRule"]))
             self.assertIn("args.", item["trace"][0]["reason"])
@@ -153,8 +157,11 @@ class Week6PermissionEvaluatorTests(unittest.TestCase):
             Object.defineProperty(accessor, 'args', {value:{path:'docs/x'}, enumerable:true});
             const cyclicArgs = {}; cyclicArgs.self = cyclicArgs;
             let deep = {}; let cursor = deep; for(let i=0;i<8;i++){cursor.next={}; cursor=cursor.next;}
+            const hostile = {getPrototypeOf(){throw new Error('trap')}, ownKeys(){throw new Error('trap')}, getOwnPropertyDescriptor(){throw new Error('trap')}};
             const values = [inherited, accessor, {tool:'file.read',args:cyclicArgs}, {tool:'file.read',args:deep},
-              {tool:'unknown',args:{}}, {tool:' file.read',args:{path:'docs/x'}}];
+              {tool:'unknown',args:{}}, {tool:' file.read',args:{path:'docs/x'}},
+              new Proxy({tool:'file.read',args:{path:'docs/x'}}, hostile),
+              {tool:'file.read',args:new Proxy({path:'docs/x'}, hostile)}];
             const results = values.map(value => { try { return policy.evaluateCall(value); } catch(error) { return {threw:error.message}; } });
             const fixtures = policy.fixtures(); const rules = policy.rules();
             let fixtureFrozen = Object.isFrozen(fixtures) && Object.isFrozen(fixtures[0]) && Object.isFrozen(fixtures[0].call.args);
@@ -255,6 +262,60 @@ class Week6PermissionEvaluatorTests(unittest.TestCase):
         self.assertEqual([False, False], result["reset"]["checked"])
         self.assertTrue(result["resetFocus"])
         self.assertIn("Real permission engines vary", result["boundary"])
+        self.assertTrue(result["retryFocus"])
+        self.assertTrue(result["nextFocus"])
+        self.assertEqual(1, result["afterNext"]["index"])
+        self.assertEqual("", result["afterNext"]["status"])
+        self.assertTrue(all(kind == "radio" for kind in structure["radioTypes"]))
+        self.assertEqual([], structure["negativeTabIndex"])
+        hint_words = ("unlisted", "unknown", "credential", "secret", "token", "restricted", "case-variant",
+                      "public", "deployment", "unit", "shell", "allow", "deny", "default")
+        for title in result["optionTitles"]:
+            with self.subTest(title=title):
+                for word in hint_words:
+                    self.assertNotIn(word, title.lower())
+
+    def test_check_button_contrast_and_narrow_layout_in_injected_styles(self) -> None:
+        styles = run_node(DOM_TEST_SCRIPT)["styleText"]
+        rules: dict[str, dict[str, str]] = {}
+        media: dict[str, dict[str, dict[str, str]]] = {}
+
+        def parse_block(text: str, target: dict[str, dict[str, str]]) -> None:
+            for selector, body in re.findall(r"([^{}]+)\{([^{}]*)\}", text):
+                declarations = dict(
+                    (name.strip(), value.strip())
+                    for name, value in (item.split(":", 1) for item in body.split(";") if ":" in item)
+                )
+                for part in selector.split(","):
+                    target.setdefault(part.strip(), {}).update(declarations)
+
+        for query, inner in re.findall(r"@media\(([^)]*)\)\{((?:[^{}]*\{[^{}]*\})*)\}", styles):
+            parse_block(inner, media.setdefault(query, {}))
+        parse_block(re.sub(r"@media\([^)]*\)\{(?:[^{}]*\{[^{}]*\})*\}", "", styles), rules)
+
+        def luminance(color: str) -> float:
+            value = color.lstrip("#")
+            if len(value) == 3:
+                value = "".join(ch * 2 for ch in value)
+            channels = [int(value[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+            linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+            return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+        def ratio(a: str, b: str) -> float:
+            light, dark = sorted((luminance(a), luminance(b)), reverse=True)
+            return (light + 0.05) / (dark + 0.05)
+
+        check = rules[".perm-check"]
+        hover = rules[".perm-check:hover"]
+        for declared in (check["color"], check["background"], hover["background"]):
+            self.assertRegex(declared, r"^#[0-9a-fA-F]{3,6}$")
+        self.assertGreaterEqual(ratio(check["color"], check["background"]), 4.5)
+        self.assertGreaterEqual(ratio(check["color"], hover["background"]), 4.5)
+        narrow = media["max-width:560px"]
+        self.assertEqual("1fr", narrow[".perm-layout"]["grid-template-columns"])
+        self.assertEqual("minmax(0,1fr) minmax(0,1fr)", rules[".perm-layout"]["grid-template-columns"])
+        self.assertEqual("anywhere", rules[".perm-call"]["overflow-wrap"])
+        self.assertEqual("100%", rules[".perm-case-select"]["width"])
 
 
 DOM_TEST_SCRIPT = textwrap.dedent(r"""
@@ -276,10 +337,12 @@ vm.runInNewContext(fs.readFileSync('./assets/js/interactive-w6-permissions.js','
 const policy=sandbox.module.exports,nodes=()=>all(widget),byTag=t=>nodes().filter(n=>n.tagName===t.toUpperCase()),button=t=>byTag('button').find(n=>n.textContent===t),select=byTag('select')[0],radios=byTag('input'),status=nodes().find(n=>n.getAttribute('role')==='status');
 const snap=()=>({status:status.textContent,trace:byTag('li').map(n=>n.textContent),checked:radios.map(r=>r.checked)});
 const preSubmit=[];for(const option of byTag('option')){select.value=option.value;select.dispatch('change');const progress=nodes().find(n=>n.className==='perm-progress').textContent,call=nodes().find(n=>n.className==='perm-call').textContent;preSubmit.push(JSON.stringify({option:{text:option.textContent,value:option.value,className:option.className,attributes:option.attributes},progress,call,status:status.textContent}));}
-select.value='case-1';select.dispatch('change');button('Check prediction').dispatch('click');const missing=snap();radios[0].checked=true;radios[0].dispatch('change');button('Check prediction').dispatch('click');const checked=snap();radios[0].checked=false;radios[1].checked=true;radios[1].dispatch('change');const changed=snap();button('Check prediction').dispatch('click');const rechecked=snap();button('Reset drill').dispatch('click');const reset=snap();
-const structure={selectLabelFor:byTag('label').find(n=>n.getAttribute('for'))?.getAttribute('for'),selectId:select.id,legendFirst:byTag('fieldset')[0].children[0].tagName,statusAttrs:{live:status.getAttribute('aria-live'),atomic:status.getAttribute('aria-atomic')},liveNodes:nodes().filter(n=>n.getAttribute('aria-live')).map(n=>n.className),hasTextInput:radios.some(n=>n.type!=='radio')||byTag('textarea').length>0,buttonTypes:byTag('button').map(n=>n.type),checkClasses:byTag('button').filter(n=>n.textContent==='Check prediction').map(n=>n.className)};
+select.value='case-1';select.dispatch('change');button('Check prediction').dispatch('click');const missing=snap();radios[0].checked=true;radios[0].dispatch('change');button('Check prediction').dispatch('click');const checked=snap();radios[0].checked=false;radios[1].checked=true;radios[1].dispatch('change');const changed=snap();button('Check prediction').dispatch('click');const rechecked=snap();button('Reset drill').dispatch('click');const reset=snap();const resetFocus=document.activeElement===select;
+button('Retry case').dispatch('click');const retryFocus=document.activeElement===radios[0];button('Next case').dispatch('click');const nextFocus=document.activeElement===select;const afterNext={index:Number(select.value.replace('case-',''))-1,status:status.textContent};
+const optionTitles=byTag('option').map(n=>n.textContent);
+const structure={selectLabelFor:byTag('label').find(n=>n.getAttribute('for'))?.getAttribute('for'),selectId:select.id,legendFirst:byTag('fieldset')[0].children[0].tagName,statusAttrs:{live:status.getAttribute('aria-live'),atomic:status.getAttribute('aria-atomic')},liveNodes:nodes().filter(n=>n.getAttribute('aria-live')).map(n=>n.className),hasTextInput:radios.some(n=>n.type!=='radio')||byTag('textarea').length>0,buttonTypes:byTag('button').map(n=>n.type),checkClasses:byTag('button').filter(n=>n.textContent==='Check prediction').map(n=>n.className),radioTypes:radios.map(n=>n.type),negativeTabIndex:nodes().filter(n=>Number(n.getAttribute('tabindex'))<0).map(n=>n.tagName)};
 const subsetSurfaces=[];for(const set of ['legacy','delivery']){widget.setAttribute('data-case-set',set);policy.init(document);const subsetSelect=byTag('select')[0];for(const option of byTag('option')){subsetSelect.value=option.value;subsetSelect.dispatch('change');subsetSurfaces.push(JSON.stringify({set,option:{text:option.textContent,value:option.value,className:option.className,attributes:option.attributes},progress:nodes().find(n=>n.className==='perm-progress').textContent,call:nodes().find(n=>n.className==='perm-call').textContent,status:nodes().find(n=>n.getAttribute('role')==='status').textContent}));}}
-console.log(JSON.stringify({calls,structure,preSubmit,subsetSurfaces,missing,checked,changed,rechecked,reset,resetFocus:document.activeElement===select,boundary:nodes().find(n=>n.className==='perm-boundary').textContent}));
+console.log(JSON.stringify({calls,structure,preSubmit,subsetSurfaces,missing,checked,changed,rechecked,reset,resetFocus,retryFocus,nextFocus,afterNext,optionTitles,styleText:document.getElementById('w6-permission-styles').textContent,boundary:nodes().find(n=>n.className==='perm-boundary').textContent}));
 """)
 
 

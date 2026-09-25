@@ -24,17 +24,17 @@
   ];
 
   const CASES = [
-    { id: "docs-guide", title: "Read a migration guide", call: { tool: "file.read", args: { path: "docs/migration-guide.md" } }, debrief: "A specific documentation subtree is allowed by F-02." },
-    { id: "source-read", title: "Inspect application source", call: { tool: "file.read", args: { path: "src/billing/router.py" } }, debrief: "F-03 grants only the bounded src/ subtree, not arbitrary reads." },
-    { id: "restricted-read", title: "Read synthetic restricted data", call: { tool: "file.read", args: { path: "restricted/customer-map.json" } }, debrief: "F-01 denies the restricted/ subtree before any later rule can decide." },
-    { id: "sensitive-arg", title: "Pass a credential-shaped argument", call: { tool: "file.read", args: { path: "docs/setup.md", api_token: "synthetic-demo-value" } }, debrief: "S-01 wins because api_token is an explicitly credential-shaped field." },
-    { id: "unit-tests", title: "Run a unit suite", call: { tool: "test.run", args: { suite: "unit:permissions" } }, debrief: "The specific unit:* allowance T-01 precedes the broader test deny." },
-    { id: "deployment-tests", title: "Run a deployment suite", call: { tool: "test.run", args: { suite: "deployment:staging" } }, debrief: "T-02 denies non-unit test suites." },
-    { id: "public-fetch", title: "Fetch synthetic public docs", call: { tool: "http.fetch", args: { host: "docs.example.test", path: "/agent-policy" } }, debrief: "H-01 allows one exact synthetic host." },
-    { id: "unknown-fetch", title: "Fetch an unlisted host", call: { tool: "http.fetch", args: { host: "updates.example.test", path: "/latest" } }, debrief: "No host allowance matches, so D-01 defaults to deny." },
-    { id: "shell-command", title: "Attempt a shell command", call: { tool: "shell.execute", args: { command: "printf synthetic" } }, debrief: "The unlisted tool reaches D-01 and is denied by default." },
-    { id: "outside-source", title: "Read an unlisted code tree", call: { tool: "file.read", args: { path: "vendor/example.js" } }, debrief: "File access is subtree-scoped; an unlisted tree reaches D-01." },
-    { id: "case-variant", title: "Read a case-variant docs path", call: { tool: "file.read", args: { path: "Docs/migration-guide.md" } }, debrief: "This teaching grammar is case-sensitive, so Docs/ does not match docs/**." }
+    { id: "docs-guide", title: "Read a guide file", call: { tool: "file.read", args: { path: "docs/migration-guide.md" } }, debrief: "A specific documentation subtree is allowed by F-02." },
+    { id: "source-read", title: "Read a router file", call: { tool: "file.read", args: { path: "src/billing/router.py" } }, debrief: "F-03 grants only the bounded src/ subtree, not arbitrary reads." },
+    { id: "restricted-read", title: "Read a map file", call: { tool: "file.read", args: { path: "restricted/customer-map.json" } }, debrief: "F-01 denies the restricted/ subtree before any later rule can decide." },
+    { id: "sensitive-arg", title: "Read a setup file with extra arguments", call: { tool: "file.read", args: { path: "docs/setup.md", api_token: "synthetic-demo-value" } }, debrief: "S-01 wins because api_token is an explicitly credential-shaped field." },
+    { id: "unit-tests", title: "Run a permissions test suite", call: { tool: "test.run", args: { suite: "unit:permissions" } }, debrief: "The specific unit:* allowance T-01 precedes the broader test deny." },
+    { id: "deployment-tests", title: "Run a staging test suite", call: { tool: "test.run", args: { suite: "deployment:staging" } }, debrief: "T-02 denies non-unit test suites." },
+    { id: "public-fetch", title: "Fetch a policy page", call: { tool: "http.fetch", args: { host: "docs.example.test", path: "/agent-policy" } }, debrief: "H-01 allows one exact synthetic host." },
+    { id: "unknown-fetch", title: "Fetch a latest-updates page", call: { tool: "http.fetch", args: { host: "updates.example.test", path: "/latest" } }, debrief: "No host allowance matches, so D-01 defaults to deny." },
+    { id: "shell-command", title: "Run a print command", call: { tool: "shell.execute", args: { command: "printf synthetic" } }, debrief: "The unlisted tool reaches D-01 and is denied by default." },
+    { id: "outside-source", title: "Read an example script", call: { tool: "file.read", args: { path: "vendor/example.js" } }, debrief: "File access is subtree-scoped; an unlisted tree reaches D-01." },
+    { id: "case-variant", title: "Read another guide file", call: { tool: "file.read", args: { path: "Docs/migration-guide.md" } }, debrief: "This teaching grammar is case-sensitive, so Docs/ does not match docs/**." }
   ];
 
   const SETS = {
@@ -108,7 +108,7 @@
       seen.add(current);
       for (const key of Object.keys(current)) {
         const fieldPath = Array.isArray(current) ? `${path}[${key}]` : `${path}.${key}`;
-        const normalizedName = key.trim().toLowerCase().replace(/[-\s]+/g, "_");
+        const normalizedName = key.trim().replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase().replace(/[-\s]+/g, "_");
         if (credentialNames.has(normalizedName)) return { field: fieldPath, kind: "credential-shaped field name" };
         const child = current[key];
         if (typeof child === "string") {
@@ -161,6 +161,14 @@
   }
 
   function evaluateCall(input) {
+    try {
+      return evaluateParsed(input);
+    } catch {
+      return { ok: false, verdict: "deny", error: "The proposed call could not be read safely; default deny." };
+    }
+  }
+
+  function evaluateParsed(input) {
     const parsed = parseCall(input);
     if (!parsed.ok) return { ok: false, verdict: "deny", error: parsed.error };
     const call = parsed.call;
