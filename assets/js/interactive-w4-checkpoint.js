@@ -11,6 +11,7 @@
     Object.freeze({ id: "notify_customer", label: "Notify customer", output: "Synthetic notice rendered" }),
   ]);
   const CRASH_INDEX = 2;
+  const KEY_ACTIONS = Object.freeze({ KeyS: "step", KeyC: "crash", KeyR: "resume", Digit0: "reset", Numpad0: "reset" });
 
   function createMachine() {
     let state;
@@ -224,17 +225,25 @@
       container.dispatchEvent(new CustomEvent("w4checkpoint:change", { detail: view }));
     }
 
-    function run(action, moveFocus) {
+    function focusTarget(view) {
+      if (view.canCrash) return "crash";
+      if (view.canResume) return "resume";
+      if (view.phase === "complete") return "reset";
+      return "step";
+    }
+
+    function run(action) {
       const result = machine[action]();
       render();
       if (!result.ok) status.querySelector("span").textContent = result.reason;
-      if (moveFocus && controls[moveFocus] && !controls[moveFocus].disabled) controls[moveFocus].focus();
+      const target = controls[focusTarget(result.state)];
+      if (target && !target.disabled) target.focus();
       return result;
     }
 
     controls.step.addEventListener("click", () => run("step"));
-    controls.crash.addEventListener("click", () => run("crash", "resume"));
-    controls.resume.addEventListener("click", () => run("resume", "step"));
+    controls.crash.addEventListener("click", () => run("crash"));
+    controls.resume.addEventListener("click", () => run("resume"));
     controls.reset.addEventListener("click", () => {
       machine.reset();
       render();
@@ -242,7 +251,7 @@
     });
     container.addEventListener("keydown", event => {
       if (!event.altKey || event.ctrlKey || event.metaKey) return;
-      const action = ({ s: "step", c: "crash", r: "resume", "0": "reset" })[event.key.toLowerCase()];
+      const action = KEY_ACTIONS[event.code];
       if (!action) return;
       event.preventDefault();
       if (action === "reset") {
@@ -250,7 +259,7 @@
         render();
         controls.step.focus();
       } else if (!controls[action].disabled) {
-        run(action, action === "crash" ? "resume" : action === "resume" ? "step" : null);
+        run(action);
       }
     });
 
