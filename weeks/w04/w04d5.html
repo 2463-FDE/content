@@ -99,8 +99,8 @@
       <section class="step" data-diagram="0" data-step="2">
         <div class="tag">Index time · construction</div>
         <h2>SimpleKGPipeline: docs in, graph out</h2>
-        <p>Neo4j's official Python package, <code>neo4j-graphrag</code> (version 1.18.0 as of late June 2026, and the
-        long-term maintained successor to the older GenAI package), wraps the entire index-time pipeline in one
+        <p>Neo4j's official Python package, <code>neo4j-graphrag</code> (version 1.21.0, released 2026-09-23 and
+        verified 2026-09-25, on the same long-term maintained line that succeeded the older GenAI package), wraps the entire index-time pipeline in one
         orchestrator. It chains four components, and each one maps to a decision you will defend at a client.</p>
         <p>First, a <strong>fixed-size splitter</strong> chunks the documents, approximating boundaries by default so
         chunks end cleanly rather than mid-word. Second, a <strong>chunk embedder</strong> computes an embedding for
@@ -197,6 +197,7 @@
         and a model, then call search with your question and a retriever configuration. The retriever fetches context,
         the model answers against it, and asking it to return the context hands you the evidence for citation and for
         evaluations.</p>
+        <button class="code-cta" type="button" data-modal="code-w04d5" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only worked example <span class="cc-meta">· graph_hop.py</span></button>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: fire the same question at a
         <code>VectorRetriever</code> and a <code>VectorCypherRetriever</code> side by side and diff the retrieved
         context — see exactly what the graph hop added. Needs backend standup.</p></div>
@@ -276,9 +277,9 @@
           <li><a href="https://neo4j.com/docs/neo4j-graphrag-python/current/" target="_blank" rel="noopener">neo4j-graphrag-python — documentation home</a> — first-party package status, compatibility, and release highlights.</li>
           <li><a href="https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_kg_builder.html" target="_blank" rel="noopener">neo4j-graphrag — User Guide: KG Builder</a> — <code>SimpleKGPipeline</code> components and defaults, schema guidance, lexical vs entity graph, entity resolvers.</li>
           <li><a href="https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_rag.html" target="_blank" rel="noopener">neo4j-graphrag — User Guide: RAG</a> — the full retriever ladder, <code>ToolsRetriever</code>, external vector-store retrievers, and the <code>GraphRAG</code> class.</li>
-          <li><a href="https://pypi.org/project/neo4j-graphrag/" target="_blank" rel="noopener">neo4j-graphrag — PyPI</a> — v1.18.0, released 2026-06-24.</li>
+          <li><a href="https://pypi.org/project/neo4j-graphrag/" target="_blank" rel="noopener">neo4j-graphrag — PyPI</a> — v1.21.0, released 2026-09-23 and accessed 2026-09-25.</li>
           <li><a href="https://github.com/neo4j/neo4j-graphrag-python/releases" target="_blank" rel="noopener">neo4j/neo4j-graphrag-python — Releases</a> — 1.16.0 Cypher 25 SEARCH support + query validation; 1.15.0 constraint alignment.</li>
-          <li><a href="https://github.com/microsoft/graphrag/releases" target="_blank" rel="noopener">microsoft/graphrag — Releases</a> — reference library, v3.1.0 latest.</li>
+          <li><a href="https://github.com/microsoft/graphrag/releases" target="_blank" rel="noopener">microsoft/graphrag — Releases</a> — reference library, v3.2.0 latest as accessed 2026-09-25.</li>
         </ul>
       </section>
 
@@ -322,10 +323,10 @@
     <button class="modal-close" type="button" aria-label="Close">✕</button>
     <h2>Deep dive: versions, Text2Cypher guardrails &amp; index-time cost</h2>
     <p class="quiz-sub">Optional. ~10 minutes. The production edges of today's pipeline.</p>
-    <p><strong>Pin your versions.</strong> As of 2026-07-01 the Neo4j package <code>neo4j-graphrag</code> is at
-    <strong>1.18.0</strong>, released 2026-06-24, supporting Neo4j 5.18.1 and above, Aura 5.18.0 and above, and Python
+    <p><strong>Pin your versions.</strong> As of the 2026-09-25 recheck the Neo4j package <code>neo4j-graphrag</code> is at
+    <strong>1.21.0</strong>, released 2026-09-23, supporting Neo4j 5.18.1 and above, Aura 5.18.0 and above, and Python
     3.10 through 3.14. On Neo4j 2026.01 and later the package auto-detects the server and uses the newer Cypher search
-    clause for vector queries. Microsoft's reference GraphRAG library is at <strong>v3.1.0</strong>. The Neo4j package
+    clause for vector queries. Microsoft's reference GraphRAG library is at <strong>v3.2.0</strong>. The Neo4j package
     replaced a now-deprecated predecessor — if a client codebase still imports the old name, that is a migration item,
     not a style nit.</p>
     <p><strong>Text2Cypher is powerful and sharp.</strong> An LLM writing Cypher against production data can also write
@@ -382,6 +383,37 @@
     </ul>
     <p class="goals-foot">This closes Week 4's arc: modeling (D4) → construction and hybrid retrieval (today). Bring the
     working pipeline — it becomes the retrieval backbone for what comes next.</p>
+  </div>
+</div>
+
+<!-- read-only static worked example (w04d5) -->
+<div id="code-w04d5" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close code example">✕</button>
+    <h2>Inspect what the graph hop adds</h2>
+    <p class="cv-cap">Read-only worked example. Local fixtures model vector hits and neighboring graph context so the enrichment step is visible without a database or model.</p>
+    <div class="cv" data-file="graph_hop.py" data-lang="python"><pre class="cv-raw"># Synthetic retrieval fixtures: no database, credentials, model, or network.
+VECTOR_HITS = [
+    {&quot;incident_id&quot;: &quot;INC-17&quot;, &quot;score&quot;: 0.91, &quot;text&quot;: &quot;Checkout latency rose.&quot;},
+    {&quot;incident_id&quot;: &quot;INC-09&quot;, &quot;score&quot;: 0.84, &quot;text&quot;: &quot;Payment retries spiked.&quot;},
+]
+GRAPH_NEIGHBORS = {
+    &quot;INC-17&quot;: {&quot;systems&quot;: [&quot;checkout-api&quot;], &quot;root_causes&quot;: [&quot;pool exhaustion&quot;]},
+    &quot;INC-09&quot;: {&quot;systems&quot;: [&quot;payments-api&quot;], &quot;root_causes&quot;: [&quot;pool exhaustion&quot;]},
+}
+
+
+def expand_with_graph(vector_hits, neighbors):
+    return [
+        {**hit, **neighbors.get(hit[&quot;incident_id&quot;], {})}
+        for hit in vector_hits
+    ]
+
+
+context = expand_with_graph(VECTOR_HITS, GRAPH_NEIGHBORS)
+assert context[0][&quot;root_causes&quot;] == [&quot;pool exhaustion&quot;]
+assert {row[&quot;incident_id&quot;] for row in context} == {&quot;INC-17&quot;, &quot;INC-09&quot;}</pre></div>
+    <p class="cv-foot">Static example, not live retrieval. All records are embedded synthetic fixtures and the code has no provider or network path.</p>
   </div>
 </div>
 
@@ -510,6 +542,7 @@ window.QUIZ = {
 <script src="../../assets/js/interactive.js"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
 </body>
 </html>

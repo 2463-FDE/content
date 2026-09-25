@@ -46,7 +46,7 @@
         on the right assembles all three stacks side by side and ends where every framework debate should end — on a
         single tradeoff axis you can draw for a client. Scope check: Day 1 gave you the orchestration patterns
         generically, Day 2 gave you LangGraph state and checkpointers; today is strictly the <em>multi-agent layer</em>
-        of the competing frameworks, and everything here is source-verified as of July&nbsp;2026.</p>
+        of the competing frameworks, and everything here is source-verified through September&nbsp;25,&nbsp;2026.</p>
         <div class="ix-legend"></div>
       </div>
 
@@ -59,14 +59,14 @@
         wrote versus judgment delegated to an LLM versus a prebuilt pattern you configure</strong>. Hold that axis in
         your head; every mechanism today lands somewhere on it.</p>
         <p>First, pin the versions, because this landscape moved hard and most of what the internet (and, frankly,
-        most models' training data) will tell you is stale. As of July 2026: <strong>LangGraph 1.2.7</strong>
-        (released 2026-06-30) describes itself as "a low-level orchestration framework for building, managing, and
-        deploying long-running, stateful agents." <strong>CrewAI 1.15.1</strong> (2026-06-27) is "built entirely from
-        scratch — completely independent of LangChain or other agent frameworks" — so if anyone tells you CrewAI is a
-        LangChain wrapper, they're reciting 2023. And <strong>AutoGen is now a legacy migration source</strong>: its
-        GroupChat and event-driven runtime ideas live on inside <strong>Microsoft Agent Framework</strong>
-        (<code>agent-framework</code> 1.10.0, 2026-06-30, production/stable), built by the core AutoGen and Semantic
-        Kernel teams as "a new foundation for building AI applications going forward."</p>
+        most models' training data) will tell you is stale. As of September 25, 2026: <strong>LangGraph 1.2.12</strong>
+        and <strong>CrewAI 1.15.22</strong> are the current patches on the same 1.2 and 1.15 teaching lines. That is
+        maintenance movement, not an architecture rewrite, so the lesson does not force patch churn. CrewAI remains
+        independent of LangChain. And <strong>AutoGen is now a legacy migration source</strong>: its GroupChat and
+        event-driven runtime ideas live on inside <strong>Microsoft Agent Framework</strong>. The
+        <code>agent-framework</code> 1.10.0 number used here is the source-verified June research snapshot, while
+        Microsoft's current first-party documentation still positions Agent Framework as the forward-looking foundation
+        built by the core AutoGen and Semantic Kernel teams.</p>
         <p>That last one matters for client conversations. A stakeholder who read a 2024 blog post will present
         "AutoGen GroupChat" as Microsoft's live answer. It isn't — Microsoft's own migration guide (dated 2026-04-01,
         updated 2026-06-26) maps AutoGen's teams onto Agent Framework Workflows. Part of today's value is simply being
@@ -185,6 +185,7 @@
         is a tool whose destination is <em>whatever coworker the LLM names in the tool arguments</em>. Both are
         tool-call handoffs — the frameworks converge on the mechanism — but LangGraph makes the route a compile-time
         fact and CrewAI makes it a runtime judgment. Same verb, opposite ends of the explicitness axis.</p>
+        <button class="code-cta" type="button" data-modal="code-w04d3" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only worked example <span class="cc-meta">· orchestration_policy.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="6">
@@ -278,12 +279,12 @@
       <section class="reading-sources" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
-          <li><a href="https://pypi.org/project/langgraph/" target="_blank" rel="noopener">langgraph — PyPI</a> — 1.2.7 (2026-06-30); "low-level orchestration framework" self-description, durable execution + persistence + HITL.</li>
+          <li><a href="https://pypi.org/project/langgraph/" target="_blank" rel="noopener">langgraph — PyPI</a> — 1.2.12 (2026-09-21, accessed 2026-09-25); current patch on the same 1.2 durable-execution line.</li>
           <li><a href="https://docs.langchain.com/oss/python/langchain/multi-agent" target="_blank" rel="noopener">Multi-agent — Docs by LangChain</a> — the five patterns (subagents, handoffs, skills, router, custom workflows) and "context engineering" as the central design concern.</li>
           <li><a href="https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs" target="_blank" rel="noopener">Handoffs — Docs by LangChain</a> — <code>Command</code> handoffs, <code>Command.PARENT</code>, the <code>ToolMessage</code> pairing rule, and the middleware-first recommendation.</li>
           <li><a href="https://github.com/langchain-ai/langgraph-supervisor-py" target="_blank" rel="noopener">langgraph-supervisor-py — GitHub</a> — <code>create_supervisor</code>, tool-based handoffs, and the maintainers' "use the pattern directly" note.</li>
           <li><a href="https://github.com/langchain-ai/langgraph-swarm-py" target="_blank" rel="noopener">langgraph-swarm-py — GitHub</a> — peer handoffs by specialization; checkpointed <code>active_agent</code> resume behavior (0.1.0, 2025-12-04).</li>
-          <li><a href="https://pypi.org/project/crewai/" target="_blank" rel="noopener">crewai — PyPI</a> — 1.15.1 (2026-06-27); standalone, "completely independent of LangChain."</li>
+          <li><a href="https://pypi.org/project/crewai/" target="_blank" rel="noopener">crewai — PyPI</a> — 1.15.22 (2026-09-16, accessed 2026-09-25); current stable patch on the same standalone 1.15 line.</li>
           <li><a href="https://docs.crewai.com/en/concepts/processes" target="_blank" rel="noopener">Processes — CrewAI Docs</a> — the <code>Process</code> enum: sequential vs hierarchical.</li>
           <li><a href="https://docs.crewai.com/en/learn/hierarchical-process" target="_blank" rel="noopener">Hierarchical Process — CrewAI Docs</a> — <code>manager_llm</code> vs <code>manager_agent</code>; delegate, review, validate.</li>
           <li><a href="https://docs.crewai.com/en/concepts/collaboration" target="_blank" rel="noopener">Collaboration — CrewAI Docs</a> — <code>allow_delegation=True</code> and the two auto-injected coworker tools.</li>
@@ -396,6 +397,41 @@
   </div>
 </div>
 
+<!-- read-only static worked example (w04d3) -->
+<div id="code-w04d3" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close code example">✕</button>
+    <h2>Make the routing policy explicit before choosing a framework</h2>
+    <p class="cv-cap">Read-only worked example. The same synthetic task is expressed as a deterministic sequence or as a bounded manager choice, making the control tradeoff visible.</p>
+    <div class="cv" data-file="orchestration_policy.py" data-lang="python"><pre class="cv-raw"># Synthetic orchestration policy: local data only, no framework or model.
+TASKS = {
+    &quot;extract&quot;: {&quot;owner&quot;: &quot;researcher&quot;, &quot;next&quot;: &quot;verify&quot;},
+    &quot;verify&quot;: {&quot;owner&quot;: &quot;reviewer&quot;, &quot;next&quot;: &quot;publish&quot;},
+    &quot;publish&quot;: {&quot;owner&quot;: &quot;manager&quot;, &quot;next&quot;: None},
+}
+CAPABILITIES = {
+    &quot;researcher&quot;: {&quot;extract&quot;},
+    &quot;reviewer&quot;: {&quot;verify&quot;},
+    &quot;manager&quot;: {&quot;publish&quot;},
+}
+
+
+def sequential_route(task_name):
+    return TASKS[task_name][&quot;next&quot;]
+
+
+def bounded_manager_route(task_name):
+    eligible = [name for name, skills in CAPABILITIES.items() if task_name in skills]
+    assert len(eligible) == 1, &quot;policy requires one accountable owner&quot;
+    return eligible[0]
+
+
+assert sequential_route(&quot;extract&quot;) == &quot;verify&quot;
+assert bounded_manager_route(&quot;publish&quot;) == &quot;manager&quot;</pre></div>
+    <p class="cv-foot">Static example, not a live crew. It compares inspectable policies without importing CrewAI, LangGraph, Agent Framework, or any provider client.</p>
+  </div>
+</div>
+
 <script>
 window.FDE_NEXT = { label: "Day 4 — next in Week 4 →", href: "w04d4.html" };
 window.DIAGRAM = {
@@ -404,7 +440,7 @@ window.DIAGRAM = {
   nodes: [
     // the shared problem (dark payload card)
     { id:"task", step:0, kind:"example", x:14, y:14, w:472, h:64,
-      label:"THE SAME JOB  · several specialists, one outcome, someone decides who acts next\n  LangGraph 1.2.7 · CrewAI 1.15.1 · agent-framework 1.10.0  (AutoGen = legacy)\n  verified 2026-07 — most blog posts and model memories are stale" },
+      label:"THE SAME JOB  · several specialists, one outcome, someone decides who acts next\n  LangGraph 1.2.12 · CrewAI 1.15.22 · agent-framework 1.10.0 June snapshot\n  verified 2026-09-25 · AutoGen = legacy" },
 
     // ── column 1: LangGraph ──
     { id:"lg",   step:1, x:14, y:92, w:150, h:414, label:"LANGGRAPH — our pick (explicit graph)" },
@@ -420,7 +456,7 @@ window.DIAGRAM = {
     // ── column 2: CrewAI ──
     { id:"cw",   step:4, x:175, y:92, w:150, h:414, label:"CREWAI — standalone (LLM-manager routing)" },
     { id:"seq",  step:4, x:183, y:126, w:134, h:56, label:"Process.sequential\ntask chain",
-      detail:"Tasks run in the predefined list order; each task's output becomes context for the next. A pipeline — no routing decisions at all. CrewAI 1.15.1 is built entirely from scratch, completely independent of LangChain." },
+      detail:"Tasks run in the predefined list order; each task's output becomes context for the next. A pipeline — no routing decisions at all. CrewAI 1.15.22 remains on the standalone 1.15 line, independent of LangChain." },
     { id:"hier", step:4, x:183, y:190, w:134, h:88, label:"Process.hierarchical\nmanager_llm /\nmanager_agent",
       detail:"A manager agent — auto-created from manager_llm or supplied as a custom manager_agent — allocates tasks by capability, reviews outputs, and validates completion. Tasks are dynamically delegated, not pre-assigned. Prompt-driven routing: no graph to inspect." },
     { id:"del",  step:5, x:183, y:286, w:134, h:96, label:"allow_delegation=True\n→ Delegate work /\nAsk question tools",
@@ -447,7 +483,7 @@ window.DIAGRAM = {
     { id:"e_ax3",  step:8, from:"mag",  to:"axis", label:"prebuilt", lx:6 }
   ],
   captions: [
-    "One job, three stacks — and a stale-advice minefield. Versions pinned 2026-07: LangGraph 1.2.7, CrewAI 1.15.1, agent-framework 1.10.0. <b>AutoGen is legacy.</b>",
+    "One job, three stacks — and a stale-advice minefield. Checked 2026-09-25: LangGraph 1.2.12 and CrewAI 1.15.22; agent-framework 1.10.0 is the June research snapshot. <b>AutoGen is legacy.</b>",
     "Our pick's current frame: <b>five named patterns</b>, governed by one concern — <b>context engineering</b>, deciding what each agent sees. <span style='opacity:.7'>(tap)</span>",
     "The LangGraph mechanism: a handoff is a <b>tool returning a Command</b> — state update + control flow. Docs' own advice: <b>single agent + middleware</b> for most cases. <span style='opacity:.7'>(tap)</span>",
     "The two archetypes, packaged: <b>supervisor</b> (maintainers say build it directly) and <b>swarm</b>, whose checkpointed <code>active_agent</code> resumes conversations with the right peer. <span style='opacity:.7'>(tap)</span>",
@@ -483,7 +519,7 @@ window.QUIZ = {
     { type: "tf",
       stem: "CrewAI is a wrapper around LangChain, so its multi-agent features inherit LangGraph's graph machinery.",
       answer: false,
-      explain: "Stale take. CrewAI 1.15.1 is 'built entirely from scratch — completely independent of LangChain or other agent frameworks.' Its multi-agent coordination is a Process enum (sequential / hierarchical) plus an LLM manager and delegation tools — deliberately not a graph." },
+      explain: "Stale take. CrewAI 1.15.22 remains on the standalone 1.15 line, independent of LangChain. Its multi-agent coordination is a Process enum (sequential / hierarchical) plus an LLM manager and delegation tools — deliberately not a graph." },
     { type: "mcq",
       stem: "Which of these are real, documented mechanisms in the framework named? (select all that apply)",
       options: [
@@ -520,6 +556,7 @@ window.QUIZ = {
 <script src="../../assets/js/interactive.js"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
 </body>
 </html>
