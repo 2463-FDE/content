@@ -130,10 +130,12 @@
         choice</strong>: Toxicity runs at 4.80 ms on g5.xlarge GPU+ONNX, 34.13 ms on m5.xlarge+ONNX, and
         <strong>620.79 ms on r6a.xlarge</strong> — a 129× spread on identical code and an identical benchmark. Benchmark
         on the client's actual fleet or you are quoting someone else's hardware.</p>
-        <p>One more shape: <strong>LLM-based rails cost an order of magnitude more than purpose-trained small models and
-        are usually less accurate.</strong> NeMo's fact-checking rail, per checked fact: <code>align_score-base</code>
-        84.5% at <strong>23.0 ms</strong>; <code>gpt-3.5-turbo</code> 82.5% at <strong>435.1 ms</strong>. A frontier
-        model as your validator is the expensive way to be slightly worse.</p>
+        <p>One more shape from NeMo's <strong>November 23, 2023 historical fact-checking evaluation</strong>:
+        LLM-based rails cost an order of magnitude more than purpose-trained small models and were usually less
+        accurate in that comparison. Per checked fact, <code>align_score-base</code> measured 84.5% at
+        <strong>23.0 ms</strong>; the then-current <code>gpt-3.5-turbo</code> measured 82.5% at
+        <strong>435.1 ms</strong>. These preserved model IDs identify the published rows; they are not current app-model
+        recommendations. A general-purpose model as your validator can be the expensive way to be slightly worse.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a latency-budget calculator —
         pick a scanner set, an instance type, and ONNX on/off, and watch the serial p99 ceiling and the sum-of-averages
         central estimate move against a stated turn budget. Needs backend standup.</p></div>
@@ -172,7 +174,8 @@
         24 guardrails, 6 datasets, "32 days spent on GPU" — the best <strong>PII detector scores F1 0.65</strong>.
         Category bests elsewhere: Topic Restriction 0.93, Jailbreaking 0.81, Hallucination 0.77, Content Moderation 0.72.
         Nothing here is near-perfect; a memo implying otherwise is what gets the FDE fired two quarters later.</p>
-        <p>Now the failure mode that looks like success. NVIDIA's evaluation on ToxicChat (n=10,165, 7.2% harmful) scores
+        <p>Now the failure mode that looks like success. NVIDIA's <strong>January 8, 2024 historical
+        evaluation</strong> on ToxicChat (n=10,165, 7.2% harmful) scored the then-current
         <code>gpt-3.5-turbo-instruct</code> with <code>self check input</code> at <strong>accuracy 66.5%, precision 0.16,
         recall 0.85, F1 0.27</strong> — against <code>llama guard check input</code> at 94.4% / 0.67 / 0.44 / 0.53.
         NVIDIA's read: "The low precision and high recall numbers… indicates an <strong>overly defensive

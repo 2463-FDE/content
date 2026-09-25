@@ -111,12 +111,12 @@
       <section class="step" data-diagram="0" data-step="3">
         <div class="tag">The judge</div>
         <h2>The judge is an instrument, so calibrate it</h2>
-        <p>Production has no answer key, so something must produce the score — increasingly, another model. The headline
-        result is genuinely strong: "strong LLM judges like GPT-4 can match both controlled and crowdsourced human
-        preferences well, achieving <strong>over 80% agreement, the same level of agreement between humans</strong>…
-        a scalable and explainable way to approximate human preferences, which are otherwise very expensive."</p>
-        <p>Both halves matter. The judge is about as good as a human — <em>and humans agree with each other only 80% of
-        the time</em>. The realistic target isn't perfection; it's <strong>inter-expert agreement</strong>.
+        <p>Production has no answer key, so something must produce the score — increasingly, another model. A landmark
+        2023 judge study used GPT-4 as its strong-judge tier; its historical result remains useful evidence, not a
+        current model recommendation: the judges matched controlled and crowdsourced human preferences at
+        <strong>over 80% agreement, the same level of agreement between humans</strong>.</p>
+        <p>Both halves matter. In that 2023 study, the judge performed about as well as a human — <em>and humans agreed
+        with each other only about 80% of the time</em>. The realistic target isn't perfection; it's <strong>inter-expert agreement</strong>.
         MedHELM puts a number on that ceiling: their LLM jury "achieved good agreement with clinician ratings
         (ICC = 0.47), <strong>surpassing both average clinician-clinician agreement (ICC = 0.43)</strong>." That's not
         "solved" — it's as good as the human process it replaces, which is the bar, and only claimable if you measured
@@ -132,7 +132,7 @@
         <h2>Three biases with receipts</h2>
         <p><strong>Position bias.</strong> In a pairwise comparison, the order you present candidates in changes the
         verdict: "the quality ranking of candidate responses can be easily hacked by simply altering their order of
-        appearance in the context." With ChatGPT as evaluator, "Vicuna-13B could beat ChatGPT on <strong>66 over
+        appearance in the context." In the 2023 historical study by Wang et al., "Large Language Models are not Fair Evaluators," with the then-current ChatGPT as evaluator, "Vicuna-13B could beat ChatGPT on <strong>66 over
         80</strong> tested queries" by exploiting order alone. Mitigations: <em>Multiple Evidence Calibration</em>
         (evidence before scoring), <em>Balanced Position Calibration</em> (run both orderings, aggregate), and
         <em>Human-in-the-Loop Calibration</em>, which scores example difficulty and "seeks human assistance when needed"
@@ -398,11 +398,11 @@ window.DIAGRAM = {
     { id:"priv", step:2, x:268, y:216, w:206, h:58, label:"⚠ retention upgrade\n+ judge text about PHI",
       detail:"Grading a run auto-upgrades its trace to extended data retention, changing storage pricing. And judge reasoning \"might mention sensitive information based on the content of the conversation\" — a new PHI surface in your telemetry store." },
 
-    { id:"judge", step:3, x:120, y:288, w:260, h:52, label:"LLM-AS-JUDGE\n>80% agreement = human-human",
-      detail:"Strong judges match controlled and crowdsourced human preferences at over 80% agreement — the same level humans reach with each other. MedHELM: LLM-jury ICC 0.47 vs clinician-clinician 0.43. The target is inter-expert agreement, not perfection." },
+    { id:"judge", step:3, x:120, y:288, w:260, h:52, label:"LLM-AS-JUDGE · 2023\n>80% agreement = human-human",
+      detail:"In the 2023 historical study, strong judges matched controlled and crowdsourced human preferences at over 80% agreement — the same level humans reached with each other. MedHELM: LLM-jury ICC 0.47 vs clinician-clinician 0.43. The target is inter-expert agreement, not perfection." },
 
-    { id:"pos",  step:4, x:26,  y:356, w:142, h:56, label:"position bias\n66/80 flipped",
-      detail:"Reordering candidates hacks the ranking — Vicuna-13B beat ChatGPT on 66 of 80 queries by order alone. Fix: balanced position calibration (run both orders, aggregate); route high-disagreement examples to a human." },
+    { id:"pos",  step:4, x:26,  y:356, w:142, h:56, label:"position bias · 2023\n66/80 flipped",
+      detail:"In a 2023 historical study, reordering candidates hacked the ranking — Vicuna-13B beat ChatGPT on 66 of 80 queries by order alone. Fix: balanced position calibration (run both orders, aggregate); route high-disagreement examples to a human." },
     { id:"verb", step:4, x:178, y:356, w:142, h:56, label:"verbosity bias\nregress it out",
       detail:"Judges favor longer outputs. Length-controlled comparison asks what the preference would be at equal length; it raised Spearman correlation with Chatbot Arena from 0.94 to 0.98. Rule: check output length before celebrating a score jump." },
     { id:"self", step:4, x:330, y:356, w:144, h:56, label:"self-preference\njudge ≠ generator",
@@ -433,8 +433,8 @@ window.DIAGRAM = {
     "Two evals, split by <b>target</b>: offline runs dataset examples <i>with</i> reference outputs; online runs live production traces that have none. <span style='opacity:.7'>(tap nodes for detail)</span>",
     "They're a <b>loop</b>, not a choice — online surfaces the failure, it becomes a permanent offline example, offline validates the fix, online confirms it in production.",
     "Grading live traffic costs money and touches PHI: <b>filter, then sample</b> — and know that graded traces get retention-upgraded and judge text lands in telemetry. <span style='opacity:.7'>(tap)</span>",
-    "The <b>LLM judge</b> is a real instrument: ~80% agreement with humans, which is what humans manage with each other. Calibrate it and track agreement over time. <span style='opacity:.7'>(tap)</span>",
-    "Three biases with receipts: <b>position</b> (order flips verdicts), <b>verbosity</b> (longer wins), <b>self-preference</b> (never let the generator grade itself). <span style='opacity:.7'>(tap each)</span>",
+    "The <b>LLM judge</b> is a real instrument: a <b>2023 historical study</b> reported ~80% agreement with humans, which was what humans managed with each other. Calibrate it and track agreement over time. <span style='opacity:.7'>(tap)</span>",
+    "Three biases with receipts: <b>position</b> (the 2023 study flipped 66/80 verdicts), <b>verbosity</b> (longer wins), <b>self-preference</b> (never let the generator grade itself). <span style='opacity:.7'>(tap each)</span>",
     "Mitigations, cheapest first: use <b>code</b> when a deterministic comparison exists; when you need a judge, constrain output, force-then-discard reasoning, prefer pairwise. <span style='opacity:.7'>(tap)</span>",
     "The part you can't outsource: the <b>gold set</b>. Only the clinician or the compliance officer can produce the label — and the rubric emerges from the labeling session. <span style='opacity:.7'>(tap)</span>",
     "A number becomes a <b>gate</b>: a per-metric threshold on a pinned dataset version that fails the build — assertions, a declarative threshold in CI, or a hosted run's counts. <span style='opacity:.7'>(tap)</span>",
@@ -464,9 +464,9 @@ window.QUIZ = {
       answer: 2,
       explain: "Self-preference is measured, not folklore: LLM evaluators score their own outputs higher than humans rate them, and self-recognition capability is causally linked to the strength of the bias. A generator grading its own outputs is a broken experiment. Also worth checking here: did prompt B just produce longer answers?" },
     { type: "tf",
-      stem: "An LLM judge reaching ~80% agreement with human labels means the judge is still substantially worse than a human panel and shouldn't be trusted.",
+      stem: "A 2023 historical study finding ~80% judge agreement with human labels means the judge was still substantially worse than a human panel and shouldn't be trusted.",
       answer: false,
-      explain: "~80% is the level of agreement humans reach with each other. The realistic target for a judge is inter-expert agreement, not perfection — MedHELM's LLM jury hit ICC 0.47 against clinician ratings while clinician-clinician agreement was 0.43. The claim you can make is 'as good as the human process,' and only if you measured it." },
+      explain: "In that 2023 result, ~80% was the level of agreement humans reached with each other. The realistic target for a judge is inter-expert agreement, not perfection — MedHELM's LLM jury hit ICC 0.47 against clinician ratings while clinician-clinician agreement was 0.43. The claim you can make is 'as good as the human process,' and only if you measured it." },
     { type: "mcq",
       stem: "Which of these are real, documented consequences of switching on an online LLM-judge evaluator? (select all that apply)",
       options: [
