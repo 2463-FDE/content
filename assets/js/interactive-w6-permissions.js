@@ -62,6 +62,10 @@
     return pattern === value;
   }
 
+  function hasTraversalSegment(path) {
+    return typeof path === "string" && path.split(/[\\/]+/).some((segment) => segment === "..");
+  }
+
   function targetFor(call) {
     if (call.tool === "file.read") return call.args.path;
     if (call.tool === "test.run") return call.args.suite;
@@ -87,6 +91,9 @@
   function evaluateCall(call) {
     if (!isRecord(call) || typeof call.tool !== "string" || !call.tool.trim() || !isRecord(call.args)) {
       return { ok: false, error: "A proposed call needs a non-empty tool name and an arguments object." };
+    }
+    if (call.tool === "file.read" && hasTraversalSegment(call.args.path)) {
+      return { ok: false, error: "File paths may not contain “..” traversal segments." };
     }
     const trace = RULES.map((rule) => Object.assign({ id: rule.id, effect: rule.effect }, evaluateRule(rule, call)));
     const decidingIndex = trace.findIndex((entry) => entry.matched);
@@ -154,7 +161,7 @@
     if (document.getElementById("w6-permission-styles")) return;
     const style = el(document, "style");
     style.id = "w6-permission-styles";
-    style.textContent = ".ix-permission{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}.perm-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.perm-rules,.perm-practice{min-width:0}.perm-rule{display:grid;grid-template-columns:3.3rem 3.2rem 1fr;gap:7px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.4}.perm-rule:last-child{border-bottom:0}.perm-rule-id{font-family:var(--mono);font-weight:700}.perm-effect{text-transform:uppercase;font-weight:700}.perm-effect.deny{color:var(--bad)}.perm-effect.allow{color:var(--good-ink)}.perm-case-select{width:100%;box-sizing:border-box;font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:8px}.perm-call{white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0;background:var(--code-bg);border-radius:8px;padding:10px;font:12.5px/1.5 var(--mono)}.perm-predict{margin:0;padding:8px 0;border:0}.perm-predict legend{font-weight:700;margin-bottom:5px}.perm-predict label{display:inline-flex;align-items:center;gap:6px;margin:0 18px 5px 0}.perm-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:5px}.perm-actions button{font:inherit}.perm-secondary{cursor:pointer;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;padding:9px 13px;border-radius:9px}.perm-feedback{margin-top:12px;padding:11px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}.perm-feedback:empty{display:none}.perm-verdict{font-weight:800;margin-bottom:7px}.perm-trace{margin:7px 0 0;padding-left:20px;font-size:13px}.perm-trace li{margin:5px 0}.perm-trace .deciding{font-weight:700;color:var(--accent-ink)}.perm-progress{font-size:12px;color:var(--ink-soft);margin:7px 0}.perm-note{font-size:12.5px;color:var(--ink-soft);margin:10px 0 0}@media(max-width:560px){.perm-layout{grid-template-columns:1fr}.ix-permission{padding:12px}.perm-rule{grid-template-columns:3rem 3rem 1fr}.perm-actions>*{flex:1 1 8rem}}";
+    style.textContent = ".ix-permission{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}.perm-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.perm-rules,.perm-practice{min-width:0}.perm-rule{display:grid;grid-template-columns:3.3rem 3.2rem 1fr;gap:7px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.4}.perm-rule:last-child{border-bottom:0}.perm-rule-id{font-family:var(--mono);font-weight:700}.perm-effect{text-transform:uppercase;font-weight:700}.perm-effect.deny{color:var(--bad)}.perm-effect.allow{color:var(--good-ink)}.perm-case-select{width:100%;box-sizing:border-box;font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:8px}.perm-call{white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0;background:var(--code-bg);border-radius:8px;padding:10px;font:12.5px/1.5 var(--mono)}.perm-predict{margin:0;padding:8px 0;border:0}.perm-predict legend{font-weight:700;margin-bottom:5px}.perm-predict label{display:inline-flex;align-items:center;gap:6px;margin:0 18px 5px 0}.perm-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:5px}.perm-actions button{font:inherit}.perm-secondary{cursor:pointer;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;padding:9px 13px;border-radius:9px}.perm-feedback{margin-top:12px;padding:11px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}.perm-feedback:empty{display:none}.perm-verdict{font-weight:800;margin-top:12px}.perm-verdict:empty{display:none}.perm-trace{margin:7px 0 0;padding-left:20px;font-size:13px}.perm-trace li{margin:5px 0}.perm-trace .deciding{font-weight:700;color:var(--accent-ink)}.perm-progress{font-size:12px;color:var(--ink-soft);margin:7px 0}.perm-note{font-size:12.5px;color:var(--ink-soft);margin:10px 0 0}@media(max-width:560px){.perm-layout{grid-template-columns:1fr}.ix-permission{padding:12px}.perm-rule{grid-template-columns:3rem 3rem 1fr}.perm-actions>*{flex:1 1 8rem}}";
     (document.head || document.documentElement).appendChild(style);
   }
 
@@ -221,17 +228,19 @@
     const reset = el(document, "button", "perm-secondary", "Reset drill");
     reset.type = "button";
     append(actions, check, retry, next, reset);
+    const status = el(document, "div", "perm-verdict");
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.setAttribute("aria-atomic", "true");
     const feedback = el(document, "div", "perm-feedback");
-    feedback.setAttribute("role", "status");
-    feedback.setAttribute("aria-live", "polite");
-    feedback.setAttribute("aria-atomic", "true");
-    append(practice, caseLabel, select, progress, call, fieldset, actions, feedback);
+    append(practice, caseLabel, select, progress, call, fieldset, actions, status, feedback);
     append(layout, rulesPanel, practice);
     append(rootNode, heading, layout);
 
     function clearPrediction() {
       allow.input.checked = false;
       deny.input.checked = false;
+      status.textContent = "";
       feedback.textContent = "";
     }
 
@@ -256,10 +265,10 @@
       const result = session.check();
       feedback.textContent = "";
       if (!result.ok) {
-        feedback.appendChild(el(document, "div", "perm-verdict", result.error));
+        status.textContent = result.error;
         return;
       }
-      const verdict = el(document, "div", "perm-verdict", `${result.correct ? "Correct" : "Not yet"}: ${result.verdict.toUpperCase()} — deciding rule ${result.decidingRule}.`);
+      status.textContent = `${result.correct ? "Correct" : "Not yet"}: ${result.verdict.toUpperCase()} — deciding rule ${result.decidingRule}.`;
       const traceTitle = el(document, "div", "", "Rule-by-rule evaluation:");
       const trace = el(document, "ol", "perm-trace");
       result.trace.forEach((entry) => {
@@ -270,7 +279,7 @@
         item.textContent = text;
         trace.appendChild(item);
       });
-      append(feedback, verdict, traceTitle, trace);
+      append(feedback, traceTitle, trace);
     });
     retry.addEventListener("click", () => { session.retry(); clearPrediction(); allow.input.focus(); });
     next.addEventListener("click", () => { session.next(); drawCase(); select.focus(); });
