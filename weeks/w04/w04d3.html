@@ -7,6 +7,7 @@
 <meta name="fde-concepts" content="langgraph-command-handoffs,crewai-hierarchical-process,crewai-delegation-tools,magentic-orchestration,agent-framework-selection-tradeoffs">
 <title>W4·D3 — Alt Research: CrewAI &amp; AutoGen vs LangGraph | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<link rel="stylesheet" href="../../assets/css/w4-major-refresh.css?v=20260925-1">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -46,8 +47,8 @@
         on the right assembles all three stacks side by side and ends where every framework debate should end — on a
         single tradeoff axis you can draw for a client. Scope check: Day 1 gave you the orchestration patterns
         generically, Day 2 gave you LangGraph state and checkpointers; today is strictly the <em>multi-agent layer</em>
-        of the competing frameworks, rechecked against first-party sources on September&nbsp;25,&nbsp;2026; the
-        Agent Framework version and migration-guide dates remain a June research snapshot.</p>
+        of the competing frameworks; evidence was rechecked September&nbsp;25,&nbsp;2026 UTC; the Agent Framework
+        version remains a June snapshot, as do the cited migration-guide dates.</p>
         <div class="ix-legend"></div>
       </div>
 
@@ -60,7 +61,7 @@
         wrote versus judgment delegated to an LLM versus a prebuilt pattern you configure</strong>. Hold that axis in
         your head; every mechanism today lands somewhere on it.</p>
         <p>First, pin the versions, because this landscape moved hard and most of what the internet (and, frankly,
-        most models' training data) will tell you is stale. As of September 25, 2026: <strong>LangGraph 1.2.12</strong>
+        most models' training data) will tell you is stale. As of September 25, 2026 UTC: <strong>LangGraph 1.2.12</strong>
         and <strong>CrewAI 1.15.22</strong> are the current patches on the same 1.2 and 1.15 teaching lines. That is
         maintenance movement, not an architecture rewrite, so the lesson does not force patch churn. CrewAI remains
         independent of LangChain. And <strong>AutoGen is now a legacy migration source</strong>: its GroupChat and
@@ -280,12 +281,12 @@
       <section class="reading-sources" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
-          <li><a href="https://pypi.org/project/langgraph/" target="_blank" rel="noopener">langgraph — PyPI</a> — 1.2.12 (2026-09-21, accessed 2026-09-25); current patch on the same 1.2 durable-execution line.</li>
+          <li><a href="https://pypi.org/project/langgraph/" target="_blank" rel="noopener">langgraph — PyPI</a> — 1.2.12 (2026-09-21, accessed 2026-09-25 UTC); current patch on the same 1.2 durable-execution line.</li>
           <li><a href="https://docs.langchain.com/oss/python/langchain/multi-agent" target="_blank" rel="noopener">Multi-agent — Docs by LangChain</a> — the five patterns (subagents, handoffs, skills, router, custom workflows) and "context engineering" as the central design concern.</li>
           <li><a href="https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs" target="_blank" rel="noopener">Handoffs — Docs by LangChain</a> — <code>Command</code> handoffs, <code>Command.PARENT</code>, the <code>ToolMessage</code> pairing rule, and the middleware-first recommendation.</li>
           <li><a href="https://github.com/langchain-ai/langgraph-supervisor-py" target="_blank" rel="noopener">langgraph-supervisor-py — GitHub</a> — <code>create_supervisor</code>, tool-based handoffs, and the maintainers' "use the pattern directly" note.</li>
           <li><a href="https://github.com/langchain-ai/langgraph-swarm-py" target="_blank" rel="noopener">langgraph-swarm-py — GitHub</a> — peer handoffs by specialization; checkpointed <code>active_agent</code> resume behavior (0.1.0, 2025-12-04).</li>
-          <li><a href="https://pypi.org/project/crewai/" target="_blank" rel="noopener">crewai — PyPI</a> — 1.15.22 (2026-09-16, accessed 2026-09-25); current stable patch on the same standalone 1.15 line.</li>
+          <li><a href="https://pypi.org/project/crewai/" target="_blank" rel="noopener">crewai — PyPI</a> — 1.15.22 (2026-09-16, accessed 2026-09-25 UTC); current stable patch on the same standalone 1.15 line.</li>
           <li><a href="https://docs.crewai.com/en/concepts/processes" target="_blank" rel="noopener">Processes — CrewAI Docs</a> — the <code>Process</code> enum: sequential vs hierarchical.</li>
           <li><a href="https://docs.crewai.com/en/learn/hierarchical-process" target="_blank" rel="noopener">Hierarchical Process — CrewAI Docs</a> — <code>manager_llm</code> vs <code>manager_agent</code>; delegate, review, validate.</li>
           <li><a href="https://docs.crewai.com/en/concepts/collaboration" target="_blank" rel="noopener">Collaboration — CrewAI Docs</a> — <code>allow_delegation=True</code> and the two auto-injected coworker tools.</li>
@@ -423,7 +424,8 @@ def sequential_route(task_name):
 
 def bounded_manager_route(task_name):
     eligible = [name for name, skills in CAPABILITIES.items() if task_name in skills]
-    assert len(eligible) == 1, &quot;policy requires one accountable owner&quot;
+    if len(eligible) != 1:
+        raise ValueError(&quot;policy requires exactly one accountable owner&quot;)
     return eligible[0]
 
 
@@ -441,7 +443,7 @@ window.DIAGRAM = {
   nodes: [
     // the shared problem (dark payload card)
     { id:"task", step:0, kind:"example", x:14, y:14, w:472, h:64,
-      label:"THE SAME JOB  · several specialists, one outcome, someone decides who acts next\n  LangGraph 1.2.12 · CrewAI 1.15.22 · agent-framework 1.10.0 June snapshot\n  verified 2026-09-25 · AutoGen = legacy" },
+      label:"THE SAME JOB  · several specialists, one outcome, someone decides who acts next\n  LangGraph 1.2.12 · CrewAI 1.15.22 · agent-framework 1.10.0 June snapshot\n  verified 2026-09-25 UTC · AutoGen = legacy" },
 
     // ── column 1: LangGraph ──
     { id:"lg",   step:1, x:14, y:92, w:150, h:414, label:"LANGGRAPH — our pick (explicit graph)" },
@@ -484,7 +486,7 @@ window.DIAGRAM = {
     { id:"e_ax3",  step:8, from:"mag",  to:"axis", label:"prebuilt", lx:6 }
   ],
   captions: [
-    "One job, three stacks — and a stale-advice minefield. Checked 2026-09-25: LangGraph 1.2.12 and CrewAI 1.15.22; agent-framework 1.10.0 is the June research snapshot. <b>AutoGen is legacy.</b>",
+    "One job, three stacks — and a stale-advice minefield. Checked 2026-09-25 UTC: LangGraph 1.2.12 and CrewAI 1.15.22; agent-framework 1.10.0 is the June research snapshot. <b>AutoGen is legacy.</b>",
     "Our pick's current frame: <b>five named patterns</b>, governed by one concern — <b>context engineering</b>, deciding what each agent sees. <span style='opacity:.7'>(tap)</span>",
     "The LangGraph mechanism: a handoff is a <b>tool returning a Command</b> — state update + control flow. Docs' own advice: <b>single agent + middleware</b> for most cases. <span style='opacity:.7'>(tap)</span>",
     "The two archetypes, packaged: <b>supervisor</b> (maintainers say build it directly) and <b>swarm</b>, whose checkpointed <code>active_agent</code> resumes conversations with the right peer. <span style='opacity:.7'>(tap)</span>",
@@ -557,7 +559,7 @@ window.QUIZ = {
 <script src="../../assets/js/interactive.js"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
-<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
+<script src="../../assets/js/codeviewer.js?v=20260925-w4"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
 </body>
 </html>

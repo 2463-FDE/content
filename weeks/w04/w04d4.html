@@ -7,6 +7,7 @@
 <meta name="fde-concepts" content="property-graph-model,kg-schema-design,cypher-pattern-matching,neo4j-vector-index,knowledge-graph,text2cypher">
 <title>W4·D4 — Knowledge Graphs &amp; Cypher for GraphRAG | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<link rel="stylesheet" href="../../assets/css/w4-major-refresh.css?v=20260925-1">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -181,19 +182,21 @@
         <p><code>CREATE VECTOR INDEX moviePlots FOR (m:Movie) ON m.embedding<br>
         OPTIONS { indexConfig: { 'vector.dimensions': 1536, 'vector.similarity_function': 'cosine' }}</code></p>
         <p>Dimensions can range from 1 to 4096, and the similarity function is <strong>cosine or euclidean</strong> —
-        with the useful footnote that for l2-normalized vectors the two produce the same similarity ordering. Querying
-        goes through a procedure: <code>db.index.vector.queryNodes(indexName, k, queryVector)</code> returns the k most
-        similar nodes <em>plus a score</em>, where the closer the score is to 1.0, the more similar the indexed vector
-        is to your query vector.</p>
+        with the useful footnote that for l2-normalized vectors the two produce the same similarity ordering. On
+        Neo4j 2026.01+, current Cypher 25 uses <strong><code>MATCH … SEARCH</code></strong> to return nearest nodes and
+        scores. Put a tenant predicate <em>inside</em> the <code>SEARCH</code> subclause against a filterable index
+        property: the index keeps searching until it fills the requested limit with same-tenant results. An outer
+        <code>WHERE</code> runs after global top-k and can silently lose valid tenant results. The older
+        <code>db.index.vector.queryNodes()</code> procedure is deprecated as of Neo4j 2026.04.</p>
         <p>Pause on why this matters architecturally. The result of a vector query here isn't a text chunk — it's a
         <strong>node in a graph</strong>, with typed relationships radiating out of it. One database now serves both
         retrieval modes: semantic "find me things like this" <em>and</em> structural "now walk the connections." That
         combination is the hinge the next section swings on.</p>
         <div class="ix-future">
           <div class="k">Interactive — future goal</div>
-          <p>Planned: a live Cypher console against a small seeded movie graph — create the vector index, run
-          <code>db.index.vector.queryNodes</code> with a real embedded question, and inspect the returned nodes and
-          similarity scores. Needs backend standup.</p>
+          <p>Planned: a live Cypher console against a small seeded movie graph — create a vector index with a filterable
+          tenant property, run Cypher 25 <code>MATCH … SEARCH</code> with an in-search filter, and inspect the returned
+          nodes and similarity scores. Needs backend standup.</p>
         </div>
       </section>
 
@@ -286,9 +289,10 @@
           <li><a href="https://neo4j.com/docs/getting-started/data-modeling/guide-data-modeling/" target="_blank" rel="noopener">Neo4j — Graph data-modeling tutorial</a> — nouns→labels, verbs→relationship types, naming conventions, constraints, and the test-against-use-cases loop.</li>
           <li><a href="https://neo4j.com/docs/cypher-manual/current/patterns/" target="_blank" rel="noopener">Neo4j — Graph patterns</a> — pattern vs path, fixed and variable-length patterns, <code>SHORTEST</code>, and Cypher 25 match modes.</li>
           <li><a href="https://neo4j.com/docs/cypher-manual/current/queries/select-version/" target="_blank" rel="noopener">Neo4j — Select Cypher version</a> — Cypher 5 vs Cypher 25, per-database and per-query selection, and the 2026.02 default change.</li>
-          <li><a href="https://neo4j.com/docs/cypher-manual/current/indexes/semantic-indexes/vector-indexes/" target="_blank" rel="noopener">Neo4j — Vector indexes</a> — HNSW under the hood, <code>CREATE VECTOR INDEX</code>, and <code>db.index.vector.queryNodes</code>.</li>
+          <li><a href="https://neo4j.com/docs/cypher-manual/current/indexes/semantic-indexes/vector-indexes/" target="_blank" rel="noopener">Neo4j — Vector indexes</a> — HNSW internals, index creation, and the legacy procedure's deprecation.</li>
+          <li><a href="https://neo4j.com/docs/cypher-manual/25/clauses/search/" target="_blank" rel="noopener">Neo4j — Cypher 25 SEARCH</a> — in-search vector predicates, post-filtering contrast, and fill-to-limit behavior (accessed 2026-09-25 UTC).</li>
           <li><a href="https://neo4j.com/docs/neo4j-graphrag-python/current/" target="_blank" rel="noopener">neo4j-graphrag-python — package home</a> — the first-party GraphRAG package, requirements and support policy.</li>
-          <li><a href="https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_rag.html" target="_blank" rel="noopener">neo4j-graphrag-python — RAG user guide</a> — the retriever taxonomy: VectorCypherRetriever, HybridCypherRetriever, Text2CypherRetriever, and external vector-DB retrievers.</li>
+          <li><a href="https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_rag.html" target="_blank" rel="noopener">neo4j-graphrag-python — RAG user guide</a> — retriever filters, filterable vector-index properties, and the retriever taxonomy (rechecked 2026-09-25 UTC).</li>
           <li><a href="https://arxiv.org/abs/2404.16130" target="_blank" rel="noopener">Edge et al. — From Local to Global: A Graph RAG Approach to Query-Focused Summarization</a> — the GraphRAG paper: entity extraction, community summaries, and global sensemaking.</li>
         </ul>
       </section>
@@ -338,9 +342,9 @@
     <div class="model-answer show">
       <div class="ma-k">The setup, in order</div>
       <ul class="deliv-list">
-        <li><code>CREATE VECTOR INDEX moviePlots FOR (m:Movie) ON m.embedding OPTIONS { indexConfig: { 'vector.dimensions': 1536, 'vector.similarity_function': 'cosine' }}</code> — dimensions must match your embedding model's output (allowed range 1–4096); similarity is cosine or euclidean.</li>
-        <li><code>db.index.vector.queryNodes('moviePlots', 5, $questionEmbedding)</code> — returns the 5 nearest <em>nodes</em> with similarity scores (closer to 1.0 = more similar). This is the entry point.</li>
-        <li>The retrieval query — a Cypher fragment the <code>VectorCypherRetriever</code> runs <em>from each hit</em>, e.g. <code>MATCH (node)&lt;-[:ACTED_IN]-(p:Person) RETURN node.title, collect(p.name) AS cast</code>. The package "executes a Cypher query to traverse the graph based on these nodes."</li>
+        <li><strong>Index invariant:</strong> configure the embedding property plus <code>tenantId</code> as a filterable property on Neo4j 2026.01+; dimensions must match the embedding model and similarity is cosine or euclidean.</li>
+        <li><code>CYPHER 25 MATCH (incident:Incident) SEARCH incident IN (VECTOR INDEX incidentEmbeddings FOR $queryEmbedding WHERE incident.tenantId = $tenantId LIMIT 5) SCORE AS score</code> — the tenant predicate is evaluated inside the index, which continues until it finds five matching incidents.</li>
+        <li>The fixed traversal must scope every connected node too, e.g. <code>(system:System {tenantId: $tenantId})</code> and <code>(team:Team {tenantId: $tenantId})</code>. Read-only does not by itself prevent cross-tenant disclosure.</li>
       </ul>
       <p style="margin:8px 0 0">The window payload is now <em>the traversal's output</em> — structured entities and
       relations — not raw chunks. You control exactly which neighborhood gets spent into the context budget.</p>
@@ -395,24 +399,29 @@
   <div class="modal-card code-modal">
     <button class="modal-close" type="button" aria-label="Close code example">✕</button>
     <h2>Vector entry, then a read-only graph traversal</h2>
-    <p class="cv-cap">Read-only worked example. A synthetic query vector finds incident nodes, then Cypher follows typed relationships to gather affected systems and owners.</p>
+    <p class="cv-cap">Read-only worked example. Cypher 25 filters a synthetic vector search inside a tenant-aware index, then scopes every traversed incident, system, and team to the same tenant.</p>
     <div class="cv" data-file="incident_context.cypher" data-lang="sql"><pre class="cv-raw">// Synthetic parameters: $query_embedding and $tenant_id.
-// Read-only clauses only: no CREATE, MERGE, SET, DELETE, or driver.
-CALL db.index.vector.queryNodes(
-  &quot;synthetic_incident_embeddings&quot;,
-  3,
-  $query_embedding
-) YIELD node AS incident, score
-MATCH (incident)-[:AFFECTED]-&gt;(system:System)
-MATCH (team:Team)-[:OWNS]-&gt;(system)
-WHERE incident.tenantId = $tenant_id
+// Index invariant: tenantId is configured as a filterable property.
+// Read-only clauses only: no procedure, mutation, driver, or global top-k.
+CYPHER 25
+MATCH (incident:Incident)
+  SEARCH incident IN (
+    VECTOR INDEX synthetic_incident_embeddings
+    FOR $query_embedding
+    WHERE incident.tenantId = $tenant_id
+    LIMIT 3
+  ) SCORE AS score
+MATCH (incident)-[:AFFECTED]-&gt;(system:System {tenantId: $tenant_id})
+MATCH (team:Team {tenantId: $tenant_id})-[:OWNS]-&gt;(system)
+WHERE system.tenantId = incident.tenantId
+  AND team.tenantId = incident.tenantId
 RETURN
   incident.id AS incidentId,
   score,
   collect(DISTINCT system.name) AS affectedSystems,
   collect(DISTINCT team.name) AS owningTeams
 ORDER BY score DESC</pre></div>
-    <p class="cv-foot">Static query, not an interactive console. It cannot connect to Neo4j and uses named synthetic parameters rather than credentials or live data.</p>
+    <p class="cv-foot">Static query, not an interactive console. It cannot connect to Neo4j and uses named synthetic parameters rather than credentials or live data. The tenant filter is inside <code>SEARCH</code>, not applied after a global nearest-neighbor limit.</p>
   </div>
 </div>
 
@@ -446,7 +455,7 @@ window.DIAGRAM = {
 
     // vector index + entry
     { id:"vidx", step:5, x:34, y:380, w:190, h:66, label:"VECTOR INDEX (HNSW)\nON m.embedding\ncosine · dims ≤ 4096",
-      detail:"Lucene-backed HNSW approximate-nearest-neighbor index over a node property: CREATE VECTOR INDEX ... FOR (m:Movie) ON m.embedding, dimensions 1–4096, similarity cosine or euclidean (same ordering for l2-normalized vectors). Query with db.index.vector.queryNodes(name, k, vector) → nodes + scores, closer to 1.0 = more similar." },
+      detail:"Lucene-backed HNSW approximate-nearest-neighbor index over a node property: CREATE VECTOR INDEX ... FOR (m:Movie) ON m.embedding, dimensions 1–4096, similarity cosine or euclidean. On Neo4j 2026.01+, Cypher 25 MATCH … SEARCH returns nodes + scores and can apply a filterable tenant property inside the index before LIMIT is filled; the older queryNodes procedure is deprecated." },
     { id:"qv", step:5, x:262, y:386, w:110, h:54, label:"query\nembedding →" },
 
     // graphrag patterns
@@ -464,7 +473,7 @@ window.DIAGRAM = {
     { id:"e_cy",   step:3, from:"cy", to:"kg",  label:"pattern → paths", lx:-4 },
     { id:"e_ver",  step:4, from:"ver", to:"cy", label:"which dialect?", ly:-4 },
     { id:"e_idx",  step:5, from:"vidx", to:"m1", label:"indexes m.embedding", lx:6 },
-    { id:"e_qv",   step:5, from:"qv", to:"vidx", label:"queryNodes(k)", ly:-4 },
+    { id:"e_qv",   step:5, from:"qv", to:"vidx", label:"SEARCH … LIMIT k", ly:-4 },
     { id:"e_vcr",  step:6, from:"vidx", to:"vcr", label:"entry nodes", lx:-6 },
     { id:"e_walk", step:6, from:"vcr", to:"win", label:"traverse → enrich", ly:-2 },
     { id:"e_t2c",  step:7, from:"t2c", to:"win", label:"exact results", bend:-20, ly:-2 },
@@ -512,11 +521,11 @@ window.QUIZ = {
       options: [
         "It's an HNSW approximate-nearest-neighbor index over embedding properties",
         "Dimensions can range from 1 to 4096, with cosine or euclidean similarity",
-        "db.index.vector.queryNodes returns nodes plus similarity scores, where closer to 1.0 means more similar",
+        "Cypher 25 SEARCH can apply a filterable tenant predicate inside the vector index before LIMIT is filled",
         "It replaces the need to store relationships in the graph",
         "It requires a separate external vector database to operate" ],
       answer: [0, 1, 2],
-      explain: "It's a Lucene-backed HNSW index created over a node property, with dimensions 1–4096 and cosine/euclidean similarity, queried via db.index.vector.queryNodes(name, k, vector). The whole point is that it lives INSIDE the graph store — vector hits are nodes with relationships radiating out, so one database serves both semantic search and traversal. It neither replaces relationships nor needs an external store." },
+      explain: "It's a Lucene-backed HNSW index over a node property, with dimensions 1–4096 and cosine/euclidean similarity. On Neo4j 2026.01+, Cypher 25 SEARCH returns nodes plus scores and can enforce a filterable tenant predicate inside the index before LIMIT is satisfied. The whole point is that it lives inside the graph store — vector hits remain nodes with relationships radiating out. The older queryNodes procedure is deprecated as of Neo4j 2026.04." },
     { type: "match",
       stem: "Match each retrieval question to the mechanism best suited to answer it.",
       pairs: [
@@ -543,7 +552,7 @@ window.QUIZ = {
 <script src="../../assets/js/interactive.js"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
-<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
+<script src="../../assets/js/codeviewer.js?v=20260925-w4"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
 </body>
 </html>
