@@ -19,7 +19,11 @@ assets/
                         per-trainee tracking (localStorage + central POST seam)
 ```
 
-Zero build step, zero dependencies. Edit HTML/CSS/JS, commit, Pages redeploys.
+Zero build step for the pages, zero runtime dependencies. Edit HTML/CSS/JS, commit, Pages redeploys.
+
+One artifact is generated rather than authored: `content/expectations.v1.json`, derived from the
+pages by `tools/expectations/build.mjs` and checked for drift in CI. `AGENTS.md` records which
+edits require regenerating it.
 
 ## Authoring a reading page
 
