@@ -40,7 +40,7 @@ Week W
 │     → <meta fde-day> + <meta fde-concepts> + Sources block (template v2)
 │     → ONE read-only code popup at the key concept (codeviewer.js + code-cta +
 │       .code-modal); any LLM call = AWS Bedrock (Converse, bearer token, Haiku
-│       4.5 default; Sonnet 4.6 only for size-up) — never OpenAI in the code
+│       4.5 default; Sonnet 5 only for size-up) — never OpenAI in the code
 │
 ├─ 3. AUTHOR questions (parallel, per concept-group)
 │     → backend BANK, tagged concepts:[...] + day:"wWWdN"
