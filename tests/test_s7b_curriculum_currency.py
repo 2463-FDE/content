@@ -125,6 +125,31 @@ process.stdout.write(JSON.stringify({count: quiz.questions.length}));
 """
 
 
+_PAGE_DATA = r"""
+const fs = require('fs');
+const vm = require('vm');
+const source = fs.readFileSync(process.argv[2], 'utf8');
+const context = {window: {}};
+for (const m of source.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)) {
+  vm.runInNewContext(m[1], context);
+}
+process.stdout.write(JSON.stringify({diagram: context.window.DIAGRAM, quiz: context.window.QUIZ}));
+"""
+
+
+def _page_data(relative: str) -> dict:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".js") as script_file:
+        script_file.write(_PAGE_DATA)
+        script_file.flush()
+        result = subprocess.run(
+            ["node", script_file.name, str(ROOT / relative)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    return json.loads(result.stdout)
+
+
 class S7bCurrencyTests(unittest.TestCase):
     def test_html_and_inline_javascript_parse(self) -> None:
         for page in WEEK_PAGES:
@@ -171,15 +196,31 @@ class S7bCurrencyTests(unittest.TestCase):
 
     def test_broken_quiz_schemas_are_rejected(self) -> None:
         invalid_questions = {
-            "scq": '{type:"scq",stem:"broken",answer:0,explain:"why"}',
-            "tf": '{type:"tf",stem:"broken",answer:"false",explain:"why"}',
-            "match": '{type:"match",stem:"broken",pairs:[{l:"left"}],explain:"why"}',
-            "open": '{type:"open",stem:"broken",hint:"hint"}',
+            "scq": (
+                '{type:"scq",stem:"broken",answer:0,explain:"why"}',
+                "question 0 has invalid options",
+            ),
+            "scq-range": (
+                '{type:"scq",stem:"broken",options:["a","b"],answer:2,explain:"why"}',
+                "question 0 answer out of range",
+            ),
+            "tf": (
+                '{type:"tf",stem:"broken",answer:"false",explain:"why"}',
+                "question 0 has invalid true/false schema",
+            ),
+            "match": (
+                '{type:"match",stem:"broken",pairs:[{l:"left"}],explain:"why"}',
+                "question 0 has invalid match schema",
+            ),
+            "open": (
+                '{type:"open",stem:"broken",hint:"hint"}',
+                "question 0 has invalid open-response schema",
+            ),
         }
         with tempfile.NamedTemporaryFile(mode="w", suffix=".js") as script_file:
             script_file.write(_QUIZ_VALIDATOR)
             script_file.flush()
-            for question_type, question in invalid_questions.items():
+            for question_type, (question, error) in invalid_questions.items():
                 with self.subTest(question_type=question_type):
                     with tempfile.NamedTemporaryFile(mode="w", suffix=".html") as page:
                         page.write(
@@ -192,6 +233,7 @@ class S7bCurrencyTests(unittest.TestCase):
                             text=True,
                         )
                         self.assertNotEqual(result.returncode, 0, result.stdout)
+                        self.assertIn(error, result.stderr)
 
     def test_current_and_historical_labels(self) -> None:
         d1 = _page_text("weeks/w07/w07d1.html")
@@ -210,12 +252,30 @@ class S7bCurrencyTests(unittest.TestCase):
             "with the then-current ChatGPT as evaluator",
             d2,
         )
-        self.assertIn("LLM-AS-JUDGE · 2023\\n>80% agreement", d2)
-        self.assertIn("position bias · 2023\\n66/80 flipped", d2)
-        self.assertIn("2023 historical study</b> reported ~80% agreement", d2)
-        self.assertIn("the 2023 study flipped 66/80 verdicts", d2)
-        self.assertIn("A 2023 historical study finding ~80% judge agreement", d2)
-        self.assertIn("In that 2023 result, ~80% was the level of agreement", d2)
+        self.assertIn("In that 2023 study, the judge performed about as well as a human", d2)
+        self.assertIn("and humans agreed with each other only about 80% of the time", d2)
+
+        d2_data = _page_data("weeks/w07/w07d2.html")
+        nodes = {node["id"]: node for node in d2_data["diagram"]["nodes"]}
+        self.assertTrue(nodes["judge"]["label"].startswith("LLM-AS-JUDGE · 2023\n>80% agreement"))
+        self.assertIn("In the 2023 historical study", nodes["judge"]["detail"])
+        self.assertEqual(nodes["pos"]["label"], "position bias · 2023\n66/80 flipped")
+        self.assertIn("In a 2023 historical study", nodes["pos"]["detail"])
+        captions = d2_data["diagram"]["captions"]
+        self.assertIn("2023 historical study</b> reported ~80% agreement", captions[3])
+        self.assertIn("the 2023 study flipped 66/80 verdicts", captions[4])
+        judge_questions = [
+            q for q in d2_data["quiz"]["questions"] if "80%" in q["stem"] + q.get("explain", "")
+        ]
+        self.assertTrue(judge_questions)
+        for question in judge_questions:
+            self.assertIn("2023", question["stem"] + question.get("explain", ""))
+        self.assertTrue(
+            any("A 2023 historical study finding ~80% judge agreement" in q["stem"] for q in judge_questions)
+        )
+        self.assertTrue(
+            any("In that 2023 result, ~80% was the level of agreement" in q["explain"] for q in judge_questions)
+        )
         self.assertIn("accessed August 6, 2026", d5)
         self.assertIn("not current-model recommendations", d5)
         self.assertIn("November 23, 2023 historical fact-checking evaluation", w8d3)
