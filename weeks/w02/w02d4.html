@@ -252,6 +252,7 @@
           <li><a href="https://deepeval.com/docs/metrics-faithfulness" target="_blank" rel="noopener">DeepEval — Faithfulness</a> — the same metric with required inputs and the default 0.5 pass threshold (and <code>strict_mode</code>).</li>
           <li><a href="https://pypi.org/project/ragas/" target="_blank" rel="noopener">ragas · PyPI</a> — the package (v0.4.3) whose canonical repo now lives under the <code>vibrantlabsai</code> GitHub org.</li>
           <li><a href="https://arxiv.org/html/2401.05856v1" target="_blank" rel="noopener">Barnett et al. — Seven Failure Points When Engineering a RAG System</a> — the FP1–FP7 taxonomy and the retrieval-vs-extraction distinction.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-5.html" target="_blank" rel="noopener">AWS — Claude Sonnet 5 model card</a> — verifies the US inference-profile ID used by the eval judge and documents its routing limits (accessed 2026-09-25).</li>
         </ul>
       </section>
 
@@ -488,10 +489,10 @@ from langchain_aws import ChatBedrockConverse, BedrockEmbeddings
 from datasets import Dataset
 
 # bedrock_api_key sets AWS_BEARER_TOKEN_BEDROCK under the hood -- no IAM creds.
-# The judge is where we deliberately SIZE UP to Sonnet 4.6: eval quality is worth
-# the extra cost. Everywhere else in the pipeline we default to Haiku 4.5.
+# The judge is where we deliberately SIZE UP to Sonnet 5: eval quality is worth
+# the extra cost. This US geo inference profile may route across US Regions.
 judge = LangchainLLMWrapper(ChatBedrockConverse(
-    model=&quot;us.anthropic.claude-sonnet-4-6-v1&quot;, region_name=&quot;us-east-1&quot;))
+    model=&quot;us.anthropic.claude-sonnet-5&quot;, region_name=&quot;us-east-1&quot;))
 emb = LangchainEmbeddingsWrapper(BedrockEmbeddings(
     model_id=&quot;amazon.titan-embed-text-v2:0&quot;, region_name=&quot;us-east-1&quot;))
 

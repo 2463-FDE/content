@@ -243,6 +243,8 @@
           <li><a href="https://www.sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html" target="_blank" rel="noopener">Sentence Transformers — Retrieve &amp; Re-Rank</a> — the two-stage bi-encoder + cross-encoder pattern.</li>
           <li><a href="https://github.com/pgvector/pgvector" target="_blank" rel="noopener">pgvector — GitHub</a> — HNSW index, tuning parameters, iterative scans, and hybrid search.</li>
           <li><a href="https://github.com/chroma-core/chroma" target="_blank" rel="noopener">Chroma — GitHub</a> — PersistentClient, collections, automatic embedding, and query API.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-4-5.html" target="_blank" rel="noopener">AWS — Claude Haiku 4.5 model card</a> — verifies the US inference-profile ID used by the RAG answerer (accessed 2026-09-25).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-5.html" target="_blank" rel="noopener">AWS — Claude Sonnet 5 model card</a> — verifies the size-up judge profile and documents cross-Region routing (accessed 2026-09-25).</li>
         </ul>
       </section>
 
@@ -463,13 +465,13 @@ def answer(question: str) -&gt; dict:
     hits = rerank(question, hits)[:5]    # precision pass (Bedrock Rerank)
     context = &quot;\n\n&quot;.join(f&quot;[{h[&#x27;doc_id&#x27;]}] {h[&#x27;body&#x27;]}&quot; for h in hits)
     resp = bedrock.converse(
-        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,  # Haiku for cost; size up to Sonnet 4.6 only if answers need it
+        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,  # Haiku for cost; size up to Sonnet 5 only if evals justify it
         system=[{&quot;text&quot;: SYSTEM}],
         messages=[{&quot;role&quot;: &quot;user&quot;,
                    &quot;content&quot;: [{&quot;text&quot;: f&quot;{context}\n\nQ: {question}&quot;}]}],
     )
     return {&quot;answer&quot;: resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;], &quot;sources&quot;: hits}</pre></div>
-    <p class="cv-foot">The system prompt forces grounding: answer only from the retrieved context. That single instruction is what makes faithfulness measurable instead of hoped-for. Model IDs are region/version-specific (use an inference-profile ID where required).</p>
+    <p class="cv-foot">The system prompt forces grounding: answer only from the retrieved context. <strong>Trainer troubleshooting:</strong> boto3 <code>bedrock-runtime</code> requires the documented geo/global inference-profile ID for these models. The <code>us.</code> profile can route across US Regions and is not a single-Region guarantee. If the profile is unavailable or residency rules differ, check the AWS model card and the organization's approved profile; do not guess a prefix. This static verification did not inspect an AWS account.</p>
   </div>
 </div>
 <!-- reference-repo wrap-up modal -->
@@ -557,7 +559,7 @@ def answer(question: str) -&gt; dict:
     hits = rerank(question, hits)[:5]    # precision pass (Bedrock Rerank)
     context = &quot;\n\n&quot;.join(f&quot;[{h[&#x27;doc_id&#x27;]}] {h[&#x27;body&#x27;]}&quot; for h in hits)
     resp = bedrock.converse(
-        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,  # Haiku for cost; size up to Sonnet 4.6 only if answers need it
+        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,  # Haiku for cost; size up to Sonnet 5 only if evals justify it
         system=[{&quot;text&quot;: SYSTEM}],
         messages=[{&quot;role&quot;: &quot;user&quot;,
                    &quot;content&quot;: [{&quot;text&quot;: f&quot;{context}\n\nQ: {question}&quot;}]}],
@@ -575,10 +577,10 @@ from langchain_aws import ChatBedrockConverse, BedrockEmbeddings
 from datasets import Dataset
 
 # bedrock_api_key sets AWS_BEARER_TOKEN_BEDROCK under the hood -- no IAM creds.
-# The judge is where we deliberately SIZE UP to Sonnet 4.6: eval quality is worth
-# the extra cost. Everywhere else in the pipeline we default to Haiku 4.5.
+# The judge is where we deliberately SIZE UP to Sonnet 5: eval quality is worth
+# the extra cost. This US geo inference profile may route across US Regions.
 judge = LangchainLLMWrapper(ChatBedrockConverse(
-    model=&quot;us.anthropic.claude-sonnet-4-6-v1&quot;, region_name=&quot;us-east-1&quot;))
+    model=&quot;us.anthropic.claude-sonnet-5&quot;, region_name=&quot;us-east-1&quot;))
 emb = LangchainEmbeddingsWrapper(BedrockEmbeddings(
     model_id=&quot;amazon.titan-embed-text-v2:0&quot;, region_name=&quot;us-east-1&quot;))
 

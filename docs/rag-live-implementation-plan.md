@@ -10,7 +10,7 @@ Make the W2 "try it" sections run against a **real** retrieval pipeline (real em
 ## Hard constraints (read first)
 
 - **Two layers, two model stories:**
-  - **Production SHOWCASE (the code popups)** = **AWS Bedrock**: embeddings **Amazon Titan Text Embeddings V2** (`amazon.titan-embed-text-v2:0`), generation **Claude via Converse** (default **Haiku 4.5** `us.anthropic.claude-haiku-4-5-20251001-v1:0`, size up to **Sonnet 4.6** `us.anthropic.claude-sonnet-4-6-v1` only where quality demands it, e.g. the eval judge), rerank **Bedrock Rerank** (`amazon.rerank-v1:0`). Static, learner-facing reference; nothing executes. 3.5 is retired; current-gen needs a `us.`/`global.` inference-profile prefix.
+  - **Production SHOWCASE (the code popups)** = **AWS Bedrock**: embeddings **Amazon Titan Text Embeddings V2** (`amazon.titan-embed-text-v2:0`), generation **Claude via Converse** (Haiku 4.5 default / Sonnet size-up — model IDs owned by `docs/rag-vector-store-decision.md`), rerank **Bedrock Rerank** (`amazon.rerank-v1:0`). Static, learner-facing reference; nothing executes. 3.5 is retired; current-gen needs a `us.`/`global.` inference-profile prefix.
   - **Running DEMO (the live Worker)** = **free, no Bedrock**: embeddings via **Cloudflare Workers AI `@cf/baai/bge-base-en-v1.5`** (768-dim, in-Worker, `env.AI.run`), store **Chroma Cloud free tier**, grounded answers reuse the **existing Claude proxy** (Haiku 4.5). Chosen so the demo costs $0 and the org's long-lived Bedrock token never sits in a public edge Worker. bge (768d) ≠ Titan (1024d) — same concept; the demo notes "production uses Titan."
 - **No OpenAI anywhere** in either layer.
 - **Same model at ingest and query.** The live Worker queries with `bge`, so the ingest script embeds with the **same** `bge` (via the Cloudflare Workers AI REST API), not Titan.
@@ -87,12 +87,12 @@ In `backend/src/index.js`:
 
 - **Titan Text Embeddings V2** `amazon.titan-embed-text-v2:0`: body `{inputText, dimensions:1024|512|256, normalize:true}` → `{embedding, inputTextTokenCount}`. One `inputText` per call. 512d ≈ 99%, 256d ≈ 97% of 1024d accuracy. Max 8,192 tokens. [AWS docs](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html)
 - **Bedrock API keys (bearer):** env `AWS_BEARER_TOKEN_BEDROCK`; header `Authorization: Bearer <key>`; endpoint `bedrock-runtime.<region>.amazonaws.com/model/<id>/invoke`. boto3 and `langchain_aws` (`bedrock_api_key`) both read the env var; the key takes precedence over AWS creds. [AWS docs](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys.html)
-- **Converse (Claude):** `bedrock-runtime.converse(modelId, system=[{text}], messages=[{role, content:[{text}]}], inferenceConfig={maxTokens})`; reply at `output.message.content[0].text`. Current-gen model IDs need an inference-profile prefix: `us.anthropic.claude-haiku-4-5-20251001-v1:0` (default, cost) and `us.anthropic.claude-sonnet-4-6-v1` (size-up); 3.5 is retired. [AWS docs](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html)
+- **Converse (Claude):** `bedrock-runtime.converse(modelId, system=[{text}], messages=[{role, content:[{text}]}], inferenceConfig={maxTokens})`; reply at `output.message.content[0].text`. Current-gen model IDs need an inference-profile prefix; see `docs/rag-vector-store-decision.md` for the default and size-up IDs. [AWS docs](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html)
 - **Rerank:** `bedrock-agent-runtime.rerank(queries=[{type:"TEXT",textQuery:{text}}], sources=[{type:"INLINE",inlineDocumentSource:{type:"TEXT",textDocument:{text}}}], rerankingConfiguration={type:"BEDROCK_RERANKING_MODEL", bedrockRerankingConfiguration:{numberOfResults, modelConfiguration:{modelArn:"arn:aws:bedrock:<region>::foundation-model/amazon.rerank-v1:0"}}})` → `results:[{index, relevanceScore}]`. [AWS docs](https://docs.aws.amazon.com/bedrock/latest/userguide/rerank-use.html)
 - **Chroma Cloud:** HTTP API, tenant/database scoped, API-key auth. Free tier to ~1M embeddings, serverless/no idle-pause. [Chroma pricing](https://www.trychroma.com/pricing)
 
 ## Open decisions
 
-- Confirm the region inference-profile prefix (`us.` assumed; use `global.` if the account is set up for global CRIS). Haiku 4.5 default / Sonnet 4.6 size-up is set.
+- Confirm the region inference-profile prefix (`us.` assumed; use `global.` if the account is set up for global CRIS). Model defaults: see `docs/rag-vector-store-decision.md`.
 - Demo corpus content + size (Phase 3).
 - Whether `ix-precision` / `ix-ragas` go live or stay sims (they teach metrics, not retrieval).
