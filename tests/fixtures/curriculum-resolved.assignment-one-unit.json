@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "curriculum": {
+    "slug": "assigned-one-unit",
+    "title": "Assigned one-unit curriculum",
+    "phases": {
+      "found": {
+        "label": "Assigned Foundation",
+        "color": null
+      }
+    },
+    "units": [
+      {
+        "unit_key": "w01d1",
+        "week": 1,
+        "day": 1,
+        "phase_key": "found",
+        "phase_label": "Assigned Foundation",
+        "phase_color": null,
+        "week_title": "Assigned Week",
+        "title": "Assigned dotted content",
+        "subtitle": null,
+        "href": "weeks/w01/d1.v2.html",
+        "parts": [],
+        "star": false,
+        "availability": "available",
+        "position": 101
+      }
+    ]
+  },
+  "provenance": {
+    "version_id": "abcdef0123456789abcdef0123456789",
+    "version_no": 2,
+    "source_kind": "assignment",
+    "curriculum_slug": "assigned-one-unit",
+    "effective_from": 1700000000000,
+    "resolved_at": 1700000001000
+  }
+}

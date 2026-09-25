@@ -7,6 +7,53 @@
 <link rel="stylesheet" href="assets/css/style.css?v=20260805-rc3">
 <script src="assets/js/theme.js"></script>
 <script src="assets/js/progress.js?v=20260630-2"></script>
+<style>
+/* Dynamic curriculum availability is explicit, not color-only. */
+.cal-cell.missing { border-style:dashed; background:var(--surface-2); }
+.cal-cell.planned { border-style:dotted; box-shadow:inset 0 0 0 1px var(--accent-line); }
+.cal-cell.soon { opacity:1; border-style:dashed; background:var(--surface-2); }
+.cal-cell.soon:after { color:var(--ink-soft); }
+.cal-cell.live:after { color:var(--accent-ink); }
+.cal-cell.live .ct-link { color:var(--ink); }
+.cal-cell.live .ct-link:hover { color:var(--accent-ink); }
+.cal-cell .cell-parts a, .cal-cell .day-prog--start { color:var(--accent-ink); }
+.cal-cell .day-prog--resume { color:#fff; border-color:#c2410c; background:#c2410c; }
+.cal-cell .day-prog--done { color:var(--good-ink); border-color:var(--good-line); background:var(--good-soft); }
+.cal-cell .mk.star { color:#8a4b00; }
+html[data-theme="dark"] .cal-cell .mk.star { color:#ffc04d; }
+.ritual.cr { color:#087f5b; }
+.ritual.sd { color:#5f3dc4; }
+.ritual.ar { color:#1864ab; }
+.ritual.iv { color:#fff; border-color:#c2410c; background:#c2410c; }
+.ritual.fde { color:#fff; border-color:#1864ab; background:#1864ab; }
+.fr-btn { color:#ffffff; border-color:#c2410c; background:#c2410c; }
+.cell-unavailable { display:flex; flex-direction:column; min-width:0; }
+.availability-badge { align-self:flex-start; margin-top:9px; padding:2px 8px; border:1px solid var(--line); border-radius:20px; color:var(--ink-soft); background:var(--surface-2); font-size:11px; font-weight:700; }
+.availability-badge--planned { color:var(--accent-ink); border-color:var(--accent); background:var(--accent-soft); }
+.cal-cell, .cal-cell .ct, .cal-cell .cs { min-width:0; overflow-wrap:anywhere; }
+.legend, .legend .lg, .cal-week, .cal-week .wt, .cal-week .wp { min-width:0; }
+.legend .lg { max-width:100%; overflow-wrap:anywhere; }
+.cal-week .wt, .cal-week .wp { overflow-wrap:anywhere; }
+.cal-week .ww, .cal-week .rc-weekask { color:var(--ink); }
+.cal-cell-day { display:none; }
+@media (min-width:1001px) {
+  .cal-corner, .cal-week { grid-column:1; }
+  .cal-day-1 { grid-column:2; }
+  .cal-day-2 { grid-column:3; }
+  .cal-day-3 { grid-column:4; }
+  .cal-day-4 { grid-column:5; }
+  .cal-day-5 { grid-column:6; }
+}
+@media (max-width:1000px) {
+  .cal-cell-day { display:block; margin-bottom:6px; color:var(--ink-soft); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+}
+@media (max-width:600px) {
+  .topbar { flex-wrap:wrap; padding:8px 12px; }
+  .topbar-center { order:3; flex:1 0 100%; overflow-x:auto; justify-content:flex-start; }
+  .topbar-right { min-width:0; }
+  .cal-wrap { padding:12px 12px 40px; }
+}
+</style>
 </head>
 <body>
 <div class="topbar">
@@ -124,92 +171,150 @@ window.WEEKS = [
     { t:"Dry run, unrescued", s:"hostile questions · the number said aloud" },
     { t:"Client showcase", s:"final delivery · architecture defense · assessment", star:true } ]}
 ];
-(function () {
-  function render() {
-  const DOW = ["Mon","Tue","Wed","Thu","Fri"];
-  const legend = document.querySelector(".legend");
-  legend.innerHTML = ""; document.getElementById("cal").innerHTML = "";
-  Object.values(window.PHASES).forEach(p => {
-    const s = document.createElement("span"); s.className = "lg";
-    s.innerHTML = `<i style="background:${p.c}"></i>${p.label}`; legend.appendChild(s);
-  });
-  const cal = document.getElementById("cal");
-  cal.appendChild(cell("cal-corner", ""));
-  DOW.forEach(d => cal.appendChild(cell("cal-dayhead", d)));
-  window.WEEKS.forEach(week => {
-    const ph = window.PHASES[week.phase];
-    const wc = document.createElement("div");
-    wc.className = "cal-week"; wc.style.setProperty("--pc", ph.c);
-    wc.innerHTML = `<div class="ww">Week ${week.w}</div><div class="wt">${week.title}</div><div class="wp">${ph.label}</div>`;
-    cal.appendChild(wc);
-    week.days.forEach((day, di) => {
-      const title = day.href ? `<a class="ct-link" href="${day.href}">${day.t}</a>` : day.t;
-      const marks = `${day.star ? '<span class="mk star">★</span>' : ''}`; // ◆ FDE is now a recurring Thursday ritual (below), not a per-day mark
-      // recurring weekly rituals
-      let rituals = "";
-      // Daily AI Interview — every day from program Day 2 onward. Day 1 (w1d1) has
-      // no material taught yet to interview on. Deep-links the gauntlet scoped to
-      // that day (cumulative through the prior day). Accent-filled so it stands out.
-      if (!(week.w === 1 && di === 0)) {
-        const dd = "w" + String(week.w).padStart(2, "0") + "d" + (di + 1);
-        rituals += `<a class="ritual iv" href="gauntlet.html?day=${dd}" title="Daily AI Interview — do it before end of day">🎤 AI Interview</a>`;
-      }
-      if (di === 0) rituals += `<a class="ritual cr" href="client-delivery.html?w=${week.w}">📋 Client request</a>`;
-      // Weekly FDE Session — Thursday, from week 2 onward (week 1 is onboarding).
-      if (week.w >= 2 && di === 3) rituals += `<span class="ritual fde" title="Weekly FDE Situation session — Thursday">◆ FDE Situation</span>`;
-      // Sys-design rituals link to the weekly-challenge prep page, scoped to the
-      // week (system-design.html?w=N). That page shows the curriculum-aware
-      // assigned scenario + a Start button into the simulator. Tue = start
-      // pre-planning, Fri = due / defend.
-      if (week.w <= 8 && di === 1) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}" title="This week's System Design challenge — start pre-planning before Friday">🎯 Sys-design · start</a>`;
-      if (week.w <= 8 && di === 2) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}">🔬 Alt research</a>`;
-      if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}" title="System Design due — open this week's challenge">🎯 Sys-design · due</a>`;
-      // Alt Research presentation is due Friday — reminder badge (researched Wed).
-      if (week.w <= 8 && di === 4) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}" title="Alt Research presentation due — present this week's findings">🔬 Alt research · due</a>`;
-      const partsHtml = day.parts
-        ? `<div class="cell-parts">` + day.parts.map(p => `<a href="${p.href}">${p.t}</a>`).join("") + `</div>`
-        : "";
-      // Per-learner Start / Resume / Completed (server-backed via progress.js).
-      // A day flips to ✓ when the learner records the end-of-day STT summary.
-      // Only days with reading pages get a button; future "soon" days don't.
-      const firstHref = day.href || (day.parts && day.parts[0] && day.parts[0].href) || null;
-      let progHtml = "";
-      if (firstHref) {
-        const dayId = "w" + String(week.w).padStart(2, "0") + "d" + (di + 1);
-        const st = (window.FDE_PROGRESS ? window.FDE_PROGRESS.status(dayId) : "none");
-        const label = st === "completed" ? "✓ Completed" : (st === "started" ? "↻ Resume" : "▶ Start");
-        const cls = "day-prog day-prog--" + (st === "completed" ? "done" : (st === "started" ? "resume" : "start"));
-        progHtml = `<a class="${cls}" href="${firstHref}">${label}</a>`;
-      }
-      const el = document.createElement("div");
-      el.className = "cal-cell" + (day.href ? " live" : (day.parts ? " parts" : " soon"));
-      el.style.setProperty("--pc", ph.c);
-      // Layout contract: head (title+subtitle) at top, parts list in the body
-      // expanding downward, foot pinned to the bottom so Start + rituals land in
-      // the same spot on every card regardless of title-wrap / part count. Marks
-      // (◆ FDE / ★) are chips folded into the foot's tag row.
-      const tags = marks + rituals;
-      el.innerHTML =
-        `<div class="ct">${title}</div><div class="cs">${day.s || ""}</div>` +
-        partsHtml +
-        `<div class="cell-foot">` +
-          (progHtml ? `<div class="day-actions">${progHtml}</div>` : "") +
-          (tags ? `<div class="ritual-row">${tags}</div>` : "") +
-        `</div>`;
-      cal.appendChild(el);
-    });
-  });
-  function cell(cls, txt) { const d = document.createElement("div"); d.className = cls; d.textContent = txt; return d; }
+
+/* Static-only renderer: keeps the committed calendar usable even when the
+   optional curriculum-loader asset is missing or blocked. The loader removes
+   this progress listener before taking ownership of dynamic rendering. */
+(function (root, doc) {
+  "use strict";
+  if (!doc || !doc.createElement) return;
+  var DOW = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  var DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+  function el(tag, cls, text) {
+    var node = doc.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;
+    return node;
   }
-  render();
-  // Re-render when server progress arrives (browser-independent completion state).
-  window.addEventListener("fde-progress-sync", render);
-})();
+  function link(parent, cls, href, text, title, role) {
+    var node = el("a", cls, text);
+    node.setAttribute("href", href);
+    if (title) node.setAttribute("title", title);
+    if (role) node.setAttribute("data-focus-role", role);
+    parent.appendChild(node);
+    return node;
+  }
+  function ritual(row, key, href, text, title) {
+    link(row, "ritual " + key, href, text, title, "ritual-" + key);
+  }
+  function rituals(row, week, day) {
+    var dayKey = "w" + String(week).padStart(2, "0") + "d" + day;
+    if (!(week === 1 && day === 1)) ritual(row, "iv", "gauntlet.html?day=" + dayKey, "🎤 AI Interview", "Daily AI Interview — do it before end of day");
+    if (day === 1) ritual(row, "cr", "client-delivery.html?w=" + week, "📋 Client request");
+    if (week >= 2 && day === 4) {
+      var session = el("span", "ritual fde", "◆ FDE Situation");
+      session.setAttribute("title", "Weekly FDE Situation session — Thursday");
+      row.appendChild(session);
+    }
+    if (week <= 8 && day === 2) ritual(row, "sd", "system-design.html?w=" + week, "🎯 Sys-design · start", "This week's System Design challenge — start pre-planning before Friday");
+    if (week <= 8 && day === 3) ritual(row, "ar", "alt-research.html?w=" + week, "🔬 Alt research");
+    if (week <= 8 && day === 5) {
+      ritual(row, "sd", "system-design.html?w=" + week, "🎯 Sys-design · due", "System Design due — open this week's challenge");
+      ritual(row, "ar", "alt-research.html?w=" + week, "🔬 Alt research · due", "Alt Research presentation due — present this week's findings");
+    }
+  }
+  function focusToken(cal) {
+    var active = doc.activeElement;
+    if (!active || !cal.contains(active)) return null;
+    var card = typeof active.closest === "function" ? active.closest("[data-unit-key]") : null;
+    var role = active.getAttribute && active.getAttribute("data-focus-role");
+    return card && role ? { key: card.getAttribute("data-unit-key"), role: role } : null;
+  }
+  function restoreFocus(token) {
+    if (!token) return;
+    var target = doc.querySelector('[data-unit-key="' + token.key + '"] [data-focus-role="' + token.role + '"]');
+    if (target && typeof target.focus === "function") target.focus({ preventScroll: true });
+  }
+  function render() {
+    var legend = doc.querySelector(".legend");
+    var cal = doc.getElementById("cal");
+    if (!legend || !cal) return false;
+    if (typeof root.dispatchEvent === "function" && typeof root.CustomEvent === "function") {
+      try { root.dispatchEvent(new root.CustomEvent("fde-curriculum-before-render")); } catch (eventError) { /* optional focus handoff */ }
+    }
+    var token = focusToken(cal);
+    var legendFragment = doc.createDocumentFragment();
+    var calFragment = doc.createDocumentFragment();
+
+    Object.keys(root.PHASES).forEach(function (key) {
+      var phase = root.PHASES[key];
+      var item = el("span", "lg");
+      var swatch = el("i");
+      swatch.style.backgroundColor = phase.c;
+      swatch.setAttribute("aria-hidden", "true");
+      item.appendChild(swatch);
+      item.appendChild(doc.createTextNode(phase.label));
+      legendFragment.appendChild(item);
+    });
+    calFragment.appendChild(el("div", "cal-corner", ""));
+    DOW.forEach(function (day) { calFragment.appendChild(el("div", "cal-dayhead", day)); });
+
+    root.WEEKS.forEach(function (week) {
+      var phase = root.PHASES[week.phase];
+      var weekCell = el("div", "cal-week");
+      weekCell.style.setProperty("--pc", phase.c);
+      weekCell.setAttribute("data-week-key", "w" + String(week.w).padStart(2, "0"));
+      weekCell.setAttribute("data-assistant-grounding", "canonical");
+      weekCell.appendChild(el("div", "ww", "Week " + week.w));
+      weekCell.appendChild(el("div", "wt", week.title));
+      weekCell.appendChild(el("div", "wp", phase.label));
+      calFragment.appendChild(weekCell);
+
+      week.days.forEach(function (day, index) {
+        var hasHref = !!day.href;
+        var hasParts = !!(day.parts && day.parts.length);
+        var unitKey = "w" + String(week.w).padStart(2, "0") + "d" + (index + 1);
+        var card = el("div", "cal-cell " + (hasHref ? "live" : (hasParts ? "parts" : "soon")));
+        card.style.setProperty("--pc", phase.c);
+        card.setAttribute("data-unit-key", unitKey);
+        card.appendChild(el("div", "cal-cell-day", DAY_NAMES[index]));
+        var title = el("div", "ct");
+        if (hasHref) link(title, "ct-link", day.href, day.t, "", "title");
+        else title.textContent = day.t;
+        card.appendChild(title);
+        card.appendChild(el("div", "cs", day.s || ""));
+        if (hasParts) {
+          var parts = el("div", "cell-parts");
+          day.parts.forEach(function (part, partIndex) { link(parts, "", part.href, part.t, "", "part-" + partIndex); });
+          card.appendChild(parts);
+        }
+        var foot = el("div", "cell-foot");
+        var firstHref = day.href || (hasParts && day.parts[0].href) || null;
+        if (firstHref) {
+          var actions = el("div", "day-actions");
+          var status = root.FDE_PROGRESS ? root.FDE_PROGRESS.status(unitKey) : "none";
+          var label = status === "completed" ? "✓ Completed" : (status === "started" ? "↻ Resume" : "▶ Start");
+          var statusClass = status === "completed" ? "done" : (status === "started" ? "resume" : "start");
+          link(actions, "day-prog day-prog--" + statusClass, firstHref, label, "", "progress");
+          foot.appendChild(actions);
+        }
+        var tags = el("div", "ritual-row");
+        if (day.star) tags.appendChild(el("span", "mk star", "★"));
+        rituals(tags, week.w, index + 1);
+        if (tags.childNodes.length) foot.appendChild(tags);
+        if (foot.childNodes.length) card.appendChild(foot);
+        calFragment.appendChild(card);
+      });
+    });
+
+    legend.replaceChildren(legendFragment);
+    cal.replaceChildren(calFragment);
+    restoreFocus(token);
+    return true;
+  }
+
+  if (render()) {
+    root.FDE_STATIC_CALENDAR_RENDER = render;
+    root.addEventListener("fde-progress-sync", render);
+  }
+})(window, document);
 </script>
 <script src="assets/js/roster.js?v=20260706"></script>
 <script src="assets/js/auth.js"></script>
+<script src="assets/js/curriculum-loader.js?v=20260924-4"></script>
 <script src="assets/js/codex-usage.js?v=20260812"></script>
 <script src="assets/js/usage-notice.js?v=20260805-u1"></script>
-<script src="assets/js/reading-coach.js?v=20260805-r4"></script>
+<script src="assets/js/reading-coach.js?v=20260924-r7"></script>
 </body>
 </html>
