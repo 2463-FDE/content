@@ -96,6 +96,10 @@ process.stdout.write(JSON.stringify({count: quiz.questions.length}));
             self.assertIn("transferable object", page)
         self.assertIn("landmark\n        2023 judge study", d2)
         self.assertIn("not a\n        current model recommendation", d2)
+        self.assertIn(
+            "2023 historical study, with the then-current ChatGPT as evaluator",
+            " ".join(d2.split()),
+        )
         self.assertIn("accessed August 6, 2026", d5)
         self.assertIn("not current-model recommendations", d5)
         self.assertIn("November 23, 2023 historical fact-checking evaluation", w8d3)
