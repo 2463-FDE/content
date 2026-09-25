@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w03d1">
 <meta name="fde-concepts" content="react-loop,augmented-llm,agent-complexity,tool-calling-loop,tool-use-contract,tool-choice">
 <title>W3·D1 — Agent Architectures & the ReAct Loop | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260924-w3">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -192,6 +192,7 @@
         a maximum iteration count so a confused agent can't spin forever, and a running token budget so a long trajectory
         doesn't quietly blow the context window you spent all of Week 1 learning to respect. The loop is trivial to write
         and easy to write <em>unsafely</em>; that gap is exactly where an FDE earns their fee.</p>
+        <button class="code-cta" type="button" data-modal="code-w03d1" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only code <span class="cc-meta">· tool_loop.py</span></button>
         <div class="ix-agent" data-id="w03d1-loop"
           data-tools="lookup_order · lookup_customer · calculator"
           data-presets='[{"label":"Watch the loop iterate","goal":"Order A1003 was returned. The customer gets their enterprise discount off the order amount — what refund do they receive after the discount?","tool_choice":"auto"}]'></div>
@@ -368,6 +369,43 @@
   </div>
 </div>
 
+<!-- read-only code popup (w03d1) -->
+<div id="code-w03d1" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close code example">✕</button>
+    <h2>Bedrock-shaped tool loop, without a provider call</h2>
+    <p class="cv-cap">Walk a synthetic Converse response through the same tool-request and tool-result boundary your application owns.</p>
+    <div class="cv" data-file="tool_loop.py" data-lang="python"><pre class="cv-raw"># Synthetic Amazon Bedrock Converse fixtures: no client, credentials, or network.
+SYNTHETIC_RESPONSE = {
+    &quot;stopReason&quot;: &quot;tool_use&quot;,
+    &quot;output&quot;: {&quot;message&quot;: {&quot;content&quot;: [{
+        &quot;toolUse&quot;: {
+            &quot;toolUseId&quot;: &quot;tool-001&quot;,
+            &quot;name&quot;: &quot;lookup_order&quot;,
+            &quot;input&quot;: {&quot;order_id&quot;: &quot;A1002&quot;},
+        }
+    }]}}
+}
+
+
+def requested_tools(response):
+    return [block[&quot;toolUse&quot;] for block in response[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;]
+            if &quot;toolUse&quot; in block]
+
+
+def as_tool_result(request, payload):
+    return {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;toolResult&quot;: {
+        &quot;toolUseId&quot;: request[&quot;toolUseId&quot;],
+        &quot;content&quot;: [{&quot;json&quot;: payload}],
+        &quot;status&quot;: &quot;success&quot;,
+    }}]}
+
+request = requested_tools(SYNTHETIC_RESPONSE)[0]
+result = as_tool_result(request, {&quot;status&quot;: &quot;shipped&quot;})</pre></div>
+    <p class="cv-foot">The fixture is inert: it demonstrates host-owned execution and message shaping but cannot contact Amazon Bedrock or any tool.</p>
+  </div>
+</div>
+
 <script>
 window.FDE_NEXT = { label: "Day 2 — Tool failure, retries &amp; safe loops →", href: "w03d2.html" };
 window.DIAGRAM = {
@@ -486,10 +524,11 @@ window.QUIZ = {
 <script src="../../assets/js/auth.js"></script>
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
-<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js?v=20260714-w3f"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
 </body>

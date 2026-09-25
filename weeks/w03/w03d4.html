@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w03d4">
 <meta name="fde-concepts" content="short-term-memory,long-term-memory,memory-store,memory-type-taxonomy,virtual-context-management">
 <title>W3·D4 — Agent Memory: Working vs Long-Term Stores | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20260924-w3">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -154,6 +154,7 @@
         Namespace memories by user or org and one tenant's agent can never recall another's. Get lazy and dump everything
         into a flat namespace and you've built a data-leak. The store's folder/file structure isn't bookkeeping trivia —
         it's the seam where memory design meets the tenant-isolation rules the client will hold you to.</p>
+        <button class="code-cta" type="button" data-modal="code-w03d4" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only code <span class="cc-meta">· memory_scope.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
@@ -341,6 +342,42 @@
   </div>
 </div>
 
+<!-- read-only code popup (w03d4) -->
+<div id="code-w03d4" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close code example">✕</button>
+    <h2>Scope synthetic memory before it reaches a Bedrock message</h2>
+    <p class="cv-cap">Require the tenant namespace explicitly, then shape only the matched synthetic record as Converse content.</p>
+    <div class="cv" data-file="memory_scope.py" data-lang="python"><pre class="cv-raw"># Synthetic records only: no learner data, database, credential, or provider call.
+MEMORIES = {
+    (&quot;tenant-demo&quot;, &quot;user-0042&quot;): {
+        &quot;auth_decision&quot;: &quot;Use short-lived service tokens.&quot;
+    }
+}
+
+
+def recall_for_bedrock(tenant_id, user_id, key):
+    if not tenant_id or not user_id:
+        raise ValueError(&quot;tenant and user scopes are required&quot;)
+    scoped = MEMORIES.get((tenant_id, user_id), {})
+    value = scoped.get(key)
+    if value is None:
+        return []
+    return [{
+        &quot;text&quot;: f&quot;Synthetic recalled memory ({key}): {value}&quot;
+    }]
+
+
+content = recall_for_bedrock(
+    tenant_id=&quot;tenant-demo&quot;,
+    user_id=&quot;user-0042&quot;,
+    key=&quot;auth_decision&quot;,
+)
+assert len(content) == 1</pre></div>
+    <p class="cv-foot">This local fixture demonstrates the isolation boundary and output shape only; it cannot read a store or send data to Amazon Bedrock.</p>
+  </div>
+</div>
+
 <script>
 window.FDE_NEXT = { label: "Day 5 — next in Week 3 →", href: "w03d5.html" };
 window.DIAGRAM = {
@@ -448,10 +485,11 @@ window.QUIZ = {
 <script src="../../assets/js/auth.js"></script>
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
-<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js?v=20260714-w3f"></script>
 <script src="../../assets/js/interactive-agents.js?v=20260714-w3f"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
