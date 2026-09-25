@@ -221,6 +221,7 @@
         summaries over an LLM-extracted entity graph, map-reduced to answer "what are the main themes" sensemaking
         questions. Same name, different retrieval shapes, different questions they're good at. When a stakeholder says
         "we want GraphRAG," your first job is finding out which of the two they actually read about.</p>
+        <button class="code-cta" type="button" data-modal="code-w04d4" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only worked example <span class="cc-meta">· incident_context.cypher</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -389,6 +390,32 @@
   </div>
 </div>
 
+<!-- read-only static worked example (w04d4) -->
+<div id="code-w04d4" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close code example">✕</button>
+    <h2>Vector entry, then a read-only graph traversal</h2>
+    <p class="cv-cap">Read-only worked example. A synthetic query vector finds incident nodes, then Cypher follows typed relationships to gather affected systems and owners.</p>
+    <div class="cv" data-file="incident_context.cypher" data-lang="sql"><pre class="cv-raw">// Synthetic parameters: $query_embedding and $tenant_id.
+// Read-only clauses only: no CREATE, MERGE, SET, DELETE, or driver.
+CALL db.index.vector.queryNodes(
+  &quot;synthetic_incident_embeddings&quot;,
+  3,
+  $query_embedding
+) YIELD node AS incident, score
+MATCH (incident)-[:AFFECTED]-&gt;(system:System)
+MATCH (team:Team)-[:OWNS]-&gt;(system)
+WHERE incident.tenantId = $tenant_id
+RETURN
+  incident.id AS incidentId,
+  score,
+  collect(DISTINCT system.name) AS affectedSystems,
+  collect(DISTINCT team.name) AS owningTeams
+ORDER BY score DESC</pre></div>
+    <p class="cv-foot">Static query, not an interactive console. It cannot connect to Neo4j and uses named synthetic parameters rather than credentials or live data.</p>
+  </div>
+</div>
+
 <script>
 window.FDE_NEXT = { label: "Day 5 — next in Week 4 →", href: "w04d5.html" };
 window.DIAGRAM = {
@@ -511,11 +538,12 @@ window.QUIZ = {
 <script src="../../assets/js/auth.js"></script>
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
-<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
 </body>
 </html>

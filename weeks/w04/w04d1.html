@@ -93,6 +93,7 @@
         bottleneck — every worker result round-trips through the supervisor, burning latency and tokens — and the
         supervisor's own context fills with routing traffic. It's the org chart with a manager: clear accountability,
         extra meetings.</p>
+        <button class="code-cta" type="button" data-modal="code-w04d1" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only worked example <span class="cc-meta">· supervisor_handoff.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -406,6 +407,44 @@
   </div>
 </div>
 
+<!-- read-only static worked example (w04d1) -->
+<div id="code-w04d1" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close code example">✕</button>
+    <h2>Supervisor handoff with one write owner</h2>
+    <p class="cv-cap">Read-only worked example. A synthetic supervisor emits a typed handoff while the refund worker can propose, but not commit, the shared-state change.</p>
+    <div class="cv" data-file="supervisor_handoff.py" data-lang="python"><pre class="cv-raw"># Synthetic routing fixture: no SDK, model, credentials, or network.
+TICKET = {
+    &quot;id&quot;: &quot;SYN-104&quot;,
+    &quot;intent&quot;: &quot;refund&quot;,
+    &quot;summary&quot;: &quot;Duplicate charge on a training order&quot;,
+}
+ROUTES = {
+    &quot;billing&quot;: &quot;billing_agent&quot;,
+    &quot;refund&quot;: &quot;refund_agent&quot;,
+}
+
+
+def supervisor_handoff(ticket):
+    target = ROUTES[ticket[&quot;intent&quot;]]
+    return {
+        &quot;tool&quot;: f&quot;transfer_to_{target}&quot;,
+        &quot;input&quot;: {
+            &quot;ticket_id&quot;: ticket[&quot;id&quot;],
+            &quot;task&quot;: &quot;Propose a refund; do not write shared state&quot;,
+            &quot;context&quot;: ticket[&quot;summary&quot;],
+        },
+        &quot;write_owner&quot;: &quot;supervisor&quot;,
+    }
+
+
+handoff = supervisor_handoff(TICKET)
+assert handoff[&quot;tool&quot;] == &quot;transfer_to_refund_agent&quot;
+assert handoff[&quot;write_owner&quot;] == &quot;supervisor&quot;</pre></div>
+    <p class="cv-foot">Static example, not interactive practice. The fixture demonstrates routing and single-threaded writes without executing a handoff or contacting a provider.</p>
+  </div>
+</div>
+
 <script>
 window.FDE_NEXT = { label: "Day 2 →", href: "w04d2.html" };
 window.DIAGRAM = {
@@ -526,11 +565,12 @@ window.QUIZ = {
 <script src="../../assets/js/auth.js"></script>
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
-<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
 </body>
 </html>

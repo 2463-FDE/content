@@ -8,6 +8,65 @@
 <title>W4·D2 — LangGraph State, Persistence &amp; Checkpointers | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
 <script src="../../assets/js/theme.js"></script>
+<style>
+/* Page-scoped styles for the W4D2 synthetic checkpoint simulator. */
+.ix-checkpoint { margin:20px 0; padding:18px; border:1.5px solid var(--line); border-radius:12px; background:var(--surface-2); }
+.ix-checkpoint:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.cp-head { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; margin-bottom:16px; }
+.cp-head h3 { margin:2px 0 6px; font-size:19px; }
+.cp-head p { margin:0; color:var(--ink-soft); font-size:14px; line-height:1.5; max-width:58ch; }
+.cp-thread { flex:none; padding:6px 9px; border:1px solid var(--line); border-radius:7px; background:var(--surface); color:var(--ink-soft); font-size:11px; }
+.cp-layout { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(240px,.92fr); gap:16px; }
+.cp-graph { list-style:none; margin:0; padding:0; display:grid; gap:7px; }
+.cp-graph li { display:grid; grid-template-columns:26px minmax(0,1fr) auto; gap:9px; align-items:center; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
+.cp-graph li.is-current { border-color:var(--accent); box-shadow:inset 3px 0 0 var(--accent); }
+.cp-graph li.is-durable { border-color:var(--good-line); background:var(--good-soft); }
+.cp-graph li.is-crashed { border-color:var(--bad); background:var(--bad-soft); }
+.cp-index { display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:var(--code-bg); color:var(--ink-soft); font:700 11px var(--mono); }
+.cp-node { min-width:0; }
+.cp-node strong, .cp-node small { display:block; }
+.cp-node strong { font-size:13px; }
+.cp-node small { margin-top:2px; color:var(--ink-soft); font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cp-badge { color:var(--dim); font:600 10px var(--mono); text-align:right; }
+.cp-controls { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+.cp-controls button { min-height:38px; }
+.cp-controls button span { margin-left:4px; font:500 9px var(--mono); opacity:.65; }
+.cp-controls button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.cp-controls button:disabled { cursor:not-allowed; opacity:.45; }
+.cp-controls .cp-danger:not(:disabled) { border-color:var(--bad); color:var(--bad); }
+.cp-inspector { min-width:0; padding:12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); }
+.cp-status { display:grid; gap:3px; padding:10px 11px; border-left:4px solid var(--accent); background:var(--accent-soft); }
+.cp-status strong { font:700 10px var(--mono); letter-spacing:.08em; }
+.cp-status span { color:var(--ink); font-size:13px; line-height:1.4; }
+.cp-status.is-crashed { border-left-color:var(--bad); background:var(--bad-soft); }
+.cp-status.is-complete { border-left-color:var(--good); background:var(--good-soft); }
+.cp-checkpoint { display:grid; gap:6px; margin:12px 0; }
+.cp-checkpoint div { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+.cp-checkpoint dt { color:var(--ink-soft); font-size:11.5px; }
+.cp-checkpoint dd { margin:0; font-size:12px; font-weight:600; text-align:right; }
+.cp-work { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.cp-work section { min-width:0; padding:9px; background:var(--surface-2); border-radius:7px; }
+.cp-work h4 { margin:0 0 5px; font-size:11px; }
+.cp-work ul { margin:0; padding-left:16px; font-size:10.5px; line-height:1.45; overflow-wrap:anywhere; }
+.cp-work .cp-empty { color:var(--dim); }
+.cp-log { margin-top:10px; }
+.cp-log summary { cursor:pointer; color:var(--accent); font-size:12px; font-weight:600; }
+.cp-log ol { margin:7px 0 0; padding-left:18px; color:var(--ink-soft); font:11px/1.5 var(--mono); }
+.cp-note { margin:14px 0 0; color:var(--ink-soft); font-size:12px; line-height:1.45; }
+@media (max-width:720px) {
+  .ix-checkpoint { padding:14px; }
+  .cp-head { display:block; }
+  .cp-thread { display:inline-block; margin-top:10px; }
+  .cp-layout { grid-template-columns:1fr; }
+}
+@media (max-width:420px) {
+  .cp-graph li { grid-template-columns:24px minmax(0,1fr); }
+  .cp-badge { grid-column:2; text-align:left; }
+  .cp-controls { display:grid; grid-template-columns:1fr 1fr; }
+  .cp-controls button { width:100%; padding:8px; }
+  .cp-work { grid-template-columns:1fr; }
+}
+</style>
 </head>
 <body>
 
@@ -117,10 +176,10 @@
         facts learned across many conversations — LangGraph has a separate concept, the <strong>Store</strong>, holding
         application-defined key-value data <em>across</em> threads. Checkpointer = the run's save file; Store = the
         agent's notebook. Today is entirely about the save file.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a crash-and-resume lab — start a
-        five-node refund graph with a real <code>thread_id</code>, kill the process at step 3 with a big red button, then
-        re-invoke the same thread and watch it resume from the last checkpoint (and watch a fresh <code>thread_id</code>
-        start from nothing, for contrast). Needs backend standup.</p></div>
+        <button class="code-cta" type="button" data-modal="code-w04d2" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only worked example <span class="cc-meta">· checkpoint_resume.py</span></button>
+        <div class="ix-checkpoint" data-checkpoint-sim data-keyboard-shortcuts="Alt+S Alt+C Alt+R Alt+0" tabindex="0" role="group" aria-label="Interactive synthetic checkpointer crash and resume simulator">
+          <p><strong>Interactive practice:</strong> JavaScript is required to step through the synthetic crash and resume state machine.</p>
+        </div>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -273,7 +332,7 @@
           <li><a href="https://docs.langchain.com/oss/python/langgraph/use-time-travel" target="_blank" rel="noopener">LangChain Docs — Use time travel</a> — <code>get_state_history</code>, replay semantics, and forking with <code>update_state</code> / <code>as_node</code>.</li>
           <li><a href="https://reference.langchain.com/python/langgraph/checkpoints" target="_blank" rel="noopener">LangChain Reference — Checkpoints</a> — the <code>BaseCheckpointSaver</code> contract, backend packages, and serializers (<code>JsonPlusSerializer</code>, <code>EncryptedSerializer</code>).</li>
           <li><a href="https://reference.langchain.com/python/langgraph/types/Durability" target="_blank" rel="noopener">LangChain Reference — Durability</a> — the <code>sync</code> / <code>async</code> / <code>exit</code> modes, verbatim.</li>
-          <li><a href="https://pypi.org/project/langgraph/" target="_blank" rel="noopener">langgraph — PyPI</a> — v1.2.7 (2026-06-30), Python ≥3.10; durable execution and HITL as headline capabilities.</li>
+          <li><a href="https://pypi.org/project/langgraph/" target="_blank" rel="noopener">langgraph — PyPI</a> — v1.2.12 (2026-09-21, accessed 2026-09-25), Python ≥3.10; current patch on the same 1.2 teaching line.</li>
         </ul>
       </section>
 
@@ -375,6 +434,37 @@
     </ul>
     <p class="goals-foot">Bring it to Day 3 — the graph gets teammates, and durable state becomes the thing multiple
     agents share.</p>
+  </div>
+</div>
+
+<!-- read-only static worked example (w04d2) -->
+<div id="code-w04d2" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close code example">✕</button>
+    <h2>Resume from the last durable checkpoint</h2>
+    <p class="cv-cap">Read-only worked example. A local fixture records completed nodes and derives exactly which work a resumed thread skips or replays.</p>
+    <div class="cv" data-file="checkpoint_resume.py" data-lang="python"><pre class="cv-raw"># Synthetic checkpoint fixture: no LangGraph runtime, storage, or network.
+NODES = [&quot;validate_request&quot;, &quot;load_order&quot;, &quot;calculate_refund&quot;,
+         &quot;write_ledger&quot;, &quot;notify_customer&quot;]
+CHECKPOINT = {
+    &quot;thread_id&quot;: &quot;demo-refund-204&quot;,
+    &quot;next_index&quot;: 2,
+    &quot;completed&quot;: NODES[:2],
+}
+CRASHED_NODE = &quot;calculate_refund&quot;  # output existed, checkpoint did not
+
+
+def resume_plan(checkpoint, crashed_node):
+    skipped = list(checkpoint[&quot;completed&quot;])
+    replayed = [crashed_node]
+    remaining = NODES[checkpoint[&quot;next_index&quot;] + 1:]
+    return {&quot;skipped&quot;: skipped, &quot;replayed&quot;: replayed, &quot;remaining&quot;: remaining}
+
+
+plan = resume_plan(CHECKPOINT, CRASHED_NODE)
+assert plan[&quot;skipped&quot;] == [&quot;validate_request&quot;, &quot;load_order&quot;]
+assert plan[&quot;replayed&quot;] == [&quot;calculate_refund&quot;]</pre></div>
+    <p class="cv-foot">Static example, separate from the interactive simulator above. It explains the checkpoint boundary but cannot run a graph or persist state.</p>
   </div>
 </div>
 
@@ -491,11 +581,13 @@ window.QUIZ = {
 <script src="../../assets/js/auth.js"></script>
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
-<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
+<script src="../../assets/js/interactive-w4-checkpoint.js?v=20260925-1"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
 </body>
 </html>
