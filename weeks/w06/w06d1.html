@@ -58,9 +58,11 @@
         (Google). All three are the same species of tool: an agent that lives in your terminal, <strong>reads your
         codebase, edits files, and runs commands</strong> — Anthropic's own one-line description of Claude Code, and it
         applies to all three almost word for word. Codex CLI is open source, written in Rust, installed with a one-line
-        curl script, and bundled into ChatGPT paid plans. Gemini CLI is Apache-2.0, installed via
-        <code>npm install -g @google/gemini-cli</code>, ships a free OAuth tier (60 requests/minute, 1,000/day), and
-        pairs a 1M-token context window with Gemini 3 models.</p>
+        curl script, and bundled into ChatGPT paid plans. Gemini CLI remains an alternative here, not the curriculum
+        default. Stable v0.61.0 (released 2026-09-23) is Apache-2.0; npm confirms package
+        <code>@google/gemini-cli</code>, Node.js 20+, and the pinned install
+        <code>npm install -g @google/gemini-cli@0.61.0</code>. Google's official repository states that personal-account
+        OAuth includes 60 requests/minute and 1,000 requests/day <strong>as of 2026-09-25</strong>; quotas can change.</p>
         <p>What matters more than the roster is the <strong>convergence</strong>. All three tools have independently
         arrived at the same core mechanics: a <strong>project instruction file</strong> the agent reads on startup
         (CLAUDE.md, AGENTS.md, GEMINI.md), <strong>approval or sandbox modes</strong> that gate what the agent may run —
@@ -293,7 +295,8 @@
           <li><a href="https://claude.com/blog/steering-claude-code-skills-hooks-rules-subagents-and-more" target="_blank" rel="noopener">Anthropic — Steering Claude Code</a> — the official mental model: facts vs procedures vs deterministic behavior.</li>
           <li><a href="https://agentskills.io" target="_blank" rel="noopener">Agent Skills — open standard</a> — the cross-vendor SKILL.md format and its adopter showcase.</li>
           <li><a href="https://developers.openai.com/codex/cli/" target="_blank" rel="noopener">OpenAI — Codex CLI</a> — approval modes, AGENTS.md, install.</li>
-          <li><a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener">Google — Gemini CLI (GitHub)</a> — GEMINI.md context files, MCP config, free tier.</li>
+          <li><a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener">Google — Gemini CLI (GitHub)</a> — v0.61.0 install guidance and personal-account quota statement; accessed 2026-09-25.</li>
+          <li><a href="https://registry.npmjs.org/@google%2Fgemini-cli/latest" target="_blank" rel="noopener">@google/gemini-cli — npm registry metadata</a> — v0.61.0, Node.js ≥20, <code>gemini</code> binary; accessed 2026-09-25.</li>
           <li><a href="https://www.tbench.ai/leaderboard" target="_blank" rel="noopener">Terminal-Bench — leaderboard</a> — where to look up current terminal-agent standings instead of memorizing them.</li>
         </ul>
       </section>
@@ -414,7 +417,7 @@ window.DIAGRAM = {
     { id:"codex", step:0, x:226, y:100, w:126, h:56, label:"Codex CLI\nAGENTS.md",
       detail:"OpenAI's open-source CLI, written in Rust; included in ChatGPT paid plans. Approval modes gate edits and commands; configured via AGENTS.md and config.toml. Same converged shape." },
     { id:"gem",   step:0, x:362, y:100, w:124, h:56, label:"Gemini CLI\nGEMINI.md",
-      detail:"Apache-2.0, npm install -g @google/gemini-cli. Free OAuth tier: 60 req/min, 1,000 req/day; 1M-token context with Gemini 3 models. GEMINI.md context files + MCP servers in settings. Same shape again." },
+      detail:"Alternative, not course default. Stable v0.61.0: npm install -g @google/gemini-cli@0.61.0 (Node 20+). Google's official repo listed personal-account OAuth quotas of 60 req/min and 1,000 req/day on 2026-09-25; quotas can change. GEMINI.md context files + MCP settings." },
 
     // surfaces + headless
     { id:"surf", step:1, x:28, y:170, w:220, h:64, label:"5 surfaces · one engine\nCLI · IDE · desktop · web",
