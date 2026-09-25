@@ -229,6 +229,7 @@
     const retryButton = root.querySelector("[data-audit-retry]");
     const nextButton = root.querySelector("[data-audit-next]");
     const resetButton = root.querySelector("[data-audit-reset]");
+    const answerGroups = form.querySelectorAll("fieldset");
 
     function readAnswer() {
       const answer = {};
@@ -243,6 +244,10 @@
       form.querySelectorAll('input[type="radio"]').forEach(function (input) { input.checked = false; });
     }
 
+    function setAnswersLocked(locked) {
+      answerGroups.forEach(function (group) { group.disabled = locked; });
+    }
+
     function showScenario(message) {
       const state = session.snapshot();
       renderScenarioText(view, state.scenario);
@@ -252,6 +257,7 @@
       retryButton.hidden = true;
       nextButton.hidden = true;
       submitButton.disabled = false;
+      setAnswersLocked(false);
       clearAnswers();
     }
 
@@ -273,6 +279,7 @@
       retryButton.hidden = false;
       nextButton.hidden = false;
       submitButton.disabled = true;
+      setAnswersLocked(true);
       feedback.focus();
     });
 
