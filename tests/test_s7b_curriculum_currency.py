@@ -97,7 +97,8 @@ process.stdout.write(JSON.stringify({count: quiz.questions.length}));
         self.assertIn("landmark\n        2023 judge study", d2)
         self.assertIn("not a\n        current model recommendation", d2)
         self.assertIn(
-            "2023 historical study, with the then-current ChatGPT as evaluator",
+            "2023 historical study by Wang et al., \"Large Language Models are not Fair Evaluators,\" "
+            "with the then-current ChatGPT as evaluator",
             " ".join(d2.split()),
         )
         self.assertIn("accessed August 6, 2026", d5)
