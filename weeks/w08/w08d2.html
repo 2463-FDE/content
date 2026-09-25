@@ -8,6 +8,39 @@
 <title>W8·D2 — Prompt Injection and Jailbreaks | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260805-rc3">
 <script src="../../assets/js/theme.js"></script>
+<style>
+.trifecta-auditor { margin: 20px 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.trifecta-auditor .audit-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.trifecta-auditor .audit-head p { margin: 0; color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+.trifecta-auditor .audit-head .ix-k { color: var(--ink); }
+.trifecta-auditor .audit-scenario { margin: 12px 0 16px; padding: 14px; border-left: 4px solid var(--accent); border-radius: 8px; background: var(--surface); }
+.trifecta-auditor .audit-scenario h3 { margin: 0 0 6px; font-size: 18px; }
+.trifecta-auditor .audit-scenario p { margin: 0; }
+.trifecta-auditor .audit-properties { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.trifecta-auditor fieldset { min-width: 0; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.trifecta-auditor legend { padding: 0 4px; font-size: 13px; font-weight: 700; }
+.trifecta-auditor .audit-choice { display: inline-flex; align-items: center; box-sizing: border-box; min-width: 68px; min-height: 44px; gap: 8px; margin: 4px 8px 0 0; padding: 0 10px; border-radius: 8px; cursor: pointer; }
+.trifecta-auditor .audit-choice:hover { background: var(--surface-2); }
+.trifecta-auditor input { accent-color: var(--accent); }
+.trifecta-auditor .audit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.trifecta-auditor .audit-primary { border-color: var(--ink); background: var(--ink); color: var(--surface); }
+.trifecta-auditor .audit-primary:hover { border-color: var(--ink); background: var(--ink); color: var(--surface); filter: brightness(.92); }
+.trifecta-auditor .audit-primary:disabled { opacity: .5; cursor: default; filter: none; }
+.trifecta-auditor .audit-secondary { border-color: var(--line); color: var(--ink-soft); }
+.trifecta-auditor .audit-feedback, .trifecta-auditor .audit-completion { margin-top: 16px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.trifecta-auditor .audit-feedback h3, .trifecta-auditor .audit-completion h3 { margin: 0 0 8px; font-size: 17px; }
+.trifecta-auditor .audit-feedback > p { margin: 0 0 10px; font-weight: 600; }
+.trifecta-auditor .audit-results { margin: 0; padding-left: 20px; }
+.trifecta-auditor .audit-results li { margin: 8px 0; }
+.trifecta-auditor .audit-component-verdict { font-weight: 700; }
+.trifecta-auditor .audit-status { min-height: 1.5em; margin: 10px 0 0; color: var(--ink-soft); font-size: 13px; }
+.trifecta-auditor :is(button, input, [tabindex]):focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 560px) {
+  .trifecta-auditor { padding: 14px; }
+  .trifecta-auditor .audit-properties { grid-template-columns: 1fr; }
+  .trifecta-auditor .audit-actions .ix-btn { flex: 1 1 calc(50% - 8px); padding-inline: 10px; }
+}
+</style>
 </head>
 <body>
 
@@ -135,8 +168,68 @@
         free text, uploads and the poisonable corpus; any outbound call on the decision path. In both, <strong>nobody
         wrote leg three on purpose</strong> — it arrived as a rendering default. That is why "roll it out wider" is a
         security decision.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a trifecta auditor — paste a
-        tool manifest and a data-source list, see which sessions hold all three legs. Needs backend standup.</p></div>
+        <div class="trifecta-auditor" data-trifecta-auditor>
+          <div class="audit-head">
+            <div class="ix-k">✓ Practice · lethal-trifecta auditor</div>
+            <p data-audit-progress>Scenario 1 of 8 · 0 attempted · 0 mastered</p>
+          </div>
+          <p>Predict before you check: identify all three properties in each synthetic architecture. A near miss has
+          only two legs; it is not the lethal trifecta.</p>
+          <div class="audit-scenario" data-audit-scenario>
+            <h3 data-scenario-title tabindex="-1"></h3>
+            <p data-scenario-description></p>
+          </div>
+          <form>
+            <div class="audit-properties">
+              <fieldset>
+                <legend>Can it access private data?</legend>
+                <label class="audit-choice" for="audit-private-yes"><input id="audit-private-yes" type="radio" name="privateData" value="yes"> Yes</label>
+                <label class="audit-choice" for="audit-private-no"><input id="audit-private-no" type="radio" name="privateData" value="no"> No</label>
+              </fieldset>
+              <fieldset>
+                <legend>Can untrusted content influence it?</legend>
+                <label class="audit-choice" for="audit-untrusted-yes"><input id="audit-untrusted-yes" type="radio" name="untrustedContent" value="yes"> Yes</label>
+                <label class="audit-choice" for="audit-untrusted-no"><input id="audit-untrusted-no" type="radio" name="untrustedContent" value="no"> No</label>
+              </fieldset>
+              <fieldset>
+                <legend>Can it communicate externally?</legend>
+                <label class="audit-choice" for="audit-egress-yes"><input id="audit-egress-yes" type="radio" name="externalEgress" value="yes"> Yes</label>
+                <label class="audit-choice" for="audit-egress-no"><input id="audit-egress-no" type="radio" name="externalEgress" value="no"> No</label>
+              </fieldset>
+            </div>
+            <div class="audit-actions">
+              <button class="ix-btn audit-primary" type="submit" data-audit-submit>Submit audit</button>
+              <button class="ix-btn audit-secondary" type="button" data-audit-reset>Reset exercise</button>
+            </div>
+          </form>
+          <div class="audit-feedback" data-audit-feedback tabindex="-1" hidden>
+            <h3>Audit result</h3>
+            <p data-audit-summary></p>
+            <ul class="audit-results">
+              <li><span class="audit-component-verdict" data-result-private-verdict></span>
+                <span data-result-private-explanation></span></li>
+              <li><span class="audit-component-verdict" data-result-untrusted-verdict></span>
+                <span data-result-untrusted-explanation></span></li>
+              <li><span class="audit-component-verdict" data-result-egress-verdict></span>
+                <span data-result-egress-explanation></span></li>
+            </ul>
+            <div class="audit-actions" aria-label="Continue this exercise">
+              <button class="ix-btn audit-secondary" type="button" data-audit-retry>Retry scenario</button>
+              <button class="ix-btn audit-primary" type="button" data-audit-next>Next scenario</button>
+            </div>
+          </div>
+          <div class="audit-completion" data-audit-completion hidden>
+            <h3 data-completion-heading tabindex="-1">Exercise complete</h3>
+            <p data-completion-summary></p>
+            <p data-completion-unresolved></p>
+            <div class="audit-actions" aria-label="Review or restart">
+              <button class="ix-btn audit-primary" type="button" data-review-unresolved>Review unresolved scenarios</button>
+              <button class="ix-btn audit-secondary" type="button" data-review-all>Review all scenarios</button>
+              <button class="ix-btn audit-secondary" type="button" data-audit-restart>Restart exercise</button>
+            </div>
+          </div>
+          <p class="audit-status" data-audit-status role="status" aria-live="polite" aria-atomic="true"></p>
+        </div>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -524,6 +617,7 @@ window.QUIZ = {
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive-security.js"></script>
 <script src="../../assets/js/codeviewer.js"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>

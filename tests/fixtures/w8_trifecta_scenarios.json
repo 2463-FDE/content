@@ -1,0 +1,10 @@
+[
+  {"id":"clinic-markdown","privateData":true,"untrustedContent":true,"externalEgress":true,"verdict":"lethal-trifecta"},
+  {"id":"offline-contract-review","privateData":true,"untrustedContent":true,"externalEgress":false,"verdict":"near-miss"},
+  {"id":"public-status-bot","privateData":false,"untrustedContent":true,"externalEgress":true,"verdict":"near-miss"},
+  {"id":"payroll-template-mailer","privateData":true,"untrustedContent":false,"externalEgress":true,"verdict":"near-miss"},
+  {"id":"public-doc-kiosk","privateData":false,"untrustedContent":true,"externalEgress":false,"verdict":"limited-exposure"},
+  {"id":"internal-metrics-brief","privateData":true,"untrustedContent":false,"externalEgress":false,"verdict":"limited-exposure"},
+  {"id":"support-draft-desk","privateData":true,"untrustedContent":true,"externalEgress":true,"verdict":"lethal-trifecta"},
+  {"id":"recruiting-link-agent","privateData":true,"untrustedContent":true,"externalEgress":true,"verdict":"lethal-trifecta"}
+]
