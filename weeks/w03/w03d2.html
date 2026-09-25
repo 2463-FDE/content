@@ -43,9 +43,10 @@
         something is the <strong>Model Context Protocol (MCP)</strong>: an open standard, open-sourced by Anthropic on
         2024-11-25, that Anthropic itself calls "a USB-C port for AI applications." Today you learn its architecture,
         its primitives, how a tool is discovered and called, how the bytes travel, and — the part clients actually pay
-        an FDE to get right — why every tool is arbitrary code execution and must have a human in the loop. We teach
-        against the current stable spec revision, <strong>2025-11-25</strong>. The panel on the right builds up one MCP
-        deployment piece by piece as you scroll.</p>
+        an FDE to get right — why every tool is arbitrary code execution and must have a human in the loop. The
+        <strong>latest published revision is 2026-07-28</strong>; this lesson keeps <strong>2025-11-25 as a widely
+        deployed, initialization-based baseline</strong> you will still encounter. The panel on the right builds up one
+        MCP deployment piece by piece as you scroll.</p>
         <div class="ix-legend"></div>
       </div>
 
@@ -159,6 +160,7 @@
         the model reads "date must be in the future," adjusts, and retries. Business-logic failures belong in
         <code>isError</code>; only genuine protocol faults belong in JSON-RPC errors. That distinction is a real bug you
         will find in client codebases.</p>
+        <button class="code-cta" type="button" data-modal="code-w03d2" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only code <span class="cc-meta">· mcp_result_bridge.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
@@ -185,12 +187,14 @@
       </section>
 
       <section class="step" data-diagram="0" data-step="6">
-        <div class="tag">Capability negotiation</div>
-        <h2>You can only use what was declared at init</h2>
-        <p>Every MCP connection opens with a handshake, and that handshake is where MCP gets its extensibility. MCP
-        "uses a capability-based negotiation system where clients and servers explicitly declare their supported
-        features during initialization. Capabilities determine which protocol features and primitives are available."
-        The rule is strict and simple: <strong>a feature is only usable if it was declared.</strong></p>
+        <div class="tag">2025-11-25 baseline · capability negotiation</div>
+        <h2>On deployed baseline hosts, use only what was declared at init</h2>
+        <p>The widely deployed <strong>2025-11-25 baseline</strong> opens a connection with an initialization handshake,
+        and that handshake is where it gets its extensibility. In this revision, clients and servers explicitly declare
+        supported features during initialization, and those capabilities determine which primitives are available. The
+        baseline rule is strict and simple: <strong>a feature is only usable if it was declared.</strong> The latest
+        2026-07-28 revision documents this connection-scoped handshake as backward-compatibility behavior, so recognize
+        it without mistaking it for the latest revision's core message model.</p>
         <p>Concretely: a server that wants to offer tools declares the tools capability during initialization, and if it
         also promises to send list-changed notifications it says so in that same declaration. A server that wants
         clients to subscribe to resource updates must declare subscription support. A client that will honour
@@ -231,18 +235,16 @@
       </section>
 
       <section class="step extra" data-diagram="0" data-step="8">
-        <div class="tag">Roadmap · not yet stable</div>
-        <h2>Where MCP is heading — and the mindset that outlasts it</h2>
-        <p>Teach today against the <strong>2025-11-25</strong> revision, but know what is coming so you do not design into
-        a corner. The next revision — a release candidate locked in May 2026, publishing <strong>2026-07-28</strong> —
-        reorients the protocol around a <strong>stateless HTTP core</strong>. The roadmap's top priority is transport
-        scalability: today's "stateful sessions fight with load balancers, horizontal scaling requires workarounds,"
-        so the candidate moves toward statelessness plus well-known-URL capability discovery. It also adds an
-        <strong>Extensions</strong> framework, <strong>Tasks</strong> for long-running work with retry and expiry
-        semantics, and <strong>MCP Apps</strong> for server-rendered UI. A tell that this is already in motion: even
-        the current Tool object carries an optional task-support field, foreshadowing Tasks. Treat all of it as
-        roadmap rather than shippable API — pin your code to a dated revision and flag the candidate as coming, not
-        yet stable.</p>
+        <div class="tag">Latest published · 2026-07-28</div>
+        <h2>The latest revision — and the baseline you still support</h2>
+        <p>The <strong>2026-07-28 revision is now published and marked latest</strong> by the official specification.
+        Its transport overview still standardizes <strong>stdio</strong> and <strong>Streamable HTTP</strong>: each HTTP
+        message is a POST to one MCP endpoint, with a JSON response or request-scoped SSE stream. It also explicitly
+        documents backward compatibility with earlier connection-scoped revisions that use the
+        <code>initialize</code> handshake. That is why this lesson keeps both dates visible: design new work against the
+        latest published revision, while recognizing <strong>2025-11-25 as the widely deployed baseline</strong> you may
+        need to interoperate with. Pin implementations to a dated revision instead of treating undated examples as
+        universal.</p>
         <p>The through-line from yesterday holds. Day 1 said: diagnose the <em>window</em> before you blame the model.
         Today says: diagnose the <em>protocol boundary</em> before you blame the tool. Who controls this primitive — model,
         app, or user? Was this capability actually declared at init? Is this an <code>isError</code> the model can
@@ -263,6 +265,7 @@
         <ul>
           <li><a href="https://modelcontextprotocol.io/docs/getting-started/intro" target="_blank" rel="noopener">What is the Model Context Protocol (MCP)? — modelcontextprotocol.io</a> — the official intro and the "USB-C port for AI" framing.</li>
           <li><a href="https://www.anthropic.com/news/model-context-protocol" target="_blank" rel="noopener">Introducing the Model Context Protocol — Anthropic (2024-11-25)</a> — origin, date, and the fragmented-integration problem MCP was built to kill.</li>
+          <li><a href="https://modelcontextprotocol.io/specification/2026-07-28/basic/transports" target="_blank" rel="noopener">MCP Transports — spec 2026-07-28</a> — latest published revision (verified 2026-09-25), stdio and Streamable HTTP, single-endpoint POST semantics, and backward compatibility. See also the <a href="https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http" target="_blank" rel="noopener">latest Streamable HTTP requirements</a> for Origin validation and localhost binding.</li>
           <li><a href="https://modelcontextprotocol.io/specification/2025-11-25/architecture" target="_blank" rel="noopener">MCP Architecture — spec 2025-11-25</a> — host/client/server roles, JSON-RPC base, 1:1 client↔server, and capability negotiation.</li>
           <li><a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools" target="_blank" rel="noopener">MCP Server / Tools — spec 2025-11-25</a> — <code>tools/list</code>, <code>tools/call</code>, the Tool object, structured content, <code>isError</code>, and tool security.</li>
           <li><a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/transports" target="_blank" rel="noopener">MCP Basic / Transports — spec 2025-11-25</a> — stdio vs Streamable HTTP, the HTTP+SSE deprecation, and the Origin-validation security warning.</li>
@@ -310,8 +313,9 @@
     <button class="modal-close" type="button" aria-label="Close">✕</button>
     <h2>Deep dive: JSON-RPC on the wire</h2>
     <p class="quiz-sub">Optional. ~10 minutes. What the port actually says when you open it — every message is plain
-    JSON-RPC 2.0, teaching revision <code>2025-11-25</code>.</p>
-    <p><strong>1 · The handshake.</strong> Nothing works until both sides declare capabilities. The client opens with
+    JSON-RPC 2.0, using the widely deployed <code>2025-11-25</code> baseline. The latest published revision is
+    <code>2026-07-28</code>.</p>
+    <p><strong>1 · The 2025-11-25 baseline handshake.</strong> On this initialization-based revision, nothing works until both sides declare capabilities. The client opens with
     <code>initialize</code>; the server answers with the features it supports. A feature not named here cannot be used
     this session.</p>
     <div class="model-answer show">
@@ -385,6 +389,39 @@
   </div>
 </div>
 
+<!-- read-only code popup (w03d2) -->
+<div id="code-w03d2" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close code example">✕</button>
+    <h2>Bridge an MCP result into a Bedrock tool result</h2>
+    <p class="cv-cap">Preserve the tool-error channel while converting synthetic MCP output into a Converse-shaped result block.</p>
+    <div class="cv" data-file="mcp_result_bridge.py" data-lang="python"><pre class="cv-raw"># Synthetic protocol records only: no MCP server or Amazon Bedrock call.
+MCP_RESULT = {
+    &quot;content&quot;: [{&quot;type&quot;: &quot;text&quot;, &quot;text&quot;: &quot;No order named A1099&quot;}],
+    &quot;isError&quot;: True,
+}
+
+
+def to_bedrock_tool_result(tool_use_id, mcp_result):
+    text = &quot;\n&quot;.join(
+        item[&quot;text&quot;] for item in mcp_result.get(&quot;content&quot;, [])
+        if item.get(&quot;type&quot;) == &quot;text&quot;
+    )
+    return {
+        &quot;toolResult&quot;: {
+            &quot;toolUseId&quot;: tool_use_id,
+            &quot;content&quot;: [{&quot;text&quot;: text or &quot;No text result&quot;}],
+            &quot;status&quot;: &quot;error&quot; if mcp_result.get(&quot;isError&quot;) else &quot;success&quot;,
+        }
+    }
+
+
+fixture = to_bedrock_tool_result(&quot;tool-1099&quot;, MCP_RESULT)
+assert fixture[&quot;toolResult&quot;][&quot;status&quot;] == &quot;error&quot;</pre></div>
+    <p class="cv-foot">Both inputs are synthetic. The function only maps data and preserves a recoverable tool error; it has no credential or provider-call path.</p>
+  </div>
+</div>
+
 <script>
 window.FDE_NEXT = { label: "Day 3 · The agent loop →", href: "w03d3.html" };
 window.DIAGRAM = {
@@ -423,16 +460,16 @@ window.DIAGRAM = {
       detail:"Two standard transports. stdio: client launches the server as a subprocess, newline-delimited JSON-RPC over stdin/stdout. Streamable HTTP: a single endpoint, POST + optional SSE upgrade, with MCP-Protocol-Version and MCP-Session-Id headers. Streamable HTTP replaced the deprecated 2024-11-05 HTTP+SSE transport." },
 
     // capability negotiation
-    { id:"cap",  step:6, x:286, y:432, w:190, h:64, label:"initialize → capabilities\na feature is usable only if declared",
-      detail:"At init, client and server explicitly declare supported features; the negotiated intersection is the session contract. e.g. tools support needs {\"capabilities\":{\"tools\":{\"listChanged\":true}}}. This is how MCP adds features progressively while staying backward-compatible — nobody assumes, everybody declares." },
+    { id:"cap",  step:6, x:286, y:432, w:190, h:64, label:"2025-11-25 baseline\ninitialize → capabilities",
+      detail:"On widely deployed 2025-11-25 hosts, client and server explicitly declare supported features at init; the negotiated intersection is the session contract. The latest 2026-07-28 revision documents this connection-scoped handshake as backward-compatibility behavior." },
 
     // human-in-the-loop gate
     { id:"hitl", step:7, x:44, y:512, w:432, h:60, label:"⚠ HUMAN IN THE LOOP — tools = arbitrary code",
       detail:"Hosts MUST get explicit user consent before invoking any tool, and there SHOULD always be a human able to deny. Tool annotations are UNTRUSTED unless the server is trusted. HTTP servers MUST validate the Origin header (DNS-rebinding) and SHOULD bind only to localhost when local." },
 
     // roadmap ghost
-    { id:"road", step:8, kind:"example", x:44, y:588, w:432, h:56, label:"→ 2026-07-28 RC (not yet stable): stateless core · Extensions · Tasks · MCP Apps",
-      detail:"Roadmap, not shippable API. The next revision reorients around a stateless HTTP core (stateful sessions fight load balancers), adds an Extensions framework, Tasks for long-running work, and MCP Apps (server-rendered UI). Even 2025-11-25's Tool object already carries execution.taskSupport, foreshadowing Tasks. Teach 2025-11-25; flag this as coming." }
+    { id:"road", step:8, kind:"example", x:44, y:588, w:432, h:56, label:"LATEST PUBLISHED · 2026-07-28\n2025-11-25 = deployed compatibility baseline",
+      detail:"The official version selector marks 2026-07-28 latest. Its transport overview keeps stdio and Streamable HTTP and documents fallback for earlier initialization-based revisions. Build to a dated revision; recognize 2025-11-25 hosts without calling that baseline latest." }
   ],
   edges: [
     { id:"e_a",    step:1, from:"cliA", to:"srvA", label:"1:1 · JSON-RPC 2.0", ly:-2 },
@@ -448,9 +485,9 @@ window.DIAGRAM = {
     "Because tools are <b>model-controlled</b>, the model discovers them with <b>tools/list</b> and runs one with <b>tools/call</b> — arguments validated by the Tool's JSON Schema. <span style='opacity:.7'>(tap)</span>",
     "The result carries <b>content</b> + optional <b>structuredContent</b>. A tool failure rides in a <em>successful</em> result with <b>isError:true</b> so the model can self-correct. <span style='opacity:.7'>(tap)</span>",
     "Same messages, two wires: <b>stdio</b> for local subprocesses, <b>Streamable HTTP</b> for remote — replacing the deprecated HTTP+SSE transport. <span style='opacity:.7'>(tap)</span>",
-    "It all starts with a handshake: <b>capabilities are negotiated at init</b>, and a feature is usable only if declared. That's how MCP stays extensible. <span style='opacity:.7'>(tap)</span>",
+    "On the widely deployed <b>2025-11-25 baseline</b>, capabilities are negotiated at init. The latest revision keeps compatibility with those initialization-based hosts. <span style='opacity:.7'>(tap)</span>",
     "A tool is <b>arbitrary code</b>. The spec mandates a <b>human in the loop</b>, explicit consent, and treats self-reported annotations as untrusted. <span style='opacity:.7'>(tap)</span>",
-    "Coming, not yet stable: the <b>2026-07-28 RC</b> — stateless core, Extensions, Tasks, MCP Apps. Teach 2025-11-25; flag the rest as roadmap. <span style='opacity:.7'>(tap)</span>"
+    "<b>2026-07-28 is the latest published revision.</b> Keep 2025-11-25 labeled as the deployed baseline learners will still meet — never as latest. <span style='opacity:.7'>(tap)</span>"
   ]
 };
 window.QUIZ = {
@@ -480,7 +517,7 @@ window.QUIZ = {
       answer: false,
       explain: "No. Clients MUST consider tool annotations untrusted unless they come from a trusted server — a self-reported 'read-only' label is a claim, not a guarantee. Tools are arbitrary code execution; hosts MUST obtain explicit user consent and keep a human able to deny." },
     { type: "mcq",
-      stem: "Which of these are true of MCP as taught against spec revision 2025-11-25? (select all that apply)",
+      stem: "Which of these are true of the widely deployed MCP 2025-11-25 baseline? (select all that apply)",
       options: [
         "Tools are model-controlled; Resources are application-controlled; Prompts are user-controlled",
         "The two standard transports are stdio and Streamable HTTP",
@@ -488,7 +525,7 @@ window.QUIZ = {
         "Streamable HTTP is deprecated in favor of the older HTTP+SSE transport",
         "Stateless core, Tasks, and MCP Apps are stable, shippable APIs today" ],
       answer: [0, 1, 2],
-      explain: "The control-model split, the two transports, and init-time capability negotiation are all core to 2025-11-25. It's the reverse on transports: Streamable HTTP REPLACED the deprecated HTTP+SSE. And stateless core / Tasks / MCP Apps are 2026-07-28 RC roadmap — coming, not yet stable." },
+      explain: "The control-model split, two transports, and init-time capability negotiation are baseline 2025-11-25 behavior. Streamable HTTP REPLACED deprecated HTTP+SSE. The official specification now marks 2026-07-28 as latest published; it documents compatibility with initialization-based revisions such as this baseline." },
     { type: "match",
       stem: "Match each MCP concept to what it does.",
       pairs: [
@@ -514,6 +551,7 @@ window.QUIZ = {
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js?v=20260714-w3f"></script>
 <script src="../../assets/js/interactive-agents.js?v=20260714-w3f"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>

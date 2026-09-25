@@ -139,6 +139,7 @@
         Once you see it this way, a triage-plus-specialists system stops being intimidating — it's a handful of agents,
         each exposed to the others as a transfer tool.</p>
         <div class="ix-handoff"></div>
+        <button class="code-cta" type="button" data-modal="code-w03d3" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only code <span class="cc-meta">· handoff_router.py</span></button>
         <p>This is also the mental bridge to the other frameworks. Every multi-agent system on today's board is, under
         the hood, answering the same question — <em>how does one agent decide to hand work to another?</em> — and the
         OpenAI SDK gives the cleanest answer: it's a tool call, so it's governed by everything you already know about
@@ -164,7 +165,7 @@
         as a <em>step</em> inside a deterministic Flow, getting model judgement where you want it and hard control
         everywhere else.</p>
         <p>One grounding fact that changes how you position CrewAI to a client: it is a <strong>standalone
-        framework</strong>. The current PyPI release (<strong>1.15.1, 2026-06-27</strong>) describes CrewAI as "built
+        framework</strong>. The dated PyPI snapshot used for this lesson (<strong>1.15.1, 2026-06-27</strong>) describes CrewAI as "built
         entirely from scratch — completely independent of LangChain or other agent frameworks," and it requires Python
         <code>&gt;=3.10,&lt;3.14</code>. That independence is a genuine architectural choice, not marketing — it means
         adopting CrewAI doesn't drag in the LangChain stack, and its dual Crews/Flows model is its own thing to learn on
@@ -351,7 +352,7 @@
     <h2>Day 3 — goals &amp; deliverable</h2>
     <div class="ma-k">By the end of today you can</div>
     <ul class="goals-list">
-      <li>Name the four 2026 agent frameworks and state what each one actually is, with correct current versions</li>
+      <li>Name the four 2026 agent frameworks and state what each one actually is, with the lesson's dated 1.x snapshots labeled correctly</li>
       <li>Explain LangChain's <code>create_agent</code>-over-LangGraph layering and the OpenAI SDK's five primitives</li>
       <li>Describe handoffs as tool calls, CrewAI's Crews-vs-Flows split, and why AutoGen + Semantic Kernel are now one framework</li>
       <li>Pick a framework for a given client by scoring control model, provider lock-in, and enterprise/state needs — and ask first whether an agent is even needed</li>
@@ -365,6 +366,43 @@
     </ul>
     <p class="goals-foot">Bring it to Day 4, where we go deeper on building with the framework you chose. This keeps
     growing the engineering journal you started in Week 1.</p>
+  </div>
+</div>
+
+<!-- read-only code popup (w03d3) -->
+<div id="code-w03d3" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close code example">✕</button>
+    <h2>Route a synthetic Bedrock handoff request</h2>
+    <p class="cv-cap">Treat a handoff as an allowlisted tool request while keeping the example entirely local and deterministic.</p>
+    <div class="cv" data-file="handoff_router.py" data-lang="python"><pre class="cv-raw"># Synthetic Amazon Bedrock Converse output: no model or network call.
+SYNTHETIC_RESPONSE = {&quot;output&quot;: {&quot;message&quot;: {&quot;content&quot;: [{
+    &quot;toolUse&quot;: {
+        &quot;toolUseId&quot;: &quot;handoff-01&quot;,
+        &quot;name&quot;: &quot;transfer_to_refund_agent&quot;,
+        &quot;input&quot;: {&quot;reason&quot;: &quot;duplicate charge&quot;},
+    }
+}]}}}
+
+HANDOFFS = {
+    &quot;transfer_to_refund_agent&quot;: &quot;refund-agent&quot;,
+    &quot;transfer_to_shipping_agent&quot;: &quot;shipping-agent&quot;,
+}
+
+
+def route_handoff(response):
+    block = response[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;toolUse&quot;]
+    if block[&quot;name&quot;] not in HANDOFFS:
+        raise ValueError(&quot;handoff is not allowlisted&quot;)
+    return {
+        &quot;agent&quot;: HANDOFFS[block[&quot;name&quot;]],
+        &quot;tool_use_id&quot;: block[&quot;toolUseId&quot;],
+        &quot;context&quot;: dict(block[&quot;input&quot;]),
+    }
+
+
+handoff = route_handoff(SYNTHETIC_RESPONSE)</pre></div>
+    <p class="cv-foot">The fixture shows the portable mechanism—handoff as tool selection—without importing an agent framework or contacting a provider.</p>
   </div>
 </div>
 
@@ -491,6 +529,7 @@ window.QUIZ = {
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js?v=20260714-w3f"></script>
 <script src="../../assets/js/interactive-agents.js?v=20260714-w3f"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
