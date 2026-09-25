@@ -18,12 +18,12 @@
     Object.freeze({
       id: "clinic-markdown",
       title: "Clinic visit summarizer",
-      description: "A summarizer reads a synthetic patient encounter and free-text notes copied from outside referrals. Its answer renderer automatically loads external markdown images.",
+      description: "In this hypothetical production architecture, a summarizer can access private patient records and free-text notes copied from outside referrals. Its answer renderer automatically loads external markdown images. All lesson names and details are synthetic and identifier-free.",
       privateData: true,
       untrustedContent: true,
       externalEgress: true,
       reasons: Object.freeze({
-        privateData: "The synthetic encounter represents private clinical data available in the same session.",
+        privateData: "The hypothetical system can access private patient records; the lesson examples themselves remain synthetic and identifier-free.",
         untrustedContent: "Outside-referral text can be influenced by a third party before the model reads it.",
         externalEgress: "Loading a model-supplied external image URL creates an outbound channel."
       })
@@ -57,13 +57,13 @@
     Object.freeze({
       id: "payroll-template-mailer",
       title: "Payroll template mailer",
-      description: "An assistant reads employee payroll records, fills a fixed message template maintained by payroll administrators, and sends the result through an email tool. It cannot read inbound mail or free-form fields.",
+      description: "An assistant receives private payroll amounts and tax categories through reviewed, typed fields maintained only by payroll administrators. Those fields and a fixed administrator-owned template are the only model-visible values; employees cannot write them, and no free text or inbound mail enters context. The assistant sends the result through an email tool.",
       privateData: true,
       untrustedContent: false,
       externalEgress: true,
       reasons: Object.freeze({
-        privateData: "Employee payroll records are private data.",
-        untrustedContent: "Only the administrator-controlled fixed template enters context; no attacker-influenceable content is present in this scenario.",
+        privateData: "The typed payroll amounts and tax categories are private data.",
+        untrustedContent: "Every model-visible value is a reviewed, typed, administrator-controlled field; none is attacker-writable in this scenario.",
         externalEgress: "The email tool can transmit information outside the session."
       })
     }),
@@ -96,14 +96,14 @@
     Object.freeze({
       id: "support-draft-desk",
       title: "Support draft desk",
-      description: "An assistant reads private customer history plus customer-authored support tickets. It drafts a reply in a locked review screen, but a human must retype any response in a separate system; the assistant has no send, link, or network tool.",
+      description: "An assistant reads private customer history plus customer-authored support tickets. It drafts a reply in a review screen, and a human retypes that model-authored reply into a separate system that sends it to the external customer. No deterministic sensitive-data rule or exact-output approval gates the relay.",
       privateData: true,
       untrustedContent: true,
-      externalEgress: false,
+      externalEgress: true,
       reasons: Object.freeze({
         privateData: "Private customer history is available to the assistant.",
         untrustedContent: "Customers control the ticket text the model reads.",
-        externalEgress: "The assistant itself has no outbound capability; a separate human action is outside this session's capability set."
+        externalEgress: "The model-authored reply reaches an external customer through a human relay; manual retyping alone does not remove the outbound path."
       })
     }),
     Object.freeze({
@@ -149,16 +149,28 @@
     const items = scenarios || SCENARIOS;
     let index = 0;
     let result = null;
+    let complete = false;
     const attempted = new Set();
+    const mastered = new Set();
 
     function snapshot() {
       return Object.freeze({
         index: index,
         total: items.length,
         attempted: attempted.size,
+        mastered: mastered.size,
+        unresolved: Object.freeze(items.filter(function (item) { return !mastered.has(item.id); }).map(function (item) { return item.id; })),
         scenario: items[index],
-        result: result
+        result: result,
+        complete: complete
       });
+    }
+
+    function visit(target) {
+      index = target;
+      result = null;
+      complete = false;
+      return snapshot();
     }
 
     return Object.freeze({
@@ -166,21 +178,28 @@
       submit: function (answer) {
         result = evaluate(items[index], answer);
         attempted.add(items[index].id);
+        if (result.correct) mastered.add(items[index].id);
         return snapshot();
       },
-      retry: function () {
+      retry: function () { return visit(index); },
+      next: function () { return visit(Math.min(index + 1, items.length - 1)); },
+      finish: function () {
+        complete = true;
         result = null;
         return snapshot();
       },
-      next: function () {
-        index = (index + 1) % items.length;
-        result = null;
-        return snapshot();
+      review: function (unresolvedOnly) {
+        const target = unresolvedOnly
+          ? items.findIndex(function (item) { return !mastered.has(item.id); })
+          : 0;
+        return visit(target < 0 ? 0 : target);
       },
       reset: function () {
         index = 0;
         result = null;
+        complete = false;
         attempted.clear();
+        mastered.clear();
         return snapshot();
       }
     });
@@ -212,6 +231,14 @@
   function mount(root) {
     const session = createSession();
     const form = root.querySelector("form");
+    const scenarioPanel = root.querySelector("[data-audit-scenario]");
+    const completion = root.querySelector("[data-audit-completion]");
+    const completionHeading = root.querySelector("[data-completion-heading]");
+    const completionSummary = root.querySelector("[data-completion-summary]");
+    const completionUnresolved = root.querySelector("[data-completion-unresolved]");
+    const reviewUnresolvedButton = root.querySelector("[data-review-unresolved]");
+    const reviewAllButton = root.querySelector("[data-review-all]");
+    const restartButton = root.querySelector("[data-audit-restart]");
     const view = {
       title: root.querySelector("[data-scenario-title]"),
       description: root.querySelector("[data-scenario-description]"),
@@ -230,6 +257,7 @@
     const nextButton = root.querySelector("[data-audit-next]");
     const resetButton = root.querySelector("[data-audit-reset]");
     const answerGroups = form.querySelectorAll("fieldset");
+    const missingAnswerMessage = "Select Yes or No for all three properties before submitting.";
 
     function readAnswer() {
       const answer = {};
@@ -238,6 +266,10 @@
         answer[key] = selected ? selected.value === "yes" : null;
       });
       return answer;
+    }
+
+    function progressText(state) {
+      return "Scenario " + (state.index + 1) + " of " + state.total + " · " + state.attempted + " attempted · " + state.mastered + " mastered";
     }
 
     function clearAnswers() {
@@ -251,21 +283,49 @@
     function showScenario(message) {
       const state = session.snapshot();
       renderScenarioText(view, state.scenario);
-      setText(progress, "Scenario " + (state.index + 1) + " of " + state.total + " · " + state.attempted + " audited");
+      setText(progress, progressText(state));
       setText(status, message || "Choose Yes or No for all three properties, then submit your audit.");
+      scenarioPanel.hidden = false;
+      form.hidden = false;
+      completion.hidden = true;
       feedback.hidden = true;
-      retryButton.hidden = true;
-      nextButton.hidden = true;
       submitButton.disabled = false;
       setAnswersLocked(false);
       clearAnswers();
     }
 
+    function showCompletion() {
+      const state = session.finish();
+      const unresolvedTitles = SCENARIOS.filter(function (scenario) {
+        return state.unresolved.indexOf(scenario.id) !== -1;
+      }).map(function (scenario) { return scenario.title; });
+      scenarioPanel.hidden = true;
+      form.hidden = true;
+      feedback.hidden = true;
+      completion.hidden = false;
+      setText(progress, "Complete · " + state.attempted + " attempted · " + state.mastered + " mastered of " + state.total);
+      setText(completionSummary, state.mastered === state.total
+        ? "All scenarios mastered. You correctly resolved every three-part audit."
+        : "Exercise complete. You mastered " + state.mastered + " of " + state.total + " scenarios; attempted scenarios are not counted as mastered until all three classifications match.");
+      setText(completionUnresolved, unresolvedTitles.length
+        ? "Review needed: " + unresolvedTitles.join("; ") + "."
+        : "No unresolved scenarios remain.");
+      reviewUnresolvedButton.hidden = unresolvedTitles.length === 0;
+      setText(status, "Exercise complete. Review scenarios or restart the exercise.");
+      completionHeading.focus();
+    }
+
+    form.addEventListener("change", function () {
+      if (!COMPONENTS.some(function (key) { return readAnswer()[key] === null; })) {
+        setText(status, "All three properties selected. Submit your audit.");
+      }
+    });
+
     form.addEventListener("submit", function (event) {
       event.preventDefault();
       const answer = readAnswer();
       if (COMPONENTS.some(function (key) { return answer[key] === null; })) {
-        setText(status, "Select Yes or No for all three properties before submitting.");
+        setText(status, missingAnswerMessage);
         const missing = COMPONENTS.find(function (key) { return answer[key] === null; });
         const firstMissing = form.querySelector('input[name="' + missing + '"]');
         if (firstMissing) firstMissing.focus();
@@ -273,11 +333,10 @@
       }
       const state = session.submit(answer);
       renderResultText(view, state.result);
-      setText(progress, "Scenario " + (state.index + 1) + " of " + state.total + " · " + state.attempted + " audited");
+      setText(progress, progressText(state));
       setText(status, state.result.correct ? "Audit submitted. Your three classifications match." : "Audit submitted. Review the component corrections, then retry or continue.");
+      setText(nextButton, state.index === state.total - 1 ? "Finish exercise" : "Next scenario");
       feedback.hidden = false;
-      retryButton.hidden = false;
-      nextButton.hidden = false;
       submitButton.disabled = true;
       setAnswersLocked(true);
       feedback.focus();
@@ -289,6 +348,11 @@
       view.title.focus();
     });
     nextButton.addEventListener("click", function () {
+      const state = session.snapshot();
+      if (state.index === state.total - 1) {
+        showCompletion();
+        return;
+      }
       session.next();
       showScenario("Next scenario ready. Classify all three properties.");
       view.title.focus();
@@ -296,6 +360,21 @@
     resetButton.addEventListener("click", function () {
       session.reset();
       showScenario("Exercise reset. Progress cleared; scenario one is ready.");
+      view.title.focus();
+    });
+    reviewUnresolvedButton.addEventListener("click", function () {
+      session.review(true);
+      showScenario("Reviewing an unresolved scenario. Correct all three properties to master it.");
+      view.title.focus();
+    });
+    reviewAllButton.addEventListener("click", function () {
+      session.review(false);
+      showScenario("Review mode started at scenario one. Prior mastery is preserved.");
+      view.title.focus();
+    });
+    restartButton.addEventListener("click", function () {
+      session.reset();
+      showScenario("Exercise restarted. Progress cleared; scenario one is ready.");
       view.title.focus();
     });
 

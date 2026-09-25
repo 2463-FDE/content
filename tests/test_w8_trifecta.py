@@ -129,17 +129,25 @@ const api = sandbox.module.exports;
 const actual = api.SCENARIOS.map(s => {
   const answer = { privateData: s.privateData, untrustedContent: s.untrustedContent, externalEgress: s.externalEgress };
   const exact = api.evaluate(s, answer);
-  const wrong = api.evaluate(s, { ...answer, privateData: !answer.privateData });
+  const flipped = api.COMPONENTS.map(key => {
+    const wrong = api.evaluate(s, { ...answer, [key]: !answer[key] });
+    const component = wrong.components.find(item => item.key === key);
+    return { key, rejects: !wrong.correct, componentIncorrect: !component.correct,
+      explanation: component.explanation };
+  });
   return { id: s.id, privateData: s.privateData, untrustedContent: s.untrustedContent,
     externalEgress: s.externalEgress, verdict: exact.verdict, exact: exact.correct,
-    rejectsWrong: !wrong.correct, explained: exact.components.every(c => Boolean(c.explanation)) };
+    flipped, explained: exact.components.every(c => Boolean(c.explanation)),
+    description: s.description, reasons: s.reasons };
 });
 const session = api.createSession();
-session.submit({ privateData: true, untrustedContent: true, externalEgress: true });
+const first = api.SCENARIOS[0];
+session.submit({ privateData: !first.privateData, untrustedContent: first.untrustedContent, externalEgress: first.externalEgress });
+const wrongProgress = session.snapshot();
+session.retry();
+session.submit({ privateData: first.privateData, untrustedContent: first.untrustedContent, externalEgress: first.externalEgress });
 session.next();
-session.submit({ privateData: true, untrustedContent: true, externalEgress: false });
 const beforeReset = session.snapshot();
-const retryState = session.retry();
 const afterReset = session.reset();
 class TextOnlyNode {
   constructor() { this.value = ''; }
@@ -157,9 +165,10 @@ const maliciousScenario = { privateData: true, untrustedContent: true, externalE
 api.renderResultText(resultView, api.evaluate(maliciousScenario,
   { privateData: true, untrustedContent: true, externalEgress: true }));
 process.stdout.write(JSON.stringify({ fixtures, actual, violations,
-  reset: { beforeIndex: beforeReset.index, beforeAttempted: beforeReset.attempted,
-    retryClearsResult: retryState.result === null, index: afterReset.index,
-    attempted: afterReset.attempted, result: afterReset.result },
+  progress: { wrongAttempted: wrongProgress.attempted, wrongMastered: wrongProgress.mastered,
+    beforeIndex: beforeReset.index, beforeAttempted: beforeReset.attempted, beforeMastered: beforeReset.mastered,
+    index: afterReset.index, attempted: afterReset.attempted, mastered: afterReset.mastered,
+    complete: afterReset.complete, result: afterReset.result },
   xss: { title: scenarioView.title.textContent, description: scenarioView.description.textContent,
     explanations: Object.values(resultView.components).map(x => x.explanation.textContent) }
 }));
@@ -242,7 +251,7 @@ function answerAll(answer) {
 }
 function focusLabel() {
   if (!focused) return null;
-  for (const attr of ['data-scenario-title', 'data-audit-feedback']) if (attr in focused.attrs) return attr;
+  for (const attr of ['data-scenario-title', 'data-audit-feedback', 'data-completion-heading']) if (attr in focused.attrs) return attr;
   return focused.attrs.id || focused.tag;
 }
 function capture(label, extra) {
@@ -254,8 +263,11 @@ function capture(label, extra) {
     summary: q('[data-audit-summary]').textContent,
     privateVerdict: q('[data-result-private-verdict]').textContent,
     feedbackHidden: q('[data-audit-feedback]').hidden,
-    retryHidden: q('[data-audit-retry]').hidden,
-    nextHidden: q('[data-audit-next]').hidden,
+    completionHidden: q('[data-audit-completion]').hidden,
+    completionSummary: q('[data-completion-summary]').textContent,
+    completionUnresolved: q('[data-completion-unresolved]').textContent,
+    reviewUnresolvedHidden: q('[data-review-unresolved]').hidden,
+    nextText: q('[data-audit-next]').textContent,
     submitDisabled: q('[data-audit-submit]').disabled,
     fieldsetsDisabled: root.querySelectorAll('fieldset').map(node => node.disabled),
     checked: radios().filter(node => node.checked).map(node => node.attrs.id),
@@ -268,22 +280,42 @@ steps.push(capture('initial'));
 const empty = q('form').dispatch('submit');
 steps.push(capture('incomplete', { prevented: empty.defaultPrevented }));
 const first = scenarios[0];
-answerAll({ privateData: first.privateData, untrustedContent: first.untrustedContent, externalEgress: first.externalEgress });
-const correct = q('form').dispatch('submit');
-steps.push(capture('submitted', { prevented: correct.defaultPrevented,
-  changeAfterSubmit: choose('privateData', first.privateData ? 'no' : 'yes') }));
+answerAll({ privateData: !first.privateData, untrustedContent: first.untrustedContent, externalEgress: first.externalEgress });
+q('form').dispatch('change');
+steps.push(capture('selection-complete'));
+const wrong = q('form').dispatch('submit');
+steps.push(capture('wrong', { prevented: wrong.defaultPrevented,
+  changeAfterSubmit: choose('privateData', first.privateData ? 'yes' : 'no') }));
 q('[data-audit-retry]').dispatch('click');
 steps.push(capture('retry'));
-answerAll({ privateData: !first.privateData, untrustedContent: first.untrustedContent, externalEgress: first.externalEgress });
-q('form').dispatch('submit');
-steps.push(capture('wrong'));
+answerAll({ privateData: first.privateData, untrustedContent: first.untrustedContent, externalEgress: first.externalEgress });
+q('form').dispatch('change');
+const correct = q('form').dispatch('submit');
+steps.push(capture('mastered', { prevented: correct.defaultPrevented }));
 q('[data-audit-next]').dispatch('click');
 steps.push(capture('next'));
-answerAll({ privateData: true, untrustedContent: true, externalEgress: true });
+for (let index = 1; index < scenarios.length; index++) {
+  const scenario = scenarios[index];
+  const answer = { privateData: scenario.privateData, untrustedContent: scenario.untrustedContent,
+    externalEgress: scenario.externalEgress };
+  if (index === scenarios.length - 1) answer.externalEgress = !answer.externalEgress;
+  answerAll(answer);
+  q('form').dispatch('change');
+  q('form').dispatch('submit');
+  if (index === scenarios.length - 1) steps.push(capture('last-wrong'));
+  q('[data-audit-next]').dispatch('click');
+}
+steps.push(capture('completion-unresolved'));
+q('[data-review-unresolved]').dispatch('click');
+steps.push(capture('review-unresolved'));
+const last = scenarios[scenarios.length - 1];
+answerAll({ privateData: last.privateData, untrustedContent: last.untrustedContent, externalEgress: last.externalEgress });
+q('form').dispatch('change');
 q('form').dispatch('submit');
-steps.push(capture('second-submitted'));
-q('[data-audit-reset]').dispatch('click');
-steps.push(capture('reset'));
+q('[data-audit-next]').dispatch('click');
+steps.push(capture('completion-mastered'));
+q('[data-audit-restart]').dispatch('click');
+steps.push(capture('restart'));
 process.stdout.write(JSON.stringify({ steps, violations, titles: scenarios.map(s => s.title),
   total: scenarios.length, firstPrivate: first.privateData }));
 """
@@ -309,6 +341,13 @@ class WeekEightTrifectaTests(unittest.TestCase):
         self.assertEqual(1, len(auditor.find_all(attr="data-audit-submit")))
         self.assertEqual(1, len(auditor.find_all(attr="data-audit-retry")))
         self.assertEqual(1, len(auditor.find_all(attr="data-audit-reset")))
+        self.assertEqual(1, len(auditor.find_all(attr="data-audit-completion")))
+        self.assertEqual(1, len(auditor.find_all(attr="data-review-unresolved")))
+        self.assertEqual(1, len(auditor.find_all(attr="data-review-all")))
+        self.assertEqual(1, len(auditor.find_all(attr="data-audit-restart")))
+        feedback = auditor.find_all("div", "data-audit-feedback")[0]
+        self.assertEqual(1, len(feedback.find_all(attr="data-audit-retry")))
+        self.assertEqual(1, len(feedback.find_all(attr="data-audit-next")))
 
     def test_placeholder_is_replaced_and_unique_module_is_loaded(self) -> None:
         root = parse_page()
@@ -326,89 +365,115 @@ class WeekEightTrifectaTests(unittest.TestCase):
             for row in actual
         ])
         self.assertGreaterEqual(len(actual), 6)
-        self.assertTrue(all(row["exact"] and row["rejectsWrong"] and row["explained"] for row in actual))
+        self.assertTrue(all(row["exact"] and row["explained"] for row in actual))
+        for row in actual:
+            with self.subTest(scenario=row["id"]):
+                self.assertEqual(3, len(row["flipped"]))
+                self.assertTrue(all(flip["rejects"] and flip["componentIncorrect"] and flip["explanation"] for flip in row["flipped"]))
         self.assertGreaterEqual(sum(row["verdict"] == "near-miss" for row in actual), 3)
+        by_id = {row["id"]: row for row in actual}
+        self.assertIn("private patient records", by_id["clinic-markdown"]["description"])
+        self.assertIn("synthetic and identifier-free", by_id["clinic-markdown"]["description"])
+        self.assertIn("only model-visible values", by_id["payroll-template-mailer"]["description"])
+        self.assertIn("none is attacker-writable", by_id["payroll-template-mailer"]["reasons"]["untrustedContent"])
+        self.assertTrue(by_id["support-draft-desk"]["externalEgress"])
+        self.assertIn("human relay", by_id["support-draft-desk"]["reasons"]["externalEgress"])
 
     def test_reset_retry_and_xss_safe_text_rendering_execute_without_io(self) -> None:
         result = run_node_probe()
-        self.assertEqual({"beforeIndex": 1, "beforeAttempted": 2, "retryClearsResult": True,
-                          "index": 0, "attempted": 0, "result": None}, result["reset"])
+        self.assertEqual({"wrongAttempted": 1, "wrongMastered": 0,
+                          "beforeIndex": 1, "beforeAttempted": 1, "beforeMastered": 1,
+                          "index": 0, "attempted": 0, "mastered": 0,
+                          "complete": False, "result": None}, result["progress"])
         poison = '<img src=x onerror="globalThis.pwned=true">'
         self.assertEqual(poison, result["xss"]["title"])
         self.assertEqual(poison, result["xss"]["description"])
         self.assertEqual([poison, poison, poison], result["xss"]["explanations"])
         self.assertEqual([], result["violations"])
 
-    def test_mounted_auditor_drives_submit_retry_next_reset_without_io(self) -> None:
+    def test_mounted_auditor_tracks_mastery_completion_review_and_restart_without_io(self) -> None:
         result = run_mounted_probe()
         self.assertEqual([], result["violations"])
         steps = {step["label"]: step for step in result["steps"]}
         total = result["total"]
-        first_title, second_title = result["titles"][0], result["titles"][1]
+        first_title, second_title, last_title = result["titles"][0], result["titles"][1], result["titles"][-1]
         unlocked = [False, False, False]
         locked = [True, True, True]
 
         initial = steps["initial"]
         self.assertEqual(first_title, initial["title"])
-        self.assertEqual(f"Scenario 1 of {total} · 0 audited", initial["progress"])
-        self.assertEqual("Choose Yes or No for all three properties, then submit your audit.", initial["status"])
-        self.assertTrue(initial["feedbackHidden"] and initial["retryHidden"] and initial["nextHidden"])
-        self.assertFalse(initial["submitDisabled"])
+        self.assertEqual(f"Scenario 1 of {total} · 0 attempted · 0 mastered", initial["progress"])
+        self.assertTrue(initial["feedbackHidden"] and initial["completionHidden"])
         self.assertEqual(unlocked, initial["fieldsetsDisabled"])
-        self.assertEqual([], initial["checked"])
 
         incomplete = steps["incomplete"]
         self.assertTrue(incomplete["prevented"])
         self.assertEqual("Select Yes or No for all three properties before submitting.", incomplete["status"])
         self.assertEqual("audit-private-yes", incomplete["focus"])
-        self.assertTrue(incomplete["feedbackHidden"])
-        self.assertEqual(f"Scenario 1 of {total} · 0 audited", incomplete["progress"])
+        self.assertEqual(f"Scenario 1 of {total} · 0 attempted · 0 mastered", incomplete["progress"])
 
-        submitted = steps["submitted"]
-        self.assertTrue(submitted["prevented"])
-        self.assertFalse(submitted["feedbackHidden"])
-        self.assertFalse(submitted["retryHidden"] or submitted["nextHidden"])
-        self.assertTrue(submitted["submitDisabled"])
-        self.assertEqual(locked, submitted["fieldsetsDisabled"])
-        self.assertFalse(submitted["changeAfterSubmit"])
-        self.assertEqual("data-audit-feedback", submitted["focus"])
-        self.assertTrue(submitted["summary"].startswith("Your audit matches."))
-        self.assertEqual("Audit submitted. Your three classifications match.", submitted["status"])
-        self.assertEqual(f"Scenario 1 of {total} · 1 audited", submitted["progress"])
+        selection_complete = steps["selection-complete"]
+        self.assertEqual("All three properties selected. Submit your audit.", selection_complete["status"])
+
+        wrong = steps["wrong"]
+        self.assertTrue(wrong["prevented"])
+        self.assertTrue(wrong["summary"].startswith("Not yet."))
+        self.assertEqual(f"Scenario 1 of {total} · 1 attempted · 0 mastered", wrong["progress"])
+        self.assertEqual(locked, wrong["fieldsetsDisabled"])
+        self.assertFalse(wrong["changeAfterSubmit"])
+        self.assertEqual("data-audit-feedback", wrong["focus"])
+        expected_private = "Yes" if result["firstPrivate"] else "No"
+        self.assertEqual(f"Correction — {expected_private}", wrong["privateVerdict"])
 
         retry = steps["retry"]
         self.assertEqual([], retry["checked"])
         self.assertEqual(unlocked, retry["fieldsetsDisabled"])
-        self.assertTrue(retry["feedbackHidden"] and retry["retryHidden"] and retry["nextHidden"])
-        self.assertFalse(retry["submitDisabled"])
+        self.assertTrue(retry["feedbackHidden"])
         self.assertEqual("data-scenario-title", retry["focus"])
-        self.assertEqual("Retry ready. Reclassify all three properties.", retry["status"])
-        self.assertEqual(f"Scenario 1 of {total} · 1 audited", retry["progress"])
+        self.assertEqual(f"Scenario 1 of {total} · 1 attempted · 0 mastered", retry["progress"])
 
-        wrong = steps["wrong"]
-        self.assertTrue(wrong["summary"].startswith("Not yet."))
-        expected_private = "Yes" if result["firstPrivate"] else "No"
-        self.assertEqual(f"Correction — {expected_private}", wrong["privateVerdict"])
-        self.assertEqual(locked, wrong["fieldsetsDisabled"])
+        mastered = steps["mastered"]
+        self.assertTrue(mastered["summary"].startswith("Your audit matches."))
+        self.assertEqual(f"Scenario 1 of {total} · 1 attempted · 1 mastered", mastered["progress"])
 
         nxt = steps["next"]
         self.assertEqual(second_title, nxt["title"])
-        self.assertEqual(f"Scenario 2 of {total} · 1 audited", nxt["progress"])
+        self.assertEqual(f"Scenario 2 of {total} · 1 attempted · 1 mastered", nxt["progress"])
         self.assertEqual([], nxt["checked"])
-        self.assertEqual(unlocked, nxt["fieldsetsDisabled"])
-        self.assertEqual("data-scenario-title", nxt["focus"])
 
-        self.assertEqual(f"Scenario 2 of {total} · 2 audited", steps["second-submitted"]["progress"])
+        last_wrong = steps["last-wrong"]
+        self.assertEqual(last_title, last_wrong["title"])
+        self.assertEqual("Finish exercise", last_wrong["nextText"])
+        self.assertEqual(f"Scenario {total} of {total} · {total} attempted · {total - 1} mastered", last_wrong["progress"])
 
-        reset = steps["reset"]
-        self.assertEqual(first_title, reset["title"])
-        self.assertEqual(f"Scenario 1 of {total} · 0 audited", reset["progress"])
-        self.assertEqual("Exercise reset. Progress cleared; scenario one is ready.", reset["status"])
-        self.assertEqual([], reset["checked"])
-        self.assertEqual(unlocked, reset["fieldsetsDisabled"])
-        self.assertTrue(reset["feedbackHidden"] and reset["retryHidden"] and reset["nextHidden"])
-        self.assertFalse(reset["submitDisabled"])
-        self.assertEqual("data-scenario-title", reset["focus"])
+        completion = steps["completion-unresolved"]
+        self.assertFalse(completion["completionHidden"])
+        self.assertTrue(completion["feedbackHidden"])
+        self.assertEqual(f"Complete · {total} attempted · {total - 1} mastered of {total}", completion["progress"])
+        self.assertIn(f"mastered {total - 1} of {total}", completion["completionSummary"])
+        self.assertIn(last_title, completion["completionUnresolved"])
+        self.assertFalse(completion["reviewUnresolvedHidden"])
+        self.assertEqual("data-completion-heading", completion["focus"])
+
+        review = steps["review-unresolved"]
+        self.assertEqual(last_title, review["title"])
+        self.assertEqual(f"Scenario {total} of {total} · {total} attempted · {total - 1} mastered", review["progress"])
+        self.assertEqual("data-scenario-title", review["focus"])
+
+        completed = steps["completion-mastered"]
+        self.assertFalse(completed["completionHidden"])
+        self.assertEqual(f"Complete · {total} attempted · {total} mastered of {total}", completed["progress"])
+        self.assertIn("All scenarios mastered", completed["completionSummary"])
+        self.assertTrue(completed["reviewUnresolvedHidden"])
+
+        restart = steps["restart"]
+        self.assertEqual(first_title, restart["title"])
+        self.assertEqual(f"Scenario 1 of {total} · 0 attempted · 0 mastered", restart["progress"])
+        self.assertEqual("Exercise restarted. Progress cleared; scenario one is ready.", restart["status"])
+        self.assertEqual([], restart["checked"])
+        self.assertEqual(unlocked, restart["fieldsetsDisabled"])
+        self.assertTrue(restart["feedbackHidden"] and restart["completionHidden"])
+        self.assertEqual("data-scenario-title", restart["focus"])
 
     def test_io_traps_detect_forbidden_egress_and_persistence(self) -> None:
         probe = r"""

@@ -12,18 +12,22 @@
 .trifecta-auditor { margin: 20px 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
 .trifecta-auditor .audit-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .trifecta-auditor .audit-head p { margin: 0; color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+.trifecta-auditor .audit-head .ix-k { color: var(--ink); }
 .trifecta-auditor .audit-scenario { margin: 12px 0 16px; padding: 14px; border-left: 4px solid var(--accent); border-radius: 8px; background: var(--surface); }
 .trifecta-auditor .audit-scenario h3 { margin: 0 0 6px; font-size: 18px; }
 .trifecta-auditor .audit-scenario p { margin: 0; }
 .trifecta-auditor .audit-properties { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .trifecta-auditor fieldset { min-width: 0; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
 .trifecta-auditor legend { padding: 0 4px; font-size: 13px; font-weight: 700; }
-.trifecta-auditor .audit-choice { display: inline-flex; align-items: center; gap: 6px; margin: 7px 14px 0 0; cursor: pointer; }
+.trifecta-auditor .audit-choice { display: inline-flex; align-items: center; box-sizing: border-box; min-width: 68px; min-height: 44px; gap: 8px; margin: 4px 8px 0 0; padding: 0 10px; border-radius: 8px; cursor: pointer; }
+.trifecta-auditor .audit-choice:hover { background: var(--surface-2); }
 .trifecta-auditor input { accent-color: var(--accent); }
 .trifecta-auditor .audit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.trifecta-auditor .audit-primary { border-color: var(--ink); background: var(--ink); color: var(--surface); }
+.trifecta-auditor .audit-primary:hover { border-color: var(--ink); background: var(--ink); color: var(--surface); filter: brightness(.92); }
 .trifecta-auditor .audit-secondary { border-color: var(--line); color: var(--ink-soft); }
-.trifecta-auditor .audit-feedback { margin-top: 16px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
-.trifecta-auditor .audit-feedback h3 { margin: 0 0 8px; font-size: 17px; }
+.trifecta-auditor .audit-feedback, .trifecta-auditor .audit-completion { margin-top: 16px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.trifecta-auditor .audit-feedback h3, .trifecta-auditor .audit-completion h3 { margin: 0 0 8px; font-size: 17px; }
 .trifecta-auditor .audit-feedback > p { margin: 0 0 10px; font-weight: 600; }
 .trifecta-auditor .audit-results { margin: 0; padding-left: 20px; }
 .trifecta-auditor .audit-results li { margin: 8px 0; }
@@ -166,11 +170,11 @@
         <div class="trifecta-auditor" data-trifecta-auditor>
           <div class="audit-head">
             <div class="ix-k">✓ Practice · lethal-trifecta auditor</div>
-            <p data-audit-progress>Scenario 1 of 8 · 0 audited</p>
+            <p data-audit-progress>Scenario 1 of 8 · 0 attempted · 0 mastered</p>
           </div>
           <p>Predict before you check: identify all three properties in each synthetic architecture. A near miss has
           only two legs; it is not the lethal trifecta.</p>
-          <div class="audit-scenario">
+          <div class="audit-scenario" data-audit-scenario>
             <h3 data-scenario-title tabindex="-1"></h3>
             <p data-scenario-description></p>
           </div>
@@ -193,9 +197,7 @@
               </fieldset>
             </div>
             <div class="audit-actions">
-              <button class="ix-btn" type="submit" data-audit-submit>Submit audit</button>
-              <button class="ix-btn audit-secondary" type="button" data-audit-retry hidden>Retry scenario</button>
-              <button class="ix-btn" type="button" data-audit-next hidden>Next scenario</button>
+              <button class="ix-btn audit-primary" type="submit" data-audit-submit>Submit audit</button>
               <button class="ix-btn audit-secondary" type="button" data-audit-reset>Reset exercise</button>
             </div>
           </form>
@@ -210,6 +212,20 @@
               <li><span class="audit-component-verdict" data-result-egress-verdict></span>
                 <span data-result-egress-explanation></span></li>
             </ul>
+            <div class="audit-actions" aria-label="Continue this exercise">
+              <button class="ix-btn audit-secondary" type="button" data-audit-retry>Retry scenario</button>
+              <button class="ix-btn audit-primary" type="button" data-audit-next>Next scenario</button>
+            </div>
+          </div>
+          <div class="audit-completion" data-audit-completion hidden>
+            <h3 data-completion-heading tabindex="-1">Exercise complete</h3>
+            <p data-completion-summary></p>
+            <p data-completion-unresolved></p>
+            <div class="audit-actions" aria-label="Review or restart">
+              <button class="ix-btn audit-primary" type="button" data-review-unresolved>Review unresolved scenarios</button>
+              <button class="ix-btn audit-secondary" type="button" data-review-all>Review all scenarios</button>
+              <button class="ix-btn audit-secondary" type="button" data-audit-restart>Restart exercise</button>
+            </div>
           </div>
           <p class="audit-status" data-audit-status role="status" aria-live="polite" aria-atomic="true"></p>
         </div>
