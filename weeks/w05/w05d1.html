@@ -127,8 +127,8 @@
         <div class="tag">The workflow</div>
         <h2>Phase gates: Specify → Plan → Tasks → Implement</h2>
         <p>So what does spec-first look like as an actual working loop? The canonical shape is <strong>GitHub Spec
-        Kit</strong>, the open-source toolkit that has become the reference implementation (v0.12.3 as of this writing,
-        with 30+ agent integrations — Claude Code, Copilot, Gemini CLI, Cursor, and friends). Spec Kit structures work
+        Kit</strong>, the open-source toolkit that has become the reference implementation (v1.0.11, released
+        2026-09-24 and reverified 2026-09-25). Spec Kit structures work
         as <strong>four gated phases</strong>, each with one job:</p>
         <p><strong>Specify</strong> captures goals and user journeys — the <em>what</em> and the <em>why</em>, with no
         technology choices in it. <strong>Plan</strong> turns that into architecture: stack, constraints, integration
@@ -143,9 +143,9 @@
         reverse-engineering a "thousand-line code dump" at the end — exactly the bottleneck the paradox data caught —
         you review a two-page spec, then a plan, then focused per-task diffs. Each gate is cheap to inspect and cheap
         to fix, because errors are caught in the artifact where they were introduced rather than three phases
-        downstream in generated code. Spec Kit exposes all of this as slash commands, one per phase, plus a
-        constitution command for standing project principles and a couple of optional helpers. But the commands are
-        incidental. The shape is the lesson: <strong>artifact, gate, artifact, gate.</strong></p>
+        downstream in generated code. Current Spec Kit exposes this as <code>/speckit-*</code> agent skills —
+        constitution once, then specify → plan → tasks → implement → converge, with optional quality gates. These are
+        invoked in the agent's chat, not in a shell. But the invocation syntax is incidental. The shape is the lesson: <strong>artifact, gate, artifact, gate.</strong></p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: walk one real feature request through all four Spec Kit gates live — draft the spec, watch the plan
         and the task list get generated from it, reject one artifact at a gate, and see the correction ripple forward
         instead of surfacing as broken code three phases later. Needs backend standup.</p></div>
@@ -154,7 +154,7 @@
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Requirement quality</div>
         <h2>Current state → target state (and the parity trap)</h2>
-        <p>Every workflow you've seen so far starts at <code>/specify</code> — a blank file and a description of what
+        <p>Every workflow you've seen so far starts at the <strong>specify phase</strong> — a blank file and a description of what
         you want. That is the greenfield case, and it is not yours. You have inherited a system that already runs, that
         the business depends on, and that nobody documented. Where does the spec come from then?</p>
         <p>From a method with four beats, in which writing the spec is the <em>third</em>. One: <strong>understand the
@@ -273,7 +273,7 @@
         <ul>
           <li><a href="https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/" target="_blank" rel="noopener">GitHub Blog — Spec-driven development with AI</a> — the vibe-coding diagnosis, the four gated phases, and the human-as-steward role.</li>
           <li><a href="https://github.github.com/spec-kit/" target="_blank" rel="noopener">Spec Kit Documentation</a> — the Specify → Plan → Tasks → Implement pipeline and per-phase Markdown artifacts.</li>
-          <li><a href="https://github.com/github/spec-kit" target="_blank" rel="noopener">github/spec-kit — GitHub</a> — the full <code>/speckit.*</code> command surface, "what before how" philosophy, and 30+ agent integrations.</li>
+          <li><a href="https://github.com/github/spec-kit" target="_blank" rel="noopener">github/spec-kit — GitHub</a> — v1.0.11 and the current <code>/speckit-*</code> agent-skill workflow, reverified 2026-09-25.</li>
           <li><a href="https://kiro.dev/docs/specs/" target="_blank" rel="noopener">Kiro Docs — Specs</a> — the three-file model (requirements / design / tasks) and approval gates.</li>
           <li><a href="https://kiro.dev/docs/specs/feature-specs/" target="_blank" rel="noopener">Kiro Docs — Feature specs (EARS)</a> — the WHEN … THE SYSTEM SHALL … notation and testable acceptance criteria.</li>
           <li><a href="https://github.com/open-gsd/gsd-core" target="_blank" rel="noopener">open-gsd/gsd-core — GitHub</a> — GSD's context-rot diagnosis, persistent artifact set, and five-step loop (live home after <a href="https://github.com/gsd-build/get-shit-done" target="_blank" rel="noopener">gsd-build/get-shit-done</a> was archived).</li>
@@ -326,15 +326,14 @@
     <button class="modal-close" type="button" aria-label="Close">✕</button>
     <h2>Deep dive: the 2026 SDD tooling landscape</h2>
     <p class="quiz-sub">Optional. ~10 minutes. Names, versions, and command surfaces you'll actually see at clients.</p>
-    <p><strong>GitHub Spec Kit</strong> (v0.12.3, MIT licensed, 106K+ stars) is the reference implementation. Install
-    it as a command-line tool from its repository and <strong>pin the version</strong>, because it moves fast. It is
-    agent-agnostic across thirty-plus integrations — Claude Code, Copilot, Gemini CLI, Codex, Cursor and more — so you
-    can switch agents without changing the artifacts. The core commands walk the four phases in order, preceded by a
-    constitution command for standing project principles. Optional helpers probe underspecified areas, check
-    cross-artifact consistency, generate checklists, push tasks out as GitHub issues, and assess an existing codebase
-    against its specs — that last one being the brownfield entry point. Three usage modes are documented: greenfield
-    from zero, creative exploration where one spec produces parallel implementations across stacks, and iterative
-    enhancement of brownfield systems.</p>
+    <p><strong>GitHub Spec Kit</strong> (v1.0.11, released 2026-09-24) is the reference implementation. Its package is
+    <code>specify-cli</code>; the official pinned install is
+    <code style="overflow-wrap:anywhere">uv tool install specify-cli --from git+https://github.com/github/spec-kit.git@v1.0.11</code>. Initialize with
+    <code>specify init my-project --integration &lt;agent-key&gt;</code>. Reverified from the official release and README on
+    2026-09-25. It is agent-agnostic across its supported integrations — Claude Code, Copilot, Gemini CLI, Codex, Cursor and more — so you
+    can switch agents without changing the artifacts. The current agent skills walk constitution → specify → plan →
+    tasks → implement → converge. Optional clarification, checklist, and consistency-analysis gates strengthen the
+    same artifact chain without changing its shape.</p>
     <p><strong>GSD</strong> is the cautionary tale about tool churn: the famous <code>gsd-build/get-shit-done</code>
     repo (64.6K stars) was archived on 2026-06-26 at v1.42.3, and active development moved to
     <code>open-gsd/gsd-core</code> (v1.6.1). If a client's internal wiki still points at the archived repo, that's

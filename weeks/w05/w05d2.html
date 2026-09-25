@@ -111,9 +111,9 @@
         without ever telling them they were wrong.</p>
         <p>Coverage beats cleverness, and the research says so twice. Interviewers drop threads not from lack of
         intelligence but from "lack of familiarity with the domain, excessive cognitive load, and information
-        overload." And in a 2025 CMU study, GPT-4o's follow-up questions were rated <em>no worse</em> than
-        human-authored ones — then <strong>beat</strong> them once generation was guided by a taxonomy of common
-        interviewer mistakes. The lesson isn't "let AI run your interviews." It's that a mistake-and-coverage framework
+        overload." In a <strong>2025 CMU study's historical GPT-4o experiment</strong>, its follow-up questions were
+        rated <em>no worse</em> than human-authored ones — then <strong>beat</strong> them once generation was guided by
+        a taxonomy of common interviewer mistakes. That is dated study evidence, not a current-model recommendation. The lesson isn't "let AI run your interviews." It's that a mistake-and-coverage framework
         outperforms freeform "ask good questions," for the model and for you.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a live interview-practice
         widget — you play the FDE against an AI stakeholder holding this week's hidden problem; it scores your coverage
@@ -282,7 +282,7 @@
           <li><a href="https://standards.ieee.org/ieee/29148/6937/" target="_blank" rel="noopener">ISO/IEC/IEEE 29148:2018 — IEEE Standards</a> — the active requirements-engineering standard; the well-formedness bar for individual requirements.</li>
           <li><a href="https://www.rfc-editor.org/rfc/rfc2119" target="_blank" rel="noopener">RFC 2119 — Key words for use in RFCs</a> — MUST/SHOULD/MAY definitions and the "use imperatives sparingly" discipline clause.</li>
           <li><a href="https://cucumber.io/docs/gherkin/reference" target="_blank" rel="noopener">Gherkin Reference — Cucumber Docs</a> — Given/When/Then semantics, Background, Scenario Outline + Examples.</li>
-          <li><a href="https://github.com/github/spec-kit" target="_blank" rel="noopener">github/spec-kit — GitHub</a> — the /speckit.* command chain and the clarify-before-plan mandate (v0.12.3).</li>
+          <li><a href="https://github.com/github/spec-kit" target="_blank" rel="noopener">github/spec-kit — GitHub</a> — current <code>/speckit-*</code> agent skills and the preserved spec → plan → tasks → implement workflow (v1.0.11, reverified 2026-09-25).</li>
           <li><a href="https://github.github.com/spec-kit/" target="_blank" rel="noopener">Spec Kit Documentation</a> — Spec → Plan → Tasks → Implement; [NEEDS CLARIFICATION] markers.</li>
           <li><a href="https://kiro.dev/docs/specs/" target="_blank" rel="noopener">Specs — Kiro Docs</a> — the requirements.md / design.md / tasks.md three-file structure.</li>
           <li><a href="https://kiro.dev/docs/specs/feature-specs/" target="_blank" rel="noopener">Feature Specs — Kiro Docs</a> — EARS notation in requirements.md, with worked examples.</li>
@@ -452,7 +452,7 @@ window.DIAGRAM = {
     { id:"pkg", step:7, x:34, y:578, w:230, h:70, label:"SPEC PACKAGE (this week's deliverable)\nreframe · EARS · Gherkin vectors\nspec only — not built",
       detail:"The packet's deliverable: a problem-scoping doc that reframes 'calendar bug' → idempotency + concurrency, acceptance criteria, the idempotency-key + DB-constraint design, and test vectors. Implementation is scoped, not shipped — that's next week." },
     { id:"build", step:7, x:300, y:588, w:186, h:52, label:"implementer (human or agent)\nbuilds the right thing",
-      detail:"Agents amplify whatever you feed them: right problem + precise spec in, working code out; wrong problem in, a beautifully-built calendar fix out, at machine speed. No tool reframes for you — /speckit.clarify only finds ambiguities in the spec you already wrote." }
+      detail:"Agents amplify whatever you feed them: right problem + precise spec in, working code out; wrong problem in, a beautifully-built calendar fix out, at machine speed. No tool reframes for you — Spec Kit's optional clarification gate only finds ambiguities in the spec you already wrote." }
   ],
   edges: [
     { id:"e_shelf", step:1, from:"xy", to:"shelf", label:"skipped? ⚠", ly:-4 },

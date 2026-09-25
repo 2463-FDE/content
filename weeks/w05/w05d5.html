@@ -58,10 +58,10 @@
         handoff should be the most mechanical step in the whole process.</p>
         <p>GitHub's Spec Kit — the current mainstream reference implementation of this idea, billed as "define what to
         build before building it, with any AI coding agent" — makes the handoff an explicit, named stage. Its full
-        command sequence runs
-        <code>/speckit.constitution → specify → clarify → plan → checklist → tasks → analyze → implement → converge</code>.
-        Notice where <code>/speckit.implement</code> sits: eighth of nine. <strong>Every phase before it exists to make
-        that execution safe</strong>, and one phase after it exists to prove the execution actually matched the spec.
+        current core skill sequence runs
+        <code>/speckit-constitution → /speckit-specify → /speckit-plan → /speckit-tasks → /speckit-implement → /speckit-converge</code>,
+        with clarification, checklist, and consistency-analysis gates inserted when needed. <strong>Every artifact before
+        implementation exists to make execution safe</strong>, and convergence proves the implementation matches the spec.
         The foundational rhythm is Spec → Plan → Tasks → Implement, and because the artifacts are plain files, the same
         handoff works against 30+ different agents — Copilot, Claude, Gemini, Codex, Kiro — with no lock-in. The spec is
         portable; the executor is a commodity.</p>
@@ -77,7 +77,7 @@
         <div class="tag">Gate 1 · requirement quality</div>
         <h2>Checklist: unit tests for English</h2>
         <p>You would never ship code without tests. Spec Kit's insight is that you shouldn't ship a <em>spec</em> without
-        tests either. <code>/speckit.checklist</code> generates what the docs call <strong>"unit tests for English"</strong>
+        tests either. Spec Kit's optional checklist gate generates what the docs call <strong>"unit tests for English"</strong>
         — quality checklists that validate your requirements for <strong>completeness, clarity, and consistency</strong>
         after the plan is created but before any code exists. Does every user story have acceptance criteria? Is any
         requirement ambiguous enough that two reasonable engineers would build different things? Did you silently skip
@@ -103,7 +103,7 @@
         <div class="tag">Gate 2 · cross-artifact consistency</div>
         <h2>Analyze: the last defense before code exists</h2>
         <p>The checklist tested each artifact on its own. The second gate tests them <em>against each other</em>.
-        <code>/speckit.analyze</code> checks <strong>spec/plan/task consistency before implementation starts</strong> —
+        Spec Kit's optional consistency-analysis gate checks <strong>spec/plan/task consistency before implementation starts</strong> —
         cross-artifact validation that the spec, the technical plan, and the task list are coherent with one another and
         map back to the project constitution. It's hunting a specific and very common failure: three documents that are
         each individually fine and collectively contradictory.</p>
@@ -181,10 +181,9 @@
         <div class="tag">Convergence</div>
         <h2>Converge is a loop, not a step</h2>
         <p>The first implementation pass will not fully match the spec. That's not pessimism — it's the design
-        assumption of every serious spec-driven tool. Spec Kit ends its pipeline with <code>/speckit.converge</code>:
-        after implement, run converge to <strong>"verify all planned work is complete and generate tasks for any
-        remaining gaps."</strong> If new tasks appear, you implement again, converge again — and repeat "until the
-        feature has converged." Gap closure between spec and code is <strong>iterative by design</strong>. The exit
+        assumption of every serious spec-driven tool. Spec Kit ends its pipeline with <code>/speckit-converge</code>:
+        after implementation, run convergence, address remaining gaps, and repeat until it reports
+        <strong>Converged</strong>. Gap closure between spec and code is <strong>iterative by design</strong>. The exit
         condition isn't "the agent says it's finished"; it's "converge finds zero remaining gaps."</p>
         <p>The same philosophy handles the messier real-world case: requirements that change <em>mid-implementation</em>,
         which on a client engagement they will. Kiro's answer is <strong>re-sync, don't abandon</strong>: when
@@ -280,10 +279,10 @@
       <section class="reading-sources" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
-          <li><a href="https://github.github.com/spec-kit/quickstart.html" target="_blank" rel="noopener">Spec Kit — Quick Start Guide</a> — the full 9-command workflow; checklist, analyze, implement, and the converge-until-done loop.</li>
+          <li><a href="https://github.github.com/spec-kit/quickstart.html" target="_blank" rel="noopener">Spec Kit — Quick Start Guide</a> — current core skill workflow, optional quality gates, and the implement → converge loop; reverified 2026-09-25.</li>
           <li><a href="https://github.github.com/spec-kit/" target="_blank" rel="noopener">GitHub Spec Kit — Documentation</a> — Spec → Plan → Tasks → Implement framing; 30+ agent integrations, no lock-in.</li>
           <li><a href="https://github.com/github/spec-kit/blob/main/spec-driven.md" target="_blank" rel="noopener">spec-driven.md — github/spec-kit</a> — code-serves-specifications inversion, <code>[NEEDS CLARIFICATION]</code> templates, constitutional phase gates, test-first ordering.</li>
-          <li><a href="https://github.com/github/spec-kit/releases" target="_blank" rel="noopener">Releases — github/spec-kit</a> — v0.12.3 (2026-07-01), including recent checklist/converge fixes.</li>
+          <li><a href="https://github.com/github/spec-kit/releases/tag/v1.0.11" target="_blank" rel="noopener">Spec Kit v1.0.11 release</a> — package/install and current skill surface; released 2026-09-24, accessed 2026-09-25.</li>
           <li><a href="https://kiro.dev/docs/specs/" target="_blank" rel="noopener">Kiro Docs — Specs</a> — requirements/design/tasks artifact model; wave-based dependency-graph task execution.</li>
           <li><a href="https://kiro.dev/docs/specs/feature-specs/" target="_blank" rel="noopener">Kiro Docs — Feature Specs</a> — EARS acceptance-criteria notation and requirement traceability through implementation.</li>
           <li><a href="https://kiro.dev/docs/specs/best-practices/" target="_blank" rel="noopener">Kiro Docs — Best Practices</a> — Sync Files re-tasking on requirement change; <code>#spec</code> implementation-vs-requirements checks.</li>
@@ -348,7 +347,7 @@
     <div class="model-answer show">
       <div class="ma-k">Reading the paradox as a budget</div>
       <p style="margin:8px 0 0">The hours you "save" by skipping checklist + analyze don't vanish — they reappear,
-      multiplied, in review. A missed requirement caught by <code>/speckit.analyze</code> costs one markdown edit. The
+      multiplied, in review. A missed requirement caught by consistency analysis costs one markdown edit. The
       same miss caught in PR review costs a review round-trip, a re-implementation, and a second review. Caught in
       production, it costs an incident. The gates are the cheapest point on that curve — which is why the pipeline puts
       two of them <em>before</em> a single line of code exists.</p>
@@ -415,9 +414,9 @@ window.DIAGRAM = {
       label:"ARTIFACTS (from d1–d4)\n  spec.md · plan.md · tasks.md\n  \"code serves specifications\" — the spec is the source of truth" },
 
     // pre-handoff gates
-    { id:"chk", step:1, x:28, y:104, w:212, h:64, label:"GATE 1\n/speckit.checklist\n\"unit tests for English\"",
+    { id:"chk", step:1, x:28, y:104, w:212, h:64, label:"GATE 1\noptional checklist\n\"unit tests for English\"",
       detail:"Quality checklists that validate requirements for completeness, clarity, and consistency — after the plan, before any code. Surfaces blind spots (UX, security, accessibility). Templates add more control: [NEEDS CLARIFICATION] tags, Simplicity Gate (≤3 projects), Test-First Imperative." },
-    { id:"anz", step:2, x:260, y:104, w:226, h:64, label:"GATE 2\n/speckit.analyze\ncross-artifact consistency",
+    { id:"anz", step:2, x:260, y:104, w:226, h:64, label:"GATE 2\noptional analysis\ncross-artifact consistency",
       detail:"The last defense before implement: checks spec / plan / tasks agree with each other and map to the constitution. Catches the drift between individually-fine documents — a dropped requirement, a plan that contradicts the spec, an orphan task — while a fix is still a markdown edit." },
 
     // the handoff / execution
@@ -429,7 +428,7 @@ window.DIAGRAM = {
       detail:"Give the agent a way to verify its work — otherwise 'looks done' is its only stop signal and the human becomes the verification loop. Work → run check → read result → iterate until pass. Demand evidence over assertion: the test output and the command it ran, not 'tests pass.'" },
 
     // convergence loop
-    { id:"conv", step:5, x:260, y:302, w:226, h:70, label:"/speckit.converge\ngap tasks → re-implement ↺",
+    { id:"conv", step:5, x:260, y:302, w:226, h:70, label:"/speckit-converge\ngaps → re-implement ↺",
       detail:"Verify all planned work is complete and generate tasks for remaining gaps; if tasks appear, implement again and repeat until converged. Mid-flight requirement changes: Kiro's Sync Files regenerates tasks against the new requirements; #spec checks code against the spec during implementation. Iterative by design — and note the shape: observe → decide → act → verify → repeat. Every working loop needs a TRIGGER and a MACHINE-VERIFIABLE STOPPING CONDITION (converge reports zero gaps; the Day-4 pass/fail checks are that condition). Without one you haven't built a loop, you've built a very confident token furnace — so add hard limits too: max iterations, no-progress detection, a cost ceiling, and verification the agent can't self-certify." },
 
     // adversarial review
@@ -457,11 +456,11 @@ window.DIAGRAM = {
   ],
   captions: [
     "The week's artifacts — <b>spec, plan, tasks</b> — enter a defined pipeline. Code serves specifications, so the handoff is a stage, not a leap. <span style='opacity:.7'>(tap nodes for detail)</span>",
-    "Gate 1: <b>/speckit.checklist</b> runs 'unit tests for English' — completeness, clarity, consistency of the requirements, before any code exists. <span style='opacity:.7'>(tap)</span>",
-    "Gate 2: <b>/speckit.analyze</b> checks the artifacts <b>against each other</b> — spec / plan / tasks coherence. The last defense before implement. <span style='opacity:.7'>(tap)</span>",
+    "Gate 1: an optional <b>checklist</b> runs 'unit tests for English' — completeness, clarity, consistency of the requirements, before any code exists. <span style='opacity:.7'>(tap)</span>",
+    "Gate 2: optional <b>consistency analysis</b> checks the artifacts <b>against each other</b> — spec / plan / tasks coherence. The last defense before implement. <span style='opacity:.7'>(tap)</span>",
     "Gates cleared → <b>hand off</b>: a self-contained spec, a fresh session, and wave-based task execution against the dependency graph. <span style='opacity:.7'>(tap)</span>",
     "The spec ends in a <b>runnable check</b> — so the agent iterates to green instead of stopping at 'looks done.' Evidence over assertion. <span style='opacity:.7'>(tap)</span>",
-    "<b>/speckit.converge</b> finds gaps and generates tasks; re-implement and repeat until spec, tasks, and code agree. A loop, not a step. <span style='opacity:.7'>(tap)</span>",
+    "<b>/speckit-converge</b> finds gaps; re-implement and repeat until spec, tasks, and code agree. A loop, not a step. <span style='opacity:.7'>(tap)</span>",
     "A <b>fresh-context reviewer</b> checks the diff against the plan: requirements, edge cases, scope. Gaps, not style — and triage the findings. <span style='opacity:.7'>(tap)</span>",
     "The human bar: merge what <b>definitely improves code health</b>; reject out-of-spec scope. Traceability makes the whole run auditable. <span style='opacity:.7'>(tap)</span>"
   ]
@@ -471,7 +470,7 @@ window.QUIZ = {
   title: "Check your understanding",
   questions: [
     { type: "scq",
-      stem: "In Spec Kit's nine-command workflow, what is the purpose of running /speckit.analyze before /speckit.implement?",
+      stem: "In Spec Kit's quality-gated workflow, what is the purpose of consistency analysis before /speckit-implement?",
       options: [
         "It generates the task list from the plan",
         "It validates that spec, plan, and tasks are consistent with each other and the constitution — before any code exists",
@@ -489,9 +488,9 @@ window.QUIZ = {
       answer: 2,
       explain: "A fresh session knows nothing you didn't write down. If the spec names the files and interfaces, states what's out of scope, and ends with a verification step, it survives the handoff; if it leaned on unwritten context, the fresh session exposes that immediately." },
     { type: "tf",
-      stem: "Once /speckit.implement finishes without errors, the handoff is complete and the work is done.",
+      stem: "Once /speckit-implement finishes without errors, the handoff is complete and the work is done.",
       answer: false,
-      explain: "False. Convergence is a loop, not a step: /speckit.converge verifies all planned work is complete and generates tasks for remaining gaps — then you implement again and repeat until the feature has converged. The exit condition is zero remaining gaps, not 'the agent finished.'" },
+      explain: "False. Convergence is a loop, not a step: /speckit-converge checks the implementation against the artifacts — then you address gaps and repeat until it reports Converged. The exit condition is zero remaining gaps, not 'the agent finished.'" },
     { type: "mcq",
       stem: "Which of these belong in a fresh-context adversarial review prompt, per today's reading? (select all that apply)",
       options: [
@@ -505,7 +504,7 @@ window.QUIZ = {
     { type: "match",
       stem: "Match each pipeline mechanism to what it protects against.",
       pairs: [
-        { l: "/speckit.checklist ('unit tests for English')", r: "ambiguous or incomplete requirements reaching the agent" },
+        { l: "Optional checklist ('unit tests for English')", r: "ambiguous or incomplete requirements reaching the agent" },
         { l: "A runnable verification step in the spec", r: "'looks done' being the agent's only stop signal" },
         { l: "Kiro's Sync Files on tasks.md", r: "spec/code drift when requirements change mid-flight" },
         { l: "'Flag only correctness or stated-requirement gaps'", r: "the over-engineering trap of chasing every reviewer finding" } ],

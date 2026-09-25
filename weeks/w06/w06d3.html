@@ -129,7 +129,7 @@
         from the model that types</strong>. Recognizing ancestry like this is a research skill in itself; it stops you
         from believing each vendor invented the idea last quarter.</p>
         <p>Now the honest part, because verify-first cuts both ways. Aider's last release is v0.86.0, dated August 2025 —
-        roughly eleven months old as you read this. Its homepage still headlines Claude 3.7 Sonnet and o1-era models, and
+        more than a year old as of the 2026-09-25 reverification. Its homepage still headlines Claude 3.7 Sonnet and o1-era models, and
         its famous leaderboard was last updated in November 2025. Aider remains a superb <em>teaching artifact</em> — repo
         map, git-first design, architect mode — but it is no longer tracking the frontier, and a comparison that presents
         it as a current peer of the other three is misleading. Notice how you learned that: not from a competitor's blog,
@@ -226,7 +226,8 @@
         C++, Go, Java, JavaScript, Python, and Rust, testing whether a model can follow instructions and produce correctly
         formatted edits inside one fixed harness, no human in the loop. That makes it a <em>model</em> benchmark, not an
         <em>agent</em> benchmark — useful for comparing raw models on edit discipline, useless for deciding between Cursor
-        and Copilot. It also doubles as today's staleness exhibit: last updated November 2025, top entry gpt-5 at 88.0%.
+        and Copilot. It also doubles as today's staleness exhibit: in the leaderboard's historical
+        <strong>2025-11-20 snapshot</strong>, gpt-5 (high) scored 88.0%. That dated result is not a current ranking.
         A board that has stopped updating doesn't say "these rankings hold"; it says "nobody is maintaining this" — a
         historical document.</p>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a benchmark-claims workbench —
@@ -271,7 +272,7 @@
           <li><a href="https://aider.chat/" target="_blank" rel="noopener">Aider — AI pair programming in your terminal</a> — terminal pair-programming framing, automatic git commits, model-agnostic BYO keys.</li>
           <li><a href="https://aider.chat/docs/repomap.html" target="_blank" rel="noopener">Repository map — aider docs</a> — graph-ranked repo map over the file-dependency graph, ~1k-token default, dynamic sizing.</li>
           <li><a href="https://aider.chat/docs/usage/modes.html" target="_blank" rel="noopener">Chat modes — aider docs</a> — architect mode's two-model workflow: reasoning proposal → editor-model file edits.</li>
-          <li><a href="https://github.com/Aider-AI/aider/releases" target="_blank" rel="noopener">aider releases — GitHub</a> — latest release v0.86.0 (2025-08-09); the staleness signal, from the primary source.</li>
+          <li><a href="https://github.com/Aider-AI/aider/releases" target="_blank" rel="noopener">aider releases — GitHub</a> — latest release remains v0.86.0 (2025-08-09), reverified 2026-09-25; Aider is a historical teaching artifact, not a current peer.</li>
           <li><a href="https://aider.chat/docs/leaderboards/" target="_blank" rel="noopener">Aider LLM Leaderboards</a> — 225 Exercism exercises across 6 languages; last updated 2025-11-20.</li>
           <li><a href="https://docs.github.com/copilot/concepts/agents/coding-agent/about-coding-agent" target="_blank" rel="noopener">About GitHub Copilot cloud agent — GitHub Docs</a> — Actions-powered ephemeral environment, draft-PR review gate, 59-minute / one-PR limits.</li>
           <li><a href="https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/overview" target="_blank" rel="noopener">Copilot CLI overview — GitHub Docs</a> — plan mode, folder trust + approvals, MCP pre-configured, scheduled prompts.</li>
@@ -340,7 +341,7 @@
       inside <em>which harness</em>, measured <em>when</em>?"</p>
     </div>
     <p style="margin-top:14px"><strong>Step 3 — date the claim.</strong> The polyglot leaderboard's own page shows a
-    last-updated date of 2025-11-20, with gpt-5 (high) at 88.0% on top. That's not evidence the ranking still holds —
+    historical date of 2025-11-20, when gpt-5 (high) scored 88.0%. That's not evidence the ranking still holds —
     it's evidence the board stopped being maintained. Same discipline applies to the tools themselves: aider's release
     page shows v0.86.0 (2025-08-09) as the latest, which is how you caught its staleness today. Dates are the cheapest
     verification you'll ever run, and they live in primary sources — release pages, changelogs, the leaderboard's own
@@ -428,7 +429,7 @@ window.DIAGRAM = {
     { id:"sweb", step:7, x:34, y:596, w:220, h:72, label:"SWE-BENCH\n2,294 real issues · 12 repos\nask: variant? scaffold? date?",
       detail:"Jimenez et al.: real GitHub issue/PR pairs; edit the codebase until held-out tests pass. Calibration: best model at publication (Claude 2) resolved 1.96%. Vendor 'Verified' numbers aren't comparable to full-set numbers — always pin variant, scaffold, and date." },
     { id:"poly", step:7, x:268, y:596, w:218, h:72, label:"AIDER POLYGLOT\n225 Exercism · 6 langs\nmodel bench · stale 2025-11",
-      detail:"Measures edit-format compliance and instruction-following inside one fixed harness — a model benchmark, not an agent benchmark. Last updated 2025-11-20 (top: gpt-5 high, 88.0%). A leaderboard that stopped updating is a historical document." }
+      detail:"Measures edit-format compliance and instruction-following inside one fixed harness — a model benchmark, not an agent benchmark. Historical snapshot dated 2025-11-20: gpt-5 high scored 88.0%. A leaderboard that stopped updating is not a current ranking." }
   ],
   edges: [
     { id:"e_rm",   step:2, from:"aider",   to:"repomap", label:"pre-computes", lx:-4 },

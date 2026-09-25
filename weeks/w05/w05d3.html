@@ -63,8 +63,7 @@
         regenerated — the opposite of every "the docs are out of date" culture you've ever worked in.</p>
         <p>Once specs are load-bearing like that, they need real engineering support — templates, pipelines, validation
         gates, version control — and that's what today's landscape is. Three tools anchor it. <strong>Spec-kit</strong>
-        (currently 0.12.3, with 30+ agent integrations spanning Copilot, Claude Code, Gemini CLI, and Codex CLI) is the
-        rigorous, phase-gated pipeline. <strong>Kiro</strong>, AWS's agentic IDE, bakes specs into the editor as three
+        (v1.0.11, released 2026-09-24 and reverified 2026-09-25) is the rigorous, phase-gated pipeline. <strong>Kiro</strong>, AWS's agentic IDE, bakes specs into the editor as three
         structured files with approval gates between phases. <strong>OpenSpec</strong> is the lightweight rebel that
         rejects phase gates entirely and scopes artifacts per-change. Around all three sit two older, tool-agnostic
         disciplines: <strong>ADRs</strong> for capturing decisions, and agent-facing knowledge files like
@@ -80,23 +79,20 @@
       <section class="step" data-diagram="0" data-step="1">
         <div class="tag">Tool 1 · spec-kit</div>
         <h2>Spec-kit: a fixed artifact pipeline of slash commands</h2>
-        <p>Spec-kit's workflow is a fixed sequence of commands, each one producing a Markdown document that feeds the
-        next. Every command is namespaced under <code>/speckit.*</code> — if you find a writeup using bare
-        <code>/specify</code>, it predates the rename. Seven commands make up the core pipeline:</p>
+        <p>Spec-kit's workflow is a fixed artifact sequence, each stage producing a document that feeds the next.
+        Current v1.0.11 uses hyphen-form agent skills — dot-form <code>/speckit.*</code> examples are the historical
+        v0.12.3-era interface. The core workflow is:</p>
         <ul>
-          <li><strong>constitution</strong> — establishes the governing principles for the project.</li>
-          <li><strong>specify</strong> — captures the <em>what and why</em>, deliberately with no tech stack in it.</li>
-          <li><strong>plan</strong> — adds the tech stack and the architecture.</li>
-          <li><strong>tasks</strong> — breaks the plan into an ordered task list.</li>
-          <li><strong>taskstoissues</strong> — turns those tasks into GitHub issues.</li>
-          <li><strong>implement</strong> — executes them.</li>
-          <li><strong>converge</strong> — closes the loop: it compares the real codebase against the spec, the plan
-          and the tasks, then appends whatever is still missing as new tasks. This is the mechanism that keeps a
-          living spec honest against a drifting repository.</li>
+          <li><strong><code>/speckit-constitution</code></strong> — establishes governing principles once per project.</li>
+          <li><strong><code>/speckit-specify</code></strong> — captures the <em>what and why</em>.</li>
+          <li><strong><code>/speckit-plan</code></strong> — adds the tech stack and architecture.</li>
+          <li><strong><code>/speckit-tasks</code></strong> — breaks the plan into an ordered task list.</li>
+          <li><strong><code>/speckit-implement</code></strong> — executes the tasks.</li>
+          <li><strong><code>/speckit-converge</code></strong> — compares code against the artifacts; repeat implement →
+          converge until it reports <em>Converged</em>.</li>
         </ul>
-        <p>Three further commands are <strong>optional validators</strong> rather than mandatory steps. One runs
-        structured de-ambiguation on a spec, one checks that the artifacts agree with each other — does the plan
-        actually cover the spec, do the tasks cover the plan — and one generates quality checklists. The separation
+        <p>Clarification, checklists, and consistency analysis are <strong>optional quality gates</strong> rather than
+        mandatory phases. The separation
         matters: the core pipeline is the spine you always walk, and the validators are inspection tools you reach
         for when the stakes or the ambiguity justify them.</p>
         <p>Why should an FDE care about the shape and not just the commands? Because the pipeline <em>is</em> the
@@ -122,8 +118,8 @@
         <p>The second is spec-kit's ambiguity discipline. Instead of letting the LLM paper over an unspecified detail
         with a plausible assumption, the templates <em>mandate</em> that unclear points be flagged inline as
         <code>[NEEDS CLARIFICATION: specific question]</code>. The spec arrives with its own uncertainty made visible —
-        every place where a real decision is pending is marked, and the optional <code>/speckit.clarify</code> command
-        exists to resolve those markers through structured questioning. Compare that with what you diagnosed in Week 1:
+        every place where a real decision is pending is marked, and optional clarification can resolve those markers
+        through structured questioning. Compare that with what you diagnosed in Week 1:
         a model that wasn't given a fact fills the gap with fluent invention. Spec-kit's markers are the same
         hallucination lesson applied to <em>requirements</em>: don't let the gap get filled silently — surface it,
         route it to a human, lock the answer, and only then generate.</p>
@@ -163,8 +159,10 @@
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Tool 3 · OpenSpec</div>
         <h2>OpenSpec: per-change folders, no gates, brownfield-first</h2>
-        <p>The third anchor, <strong>OpenSpec</strong> (Fission-AI, v1.5.0), is the deliberate counter-position — and
-        it positions itself <em>explicitly against spec-kit's "rigid phase gates."</em> Where spec-kit and Kiro scope
+        <p>The third anchor, <strong>OpenSpec</strong> (Fission-AI, v1.13.2, released 2026-09-23), is the deliberate
+        counter-position. Its npm package is <code>@fission-ai/openspec</code>; with Node.js 20.19.0 or newer, install
+        the verified release using <code style="overflow-wrap:anywhere">npm install -g @fission-ai/openspec@1.13.2</code>. It positions itself
+        <em>explicitly against spec-kit's "rigid phase gates."</em> Where spec-kit and Kiro scope
         specs at the project or feature-pipeline level, OpenSpec scopes them <strong>per change</strong>. Every change
         gets its own folder: a proposal covering the why and the what, a directory of requirements and scenarios, a
         design document, and a task list. The loop is <strong>propose → apply → archive</strong> — propose the change
@@ -339,11 +337,12 @@
       <section class="reading-sources" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
-          <li><a href="https://github.com/github/spec-kit" target="_blank" rel="noopener">github/spec-kit — GitHub</a> — the reference SDD toolkit: core <code>/speckit.*</code> pipeline (incl. <code>.converge</code>), optional commands, 30+ agent integrations.</li>
+          <li><a href="https://github.com/github/spec-kit" target="_blank" rel="noopener">github/spec-kit — GitHub</a> — v1.0.11, package <code>specify-cli</code>, and current <code>/speckit-*</code> skills; reverified 2026-09-25.</li>
           <li><a href="https://github.com/github/spec-kit/blob/main/spec-driven.md" target="_blank" rel="noopener">spec-driven.md — github/spec-kit</a> — the methodology: power inversion, the constitution as immutable law, <code>[NEEDS CLARIFICATION]</code> markers.</li>
           <li><a href="https://kiro.dev/docs/specs/" target="_blank" rel="noopener">Specs — Kiro Docs</a> — three-file specs (requirements/design/tasks), feature vs bugfix types, wave-based execution.</li>
           <li><a href="https://kiro.dev/docs/specs/feature-specs/" target="_blank" rel="noopener">Feature Specs — Kiro Docs</a> — EARS notation, approval gates between phases, Quick Plan mode.</li>
-          <li><a href="https://github.com/Fission-AI/OpenSpec/" target="_blank" rel="noopener">Fission-AI/OpenSpec — GitHub</a> — per-change folders, propose → apply → archive, anti-phase-gate positioning, brownfield adoption.</li>
+          <li><a href="https://github.com/Fission-AI/OpenSpec/" target="_blank" rel="noopener">Fission-AI/OpenSpec — GitHub</a> — v1.13.2, package <code>@fission-ai/openspec</code>, and the preserved propose → apply → archive workflow; reverified 2026-09-25.</li>
+          <li><a href="https://registry.npmjs.org/@fission-ai%2Fopenspec/latest" target="_blank" rel="noopener">OpenSpec npm metadata</a> — v1.13.2, <code>openspec</code> binary, Node.js ≥20.19.0; accessed 2026-09-25.</li>
           <li><a href="https://adr.github.io/" target="_blank" rel="noopener">Architectural Decision Records — adr.github.io</a> — AD / ASR / ADR definitions, template catalog, tooling list.</li>
           <li><a href="https://adr.github.io/madr/" target="_blank" rel="noopener">About MADR — adr.github.io/madr</a> — MADR 4.0.0 template sections, full/minimal × annotated/bare variants.</li>
           <li><a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions" target="_blank" rel="noopener">Documenting Architecture Decisions — Cognitect (Nygard, 2011)</a> — the original five-section format and the small-modular-documents rationale.</li>
@@ -443,7 +442,7 @@
     <h2>Day 3 — goals &amp; deliverable</h2>
     <div class="ma-k">By the end of today you can</div>
     <ul class="goals-list">
-      <li>Walk spec-kit's core <code>/speckit.*</code> pipeline and explain what the constitution and <code>[NEEDS CLARIFICATION]</code> markers each lock</li>
+      <li>Walk spec-kit's core <code>/speckit-*</code> skill pipeline and explain what the constitution and <code>[NEEDS CLARIFICATION]</code> markers each lock</li>
       <li>Place spec-kit, Kiro, and OpenSpec on the lock-vs-defer axis and match each to a client situation (greenfield vs brownfield, reversal cost, team appetite for gates)</li>
       <li>Describe the ADR lifecycle (Proposed → Accepted → Superseded), why accepted ADRs are immutable, and how the decision log gets teeth at code review</li>
       <li>Explain the knowledge-modeling layer — <code>AGENTS.md</code>, constitutions, decision logs — as versioned context that agents and new humans inherit alike</li>
@@ -470,18 +469,18 @@ window.DIAGRAM = {
       label:"YOUR ENGAGEMENT  ·  a system a departed contractor left undocumented\n  no ADRs · every decision made silently in PRs · 3 candidate tools\n  real question: where do decisions get LOCKED, and where DEFERRED?" },
 
     // the three tools (three columns)
-    { id:"sk", step:1, x:28, y:106, w:142, h:96, label:"SPEC-KIT\n(GitHub, 0.12.3)\nphase-gated pipeline",
-      detail:"Core /speckit.* pipeline: constitution → specify (what/why, no stack) → plan (stack + architecture) → tasks → taskstoissues (GitHub issues) → implement, plus /speckit.converge to reconcile the codebase back against spec/plan/tasks. Optional validators: /speckit.clarify, /speckit.analyze, /speckit.checklist. Each phase emits a Markdown artifact that feeds the next — the spec, not the code, is the generative source. 30+ agent integrations." },
+    { id:"sk", step:1, x:28, y:106, w:142, h:96, label:"SPEC-KIT\n(GitHub, 1.0.11)\nphase-gated pipeline",
+      detail:"Current /speckit-* skills: constitution once → specify (what/why) → plan (how) → tasks → implement → converge. Optional clarification, checklist, and consistency-analysis gates strengthen the same artifact chain. Each stage emits an artifact that feeds the next — the spec, not the code, is the source." },
     { id:"kiro", step:3, x:186, y:106, w:140, h:96, label:"KIRO SPECS\n(AWS IDE)\n3 files · 3 phases",
       detail:"Every spec is requirements.md (user stories + acceptance criteria), design.md (architecture, sequence diagrams), tasks.md (trackable tasks) across a requirements → design → tasks workflow. Standard workflows put human approval gates between phases; 'Quick Plan' skips gates for well-understood features. Feature and bugfix spec types; approved tasks execute in concurrent waves." },
-    { id:"ospec", step:4, x:342, y:106, w:144, h:96, label:"OPENSPEC\n(Fission-AI 1.5)\nno phase gates",
+    { id:"ospec", step:4, x:342, y:106, w:144, h:96, label:"OPENSPEC\n(Fission-AI 1.13.2)\nno phase gates",
       detail:"Each change gets its own folder: proposal.md (why/what), specs/ (requirements + scenarios), design.md, tasks.md — driven by propose → apply → archive (/opsx:propose), across 20+ assistants. Positions itself explicitly against spec-kit's 'rigid phase gates': artifacts update anytime 'without ceremony.' Brownfield-friendly — captures existing system state. Stores Beta adds team-shared planning repos." },
 
     // spec-kit's lock mechanisms
     { id:"const", step:2, x:28, y:214, w:142, h:56, label:"constitution.md\n\"immutable law\"",
       detail:"memory/constitution.md — non-negotiable articles (library-first, test-first, CLI interfaces, integration-over-isolation testing) enforced like compile-time checks via template gates. 'Immutable architectural law, not guidelines' — any deviation requires documented justification. Written before planning; everything downstream is generated under its constraints." },
     { id:"clar", step:2, x:28, y:280, w:142, h:52, label:"[NEEDS\nCLARIFICATION]",
-      detail:"Templates mandate that the LLM flag unclear points as [NEEDS CLARIFICATION: specific question] instead of making 'plausible assumptions' — ambiguity is surfaced immediately, resolvable via the optional /speckit.clarify command, rather than leaking silently into implementation. The tool-enforced 'lock' side of lock-vs-defer." },
+      detail:"Templates flag unclear points as [NEEDS CLARIFICATION: specific question] instead of making plausible assumptions — ambiguity is surfaced immediately and can be resolved through optional clarification rather than leaking silently into implementation." },
 
     // Kiro's notation
     { id:"ears", step:3, x:186, y:214, w:140, h:56, label:"EARS\nWHEN… SHALL…",
@@ -519,7 +518,7 @@ window.DIAGRAM = {
   ],
   captions: [
     "One client question — \"which spec tool?\" — hides the real one: <b>where do decisions get locked vs deferred?</b> Today we build this map. <span style='opacity:.7'>(tap nodes for detail)</span>",
-    "<b>Spec-kit</b>: a fixed artifact pipeline of <code>/speckit.*</code> commands — constitution → specify → plan → tasks → issues → implement, with <b>converge</b> reconciling code back to spec. <span style='opacity:.7'>(tap)</span>",
+    "<b>Spec-kit</b>: current <code>/speckit-*</code> skills preserve the artifact pipeline — constitution → specify → plan → tasks → implement → converge. <span style='opacity:.7'>(tap)</span>",
     "Spec-kit's lock mechanisms: an <b>immutable constitution</b> gating every phase, and <b>[NEEDS CLARIFICATION]</b> markers that surface ambiguity instead of guessing. <span style='opacity:.7'>(tap)</span>",
     "<b>Kiro</b>: three files (requirements / design / tasks), approval gates between phases, and <b>EARS</b> — WHEN… THE SYSTEM SHALL… — for testable requirements. <span style='opacity:.7'>(tap)</span>",
     "<b>OpenSpec</b>: the counter-position — per-change folders, propose → apply → archive, <b>no phase gates</b>, artifacts fluid 'without ceremony', brownfield-first. <span style='opacity:.7'>(tap)</span>",
@@ -540,7 +539,7 @@ window.QUIZ = {
         "Halt the entire pipeline until a human rewrites the spec from scratch",
         "Add the detail to memory/constitution.md" ],
       answer: 1,
-      explain: "Templates mandate [NEEDS CLARIFICATION: …] markers instead of 'plausible assumptions' — ambiguity is surfaced immediately and can be resolved with the optional /speckit.clarify command. It's the requirements-level version of the Week-1 hallucination lesson: don't let a gap get filled silently." },
+      explain: "Templates mandate [NEEDS CLARIFICATION: …] markers instead of plausible assumptions — ambiguity is surfaced immediately and can be resolved through optional clarification. It's the requirements-level version of the Week-1 hallucination lesson: don't let a gap get filled silently." },
     { type: "scq",
       stem: "A client is 15 years brownfield, ships small changes weekly, and their team routes around any process with sign-off gates. Which tool's bet fits best?",
       options: [
@@ -582,9 +581,9 @@ window.QUIZ = {
       answer: 2,
       explain: "The pattern won; the packaging lost. Coding agents now ship native equivalents of what these kits packaged (project-context files, commands, skills, hooks), so a vendored template directory becomes a fork you maintain against a harness that keeps moving. Meanwhile models produce spec STRUCTURE unprompted — what they can't produce is the client's constraints and a machine-checkable stopping condition. Steal the parts, put them in the client's repo, keep the enforcement." },
     { type: "open",
-      stem: "In one or two sentences: what does /speckit.converge do, and why does a 'spec as source of truth' methodology need a command like it at all?",
+      stem: "In one or two sentences: what does /speckit-converge do, and why does a 'spec as source of truth' methodology need a skill like it at all?",
       hint: "Think about what happens to real codebases over time, even disciplined ones.",
-      model: "/speckit.converge assesses the actual codebase against the spec, plan, and tasks, and appends the remaining gaps as new tasks. It exists because code drifts from spec even in disciplined teams — a methodology claiming the spec is the generative source of truth needs a reconciliation mechanism, or the spec quietly becomes just another out-of-date document." }
+      model: "/speckit-converge assesses the codebase against the spec, plan, and tasks so remaining gaps can return to implementation. It exists because code drifts from spec even in disciplined teams — a methodology claiming the spec is the source of truth needs a reconciliation mechanism, or the spec quietly becomes just another out-of-date document." }
   ]
 };
 </script>

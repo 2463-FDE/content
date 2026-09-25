@@ -141,9 +141,8 @@
         <p>Verifiability also unlocks parallelism. Because Kiro's tasks carry explicit outcomes, it "analyzes your task
         list, figures out which tasks depend on each other, and runs independent tasks concurrently" — waves of
         independent tasks execute in parallel, waves themselves run in sequence. And you should verify the
-        <em>artifacts</em>, not just the code: Spec Kit ships <code>/speckit.checklist</code> to validate the plan and
-        <code>/speckit.analyze</code> to cross-check spec, plan, and tasks against each other before a line of code
-        exists. There's measurement behind this, too: a 2026 study added phase-level context-grounding hooks that
+        <em>artifacts</em>, not just the code: Spec Kit offers optional checklist and consistency-analysis gates to
+        cross-check spec, plan, and tasks against each other before a line of code exists. There's measurement behind this, too: a 2026 study added phase-level context-grounding hooks that
         validate each Specify/Plan/Tasks artifact against actual repository evidence — catching hallucinated APIs before
         implementation — and lifted SWE-bench Lite to 58.2% Pass@1 with 99.7–100% test compatibility. Checking the plan
         is cheaper than debugging the code it produces.</p>
@@ -246,7 +245,7 @@
         design/contracts → tasks, each small enough to validate before the next), <strong>gated</strong> (named
         conditions at the boundaries, with a complexity-tracking table for documented exceptions),
         <strong>verifiable</strong> (every task ends in a pass/fail check; artifacts cross-checked with
-        <code>/speckit.analyze</code> before implementation), and <strong>targeted</strong> (NFRs kept from ISO 25010
+        a consistency-analysis gate before implementation), and <strong>targeted</strong> (NFRs kept from ISO 25010
         and stated as SLO-shaped or ASVS-cited numbers). Four properties, one checklist, runnable on anyone's plan.</p>
         <p>But there's a prior question that decides whether any of it is <em>correct</em>: how do you know where the
         phase boundaries go? Draw one without knowing which services share a transaction and you split an atomic
@@ -284,7 +283,7 @@
         <ul>
           <li><a href="https://github.com/github/spec-kit/blob/main/spec-driven.md" target="_blank" rel="noopener">GitHub Spec Kit — Spec-Driven Development methodology</a> — the Spec → Plan → Tasks → Implement pipeline, Phase −1 gates, complexity tracking.</li>
           <li><a href="https://github.com/github/spec-kit/blob/main/templates/plan-template.md" target="_blank" rel="noopener">Spec Kit — plan template</a> — Technical Context (perf goals, constraints, scale), Constitution Check gate, Phase 0/1/2 outputs.</li>
-          <li><a href="https://github.github.com/spec-kit/quickstart.html" target="_blank" rel="noopener">Spec Kit — Quick Start Guide</a> — phased implementation guidance, <code>/speckit.checklist</code> and <code>/speckit.analyze</code> validation steps.</li>
+          <li><a href="https://github.github.com/spec-kit/quickstart.html" target="_blank" rel="noopener">Spec Kit — Quick Start Guide</a> — phased implementation guidance and optional checklist/consistency-analysis gates; reverified 2026-09-25.</li>
           <li><a href="https://kiro.dev/docs/specs/" target="_blank" rel="noopener">Kiro Docs — Specs</a> — requirements/design/tasks three-file structure and wave-based, dependency-aware task execution.</li>
           <li><a href="https://kiro.dev/docs/specs/feature-specs/" target="_blank" rel="noopener">Kiro Docs — Feature Specs</a> — EARS notation and why it yields testable, traceable requirements.</li>
           <li><a href="https://webstore.iec.ch/en/publication/90024" target="_blank" rel="noopener">ISO/IEC 25010:2023</a> — the nine-characteristic product quality model (edition 2.0), including capacity under performance efficiency and the new safety characteristic.</li>
@@ -409,7 +408,7 @@ window.DIAGRAM = {
     // the artifact pipeline
     { id:"pipe", step:0, x:28, y:96, w:458, h:44,
       label:"SPEC → PLAN → TASKS → IMPLEMENT  (each arrow = human checkpoint)",
-      detail:"Spec Kit's SDD pipeline (/speckit.specify → plan → tasks → implement) and Kiro's requirements.md / design.md / tasks.md are the same shape: requirements, design, and tasks are separate artifacts with separate review moments. Decomposing this way 'creates checkpoints where humans review and redirect.'" },
+      detail:"Spec Kit's current SDD skills (/speckit-specify → /speckit-plan → /speckit-tasks → /speckit-implement) and Kiro's requirements.md / design.md / tasks.md are the same shape: requirements, design, and tasks are separate artifacts with separate review moments. Decomposing this way 'creates checkpoints where humans review and redirect.'" },
 
     // the plan container with phases
     { id:"plan", step:1, x:28, y:156, w:310, h:216, label:"THE PLAN  (one document, phased)" },
@@ -428,7 +427,7 @@ window.DIAGRAM = {
 
     // verifiability
     { id:"verify", step:3, x:28, y:392, w:310, h:64, label:"every task ends in a PASS / FAIL check\ntests · build · contract · end-to-end step",
-      detail:"'Give Claude something that produces a pass or fail, and the loop closes on its own.' EARS requirements ('WHEN [condition] THE SYSTEM SHALL [behavior]') translate directly to test cases; explicit outcomes let Kiro sequence independent tasks into concurrent waves; /speckit.analyze cross-checks spec↔plan↔tasks before any code. Grounded artifact validation hit 58.2% Pass@1 on SWE-bench Lite." },
+      detail:"'Give Claude something that produces a pass or fail, and the loop closes on its own.' EARS requirements ('WHEN [condition] THE SYSTEM SHALL [behavior]') translate directly to test cases; explicit outcomes let Kiro sequence independent tasks into concurrent waves; optional consistency analysis cross-checks spec↔plan↔tasks before any code. Grounded artifact validation hit 58.2% Pass@1 on SWE-bench Lite." },
 
     // NFR panel
     { id:"nfr", step:4, x:28, y:476, w:222, h:120, label:"NFR pass\nISO/IEC 25010:2023\n9 characteristics\n(capacity = scale,\nsafety new in 2023)",
@@ -457,7 +456,7 @@ window.DIAGRAM = {
     "An approved spec is not a plan. Between spec and code runs a <b>pipeline of artifacts</b> — Spec → Plan → Tasks → Implement — and every arrow is a human checkpoint. <span style='opacity:.7'>(tap nodes for detail)</span>",
     "The plan itself is <b>phased</b>: research → design &amp; contracts → task generation — with a <b>Constitution Check gate</b> that must pass before Phase 0 and be re-checked after design. <span style='opacity:.7'>(tap)</span>",
     "<b>Phase −1 gates</b> — simplicity, anti-abstraction, integration-first — make complexity justify itself in writing. Fail a gate, document why. <span style='opacity:.7'>(tap)</span>",
-    "Every task ends in a <b>pass/fail check</b>. Verifiable tasks close the loop, sequence into waves, and get cross-checked (<b>/speckit.analyze</b>) before code exists. <span style='opacity:.7'>(tap)</span>",
+    "Every task ends in a <b>pass/fail check</b>. Verifiable tasks close the loop, sequence into waves, and get cross-checked by optional consistency analysis before code exists. <span style='opacity:.7'>(tap)</span>",
     "Now the other half of quality: walk <b>ISO 25010's nine characteristics</b> as the NFR checklist — capacity (scale) is a first-class slot, not an afterthought. <span style='opacity:.7'>(tap)</span>",
     "Perf and scale targets get <b>SLO-shaped</b>: a simple indicator, an explicit target value, an owning phase gate. <span style='opacity:.7'>(tap)</span>",
     "Security gets an <b>ASVS level</b> and citable requirement IDs — 'must be secure' becomes something an auditor can check. <span style='opacity:.7'>(tap)</span>",
@@ -499,7 +498,7 @@ window.QUIZ = {
         "A statement that the team will 'know it when they see it'",
         "A promise to test everything at the end of the project" ],
       answer: [0, 1, 2],
-      explain: "Verifiability means the completion condition is binary and stated up front: a runnable check per task, requirements phrased so they translate directly into test cases, and validation of the artifacts themselves (like /speckit.analyze) before code exists. 'Know it when we see it' and 'test at the end' are exactly what verifiable decomposition replaces." },
+      explain: "Verifiability means the completion condition is binary and stated up front: a runnable check per task, requirements phrased so they translate directly into test cases, and validation of the artifacts themselves before code exists. 'Know it when we see it' and 'test at the end' are exactly what verifiable decomposition replaces." },
     { type: "match",
       stem: "Match each NFR statement to the discipline it violates or applies.",
       pairs: [
