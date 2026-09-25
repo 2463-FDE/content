@@ -380,16 +380,15 @@ window.ALT = {
     try { return (typeof window.FDE_getIdentity === "function" && window.FDE_getIdentity()) || null; }
     catch (e) { return null; }
   }
-  // Learner roster for the weekly rotation — DISPLAY/assignment only, NOT auth.
-  // Logins are server-side now (no codes on the page); these names just drive the
-  // per-learner alternative rotation. Keep in sync with the trainer roster.
-  // Sorted by name for a stable rotation order; matched against fde_identity.name.
-  const AR_LEARNERS = ["Armaan Dhanoa", "Jorge Ferreira", "Kalabe Kebede", "Mahalakshmi Chandrasekar"];
+  // Synthetic learner roster for the weekly rotation — DISPLAY/assignment only,
+  // NOT auth. Sorted by name for a stable rotation order; preview identities can
+  // match against fde_identity.name without publishing the real trainer roster.
+  const AR_LEARNERS = ["Aster Nova", "Juniper Quill", "Rowan Pixel", "Solstice Vale"];
   function learners() {
     return AR_LEARNERS.slice().sort((a, b) => a.localeCompare(b)).map(name => ({ name }));
   }
-  // Display name = First Name + Last Initial (e.g. "Armaan D."). Matching against
-  // the login still uses the FULL name below; this is display only.
+  // Display name = First Name + Last Initial (e.g. "Aster N."). Matching against
+  // the identity still uses the full synthetic name below; this is display only.
   function shortName(name) {
     const p = String(name || "").trim().split(/\s+/).filter(Boolean);
     if (!p.length) return "";
@@ -425,9 +424,9 @@ window.ALT = {
     let mine = -1, isTesterPreview = false;
     if (idt && n > 0) {
       const li = ls.findIndex(r => r.name === idt.name);
-      if (li >= 0) {                       // a real learner
+      if (li >= 0) {                       // a matching synthetic preview identity
         mine = myAltIndex(week, li, n);
-      } else if (idt.role === "tester") {  // tester previews the first learner's slot
+      } else if (idt.role === "tester") {  // tester previews the first synthetic slot
         mine = myAltIndex(week, 0, n);
         isTesterPreview = true;
       }
