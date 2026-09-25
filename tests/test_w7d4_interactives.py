@@ -146,11 +146,24 @@ assert.strictEqual(finding.score, 3);
 function classHas(node, className) { return String(node.className || '').split(/\s+/).includes(className); }
 let rows = walk(traceRoot, node => classHas(node, 'w7-span-row'));
 assert.strictEqual(rows.length, 5, 'root expansion should reveal direct children only');
-const toolToggle = walk(traceRoot, node => node.attributes && node.attributes['aria-label'] === 'Expand execute_tool eligibility_lookup')[0];
+function findToggle(spanId) {
+  return walk(traceRoot, node => node.tagName === 'button' && node.attributes['aria-controls'] === 'w7-span-detail-' + spanId)[0];
+}
+assert.strictEqual(walk(traceRoot, node => node.attributes && ['tree', 'treeitem'].includes(node.attributes.role)).length, 0);
+assert(rows.every(row => row.attributes['aria-expanded'] === undefined), 'rows must not carry disclosure state');
+const toolToggle = findToggle('tool');
 assert(toolToggle && toolToggle.listeners.click, 'tool span must expose a keyboard button');
+assert.strictEqual(toolToggle.attributes['aria-expanded'], 'false');
 toolToggle.listeners.click();
 rows = walk(traceRoot, node => classHas(node, 'w7-span-row'));
 assert.strictEqual(rows.length, 6, 'expanding tool should reveal the seeded dependency child');
+const rebuiltToolToggle = findToggle('tool');
+assert.notStrictEqual(rebuiltToolToggle, toolToggle);
+assert.strictEqual(rebuiltToolToggle.focused, true, 'focus must follow the toggled span after repaint');
+assert.strictEqual(rebuiltToolToggle.attributes['aria-expanded'], 'true');
+const planSpan = api.TRACE_SPANS.find(span => span.id === 'plan');
+assert.strictEqual(planSpan.kind, 'CLIENT');
+assert.strictEqual(planSpan.name, planSpan.operation + ' ' + planSpan.model);
 const resetButton = walk(traceRoot, node => node.textContent === 'Reset incident seed')[0];
 resetButton.listeners.click();
 rows = walk(traceRoot, node => classHas(node, 'w7-span-row'));
@@ -181,10 +194,17 @@ assert.strictEqual(zeroTokens.daily, 0);
 const renderedOutputs = walk(costRoot, node => node.tagName === 'output');
 assert.deepStrictEqual(renderedOutputs.map(node => node.textContent), ['$0.002000', '$1.00', '$30.00', '0.50×']);
 const inputField = walk(costRoot, node => node.name === 'inputTokens')[0];
+const requestsField = walk(costRoot, node => node.name === 'requestsPerDay')[0];
 inputField.value = '-1';
 inputField.listeners.input();
 assert.strictEqual(inputField.attributes['aria-invalid'], 'true');
+assert.strictEqual(requestsField.attributes['aria-invalid'], undefined, 'only the failing field is marked invalid');
 assert(renderedOutputs.every(node => node.textContent === 'Not calculated'));
+inputField.value = '150';
+inputField.listeners.input();
+assert.strictEqual(inputField.attributes['aria-invalid'], undefined, 'a value the calculator accepts must not be marked invalid');
+assert.strictEqual(renderedOutputs[0].textContent, '$0.001150');
+assert.deepStrictEqual(Object.keys(api.calculateCost({ model: 'x', inputTokens: 1, outputTokens: -1, requestsPerDay: 1, dailyBudgetUsd: 1 }).fieldErrors).sort(), ['model', 'outputTokens']);
 assert.deepStrictEqual(accessed, [], 'practice must not touch network or browser storage APIs');
 
 process.stdout.write(JSON.stringify({

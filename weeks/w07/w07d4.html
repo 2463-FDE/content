@@ -75,12 +75,6 @@
   .w7-cost-field:first-child { grid-column:1/-1; }
 }
 @media (max-width:430px) {
-  .topbar { padding:8px 10px; gap:8px; }
-  .topbar-center, .topbar-left .topnav { display:none; }
-  .topbar-left { flex:1 1 auto; }
-  .topbar-right { flex:0 0 auto; gap:8px; }
-  .progressbar { flex-basis:72px; }
-  .reading-col code { overflow-wrap:anywhere; word-break:break-word; }
   .w7-practice { margin-left:-6px; margin-right:-6px; padding:12px; }
   .w7-toolbar { align-items:stretch; }
   .w7-toolbar .w7-secondary-btn { flex:1 1 120px; }
@@ -273,6 +267,11 @@
         days, sending an active notification is appropriate. Otherwise, a ticket-based notification… the next working
         day is more appropriate." A slow reconciliation drift is a ticket, not a 3 a.m. page — and now you have a
         principled reason rather than a preference.</p>
+        <p>Work the trap by hand before you open a trace. At <strong>10 requests/hour</strong>, one failure is
+        1 ÷ 10 = a 10% hourly error rate. A 99.9% SLO budgets 0.1% errors, so 10% ÷ 0.1% = a <strong>1,000× burn
+        rate</strong> from a single failed request. The synthetic trace below is that one failure: the page fires, and
+        the on-call engineer's first job is to open the trace and decide whether it is a real dependency outage or a
+        retryable blip — before anyone mutes the alert.</p>
         <div class="w7-practice" data-w7-trace data-seed="intake-timeout-07">
           <noscript>This synthetic trace inspection requires JavaScript. No live telemetry or vendor export is used.</noscript>
         </div>

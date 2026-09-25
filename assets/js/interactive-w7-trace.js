@@ -15,42 +15,42 @@
   const TRACE_SPANS = Object.freeze([
     Object.freeze({
       id: "agent", parentId: null, depth: 0, startMs: 0, durationMs: 2480,
-      name: "invoke_agent intake_triage", kind: "INTERNAL", status: "ERROR",
+      name: "invoke_agent intake_triage", purpose: "agent root", kind: "INTERNAL", status: "ERROR",
       operation: "invoke_agent", model: "none", inputTokens: 0, outputTokens: 0,
       tool: "none", errorType: "DownstreamTimeout", estimatedCostUsd: 0.02554,
       note: "Synthetic root span. The agent returned a safe degraded response after a tool timeout."
     }),
     Object.freeze({
       id: "plan", parentId: "agent", depth: 1, startMs: 35, durationMs: 190,
-      name: "plan intake_triage", kind: "INTERNAL", status: "OK",
-      operation: "plan", model: "claude-haiku-4-5", inputTokens: 640, outputTokens: 38,
+      name: "chat claude-haiku-4-5", purpose: "planning step", kind: "CLIENT", status: "OK",
+      operation: "chat", model: "claude-haiku-4-5", inputTokens: 640, outputTokens: 38,
       tool: "none", errorType: "none", estimatedCostUsd: 0.00083,
       note: "Chooses the eligibility lookup before drafting a response."
     }),
     Object.freeze({
       id: "primary", parentId: "agent", depth: 1, startMs: 245, durationMs: 430,
-      name: "chat claude-sonnet-5", kind: "CLIENT", status: "OK",
+      name: "chat claude-sonnet-5", purpose: "primary draft", kind: "CLIENT", status: "OK",
       operation: "chat", model: "claude-sonnet-5", inputTokens: 7600, outputTokens: 46,
       tool: "eligibility_lookup requested", errorType: "none", estimatedCostUsd: 0.01566,
       note: "Largest estimated cost contributor: a long context is sent before the tool call."
     }),
     Object.freeze({
       id: "tool", parentId: "agent", depth: 1, startMs: 700, durationMs: 1180,
-      name: "execute_tool eligibility_lookup", kind: "INTERNAL", status: "ERROR",
+      name: "execute_tool eligibility_lookup", purpose: "tool call", kind: "INTERNAL", status: "ERROR",
       operation: "execute_tool", model: "none", inputTokens: 0, outputTokens: 0,
       tool: "eligibility_lookup", errorType: "TimeoutError", estimatedCostUsd: 0,
       note: "Longest direct child of the root. Expand it to inspect the failing dependency."
     }),
     Object.freeze({
       id: "payer", parentId: "tool", depth: 2, startMs: 735, durationMs: 1050,
-      name: "HTTP GET payer-sandbox.local", kind: "CLIENT", status: "ERROR",
+      name: "HTTP GET payer-sandbox.local", purpose: "tool dependency", kind: "CLIENT", status: "ERROR",
       operation: "http.client", model: "none", inputTokens: 0, outputTokens: 0,
       tool: "eligibility_lookup", errorType: "TimeoutError", estimatedCostUsd: 0,
       note: "Synthetic dependency only. No request URL or patient payload is captured."
     }),
     Object.freeze({
       id: "fallback", parentId: "agent", depth: 1, startMs: 1905, durationMs: 510,
-      name: "chat claude-haiku-4-5", kind: "CLIENT", status: "OK",
+      name: "chat claude-haiku-4-5", purpose: "fallback response", kind: "CLIENT", status: "OK",
       operation: "chat", model: "claude-haiku-4-5", inputTokens: 8200, outputTokens: 170,
       tool: "none", errorType: "none", estimatedCostUsd: 0.00905,
       note: "Produces a bounded fallback after the failed tool. Payload content is intentionally absent."
@@ -121,15 +121,17 @@
     return { score: score, total: 3, results: results };
   }
 
-  function parseBoundedNumber(value, limits, label, errors) {
+  function parseBoundedNumber(value, limits, key, label, errors, fieldErrors) {
     const text = typeof value === "string" ? value.trim() : value;
     const number = text === "" ? NaN : Number(text);
     if (!Number.isFinite(number)) {
-      errors.push(label + " must be a number.");
+      fieldErrors[key] = label + " must be a number.";
+      errors.push(fieldErrors[key]);
       return null;
     }
     if (number < limits.min || number > limits.max) {
-      errors.push(label + " must be between " + limits.min + " and " + limits.max + ".");
+      fieldErrors[key] = label + " must be between " + limits.min + " and " + limits.max + ".";
+      errors.push(fieldErrors[key]);
       return null;
     }
     return number;
@@ -137,13 +139,17 @@
 
   function calculateCost(input) {
     const errors = [];
+    const fieldErrors = {};
     const row = PRICE_ROWS.find(function (price) { return price.id === input.model; });
-    if (!row) errors.push("Choose a model from the dated price table.");
-    const inputTokens = parseBoundedNumber(input.inputTokens, INPUT_LIMITS.inputTokens, "Input tokens", errors);
-    const outputTokens = parseBoundedNumber(input.outputTokens, INPUT_LIMITS.outputTokens, "Output tokens", errors);
-    const requestsPerDay = parseBoundedNumber(input.requestsPerDay, INPUT_LIMITS.requestsPerDay, "Requests per day", errors);
-    const dailyBudgetUsd = parseBoundedNumber(input.dailyBudgetUsd, INPUT_LIMITS.dailyBudgetUsd, "Daily budget", errors);
-    if (errors.length) return { valid: false, errors: errors };
+    if (!row) {
+      fieldErrors.model = "Choose a model from the dated price table.";
+      errors.push(fieldErrors.model);
+    }
+    const inputTokens = parseBoundedNumber(input.inputTokens, INPUT_LIMITS.inputTokens, "inputTokens", "Input tokens", errors, fieldErrors);
+    const outputTokens = parseBoundedNumber(input.outputTokens, INPUT_LIMITS.outputTokens, "outputTokens", "Output tokens", errors, fieldErrors);
+    const requestsPerDay = parseBoundedNumber(input.requestsPerDay, INPUT_LIMITS.requestsPerDay, "requestsPerDay", "Requests per day", errors, fieldErrors);
+    const dailyBudgetUsd = parseBoundedNumber(input.dailyBudgetUsd, INPUT_LIMITS.dailyBudgetUsd, "dailyBudgetUsd", "Daily budget", errors, fieldErrors);
+    if (errors.length) return { valid: false, errors: errors, fieldErrors: fieldErrors };
 
     const perRequest = (inputTokens / 1000000 * row.inputPerMillion) +
       (outputTokens / 1000000 * row.outputPerMillion);
@@ -153,6 +159,7 @@
     return {
       valid: true,
       errors: [],
+      fieldErrors: {},
       model: row.id,
       perRequest: perRequest,
       daily: daily,
@@ -224,17 +231,17 @@
     rootNode.appendChild(summary);
 
     const tree = makeElement("div", "w7-trace-tree");
-    tree.setAttribute("role", "tree");
+    tree.setAttribute("role", "list");
     tree.setAttribute("aria-label", "Synthetic trace waterfall");
     rootNode.appendChild(tree);
 
     const guide = makeElement("form", "w7-trace-guide");
     guide.noValidate = true;
-    const guideTitle = appendText(guide, "h4", "w7-guide-title", "Make the incident call");
+    appendText(guide, "h4", "w7-guide-title", "Make the incident call");
     const questions = [
-      { key: "latency", label: "Which direct child dominates root latency?", answerOptions: [["", "Choose a span"], ["plan", "plan intake_triage"], ["primary", "chat claude-sonnet-5"], ["tool", "execute_tool eligibility_lookup"], ["fallback", "chat claude-haiku-4-5"]] },
-      { key: "error", label: "Which leaf span exposes the failing dependency?", answerOptions: [["", "Choose a span"], ["primary", "chat claude-sonnet-5"], ["payer", "HTTP GET payer-sandbox.local"], ["fallback", "chat claude-haiku-4-5"]] },
-      { key: "cost", label: "Which span contributes the most estimated token cost?", answerOptions: [["", "Choose a span"], ["plan", "plan intake_triage"], ["primary", "chat claude-sonnet-5"], ["fallback", "chat claude-haiku-4-5"]] }
+      { key: "latency", label: "Which direct child dominates root latency?", answerOptions: [["", "Choose a span"], ["plan", "chat claude-haiku-4-5 (planning step)"], ["primary", "chat claude-sonnet-5"], ["tool", "execute_tool eligibility_lookup"], ["fallback", "chat claude-haiku-4-5 (fallback response)"]] },
+      { key: "error", label: "Which leaf span exposes the failing dependency?", answerOptions: [["", "Choose a span"], ["primary", "chat claude-sonnet-5"], ["payer", "HTTP GET payer-sandbox.local"], ["fallback", "chat claude-haiku-4-5 (fallback response)"]] },
+      { key: "cost", label: "Which span contributes the most estimated token cost?", answerOptions: [["", "Choose a span"], ["plan", "chat claude-haiku-4-5 (planning step)"], ["primary", "chat claude-sonnet-5"], ["fallback", "chat claude-haiku-4-5 (fallback response)"]] }
     ];
     const selectNodes = {};
     questions.forEach(function (question) {
@@ -261,26 +268,34 @@
     feedback.setAttribute("aria-live", "polite");
     rootNode.appendChild(guide);
 
-    function paintTree() {
+    function spanById(spanId) {
+      return TRACE_SPANS.find(function (candidate) { return candidate.id === spanId; });
+    }
+
+    function paintTree(focusSpanId) {
+      const toggles = {};
       tree.replaceChildren();
       TRACE_SPANS.forEach(function (span) {
         if (!isVisible(span, state.expanded)) return;
-        const children = childSpans(span.id);
         const open = state.expanded.indexOf(span.id) >= 0;
         const row = makeElement("div", "w7-span-row" + (span.status === "ERROR" ? " is-error" : ""));
-        row.setAttribute("role", "treeitem");
-        row.setAttribute("aria-level", String(span.depth + 1));
-        row.setAttribute("aria-expanded", String(open));
+        row.setAttribute("role", "listitem");
         row.style.setProperty("--trace-depth", String(span.depth));
 
         const toggle = makeButton("", "w7-span-toggle");
         toggle.setAttribute("aria-expanded", String(open));
         toggle.setAttribute("aria-controls", "w7-span-detail-" + span.id);
-        toggle.setAttribute("aria-label", (open ? "Collapse " : "Expand ") + span.name);
-        appendText(toggle, "span", "w7-span-caret", open ? "−" : "+");
+        const parent = spanById(span.parentId);
+        const childCount = childSpans(span.id).length;
+        toggle.setAttribute("aria-label", span.name + ", " + span.purpose + ", " + span.status +
+          (parent ? ", child of " + parent.name : ", root span") +
+          (childCount ? ", " + childCount + " child span" + (childCount === 1 ? "" : "s") : ""));
+        toggles[span.id] = toggle;
+        const caret = appendText(toggle, "span", "w7-span-caret", open ? "−" : "+");
+        caret.setAttribute("aria-hidden", "true");
         const identity = makeElement("span", "w7-span-identity");
         appendText(identity, "strong", "w7-span-name", span.name);
-        appendText(identity, "span", "w7-span-kind", span.kind + " · " + span.status);
+        appendText(identity, "span", "w7-span-kind", span.purpose + " · " + span.kind + " · " + span.status);
         toggle.appendChild(identity);
         const track = makeElement("span", "w7-waterfall-track");
         const bar = makeElement("span", "w7-waterfall-bar");
@@ -310,11 +325,12 @@
         row.appendChild(detail);
         toggle.addEventListener("click", function () {
           state = toggleSpan(state, span.id);
-          paintTree();
+          paintTree(span.id);
           feedback.textContent = (state.expanded.indexOf(span.id) >= 0 ? "Expanded " : "Collapsed ") + span.name + ".";
         });
         tree.appendChild(row);
       });
+      if (focusSpanId && toggles[focusSpanId]) toggles[focusSpanId].focus();
     }
 
     expandButton.addEventListener("click", function () {
@@ -336,7 +352,6 @@
         feedback.textContent = result.score + "/3. Re-open the longest bar, follow its child error.type, and compare token counts with the priced model.";
       }
     });
-    guideTitle.setAttribute("tabindex", "-1");
     paintTree();
   }
 
@@ -449,12 +464,12 @@
       const raw = {};
       Object.keys(fields).forEach(function (key) { raw[key] = fields[key].value; });
       const result = calculateCost(raw);
-      Object.keys(fields).forEach(function (key) { fields[key].removeAttribute("aria-invalid"); });
+      Object.keys(fields).forEach(function (key) {
+        if (Object.prototype.hasOwnProperty.call(result.fieldErrors, key)) fields[key].setAttribute("aria-invalid", "true");
+        else fields[key].removeAttribute("aria-invalid");
+      });
       if (!result.valid) {
         ["perRequest", "daily", "monthly", "burnRate"].forEach(function (key) { outputNodes[key].textContent = "Not calculated"; });
-        Object.keys(fields).forEach(function (key) {
-          if (key !== "model" && !fields[key].checkValidity()) fields[key].setAttribute("aria-invalid", "true");
-        });
         status.className = "w7-feedback is-error";
         status.textContent = result.errors.join(" ");
         return;
