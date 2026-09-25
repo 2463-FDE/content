@@ -150,8 +150,16 @@
     let index = 0;
     let result = null;
     let complete = false;
+    let unresolvedOnly = false;
     const attempted = new Set();
     const mastered = new Set();
+
+    function nextIndex() {
+      for (let target = index + 1; target < items.length; target++) {
+        if (!unresolvedOnly || !mastered.has(items[target].id)) return target;
+      }
+      return -1;
+    }
 
     function snapshot() {
       return Object.freeze({
@@ -162,7 +170,9 @@
         unresolved: Object.freeze(items.filter(function (item) { return !mastered.has(item.id); }).map(function (item) { return item.id; })),
         scenario: items[index],
         result: result,
-        complete: complete
+        complete: complete,
+        reviewingUnresolved: unresolvedOnly,
+        nextIndex: nextIndex()
       });
     }
 
@@ -182,13 +192,18 @@
         return snapshot();
       },
       retry: function () { return visit(index); },
-      next: function () { return visit(Math.min(index + 1, items.length - 1)); },
+      next: function () {
+        const target = nextIndex();
+        return visit(target < 0 ? index : target);
+      },
       finish: function () {
         complete = true;
+        unresolvedOnly = false;
         result = null;
         return snapshot();
       },
-      review: function (unresolvedOnly) {
+      review: function (onlyUnresolved) {
+        unresolvedOnly = Boolean(onlyUnresolved);
         const target = unresolvedOnly
           ? items.findIndex(function (item) { return !mastered.has(item.id); })
           : 0;
@@ -198,6 +213,7 @@
         index = 0;
         result = null;
         complete = false;
+        unresolvedOnly = false;
         attempted.clear();
         mastered.clear();
         return snapshot();
@@ -335,7 +351,7 @@
       renderResultText(view, state.result);
       setText(progress, progressText(state));
       setText(status, state.result.correct ? "Audit submitted. Your three classifications match." : "Audit submitted. Review the component corrections, then retry or continue.");
-      setText(nextButton, state.index === state.total - 1 ? "Finish exercise" : "Next scenario");
+      setText(nextButton, state.nextIndex < 0 ? "Finish exercise" : state.reviewingUnresolved ? "Next unresolved scenario" : "Next scenario");
       feedback.hidden = false;
       submitButton.disabled = true;
       setAnswersLocked(true);
@@ -349,12 +365,14 @@
     });
     nextButton.addEventListener("click", function () {
       const state = session.snapshot();
-      if (state.index === state.total - 1) {
+      if (state.nextIndex < 0) {
         showCompletion();
         return;
       }
       session.next();
-      showScenario("Next scenario ready. Classify all three properties.");
+      showScenario(state.reviewingUnresolved
+        ? "Next unresolved scenario ready. Correct all three properties to master it."
+        : "Next scenario ready. Classify all three properties.");
       view.title.focus();
     });
     resetButton.addEventListener("click", function () {

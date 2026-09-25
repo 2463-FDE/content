@@ -316,6 +316,30 @@ q('[data-audit-next]').dispatch('click');
 steps.push(capture('completion-mastered'));
 q('[data-audit-restart]').dispatch('click');
 steps.push(capture('restart'));
+const unresolvedPicks = [1, 4];
+for (let index = 0; index < scenarios.length; index++) {
+  const scenario = scenarios[index];
+  const answer = { privateData: scenario.privateData, untrustedContent: scenario.untrustedContent,
+    externalEgress: scenario.externalEgress };
+  if (unresolvedPicks.includes(index)) answer.untrustedContent = !answer.untrustedContent;
+  answerAll(answer);
+  q('form').dispatch('change');
+  q('form').dispatch('submit');
+  q('[data-audit-next]').dispatch('click');
+}
+steps.push(capture('multi-unresolved'));
+q('[data-review-unresolved]').dispatch('click');
+steps.push(capture('multi-review-first'));
+for (const [position, index] of unresolvedPicks.entries()) {
+  const scenario = scenarios[index];
+  answerAll({ privateData: scenario.privateData, untrustedContent: scenario.untrustedContent,
+    externalEgress: scenario.externalEgress });
+  q('form').dispatch('change');
+  q('form').dispatch('submit');
+  steps.push(capture('multi-review-submitted-' + position));
+  q('[data-audit-next]').dispatch('click');
+  steps.push(capture('multi-review-after-next-' + position));
+}
 process.stdout.write(JSON.stringify({ steps, violations, titles: scenarios.map(s => s.title),
   total: scenarios.length, firstPrivate: first.privateData }));
 """
@@ -474,6 +498,36 @@ class WeekEightTrifectaTests(unittest.TestCase):
         self.assertEqual(unlocked, restart["fieldsetsDisabled"])
         self.assertTrue(restart["feedbackHidden"] and restart["completionHidden"])
         self.assertEqual("data-scenario-title", restart["focus"])
+
+    def test_review_unresolved_skips_mastered_scenarios_and_returns_to_summary(self) -> None:
+        result = run_mounted_probe()
+        self.assertEqual([], result["violations"])
+        steps = {step["label"]: step for step in result["steps"]}
+        total = result["total"]
+        titles = result["titles"]
+
+        summary = steps["multi-unresolved"]
+        self.assertFalse(summary["completionHidden"])
+        self.assertIn(f"mastered {total - 2} of {total}", summary["completionSummary"])
+
+        first = steps["multi-review-first"]
+        self.assertEqual(titles[1], first["title"])
+
+        submitted = steps["multi-review-submitted-0"]
+        self.assertEqual("Next unresolved scenario", submitted["nextText"])
+        jumped = steps["multi-review-after-next-0"]
+        self.assertEqual(titles[4], jumped["title"])
+        self.assertTrue(jumped["completionHidden"])
+        self.assertEqual(f"Scenario 5 of {total} · {total} attempted · {total - 1} mastered", jumped["progress"])
+        self.assertEqual("Next unresolved scenario ready. Correct all three properties to master it.", jumped["status"])
+
+        final_submit = steps["multi-review-submitted-1"]
+        self.assertEqual("Finish exercise", final_submit["nextText"])
+        done = steps["multi-review-after-next-1"]
+        self.assertFalse(done["completionHidden"])
+        self.assertEqual(f"Complete · {total} attempted · {total} mastered of {total}", done["progress"])
+        self.assertIn("All scenarios mastered", done["completionSummary"])
+        self.assertEqual("data-completion-heading", done["focus"])
 
     def test_io_traps_detect_forbidden_egress_and_persistence(self) -> None:
         probe = r"""
