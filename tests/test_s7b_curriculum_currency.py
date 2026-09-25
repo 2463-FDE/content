@@ -20,6 +20,10 @@ class _Parser(HTMLParser):
     pass
 
 
+def _page_text(relative: str) -> str:
+    return " ".join((ROOT / relative).read_text().split())
+
+
 class S7bCurrencyTests(unittest.TestCase):
     def test_html_and_inline_javascript_parse(self) -> None:
         for page in WEEK_PAGES:
@@ -85,27 +89,27 @@ process.stdout.write(JSON.stringify({count: quiz.questions.length}));
                     self.assertGreater(json.loads(result.stdout)["count"], 0)
 
     def test_current_and_historical_labels(self) -> None:
-        d1 = (ROOT / "weeks/w07/w07d1.html").read_text()
-        d2 = (ROOT / "weeks/w07/w07d2.html").read_text()
-        d3 = (ROOT / "weeks/w07/w07d3.html").read_text()
-        d5 = (ROOT / "weeks/w07/w07d5.html").read_text()
-        w8d3 = (ROOT / "weeks/w08/w08d3.html").read_text()
+        d1 = _page_text("weeks/w07/w07d1.html")
+        d2 = _page_text("weeks/w07/w07d2.html")
+        d3 = _page_text("weeks/w07/w07d3.html")
+        d5 = _page_text("weeks/w07/w07d5.html")
+        w8d3 = _page_text("weeks/w08/w08d3.html")
 
         for page in (d1, d3):
-            self.assertIn("course platform itself uses\n        Langfuse", page)
+            self.assertIn("course platform itself uses Langfuse", page)
             self.assertIn("transferable object", page)
-        self.assertIn("landmark\n        2023 judge study", d2)
-        self.assertIn("not a\n        current model recommendation", d2)
+        self.assertIn("landmark 2023 judge study", d2)
+        self.assertIn("not a current model recommendation", d2)
         self.assertIn(
             "2023 historical study by Wang et al., \"Large Language Models are not Fair Evaluators,\" "
             "with the then-current ChatGPT as evaluator",
-            " ".join(d2.split()),
+            d2,
         )
         self.assertIn("accessed August 6, 2026", d5)
         self.assertIn("not current-model recommendations", d5)
         self.assertIn("November 23, 2023 historical fact-checking evaluation", w8d3)
-        self.assertIn("January 8, 2024 historical\n        evaluation", w8d3)
-        self.assertIn("not current app-model\n        recommendations", w8d3)
+        self.assertIn("January 8, 2024 historical evaluation", w8d3)
+        self.assertIn("not current app-model recommendations", w8d3)
 
     def test_no_retired_api_or_unlabelled_o3_recommendation(self) -> None:
         corpus = "\n".join(page.read_text() for page in WEEK_PAGES)
@@ -114,12 +118,12 @@ process.stdout.write(JSON.stringify({count: quiz.questions.length}));
         self.assertIn("Responses API", (ROOT / "weeks/w07/w07d5.html").read_text())
 
     def test_owasp_2026_list_is_preserved(self) -> None:
-        page = (ROOT / "weeks/w08/w08d1.html").read_text()
+        page = _page_text("weeks/w08/w08d1.html")
         expected = (
-            "LLM01 Prompt Injection · LLM02 Sensitive Information Disclosure · LLM03\n"
-            "        Excessive Agency · LLM04 Supply Chain · LLM05 Data and Model Poisoning · LLM06 Unbounded Consumption · LLM07\n"
-            "        Misinformation · LLM08 Hidden Context Exposure · LLM09 Vector and Embedding Weaknesses · LLM10 Improper Output\n"
-            "        Handling."
+            "LLM01 Prompt Injection · LLM02 Sensitive Information Disclosure · LLM03 "
+            "Excessive Agency · LLM04 Supply Chain · LLM05 Data and Model Poisoning · LLM06 Unbounded Consumption · LLM07 "
+            "Misinformation · LLM08 Hidden Context Exposure · LLM09 Vector and Embedding Weaknesses · LLM10 Improper Output "
+            "Handling."
         )
         self.assertIn(expected, page)
         self.assertNotIn("two days before this page was written", page)
