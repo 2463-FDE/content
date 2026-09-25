@@ -179,11 +179,14 @@ process.stdin.on('end', () => {
                 self.assertGreater(contract["captions"], 0)
                 self.assertEqual(6, contract["questions"])
 
-    def test_week_four_future_interactives_stay_deferred(self) -> None:
+    def test_week_four_keeps_deferred_items_except_the_shipped_d2_simulator(self) -> None:
         for path in W4_PAGES:
             with self.subTest(page=path.name):
                 page = ParsedPage(path)
-                self.assertEqual(3, len(page.root.find_all("div", "ix-future")))
+                expected = 2 if path.name == "w04d2.html" else 3
+                self.assertEqual(expected, len(page.root.find_all("div", "ix-future")))
+                simulators = page.root.find_all("div", "ix-checkpoint")
+                self.assertEqual(1 if path.name == "w04d2.html" else 0, len(simulators))
 
 
 if __name__ == "__main__":
