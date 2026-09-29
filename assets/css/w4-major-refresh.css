@@ -149,9 +149,18 @@ html[data-theme="dark"] .ix-checkpoint {
 }
 
 @media (max-width: 700px) {
-  .topbar-center,
-  .topbar .progressbar { display: none; }
+  .topbar { flex-wrap: wrap; }
+  .topbar-left { flex: 1 1 auto; }
   .topbar-right { flex: 0 0 auto; }
+  .topbar .progressbar { flex: 0 1 80px; }
+  .topbar-center {
+    order: 3;
+    flex: 1 0 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
   .reading-col :not(pre) > code {
     overflow-wrap: anywhere;
     word-break: break-word;
