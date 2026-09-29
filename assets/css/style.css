@@ -1366,6 +1366,7 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
   .reading-col .lede h1 { font-size: 24pt; }
   .reading-col .lede .summary { font-size: 11pt; color: #333 !important; }
 
+  .reading-main-target:focus { outline: none !important; }
   .learning-objectives { break-inside: avoid; margin: 5mm 0; }
   .learning-objectives-list { color: #222 !important; }
   .lesson-support:not([open]) > :not(summary) { display: block !important; }
