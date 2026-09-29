@@ -67,7 +67,7 @@
 .ix-checkpoint .cp-checkpoint dt,
 .ix-checkpoint .cp-work h4,
 .ix-checkpoint .cp-work ul,
-.ix-checkpoint .cp-empty,
+.ix-checkpoint .cp-work .cp-empty,
 .ix-checkpoint .cp-log ol,
 .ix-checkpoint .cp-note { color: var(--cp-muted); }
 .ix-checkpoint .cp-node strong,
@@ -146,6 +146,16 @@ html[data-theme="dark"] .ix-checkpoint {
   --cp-disabled-fg: #d7dce4;
   --cp-disabled-bg: #343a44;
   --cp-disabled-line: #697586;
+}
+
+@media (max-width: 700px) {
+  .topbar-center,
+  .topbar .progressbar { display: none; }
+  .topbar-right { flex: 0 0 auto; }
+  .reading-col :not(pre) > code {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
 }
 
 @media (max-width: 420px) {
