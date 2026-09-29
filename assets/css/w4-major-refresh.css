@@ -1,0 +1,174 @@
+/* Week 4 major-refresh corrections: accessible worked examples and checkpoint practice.
+   Page-scoped by inclusion on Week 4 only; shared PR14-owned styles remain untouched. */
+
+.code-cta {
+  color: #7c2d12;
+  border-color: #9ca3af;
+  background: var(--surface);
+}
+.code-cta .cc-ico { opacity: 1; }
+.code-cta .cc-meta { color: #374151; font-weight: 600; }
+.code-cta:hover { color: #7c2d12; border-color: #7c2d12; }
+.code-cta:focus-visible,
+.code-modal .modal-close:focus-visible,
+.cv-tab:focus-visible {
+  outline-color: #7c2d12;
+}
+
+.code-modal h2 { padding-right: 52px; }
+.code-modal .modal-close {
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  color: var(--ink);
+  border-radius: 8px;
+}
+.code-modal .modal-close:hover { background: var(--surface-2); }
+.code-modal .cv-cap,
+.code-modal .cv-foot { color: var(--ink); }
+.cv-file-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 14px;
+  margin-bottom: -9px;
+  color: #f3f4f6;
+  background: #1e1e1e;
+  border-radius: 7px 7px 0 0;
+  font: 600 12px var(--mono);
+  white-space: nowrap;
+}
+
+/* High-contrast semantic tokens for every checkpoint state. */
+.ix-checkpoint {
+  --cp-text: #1f2937;
+  --cp-muted: #374151;
+  --cp-accent: #7c2d12;
+  --cp-good: #166534;
+  --cp-bad: #991b1b;
+  --cp-disabled-fg: #4b5563;
+  --cp-disabled-bg: #e5e7eb;
+  --cp-disabled-line: #9ca3af;
+  color: var(--cp-text);
+}
+.ix-checkpoint .ix-k,
+.ix-checkpoint .cp-log summary { color: var(--cp-accent); }
+.ix-checkpoint .cp-head p,
+.ix-checkpoint .cp-thread,
+.ix-checkpoint .cp-index,
+.ix-checkpoint .cp-node small,
+.ix-checkpoint .cp-badge,
+.ix-checkpoint .cp-checkpoint dt,
+.ix-checkpoint .cp-work h4,
+.ix-checkpoint .cp-work ul,
+.ix-checkpoint .cp-work .cp-empty,
+.ix-checkpoint .cp-log ol,
+.ix-checkpoint .cp-note { color: var(--cp-muted); }
+.ix-checkpoint .cp-node strong,
+.ix-checkpoint .cp-checkpoint dd,
+.ix-checkpoint .cp-status strong,
+.ix-checkpoint .cp-status span { color: var(--cp-text); }
+.ix-checkpoint .cp-badge { font-weight: 700; }
+.ix-checkpoint .cp-graph li.is-durable .cp-badge { color: var(--cp-good); }
+.ix-checkpoint .cp-graph li.is-crashed .cp-badge,
+.ix-checkpoint .cp-status.is-crashed strong { color: var(--cp-bad); }
+.ix-checkpoint .cp-status.is-complete strong { color: var(--cp-good); }
+.ix-checkpoint .ix-btn { color: var(--cp-accent); border-color: var(--cp-accent); }
+.ix-checkpoint .cp-controls .cp-danger:not(:disabled) { color: var(--cp-bad); border-color: var(--cp-bad); }
+.ix-checkpoint .cp-controls button span { opacity: 1; color: inherit; font-weight: 700; }
+.ix-checkpoint .cp-controls button:disabled,
+.ix-checkpoint .cp-predict button:disabled {
+  opacity: 1;
+  color: var(--cp-disabled-fg);
+  background: var(--cp-disabled-bg);
+  border-color: var(--cp-disabled-line);
+}
+.ix-checkpoint .cp-predict button:disabled {
+  color: var(--cp-good);
+  border-color: var(--cp-good);
+}
+.ix-checkpoint .cp-controls button:focus-visible,
+.ix-checkpoint .cp-predict button:focus-visible,
+.ix-checkpoint .cp-predict select:focus-visible { outline-color: var(--cp-accent); }
+
+.cp-predict {
+  margin: 12px 0 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+.cp-predict[hidden] { display: none; }
+.cp-predict h4 { margin: 0 0 4px; color: var(--cp-text); font-size: 14px; }
+.cp-predict > p { margin: 0 0 10px; color: var(--cp-muted); font-size: 12px; line-height: 1.45; }
+.cp-predict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.cp-predict label { display: grid; gap: 4px; color: var(--cp-text); font-size: 11.5px; font-weight: 650; }
+.cp-predict select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 30px 8px 9px;
+  border: 1.5px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--cp-text);
+  font: 12px var(--font);
+}
+.cp-predict .ix-btn { min-height: 44px; margin-top: 10px; }
+.cp-predict-feedback { margin-top: 9px; color: var(--cp-text); font-size: 11.5px; line-height: 1.45; }
+.cp-predict-feedback:empty { display: none; }
+.cp-predict-feedback ul { margin: 0; padding-left: 18px; }
+.cp-predict-feedback .is-correct { color: var(--cp-good); }
+.cp-predict-feedback .is-incorrect { color: var(--cp-bad); }
+.cp-predict-feedback .is-missing { color: var(--cp-bad); }
+
+html[data-theme="dark"] .code-cta {
+  color: #ffd0b5;
+  border-color: #7b8491;
+  background: #1d2027;
+}
+html[data-theme="dark"] .code-cta .cc-meta { color: #d7dce4; }
+html[data-theme="dark"] .code-cta:hover { color: #fff1e8; border-color: #ffd0b5; }
+html[data-theme="dark"] .code-cta:focus-visible,
+html[data-theme="dark"] .code-modal .modal-close:focus-visible,
+html[data-theme="dark"] .cv-tab:focus-visible { outline-color: #ffd0b5; }
+html[data-theme="dark"] .ix-checkpoint {
+  --cp-text: #f3f4f6;
+  --cp-muted: #d7dce4;
+  --cp-accent: #ffd0b5;
+  --cp-good: #9aefad;
+  --cp-bad: #ffb4bd;
+  --cp-disabled-fg: #d7dce4;
+  --cp-disabled-bg: #343a44;
+  --cp-disabled-line: #697586;
+}
+
+@media (max-width: 700px) {
+  .topbar-center,
+  .topbar .progressbar { display: none; }
+  .topbar-right { flex: 0 0 auto; }
+  .reading-col :not(pre) > code {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 420px) {
+  .cp-predict-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .code-cta,
+  .code-modal .modal-close,
+  .ix-checkpoint,
+  .ix-checkpoint * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

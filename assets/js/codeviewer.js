@@ -1,7 +1,7 @@
 /* codeviewer.js — read-only VS Code-style code popups. Self-contained, no deps.
    Renders any <div class="cv" data-file="ingest.py" data-lang="python"> whose
    raw source lives in a child <pre class="cv-raw">…escaped code…</pre> into an
-   editor chrome (title bar + traffic-lights + filename tab) with line numbers
+   editor chrome (title bar + traffic-lights + filename label/tabs) with line numbers
    and lightweight syntax highlighting. Meant to sit inside a .code-modal so the
    reading length is unaffected until the learner opens it. */
 (function () {
@@ -26,7 +26,7 @@
       ["com", /--[^\n]*/y],
       ["str", /'(?:''|[^'])*'/y],
       ["num", /\b\d+\b/y],
-      ["kw", /\b(?:CREATE|TABLE|INDEX|ON|USING|WITH|SELECT|FROM|WHERE|ORDER\s+BY|LIMIT|INSERT|INTO|VALUES|AND|OR|NOT|AS|VECTOR|EXTENSION|IF|EXISTS|PRIMARY|KEY)\b/iy],
+      ["kw", /\b(?:CYPHER|MATCH|SEARCH|SCORE|RETURN|FOR|IN|DISTINCT|COLLECT|CREATE|TABLE|INDEX|ON|USING|WITH|SELECT|FROM|WHERE|ORDER\s+BY|LIMIT|INSERT|INTO|VALUES|AND|OR|NOT|AS|VECTOR|EXTENSION|IF|EXISTS|PRIMARY|KEY)\b/iy],
       ["fn", /[A-Za-z_]\w*(?=\s*\()/y],
       ["id", /[A-Za-z_]\w*/y],
       ["ws", /\s+/y],
@@ -76,8 +76,10 @@
       lang: raw.dataset.lang || el.dataset.lang || "python",
       code: raw.textContent.replace(/^\n/, "").replace(/\s+$/, ""),
     }));
-    const tabs = files.map((f, i) =>
-      `<button type="button" class="cv-tab${i === 0 ? " on" : ""}" data-i="${i}">${esc(f.file)}</button>`).join("");
+    const tabs = files.length === 1
+      ? `<span class="cv-tab on cv-file-label" style="cursor:default">${esc(files[0].file)}</span>`
+      : files.map((f, i) =>
+        `<button type="button" class="cv-tab${i === 0 ? " on" : ""}" data-i="${i}">${esc(f.file)}</button>`).join("");
     el.innerHTML =
       `<div class="cv-bar"><span class="cv-dots"><i class="d-r"></i><i class="d-y"></i><i class="d-g"></i></span>` +
       `<span class="cv-tabs">${tabs}</span></div>` +
