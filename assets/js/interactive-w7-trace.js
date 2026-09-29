@@ -312,11 +312,15 @@
         option.value = optionData[0];
         select.appendChild(option);
       });
-      select.addEventListener("change", function () {
-        state = setTraceAnswer(state, question.key, select.value);
-      });
       label.appendChild(select);
       const diagnostic = appendText(label, "span", "w7-guide-diagnostic", "");
+      select.addEventListener("change", function () {
+        state = setTraceAnswer(state, question.key, select.value);
+        if (diagnostic.textContent) {
+          diagnostic.className = "w7-guide-diagnostic is-stale";
+          diagnostic.textContent = "Answer changed — check again to update this guidance.";
+        }
+      });
       diagnostic.id = "w7-guide-diagnostic-" + question.key;
       select.setAttribute("aria-describedby", diagnostic.id);
       guide.appendChild(label);
