@@ -287,6 +287,14 @@ steps.push(capture('initial'));
 const empty = q('form').dispatch('submit');
 steps.push(capture('incomplete', { prevented: empty.defaultPrevented }));
 const first = scenarios[0];
+for (const missingAxis of originalAxes) {
+  for (const node of radios()) node.checked = false;
+  answerAll(Object.fromEntries(originalAxes.filter(key => key !== missingAxis).map(key => [key, first[key]])));
+  q('form').dispatch('change');
+  const partial = q('form').dispatch('submit');
+  steps.push(capture('partial-missing-' + missingAxis, { prevented: partial.defaultPrevented }));
+}
+for (const node of radios()) node.checked = false;
 answerAll({ privateData: !first.privateData, untrustedContent: first.untrustedContent, externalEgress: first.externalEgress });
 q('form').dispatch('change');
 steps.push(capture('selection-complete'));
@@ -469,6 +477,19 @@ process.stdout.write(JSON.stringify({
         self.assertEqual("Select Yes or No for all three properties before submitting.", incomplete["status"])
         self.assertEqual("audit-private-yes", incomplete["focus"])
         self.assertEqual(f"Scenario 1 of {total} · 0 attempted · 0 mastered", incomplete["progress"])
+
+        first_inputs = {"privateData": "audit-private-yes", "untrustedContent": "audit-untrusted-yes",
+                        "externalEgress": "audit-egress-yes"}
+        for axis, first_input in first_inputs.items():
+            with self.subTest(missing_axis=axis):
+                partial = steps[f"partial-missing-{axis}"]
+                self.assertTrue(partial["prevented"])
+                self.assertEqual(2, len(partial["checked"]))
+                self.assertEqual("Select Yes or No for all three properties before submitting.", partial["status"])
+                self.assertEqual(first_input, partial["focus"])
+                self.assertEqual(f"Scenario 1 of {total} · 0 attempted · 0 mastered", partial["progress"])
+                self.assertTrue(partial["feedbackHidden"])
+                self.assertEqual(unlocked, partial["fieldsetsDisabled"])
 
         selection_complete = steps["selection-complete"]
         self.assertEqual("All three properties selected. Submit your audit.", selection_complete["status"])
