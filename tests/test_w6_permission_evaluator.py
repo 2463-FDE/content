@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import shutil
 import subprocess
 import textwrap
 import unittest
@@ -52,6 +54,19 @@ class PageContractParser(HTMLParser):
             self.scripts.append(values["src"] or "")
         if tag == "a" and values.get("href"):
             self.links.append(values["href"] or "")
+
+
+def find_chrome() -> str | None:
+    candidates = [
+        os.environ.get("CHROME_BIN"),
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    ]
+    candidates += [shutil.which(name) for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser")]
+    return next((path for path in candidates if path and os.access(path, os.X_OK)), None)
+
+
+CHROME = find_chrome()
 
 
 def run_node(script: str) -> dict:
@@ -318,6 +333,40 @@ class Week6PermissionEvaluatorTests(unittest.TestCase):
         self.assertEqual("100%", rules[".perm-case-select"]["width"])
 
 
+    @unittest.skipUnless(CHROME, "Chrome/Chromium not found; set CHROME_BIN to run real-browser regressions")
+    def test_real_browser_390px_overflow_keyboard_and_live_region_in_both_themes(self) -> None:
+        result = subprocess.run(
+            ["node", "-e", BROWSER_TEST_SCRIPT, CHROME, str(ROOT)],
+            cwd=ROOT, text=True, capture_output=True, timeout=180,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        runs = json.loads(result.stdout)
+        self.assertEqual(len(PAGES) * 2 * 2, len(runs))
+        for run in runs:
+            label = f"{run['page']} {run['theme']} {run['width']}px"
+            with self.subTest(run=label):
+                self.assertEqual(run["theme"], run["appliedTheme"])
+                self.assertEqual(run["width"], run["viewport"])
+                self.assertEqual([], run["overflow"])
+                self.assertLessEqual(run["widgetScrollWidth"], run["widgetClientWidth"])
+                self.assertGreaterEqual(run["checkContrast"], 4.5)
+                self.assertEqual("", run["preSubmitStatus"])
+                self.assertEqual("SELECT", run["tabOrder"][0])
+                self.assertEqual("INPUT:radio", run["tabOrder"][1])
+                self.assertEqual("BUTTON:Check prediction", run["tabOrder"][2])
+                self.assertEqual("deny", run["arrowPrediction"])
+                self.assertEqual("allow", run["spacePrediction"])
+                self.assertIn("Choose allow or deny", run["missingStatus"])
+                self.assertRegex(run["enterStatus"], r"^(Correct|Not yet): (ALLOW|DENY) — deciding rule [A-Z]-\d{2}\.$")
+                self.assertEqual("polite", run["liveAttr"])
+                self.assertEqual(1, run["liveRegionCount"])
+                self.assertTrue(run["announced"])
+                self.assertEqual("Prediction changed—check again.", run["changedStatus"])
+                self.assertEqual("SELECT", run["focusAfterReset"])
+                self.assertEqual([], run["pageErrors"])
+                self.assertEqual([], run["externalRequests"])
+
+
 DOM_TEST_SCRIPT = textwrap.dedent(r"""
 const fs=require('fs'),vm=require('vm');let calls=0;const forbidden=()=>{calls++;throw new Error('forbidden API')};
 class TextNode{constructor(data){this.nodeType=3;this.data=String(data)}get textContent(){return this.data}}
@@ -343,6 +392,65 @@ const optionTitles=byTag('option').map(n=>n.textContent);
 const structure={selectLabelFor:byTag('label').find(n=>n.getAttribute('for'))?.getAttribute('for'),selectId:select.id,legendFirst:byTag('fieldset')[0].children[0].tagName,statusAttrs:{live:status.getAttribute('aria-live'),atomic:status.getAttribute('aria-atomic')},liveNodes:nodes().filter(n=>n.getAttribute('aria-live')).map(n=>n.className),hasTextInput:radios.some(n=>n.type!=='radio')||byTag('textarea').length>0,buttonTypes:byTag('button').map(n=>n.type),checkClasses:byTag('button').filter(n=>n.textContent==='Check prediction').map(n=>n.className),radioTypes:radios.map(n=>n.type),negativeTabIndex:nodes().filter(n=>Number(n.getAttribute('tabindex'))<0).map(n=>n.tagName)};
 const subsetSurfaces=[];for(const set of ['legacy','delivery']){widget.setAttribute('data-case-set',set);policy.init(document);const subsetSelect=byTag('select')[0];for(const option of byTag('option')){subsetSelect.value=option.value;subsetSelect.dispatch('change');subsetSurfaces.push(JSON.stringify({set,option:{text:option.textContent,value:option.value,className:option.className,attributes:option.attributes},progress:nodes().find(n=>n.className==='perm-progress').textContent,call:nodes().find(n=>n.className==='perm-call').textContent,status:nodes().find(n=>n.getAttribute('role')==='status').textContent}));}}
 console.log(JSON.stringify({calls,structure,preSubmit,subsetSurfaces,missing,checked,changed,rechecked,reset,resetFocus,retryFocus,nextFocus,afterNext,optionTitles,styleText:document.getElementById('w6-permission-styles').textContent,boundary:nodes().find(n=>n.className==='perm-boundary').textContent}));
+""")
+
+
+BROWSER_TEST_SCRIPT = textwrap.dedent(r"""
+const {spawn}=require('child_process'),fs=require('fs'),os=require('os'),path=require('path'),{pathToFileURL}=require('url');
+const [chrome,root]=process.argv.slice(1);
+const profile=fs.mkdtempSync(path.join(os.tmpdir(),'w6-perm-'));
+const proc=spawn(chrome,['--headless=new','--remote-debugging-port=0',`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--disable-gpu','--allow-file-access-from-files','about:blank'],{stdio:['ignore','ignore','pipe']});
+const cleanup=()=>{try{proc.kill('SIGKILL')}catch(e){}try{fs.rmSync(profile,{recursive:true,force:true})}catch(e){}};
+const wsUrl=new Promise((resolve,reject)=>{let buf='';proc.stderr.on('data',d=>{buf+=d;const m=buf.match(/DevTools listening on (ws:\S+)/);if(m)resolve(m[1])});proc.on('exit',()=>reject(new Error('chrome exited: '+buf)));setTimeout(()=>reject(new Error('chrome start timeout')),30000)});
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function main(){
+ const ws=new WebSocket(await wsUrl);await new Promise((r,j)=>{ws.onopen=r;ws.onerror=j});
+ let seq=0;const pending=new Map(),listeners=[];
+ ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&pending.has(m.id)){const p=pending.get(m.id);pending.delete(m.id);m.error?p.reject(new Error(JSON.stringify(m.error))):p.resolve(m.result)}else listeners.forEach(l=>l(m))};
+ const send=(method,params={},sessionId)=>new Promise((resolve,reject)=>{const id=++seq;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params,sessionId}))});
+ const runs=[];
+ for(const page of ['w06d2.html','w06d4.html','w06d5.html'])for(const theme of ['light','dark'])for(const width of [1280,390]){
+  const {targetId}=await send('Target.createTarget',{url:'about:blank'});
+  const {sessionId}=await send('Target.attachToTarget',{targetId,flatten:true});
+  const s=(m,p)=>send(m,p,sessionId);
+  const pageErrors=[],externalRequests=[];
+  const listener=m=>{if(m.sessionId!==sessionId)return;
+   if(m.method==='Runtime.exceptionThrown'){const d=m.params.exceptionDetails;const where=(d.url||'')+' '+JSON.stringify(d.stackTrace||{});if(where.includes('interactive-w6-permissions'))pageErrors.push(d.exception?.description||d.text)}
+   if(m.method==='Network.requestWillBeSent'){const url=m.params.request.url;if(!/^(file|data|about|blob):/.test(url)&&JSON.stringify(m.params.initiator||{}).includes('interactive-w6-permissions'))externalRequests.push(url)}
+   if(m.method==='Fetch.requestPaused')s('Fetch.failRequest',{requestId:m.params.requestId,errorReason:'BlockedByClient'}).catch(()=>{})};
+  listeners.push(listener);
+  await s('Runtime.enable');await s('Network.enable');await s('Page.enable');
+  await s('Fetch.enable',{patterns:[{urlPattern:'http://*'},{urlPattern:'https://*'}]});
+  await s('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false});
+  await s('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
+  await s('Page.navigate',{url:pathToFileURL(path.join(root,'weeks','w06',page)).href});
+  const evaluate=async expr=>{const r=await s('Runtime.evaluate',{expression:expr,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value};
+  for(let i=0;i<100&&!(await evaluate("document.readyState==='complete'&&!!document.querySelector('.ix-permission .perm-check')"));i++)await sleep(100);
+  await evaluate("document.querySelectorAll('.login-overlay').forEach(n=>n.remove());true");
+  const key=async(k,code,keyCode,text,shift)=>{const base={key:k,code,windowsVirtualKeyCode:keyCode,nativeVirtualKeyCode:keyCode,modifiers:shift?8:0};await s('Input.dispatchKeyEvent',Object.assign({type:text?'keyDown':'rawKeyDown',text},base));await s('Input.dispatchKeyEvent',Object.assign({type:'keyUp'},base));await sleep(30)};
+  const Tab=()=>key('Tab','Tab',9),Space=()=>key(' ','Space',32,' '),Enter=()=>key('Enter','Enter',13,'\r'),Down=()=>key('ArrowDown','ArrowDown',40);
+  const active="(()=>{const a=document.activeElement;return a.tagName+(a.type==='radio'?':radio':a.tagName==='BUTTON'?':'+a.textContent:'')})()";
+  const W="document.querySelector('.ix-permission')";
+  const layout=await evaluate(`(()=>{const w=${W};w.scrollIntoView();const wr=w.getBoundingClientRect();const overflow=[];for(const n of w.querySelectorAll('*')){const r=n.getBoundingClientRect();if(r.width&&(r.right>wr.right+0.5||r.left<wr.left-0.5||n.scrollWidth>n.clientWidth+1&&getComputedStyle(n).overflowX!=='visible'))overflow.push(n.tagName+'.'+n.className+':'+Math.round(r.left)+'-'+Math.round(r.right))}if(wr.right>innerWidth+0.5)overflow.push('widget:'+Math.round(wr.right));
+   const lum=c=>{const v=c.match(/[\\d.]+/g).slice(0,3).map(x=>x/255).map(x=>x<=0.03928?x/12.92:((x+0.055)/1.055)**2.4);return 0.2126*v[0]+0.7152*v[1]+0.0722*v[2]};const cs=getComputedStyle(w.querySelector('.perm-check'));const a=lum(cs.color),b=lum(cs.backgroundColor);
+   return {overflow,viewport:innerWidth,widgetScrollWidth:w.scrollWidth,widgetClientWidth:w.clientWidth,appliedTheme:document.documentElement.getAttribute('data-theme'),checkContrast:(Math.max(a,b)+0.05)/(Math.min(a,b)+0.05),preSubmitStatus:w.querySelector('[role=status]').textContent,liveAttr:w.querySelector('[role=status]').getAttribute('aria-live'),liveRegionCount:w.querySelectorAll('[aria-live]').length}})()`);
+  await evaluate(`${W}.querySelector('select').focus();true`);
+  const tabOrder=[await evaluate(active)];for(let i=0;i<2;i++){await Tab();tabOrder.push(await evaluate(active))}
+  await Enter();const missingStatus=await evaluate(`${W}.querySelector('[role=status]').textContent`);
+  await key('Tab','Tab',9,undefined,true);await Down();const arrowPrediction=await evaluate(`(${W}.querySelector('input:checked')||{}).value||null`);
+  await key('ArrowUp','ArrowUp',38);await Space();const spacePrediction=await evaluate(`(${W}.querySelector('input:checked')||{}).value||null`);
+  await Tab();await Enter();const enterStatus=await evaluate(`${W}.querySelector('[role=status]').textContent`);
+  const {root:{nodeId:docId}}=await s('DOM.getDocument',{depth:0});const {nodeId}=await s('DOM.querySelector',{nodeId:docId,selector:'.ix-permission [role=status]'});
+  const {nodes}=await s('Accessibility.getPartialAXTree',{nodeId,fetchRelatives:false});const ax=nodes[0]||{};
+  const announced=ax.role?.value==='status'&&(ax.properties||[]).some(p=>p.name==='live'&&p.value.value==='polite')&&enterStatus.length>0;
+  await key('Tab','Tab',9,undefined,true);await key('ArrowDown','ArrowDown',40);const changedStatus=await evaluate(`${W}.querySelector('[role=status]').textContent`);
+  await evaluate(`${W}.querySelectorAll('button')[3].focus();true`);await Enter();const focusAfterReset=await evaluate("document.activeElement.tagName");
+  runs.push(Object.assign({page,theme,width,tabOrder,missingStatus,arrowPrediction,spacePrediction,enterStatus,announced,changedStatus,focusAfterReset,pageErrors,externalRequests},layout));
+  listeners.splice(listeners.indexOf(listener),1);await send('Target.closeTarget',{targetId});
+ }
+ ws.close();return runs;
+}
+main().then(r=>{process.stdout.write(JSON.stringify(r));cleanup();process.exit(0)},e=>{console.error(e.stack||e);cleanup();process.exit(1)});
 """)
 
 
