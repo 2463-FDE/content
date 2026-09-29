@@ -124,7 +124,7 @@
 .cp-predict-feedback:empty { display: none; }
 .cp-predict-feedback ul { margin: 0; padding-left: 18px; }
 .cp-predict-feedback .is-correct { color: var(--cp-good); }
-.cp-predict-feedback .is-wrong { color: var(--cp-bad); }
+.cp-predict-feedback .is-incorrect { color: var(--cp-bad); }
 .cp-predict-feedback .is-missing { color: var(--cp-bad); }
 
 html[data-theme="dark"] .code-cta {
