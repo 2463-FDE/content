@@ -191,21 +191,86 @@ def validate_tenant_safe_cypher(source: str) -> None:
         raise AssertionError("Team traversal is not tenant-scoped")
 
 
-def assert_simulator_has_no_side_effect_capability(source: str) -> None:
-    forbidden = {
-        "fetch": r"\bfetch\s*\(",
-        "XMLHttpRequest": r"\bXMLHttpRequest\b",
-        "WebSocket": r"\bWebSocket\b",
-        "EventSource": r"\bEventSource\b",
-        "sendBeacon": r"\bsendBeacon\b",
-        "localStorage": r"\blocalStorage\b",
-        "sessionStorage": r"\bsessionStorage\b",
-        "indexedDB": r"\bindexedDB\b",
-        "cookie": r"document\s*\.\s*cookie",
+def parse_css_rules(source: str) -> list[tuple[tuple[str, ...], tuple[str, ...], dict[str, str]]]:
+    """Parse stylesheet text into (at-rule context, selectors, declarations) tuples."""
+    source = re.sub(r"/\*.*?\*/", "", source, flags=re.DOTALL)
+    rules: list[tuple[tuple[str, ...], tuple[str, ...], dict[str, str]]] = []
+    context: list[str] = []
+    prelude = ""
+    index = 0
+    while index < len(source):
+        char = source[index]
+        if char == "{":
+            header = " ".join(prelude.split())
+            prelude = ""
+            if header.startswith("@"):
+                context.append(header)
+                index += 1
+                continue
+            close = source.index("}", index)
+            declarations: dict[str, str] = {}
+            for declaration in source[index + 1:close].split(";"):
+                if ":" in declaration:
+                    name, value = declaration.split(":", 1)
+                    declarations[name.strip()] = " ".join(value.split())
+            selectors = tuple(" ".join(part.split()) for part in header.split(","))
+            rules.append((tuple(context), selectors, declarations))
+            index = close + 1
+            continue
+        if char == "}":
+            if not context:
+                raise AssertionError("unbalanced CSS block")
+            context.pop()
+            prelude = ""
+        else:
+            prelude += char
+        index += 1
+    if context:
+        raise AssertionError(f"unclosed CSS at-rule(s): {context}")
+    return rules
+
+
+def declarations_for(rules, selector: str, context: tuple[str, ...] = ()) -> dict[str, str]:
+    merged: dict[str, str] = {}
+    for rule_context, selectors, declarations in rules:
+        if rule_context == context and selector in selectors:
+            merged.update(declarations)
+    return merged
+
+
+def pixel_value(value: str) -> int:
+    match = re.fullmatch(r"(\d+)px", value)
+    if not match:
+        raise AssertionError(f"expected a pixel length, got {value!r}")
+    return int(match.group(1))
+
+
+def shipped_contrast_pairs(w4_css: str, shared_css: str) -> list[tuple[str, str, str]]:
+    """Derive checkpoint foreground/background pairs from the shipped light and dark tokens."""
+    w4_rules = parse_css_rules(w4_css)
+    shared_rules = parse_css_rules(shared_css)
+    themes = {
+        "light": (declarations_for(w4_rules, ".ix-checkpoint"), declarations_for(shared_rules, ":root")),
+        "dark": (
+            declarations_for(w4_rules, 'html[data-theme="dark"] .ix-checkpoint'),
+            declarations_for(shared_rules, 'html[data-theme="dark"]'),
+        ),
     }
-    found = [name for name, pattern in forbidden.items() if re.search(pattern, source)]
-    if found:
-        raise AssertionError(f"simulator side-effect capability found: {found}")
+    pairs: list[tuple[str, str, str]] = []
+    for theme, (tokens, surfaces) in themes.items():
+        foregrounds = [name for name in tokens if name.startswith("--cp-") and name not in {"--cp-disabled-bg", "--cp-disabled-line"}]
+        if len(foregrounds) < 6:
+            raise AssertionError(f"{theme} checkpoint palette is incomplete: {sorted(tokens)}")
+        for surface in ("--surface", "--surface-2"):
+            for name in foregrounds:
+                pairs.append((f"{theme} {name} on {surface}", tokens[name], surfaces[surface]))
+        for name in ("--cp-disabled-fg", "--cp-good"):
+            pairs.append((f"{theme} {name} on --cp-disabled-bg", tokens[name], tokens["--cp-disabled-bg"]))
+    dark_cta = declarations_for(w4_rules, 'html[data-theme="dark"] .code-cta')
+    light_cta = declarations_for(w4_rules, ".code-cta")
+    pairs.append(("light .code-cta on --surface", light_cta["color"], themes["light"][1]["--surface"]))
+    pairs.append(("dark .code-cta", dark_cta["color"], dark_cta["background"]))
+    return pairs
 
 
 def channel(value: int) -> float:
@@ -223,10 +288,10 @@ def contrast(foreground: str, background: str) -> float:
     return (first + 0.05) / (second + 0.05)
 
 
-def validate_contrast_palette(pairs: list[tuple[str, str]]) -> None:
-    for foreground, background in pairs:
+def validate_contrast_palette(pairs: list[tuple[str, str, str]]) -> None:
+    for label, foreground, background in pairs:
         if contrast(foreground, background) < 4.5:
-            raise AssertionError(f"contrast below 4.5:1: {foreground} on {background}")
+            raise AssertionError(f"contrast below 4.5:1 for {label}: {foreground} on {background}")
 
 
 def validate_responsive_motion_css(source: str) -> None:
@@ -279,16 +344,100 @@ class WeekFourMajorRefreshTests(unittest.TestCase):
         self.assertEqual(1, cypher_examples)
 
     def test_single_file_viewer_is_a_label_and_close_target_is_44px(self) -> None:
-        viewer_source = CODEVIEWER.read_text(encoding="utf-8")
-        css = W4_CSS.read_text(encoding="utf-8")
-        self.assertIn('files.length === 1', viewer_source)
-        self.assertIn('class="cv-tab on cv-file-label"', viewer_source)
-        self.assertIn('if (files.length > 1)', viewer_source)
-        self.assertIn('<button type="button" class="cv-tab', viewer_source)
-        self.assertRegex(css, r"\.code-modal \.modal-close\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;")
+        probe = r"""
+const fs = require('fs');
+const vm = require('vm');
+const cases = JSON.parse(fs.readFileSync(0, 'utf8'));
+function node(extra) {
+  const listeners = {};
+  return Object.assign({
+    dataset: {}, innerHTML: '', textContent: '',
+    addEventListener(type, fn) { (listeners[type] = listeners[type] || []).push(fn); },
+    click() { (listeners.click || []).forEach(fn => fn({ type: 'click' })); },
+  }, extra);
+}
+const viewers = cases.map(files => {
+  const raws = files.map(file => node({ dataset: { file: file.file, lang: file.lang }, textContent: file.code }));
+  const viewer = node({ tabs: [], body: node() });
+  viewer.querySelectorAll = selector => {
+    if (selector === '.cv-raw') return raws;
+    if (selector === '.cv-tab') {
+      viewer.tabs = [...viewer.innerHTML.matchAll(/<button[^>]*class="cv-tab([^"]*)"[^>]*data-i="(\d+)"/g)].map(match => {
+        const classes = new Set(['cv-tab', ...match[1].split(' ').filter(Boolean)]);
+        return node({ dataset: { i: match[2] }, classes, classList: { toggle: (name, on) => on ? classes.add(name) : classes.delete(name) } });
+      });
+      return viewer.tabs;
+    }
+    return [];
+  };
+  viewer.querySelector = selector => selector === '.cv-body' ? viewer.body : null;
+  return viewer;
+});
+const ready = [];
+const document = {
+  addEventListener: (type, fn) => type === 'DOMContentLoaded' && ready.push(fn),
+  querySelectorAll: selector => selector === '.cv' ? viewers : [],
+};
+vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), { document }, { filename: 'codeviewer.js', timeout: 1000 });
+ready.forEach(fn => fn());
+process.stdout.write(JSON.stringify(viewers.map(viewer => {
+  const before = viewer.innerHTML;
+  const last = viewer.tabs[viewer.tabs.length - 1];
+  if (last) last.click();
+  return {
+    html: before,
+    switchedBody: last ? viewer.body.innerHTML : null,
+    active: viewer.tabs.map(tab => tab.classes.has('on')),
+  };
+})));
+"""
+        cases = []
         for path in W4_PAGES:
-            page = ParsedPage(path)
-            self.assertEqual(1, len(page.root.find_all("pre", "cv-raw")))
+            code, language = published_example(path)
+            cases.append([{"file": path.stem + ".example", "lang": language, "code": code}])
+        cases.append([
+            {"file": "first.py", "lang": "python", "code": "first_value = 1"},
+            {"file": "second.py", "lang": "python", "code": "second_value = 2"},
+        ])
+        result = subprocess.run(
+            ["node", "-e", probe, str(CODEVIEWER)], input=json.dumps(cases), text=True, capture_output=True, check=True, timeout=3
+        )
+        rendered = json.loads(result.stdout)
+
+        def tabs_of(html: str) -> list[Element]:
+            parser = CurriculumHTMLParser()
+            parser.feed(html)
+            parser.close()
+            return parser.root.find_all(class_name="cv-tab")
+
+        for path, output in zip(W4_PAGES, rendered[:-1]):
+            with self.subTest(page=path.name):
+                tabs = tabs_of(output["html"])
+                self.assertEqual(1, len(tabs))
+                self.assertNotEqual("button", tabs[0].tag)
+                self.assertIn("cv-file-label", tabs[0].attrs["class"].split())
+                self.assertEqual(path.stem + ".example", tabs[0].text())
+                self.assertEqual([], output["active"])
+
+        multi = rendered[-1]
+        tabs = tabs_of(multi["html"])
+        self.assertEqual(["button", "button"], [tab.tag for tab in tabs])
+        self.assertEqual(["button", "button"], [tab.attrs.get("type") for tab in tabs])
+        self.assertEqual(["first.py", "second.py"], [tab.text() for tab in tabs])
+        self.assertFalse(any("cv-file-label" in tab.attrs["class"].split() for tab in tabs))
+        self.assertIn("second_value", multi["switchedBody"])
+        self.assertEqual([False, True], multi["active"])
+
+        rules = parse_css_rules(W4_CSS.read_text(encoding="utf-8"))
+        close = declarations_for(rules, ".code-modal .modal-close")
+        for prop in ("width", "min-width", "height", "min-height"):
+            with self.subTest(prop=prop):
+                self.assertGreaterEqual(pixel_value(close[prop]), 44)
+        for context, selectors, declarations in rules:
+            if ".code-modal .modal-close" in selectors and context:
+                for prop in ("width", "min-width", "height", "min-height"):
+                    if prop in declarations:
+                        self.assertGreaterEqual(pixel_value(declarations[prop]), 44, (context, prop))
 
     def test_quizzes_and_embedded_javascript_are_executable_and_current(self) -> None:
         probe = r"""
@@ -471,17 +620,96 @@ process.stdout.write(JSON.stringify({ log, reset, sideEffects }));
         self.assertFalse(contract["reset"]["prediction"]["checked"])
         self.assertEqual([], contract["sideEffects"])
 
-    def test_simulator_side_effect_mutations_are_rejected(self) -> None:
-        source = SIMULATOR.read_text(encoding="utf-8")
-        assert_simulator_has_no_side_effect_capability(source)
-        for mutation in (
-            source + "\nfetch('/leak')",
-            source + "\nlocalStorage.setItem('checkpoint', 'x')",
-            source + "\nnavigator.sendBeacon('/leak', 'x')",
-            source + "\ndocument.cookie = 'x=y'",
+    def run_trapped_mount(self, appended_source: str = "") -> list[str]:
+        probe = r"""
+const fs = require('fs');
+const vm = require('vm');
+const source = fs.readFileSync(process.argv[1], 'utf8') + process.argv[2];
+const sideEffects = [];
+const trap = name => () => { sideEffects.push(name); throw new Error('blocked ' + name); };
+const ready = [];
+const document = {
+  activeElement: null,
+  addEventListener: (type, fn) => type === 'DOMContentLoaded' && ready.push(fn),
+  querySelectorAll: selector => selector === '[data-checkpoint-sim]' ? [container] : [],
+};
+Object.defineProperty(document, 'cookie', { get: trap('document.cookie:get'), set: trap('document.cookie:set') });
+const navigator = {};
+Object.defineProperty(navigator, 'sendBeacon', { get: trap('navigator.sendBeacon') });
+function el(extra) {
+  const listeners = {};
+  return Object.assign({
+    dataset: {}, disabled: false, hidden: false, innerHTML: '', textContent: '', className: '', value: '', name: '',
+    addEventListener(type, fn) { (listeners[type] = listeners[type] || []).push(fn); },
+    dispatchEvent(event) { (listeners[event.type] || []).forEach(fn => fn(event)); return true; },
+    focus() { document.activeElement = this; },
+    fire(type, props) {
+      const event = Object.assign({ type, preventDefault() {} }, props);
+      this.dispatchEvent(event); return event;
+    },
+  }, extra);
+}
+const buttons = ['step', 'crash', 'resume', 'reset'].map(action => { const button = el(); button.dataset.cpAction = action; return button; });
+const selects = ['checkpoint', 'skipped', 'replayed', 'executionCount'].map(name => el({ name }));
+const check = el();
+const feedback = el();
+const prediction = el({
+  querySelectorAll: selector => selector === 'select' ? selects : [],
+  querySelector: selector => selector === '[data-cp-check]' ? check : feedback,
+});
+const statusSpan = el();
+const parts = {
+  '.cp-graph': el(), '.cp-status': el({ querySelector: () => statusSpan }), '.cp-checkpoint': el(),
+  '[data-cp-skipped]': el(), '[data-cp-replayed]': el(), '.cp-log ol': el(), '[data-cp-predict]': prediction,
+};
+const container = el({ querySelectorAll: () => buttons, querySelector: selector => parts[selector] });
+const sandbox = { module: { exports: {} }, document, navigator, console };
+sandbox.window = sandbox;
+sandbox.globalThis = sandbox;
+sandbox.CustomEvent = class { constructor(type, init) { this.type = type; this.detail = init && init.detail; } };
+for (const name of ['fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'localStorage', 'sessionStorage', 'indexedDB']) {
+  Object.defineProperty(sandbox, name, { get: trap(name) });
+}
+let phases = [];
+try {
+  vm.runInNewContext(source, sandbox, { filename: 'interactive-w4-checkpoint.js', timeout: 1000 });
+  ready.forEach(fn => fn());
+  container.addEventListener('w4checkpoint:change', event => phases.push(event.detail.phase));
+  const [step, crash, resume, reset] = buttons;
+  step.fire('click'); step.fire('click'); crash.fire('click');
+  selects[0].value = 'cp-1'; prediction.fire('submit');
+  selects[0].value = 'cp-2'; selects[1].value = 'validate_request,load_order';
+  selects[2].value = 'calculate_refund'; selects[3].value = '2'; prediction.fire('submit');
+  resume.fire('click'); step.fire('click'); step.fire('click'); step.fire('click');
+  container.fire('keydown', { altKey: true, ctrlKey: false, metaKey: false, code: 'Digit0' });
+  reset.fire('click');
+} catch (error) {
+  if (!sideEffects.length) throw error;
+}
+process.stdout.write(JSON.stringify({ sideEffects, mounted: container.dataset.checkpointMounted === 'true', phases }));
+"""
+        result = subprocess.run(
+            ["node", "-e", probe, str(SIMULATOR), appended_source], text=True, capture_output=True, check=True, timeout=3
+        )
+        return json.loads(result.stdout)
+
+    def test_mounted_simulator_has_no_storage_or_network_side_effects(self) -> None:
+        clean = self.run_trapped_mount()
+        self.assertTrue(clean["mounted"])
+        self.assertIn("crashed", clean["phases"])
+        self.assertIn("complete", clean["phases"])
+        self.assertEqual("ready", clean["phases"][-1])
+        self.assertEqual([], clean["sideEffects"])
+        for mutation, expected in (
+            ("\nfetch('/leak');", "fetch"),
+            ("\nlocalStorage.setItem('checkpoint', 'x');", "localStorage"),
+            ("\nsessionStorage.getItem('checkpoint');", "sessionStorage"),
+            ("\nnavigator.sendBeacon('/leak', 'x');", "navigator.sendBeacon"),
+            ("\ndocument.cookie = 'x=y';", "document.cookie:set"),
+            ("\ndocument.addEventListener('DOMContentLoaded', () => document.cookie);", "document.cookie:get"),
         ):
-            with self.assertRaises(AssertionError):
-                assert_simulator_has_no_side_effect_capability(mutation)
+            with self.subTest(mutation=expected):
+                self.assertIn(expected, self.run_trapped_mount(mutation)["sideEffects"])
 
     def test_w4d2_mounted_simulator_handles_prediction_keyboard_focus_and_reset(self) -> None:
         page = ParsedPage(ROOT / "weeks" / "w04" / "w04d2.html")
@@ -527,7 +755,7 @@ const [step, crash, resume, reset] = buttons;
 const name = node => node ? (node.dataset.cpAction || node.name || (node === check ? 'check' : 'other')) : null;
 const record = (label, event) => ({
   label, phase: view.phase, checkpoint: view.checkpoint, focus: name(doc.activeElement), canResume: view.canResume,
-  prediction: view.prediction, status: parts['.cp-status'].innerHTML,
+  prediction: view.prediction, status: parts['.cp-status'].innerHTML, feedbackHtml: feedback.innerHTML,
   disabled: { step: step.disabled, crash: crash.disabled, resume: resume.disabled }, prevented: event ? event.defaultPrevented : null,
 });
 api.mount(container);
@@ -564,6 +792,19 @@ process.stdout.write(JSON.stringify(log));
         self.assertTrue(log["blocked-alt-r"]["prevented"])
         self.assertEqual("skipped", log["partial"]["focus"])
         self.assertEqual("incorrect", log["wrong"]["prediction"]["feedback"][1]["status"])
+        rules = parse_css_rules(W4_CSS.read_text(encoding="utf-8"))
+        expected_colors = {"missing": "var(--cp-bad)", "incorrect": "var(--cp-bad)", "correct": "var(--cp-good)"}
+        for label in ("partial", "wrong", "correct"):
+            parser = CurriculumHTMLParser()
+            parser.feed(log[label]["feedbackHtml"])
+            parser.close()
+            items = parser.root.find_all("li")
+            self.assertEqual(4, len(items), label)
+            for item in items:
+                status = item.attrs["class"].removeprefix("is-")
+                color = declarations_for(rules, f".cp-predict-feedback .{item.attrs['class']}").get("color")
+                with self.subTest(label=label, status=status):
+                    self.assertEqual(expected_colors[status], color)
         self.assertEqual("resume", log["correct"]["focus"])
         self.assertTrue(log["correct"]["canResume"])
         self.assertEqual("resumed", log["alt-r"]["phase"])
@@ -577,17 +818,14 @@ process.stdout.write(JSON.stringify(log));
     def test_contrast_responsive_and_reduced_motion_guards_reject_mutations(self) -> None:
         css = W4_CSS.read_text(encoding="utf-8")
         validate_responsive_motion_css(css)
-        palette = [
-            ("#7c2d12", "#ffffff"), ("#374151", "#ffffff"),
-            ("#1f2937", "#f6f8f6"), ("#374151", "#f6f8f6"),
-            ("#4b5563", "#e5e7eb"), ("#ffd0b5", "#1d2027"),
-            ("#d7dce4", "#1d2027"), ("#f3f4f6", "#23272f"),
-            ("#d7dce4", "#343a44"), ("#ffb4bd", "#23272f"),
-            ("#9aefad", "#23272f"),
-        ]
-        validate_contrast_palette(palette)
+        shared_css = (ROOT / "assets" / "css" / "style.css").read_text(encoding="utf-8")
+        pairs = shipped_contrast_pairs(css, shared_css)
+        self.assertGreaterEqual(len(pairs), 30)
+        validate_contrast_palette(pairs)
         with self.assertRaises(AssertionError):
-            validate_contrast_palette([("#69707b", "#1d2027")])
+            validate_contrast_palette(shipped_contrast_pairs(css.replace("--cp-muted: #d7dce4;", "--cp-muted: #69707b;"), shared_css))
+        with self.assertRaises(AssertionError):
+            validate_contrast_palette([("dark muted mutation", "#69707b", "#1d2027")])
         with self.assertRaises(AssertionError):
             validate_responsive_motion_css(css + "\n.cp-mutation { min-width: 600px; }")
         with self.assertRaises(AssertionError):
