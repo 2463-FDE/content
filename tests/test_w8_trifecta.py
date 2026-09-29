@@ -237,7 +237,14 @@ class FakeElement {
 const root = new FakeElement(tree, null);
 const documentStub = { querySelectorAll(selector) { return root.matches(selector) ? [root] : []; } };
 const { sandbox, ready, violations } = loadModule(source, documentStub);
-const scenarios = sandbox.module.exports.SCENARIOS;
+const api = sandbox.module.exports;
+const scenarios = api.SCENARIOS;
+const originalAxes = Array.from(api.COMPONENTS);
+let spliceBlocked = false;
+try { api.COMPONENTS.splice(0); } catch (_) { spliceBlocked = true; }
+const reflectResults = originalAxes.map((_, index) => Reflect.set(api.COMPONENTS, index, 'corrupted'));
+const axisGuard = { frozen: Object.isFrozen(api.COMPONENTS), spliceBlocked,
+  reflectResults, after: Array.from(api.COMPONENTS) };
 const q = selector => root.querySelector(selector);
 const radios = () => root.querySelectorAll('input[type="radio"]');
 function choose(name, value) {
@@ -340,7 +347,7 @@ for (const [position, index] of unresolvedPicks.entries()) {
   q('[data-audit-next]').dispatch('click');
   steps.push(capture('multi-review-after-next-' + position));
 }
-process.stdout.write(JSON.stringify({ steps, violations, titles: scenarios.map(s => s.title),
+process.stdout.write(JSON.stringify({ steps, violations, axisGuard, titles: scenarios.map(s => s.title),
   total: scenarios.length, firstPrivate: first.privateData }));
 """
     return node_json(probe, str(MODULE), json.dumps(serialize(auditor)))
@@ -403,6 +410,29 @@ class WeekEightTrifectaTests(unittest.TestCase):
         self.assertTrue(by_id["support-draft-desk"]["externalEgress"])
         self.assertIn("human relay", by_id["support-draft-desk"]["reasons"]["externalEgress"])
 
+    def test_browser_like_execution_publishes_no_answer_model_global(self) -> None:
+        probe = r"""
+const source = fs.readFileSync(process.argv[1], 'utf8');
+let ready = null;
+const documentStub = {
+  addEventListener(type, callback) { if (type === 'DOMContentLoaded') ready = callback; },
+  querySelectorAll() { return []; }
+};
+const sandbox = { document: documentStub };
+vm.createContext(sandbox);
+vm.runInContext(source, sandbox, { filename: 'interactive-security.browser.js' });
+ready();
+const names = Object.getOwnPropertyNames(sandbox).filter(name =>
+  /trifecta|scenario|component|evaluate|session/i.test(name));
+process.stdout.write(JSON.stringify({
+  hasLegacyGlobal: Object.prototype.hasOwnProperty.call(sandbox, 'FDETrifectaAuditor'),
+  answerModelGlobals: names
+}));
+"""
+        result = node_json(probe, str(MODULE))
+        self.assertFalse(result["hasLegacyGlobal"])
+        self.assertEqual([], result["answerModelGlobals"])
+
     def test_reset_retry_and_xss_safe_text_rendering_execute_without_io(self) -> None:
         result = run_node_probe()
         self.assertEqual({"wrongAttempted": 1, "wrongMastered": 0,
@@ -418,6 +448,10 @@ class WeekEightTrifectaTests(unittest.TestCase):
     def test_mounted_auditor_tracks_mastery_completion_review_and_restart_without_io(self) -> None:
         result = run_mounted_probe()
         self.assertEqual([], result["violations"])
+        self.assertEqual({"frozen": True, "spliceBlocked": True,
+                          "reflectResults": [False, False, False],
+                          "after": ["privateData", "untrustedContent", "externalEgress"]},
+                         result["axisGuard"])
         steps = {step["label"]: step for step in result["steps"]}
         total = result["total"]
         first_title, second_title, last_title = result["titles"][0], result["titles"][1], result["titles"][-1]

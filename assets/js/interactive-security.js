@@ -1,19 +1,19 @@
 /* Week 8 security practice — deterministic, local-only lethal-trifecta auditor. */
-(function (globalScope, factory) {
+(function (factory) {
   "use strict";
   const api = factory();
-  if (typeof module !== "undefined" && module.exports) module.exports = api;
-  if (globalScope) globalScope.FDETrifectaAuditor = api;
+  const commonJS = typeof module !== "undefined" && module.exports;
+  if (commonJS) module.exports = api;
 
   if (typeof document !== "undefined") {
     document.addEventListener("DOMContentLoaded", function () {
       document.querySelectorAll("[data-trifecta-auditor]").forEach(api.mount);
     });
   }
-})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+})(function () {
   "use strict";
 
-  const COMPONENTS = ["privateData", "untrustedContent", "externalEgress"];
+  const COMPONENTS = Object.freeze(["privateData", "untrustedContent", "externalEgress"]);
   const SCENARIOS = Object.freeze([
     Object.freeze({
       id: "clinic-markdown",
@@ -401,7 +401,7 @@
   }
 
   return Object.freeze({
-    COMPONENTS: COMPONENTS,
+    COMPONENTS: Object.freeze(COMPONENTS.slice()),
     SCENARIOS: SCENARIOS,
     classify: classify,
     evaluate: evaluate,
