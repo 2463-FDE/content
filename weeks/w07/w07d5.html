@@ -219,11 +219,13 @@
         <div class="tag">★ Milestone</div>
         <h2>The cost of the check, and the line you deliver</h2>
         <p>The guardrail is now a critical-path dependency, so it gets its own golden signals. OpenAI's published
-        hallucination-detection benchmark — 300 statements, 50% positive prevalence — gives you numbers to argue with:
-        ROC AUC 0.876 for <code>gpt-4.1-mini</code>, 0.934 for <code>gpt-5-mini</code>, 0.854 for <code>gpt-5</code>.
-        <strong>Bigger is not better here.</strong> The latency spread is starker: a File-Search-backed check runs
-        P50 ≈ 7.1 s / P95 ≈ 43 s on <code>gpt-4.1-mini</code>, and P50 ≈ 34 s / P95 ≈ 526 s on <code>gpt-5</code> —
-        against <strong>under 500 ms</strong> for a purpose-built grounding API — the difference between a check you can
+        hallucination-detection benchmark — <strong>accessed August 6, 2026</strong>; 300 statements, 50% positive
+        prevalence — gives you dated measurements to argue with, not current-model recommendations: ROC AUC 0.876 for
+        <code>gpt-4.1-mini</code>, 0.934 for <code>gpt-5-mini</code>, 0.854 for <code>gpt-5</code>.
+        <strong>Bigger is not better here.</strong> The same dated benchmark reports a starker latency spread: a
+        File-Search-backed check runs P50 ≈ 7.1 s / P95 ≈ 43 s on <code>gpt-4.1-mini</code>, and P50 ≈ 34 s / P95 ≈
+        526 s on <code>gpt-5</code> — against <strong>under 500 ms</strong> for a purpose-built grounding API — the
+        difference between a check you can
         run inline and one you can't. Two knobs with measured effect: start <code>confidence_threshold</code>
         at 0.7, and disable reasoning in production, which "reduces median latency by 40% on average."</p>
         <p>Say the limits out loud or the milestone teaches overconfidence. RAG does not fix hallucination — RAGTruth's
