@@ -89,6 +89,17 @@
         max-output lets a runaway answer cost many times the task; a middling temperature turns a deterministic
         extraction into a "flaky" bug. State your intentions here — short timeout, bounded output, temperature matched to
         the task — not whatever the library shipped.</p>
+        <details class="callout">
+          <summary><span class="k">Trainer troubleshooting · Bedrock model IDs</span></summary>
+          <p>These boto3 examples use <code>bedrock-runtime</code>. AWS's verified US inference-profile IDs are
+          <code>us.anthropic.claude-haiku-4-5-20251001-v1:0</code> and <code>us.anthropic.claude-sonnet-5</code>
+          (accessed 2026-09-25). The <code>us.</code> profile can route across US Regions; it does not promise one-Region
+          processing. If a profile is unavailable or the client requires global or strict single-Region routing, check
+          the AWS model card and the organization's approved profile—do not guess a prefix. Bare
+          <code>anthropic.claude-…</code> IDs on these model cards belong to the separate <code>bedrock-mantle</code>
+          endpoint, not boto3 Converse. This static lesson did not inspect an AWS account; organization-specific model
+          enablement is the bounded trainer follow-up.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -281,6 +292,9 @@ def ask(prompt):
           <li><a href="https://platform.claude.com/docs/en/api/errors" target="_blank" rel="noopener">Claude API — Errors</a> — the real HTTP codes your transport layer reasons about (429 rate limits, 5xx/529 overloaded, 504 timeout) plus the per-response request id for log correlation.</li>
           <li><a href="https://platform.claude.com/docs/en/cli-sdks-libraries/overview" target="_blank" rel="noopener">Claude API — CLI, SDKs, and libraries</a> — the official provider SDKs your model adapter wraps; each ships built-in streaming, retries, and typed error handling.</li>
           <li><a href="https://platform.claude.com/docs/en/build-with-claude/streaming" target="_blank" rel="noopener">Claude API — Streaming messages</a> — how server-sent-event streaming actually works, backing Layer 4b's time-to-first-token and mid-stream failure handling.</li>
+          <li><a href="https://platform.claude.com/docs/en/about-claude/models/model-ids-and-versions" target="_blank" rel="noopener">Anthropic — Model IDs and versioning</a> — distinguishes current canonical IDs from earlier-model aliases and dated snapshots (accessed 2026-09-25).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-4-5.html" target="_blank" rel="noopener">AWS — Claude Haiku 4.5 model card</a> — current Bedrock endpoints, US/global inference-profile IDs, and routing caveat (accessed 2026-09-25).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-5.html" target="_blank" rel="noopener">AWS — Claude Sonnet 5 model card</a> — current size-up model IDs and the same inference-profile nuance (accessed 2026-09-25).</li>
         </ul>
       </section>
 
@@ -400,7 +414,7 @@ window.DIAGRAM = {
   nodes: [
     // example payload card — the config the client loads at boot
     { id:"cfgcard", step:0, kind:"example", x:21, y:14, w:428, h:94,
-      label:"# config — loaded once, at boot\nMODEL     = claude-haiku-4.5        # chosen Tue\nAPI_KEY   = env(\"ANTHROPIC_KEY\")     # never in code\nTIMEOUT_S = 20   MAX_TOKENS = 600   TEMP = 0" },
+      label:"# config — loaded once, at boot\nMODEL     = env(\"BEDROCK_MODEL_ID\")  # verified profile\nAPI_KEY   = env(\"AWS_BEARER_TOKEN_BEDROCK\")\nTIMEOUT_S = 20   MAX_TOKENS = 600   TEMP = 0" },
 
     // the client container
     { id:"client", step:1, x:24, y:126, w:300, h:392, label:"LLM API CLIENT — the seam you own" },
