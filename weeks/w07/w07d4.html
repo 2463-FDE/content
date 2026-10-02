@@ -8,6 +8,98 @@
 <title>W7·D4 — SRE for AI Systems: SLOs, Error Budgets &amp; OTel GenAI | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
 <script src="../../assets/js/theme.js"></script>
+<style>
+/* W7D4 practices are page-scoped so this lane does not alter shared curriculum chrome. */
+.w7-practice { margin:24px 0; padding:18px; border:1px solid var(--line); border-radius:14px; background:var(--surface); box-shadow:0 5px 20px var(--shadow); }
+.reading-col .step .w7-practice p { font-size:15px; line-height:1.55; }
+.w7-practice-title { margin:0 0 6px; font-size:22px; line-height:1.25; }
+.w7-practice-intro { margin:0 0 15px !important; color:var(--ink-soft); }
+.w7-toolbar, .w7-cost-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0; }
+.w7-secondary-btn, .w7-primary-btn { min-height:40px; padding:8px 12px; border-radius:9px; border:1.5px solid var(--line); background:var(--surface-2); color:var(--ink); font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+.w7-primary-btn { border-color:var(--accent); background:var(--accent); color:#fff; }
+.w7-secondary-btn:hover { border-color:var(--accent); color:var(--accent); }
+.w7-secondary-btn:active, .w7-primary-btn:active { transform:translateY(1px); }
+.w7-secondary-btn:focus-visible, .w7-primary-btn:focus-visible, .w7-span-toggle:focus-visible, .w7-guide-select:focus-visible, .w7-cost-input:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+.w7-seed { margin-left:auto; color:var(--ink-soft); font:12px/1.4 var(--mono); }
+.w7-trace-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; margin:14px 0; overflow:hidden; border:1px solid var(--line); border-radius:10px; background:var(--line); }
+.w7-trace-metric { min-width:0; padding:9px 10px; background:var(--surface-2); }
+.w7-metric-label, .w7-output-label { display:block; color:var(--ink-soft); font-size:11px; line-height:1.25; }
+.w7-metric-value, .w7-output-value { display:block; margin-top:3px; color:var(--ink); font:700 13px/1.3 var(--mono); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.w7-trace-tree { display:flex; flex-direction:column; gap:5px; margin:14px 0 20px; }
+.w7-span-row { margin-left:calc(var(--trace-depth) * 18px); border:1px solid var(--line); border-radius:9px; background:var(--surface-2); overflow:hidden; }
+.w7-span-row.is-error { border-color:var(--bad-line); }
+.w7-span-toggle { width:100%; display:grid; grid-template-columns:minmax(160px,1fr) minmax(100px,1.2fr) 58px; gap:10px; align-items:center; padding:9px 10px; border:0; background:transparent; color:var(--ink); font:inherit; text-align:left; cursor:pointer; }
+.w7-span-caret { grid-column:1; grid-row:1; align-self:start; width:18px; color:var(--accent); font:700 16px/1 var(--mono); }
+.w7-span-identity { grid-column:1; grid-row:1; min-width:0; padding-left:24px; }
+.w7-span-name { display:block; font:600 12px/1.35 var(--mono); overflow-wrap:anywhere; }
+.w7-span-kind { display:block; margin-top:2px; color:var(--ink-soft); font-size:10px; line-height:1.3; }
+.w7-waterfall-track { grid-column:2; position:relative; height:18px; border-radius:5px; background:var(--code-bg); overflow:hidden; }
+.w7-waterfall-bar { position:absolute; top:3px; bottom:3px; left:var(--trace-start); width:var(--trace-width); min-width:3px; border-radius:3px; background:var(--accent); }
+.w7-span-row.is-error .w7-waterfall-bar { background:var(--bad); }
+.w7-span-duration { grid-column:3; justify-self:end; font:600 11px/1 var(--mono); font-variant-numeric:tabular-nums; }
+.w7-span-detail { display:flex; flex-wrap:wrap; gap:5px 12px; padding:9px 12px 11px 34px; border-top:1px solid var(--line); color:var(--ink-soft); font-size:11px; line-height:1.45; }
+.w7-span-detail[hidden] { display:none; }
+.w7-meta-pair b { color:var(--ink); }
+.reading-col .step .w7-span-note { flex-basis:100%; margin:3px 0 0; font-size:12px; color:var(--ink-soft); }
+.w7-trace-guide { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding-top:15px; border-top:1px solid var(--line); }
+.w7-guide-title { grid-column:1/-1; margin:0; font-size:17px; }
+.w7-guide-subtitle { grid-column:1/-1; margin:10px 0 0; padding-top:14px; border-top:1px solid var(--line); font-size:15px; }
+.reading-col .step .w7-guide-context { grid-column:1/-1; margin:-4px 0 2px; color:var(--ink-soft); font-size:12px; }
+.w7-guide-field, .w7-cost-field { display:flex; min-width:0; flex-direction:column; gap:5px; }
+.w7-guide-label, .w7-cost-label { color:var(--ink); font-size:12px; font-weight:700; line-height:1.35; }
+.w7-guide-select, .w7-cost-input { width:100%; min-width:0; min-height:42px; padding:7px 9px; border:1.5px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); font:inherit; font-size:13px; }
+.w7-guide-diagnostic { min-height:2.8em; color:var(--ink-soft); font-size:11px; line-height:1.35; }
+.w7-guide-diagnostic:empty { min-height:0; }
+.w7-guide-diagnostic.is-error { color:var(--bad-ink); }
+.w7-guide-diagnostic.is-ok { color:var(--good-ink); }
+.w7-guide-diagnostic.is-stale { color:var(--ink-soft); font-style:italic; }
+.w7-trace-guide .w7-primary-btn { grid-column:1; justify-self:start; }
+.w7-feedback { flex:1; align-self:center; min-width:180px; color:var(--ink-soft); font-size:12.5px; line-height:1.45; }
+.w7-trace-guide .w7-feedback { grid-column:2/-1; }
+.w7-feedback.is-error { color:var(--bad-ink); }
+.w7-feedback.is-ok { color:var(--good-ink); }
+.w7-price-date { margin:0 0 12px !important; color:var(--ink-soft); }
+.w7-price-date a { color:var(--accent); font-weight:700; }
+.w7-price-table { width:100%; border-collapse:collapse; margin:8px 0 16px; font-size:12px; font-variant-numeric:tabular-nums; }
+.w7-price-table th, .w7-price-table td { padding:7px 8px; border-bottom:1px solid var(--line); text-align:right; }
+.w7-price-table th:first-child { text-align:left; }
+.w7-price-table thead th { color:var(--ink-soft); font-size:11px; }
+.w7-cost-controls { display:grid; grid-template-columns:1.25fr repeat(4,minmax(0,1fr)); gap:10px; }
+.w7-field-help { color:var(--ink-soft); font-size:10px; line-height:1.3; }
+.w7-cost-input[aria-invalid="true"] { border-color:var(--bad); }
+.reading-col .step .w7-formula { margin:15px 0 !important; padding:10px 12px; border-radius:8px; background:var(--code-bg); color:var(--ink-soft); font:12px/1.55 var(--mono); }
+.w7-cost-outputs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.w7-cost-output { padding:10px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); }
+.w7-cost-output .w7-output-value { font-size:15px; }
+.reading-col .step .w7-assumptions { margin:13px 0 0; color:var(--ink-soft); font-size:12px; }
+.w7-visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+@media (max-width:700px) {
+  .w7-practice { padding:14px; }
+  .w7-trace-summary, .w7-cost-outputs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .w7-trace-guide, .w7-cost-controls { grid-template-columns:1fr 1fr; }
+  .w7-trace-guide .w7-primary-btn { grid-column:1; }
+  .w7-trace-guide .w7-feedback { grid-column:2; }
+  .w7-cost-field:first-child { grid-column:1/-1; }
+}
+@media (max-width:430px) {
+  .w7-practice { margin-left:-6px; margin-right:-6px; padding:12px; }
+  .w7-toolbar { align-items:stretch; }
+  .w7-toolbar .w7-secondary-btn { flex:1 1 120px; }
+  .w7-seed { flex-basis:100%; margin-left:0; }
+  .w7-span-row { margin-left:calc(var(--trace-depth) * 10px); }
+  .w7-span-toggle { grid-template-columns:minmax(0,1fr) 54px; gap:7px; }
+  .w7-waterfall-track { grid-column:1/-1; margin-left:24px; }
+  .w7-span-duration { grid-column:2; grid-row:1; }
+  .w7-span-detail { padding-left:12px; }
+  .w7-trace-guide, .w7-cost-controls { grid-template-columns:1fr; }
+  .w7-trace-guide .w7-primary-btn, .w7-trace-guide .w7-feedback, .w7-cost-field:first-child { grid-column:1; }
+  .w7-cost-actions { align-items:stretch; }
+  .w7-cost-actions .w7-feedback { flex-basis:100%; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .w7-secondary-btn:active, .w7-primary-btn:active { transform:none; }
+}
+</style>
 </head>
 <body>
 
@@ -169,10 +261,11 @@
         <div class="tag">The trap</div>
         <h2>Low traffic breaks the table outright</h2>
         <p>Copy that 14.4/6/1 table onto a low-volume path and you ship an alarm that is useless in both directions.
-        The Workbook is explicit: "if a system receives 10 requests per hour, then a single failed request results in an
-        hourly error rate of 10%. For a 99.9% SLO, this request constitutes a <strong>1,000x burn rate</strong> and
-        would page immediately, as it consumed 13.9% of the 30-day error budget. This scenario allows for only
-        <strong>seven failed requests in 30 days</strong>."</p>
+        The Workbook's low-traffic paragraph prints <strong>1,000×</strong> for one failure among 10 requests against a
+        99.9% SLO, but that figure conflicts with its burn-rate definition. The independent arithmetic is
+        <strong>100×</strong>: 10% observed errors ÷ the SLO's 0.1% allowed error rate. The paragraph's adjacent
+        figures remain coherent — one failure consumes about <strong>13.9% of the 30-day budget</strong>, and the path
+        allows roughly <strong>seven whole failed requests in 30 days</strong>.</p>
         <p>That is the shape of a pilot AI feature, or a clinical intake queue at 2 a.m. — one retryable blip pages a
         human, someone silences the alert, and the real outage becomes invisible. The mitigations are boring: widen the
         window, aggregate across a bigger surface, set a minimum-volume precondition, or accept a looser SLO honestly
@@ -182,9 +275,13 @@
         days, sending an active notification is appropriate. Otherwise, a ticket-based notification… the next working
         day is more appropriate." A slow reconciliation drift is a ticket, not a 3 a.m. page — and now you have a
         principled reason rather than a preference.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a low-traffic simulator — dial
-        requests/hour from 10,000 down to 10 and watch one failure swing from invisible to a 1,000× page. Needs backend
-        standup.</p></div>
+        <p>Now check the trap rather than trusting a copied number. At <strong>10 requests/hour</strong>, the synthetic
+        trace below represents one failure. Inspect the span evidence, derive the observed error rate and burn rate in
+        the checked fields, then choose a low-volume response. The same volume over 30 days is 7,200 requests; a 0.1%
+        error budget permits 7.2 failures, so one failure spends about 13.9% of it.</p>
+        <div class="w7-practice" data-w7-trace data-seed="intake-timeout-07">
+          <noscript>This synthetic trace inspection requires JavaScript. No live telemetry or vendor export is used.</noscript>
+        </div>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -229,9 +326,9 @@
         "if both <code>cache_creation_input_tokens</code> and <code>cache_read_input_tokens</code> are 0, the prompt was
         not cached" — so a daily hit-ratio check catches it. Give cost a dollars-per-day budget and the same burn-rate
         machinery.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a cost-burn panel — toggle the
-        cache-hit ratio on a week of token usage and watch derived spend cross its budget while latency and errors stay
-        flat green. Needs backend standup.</p></div>
+        <div class="w7-practice" data-w7-cost>
+          <noscript>The token-cost burn calculator requires JavaScript. It never calls a provider or reads live usage.</noscript>
+        </div>
         <p>One last discipline. The conventions are default-private: instructions, messages and outputs "SHOULD NOT" be
         captured by default, and every content attribute is <strong>Opt-In</strong>, flagged as likely PII. That's a
         gift — metrics and spans <em>without payloads</em> give you every golden signal plus token cost, with no
@@ -337,10 +434,11 @@ severity: ticket</pre>
       of an hour later.</p>
     </div>
     <p style="margin-top:14px"><strong>Now the sanity check that saves you.</strong> Before you ship those rules, count
-    the requests. If the path runs at 10 req/hour overnight, one failure is a 1,000× burn and pages instantly — the
-    Workbook's own example allows only seven failed requests in 30 days at that volume. Widen the window, aggregate
-    across a larger surface, or add a minimum-volume precondition. Shipping the table unchecked is the single most
-    common way a good SLO becomes a muted alert.</p>
+    the requests. At 10 req/hour, one failure creates a 10% observed error rate; against the 0.1% allowance for a 99.9%
+    SLO, that is a <strong>100× burn</strong> and can page immediately. The Workbook paragraph prints 1,000× here, but
+    that conflicts with its definition; its 13.9%-of-budget and roughly-seven-failures figures agree with the 100×
+    result. Widen the window, aggregate across a larger surface, or add a minimum-volume precondition. Shipping the
+    table unchecked is the single most common way a good SLO becomes a muted alert.</p>
   </div>
 </div>
 
@@ -412,8 +510,8 @@ window.DIAGRAM = {
     { id:"burn", step:5, x:26, y:430, w:460, h:60, label:"BURN RATE ALERTS\n14.4× / 1h page · 6× / 6h page · 1× / 3d ticket",
       detail:"consumed = burn rate × window ÷ period. Burn 1 = exactly empty at the window's end; burn 1,000 = 43 minutes. One threshold has low recall: '35x never alerts, but consumes all of the 30-day budget in 20.5 hours.'" },
 
-    { id:"lowq", step:6, x:26, y:504, w:222, h:56, label:"⚠ low-traffic trap\n10 req/hr → 1 failure = 1,000×",
-      detail:"At 10 req/hour a single failure is a 10% hourly error rate — a 1,000× burn that pages immediately and allows only seven failed requests in 30 days. Check volume before you copy the table." },
+    { id:"lowq", step:6, x:26, y:504, w:222, h:56, label:"⚠ low-traffic trap\n10 req/hr → 1 failure = 100×",
+      detail:"At 10 req/hour a single failure is a 10% hourly error rate. Against a 99.9% SLO's 0.1% allowance, that is 100× burn. The Workbook paragraph prints 1,000×, but its definition and adjacent 13.9% budget figure support 100×. Check volume before copying the table." },
     { id:"otel", step:7, x:264, y:504, w:222, h:56, label:"OTel GenAI · status: Development\ngen_ai.client.*",
       detail:"operation.duration (s), token.usage ({token}, type input/output), operation.time_to_first_chunk (streaming only). Server-side: time_to_first_token, time_per_output_token. error.type is Stable. Conventions moved repos; no tagged release; pin your version." },
 
@@ -437,7 +535,7 @@ window.DIAGRAM = {
     "The <b>SLO</b> is only real when three parties agree: product, developers, and whoever carries the pager. <b>100% is the wrong target</b>, for four documented reasons. <span style='opacity:.7'>(tap)</span>",
     "<b>Error budget = 100% − SLO</b>, spendable. It depoliticizes the tradeoff — and once it's draining, the feature team argues for the reliability work themselves. <span style='opacity:.7'>(tap)</span>",
     "Alert on <b>burn rate</b>, multiwindow: 14.4×/1h and 6×/6h page, 1×/3d tickets. One threshold has low recall — a 35× burn never fires and empties the month in 20.5 hours.",
-    "The trap: on a <b>low-traffic path</b>, one failure at 10 req/hour is a 1,000× burn. Count requests before you copy the thresholds. <span style='opacity:.7'>(tap)</span>",
+    "The trap: on a <b>low-traffic path</b>, one failure at 10 req/hour is a <b>100× burn</b> against a 99.9% SLO. Count requests before you copy the thresholds. <span style='opacity:.7'>(tap)</span>",
     "Name the instruments properly — <b>OTel GenAI</b> client metrics — and run the currency check: the conventions <b>moved repos</b> and are still <b>Development</b> status. <span style='opacity:.7'>(tap)</span>",
     "Last signal: <b>cost</b>. Nothing emits it, so derive it from tokens — and give it a budget, because a cache-hit collapse is a <b>10× bill that latency never sees</b>. <span style='opacity:.7'>(tap)</span>"
   ]
@@ -471,13 +569,13 @@ window.QUIZ = {
     { type: "mcq",
       stem: "Which of these are real problems with shipping the 14.4×/1h + 6×/6h + 1×/3d table unchanged onto a low-volume pilot path? (select all that apply)",
       options: [
-        "A single failed request at 10 req/hour is a 1,000× burn rate and pages immediately",
+        "A single failed request at 10 req/hour is a 100× burn rate and can page immediately",
         "The path allows only about seven failed requests in 30 days at that volume",
-        "The burn-rate formula stops being arithmetically valid below 1,000 req/hour",
+        "The burn-rate formula stops being arithmetically valid below a particular request volume",
         "Constant nuisance pages get the alert muted, so the real outage goes unnoticed",
         "Multiwindow alerting is only defined for latency SLOs, not availability" ],
       answer: [0, 1, 3],
-      explain: "The Workbook's own example: at 10 requests/hour one failure is a 10% hourly error rate, a 1,000× burn against a 99.9% SLO, consuming 13.9% of the monthly budget and allowing only seven failures in 30 days. The formula stays valid — it's the signal-to-noise that collapses. Mitigations: widen the window, aggregate across a bigger surface, add a minimum-volume precondition, or loosen the SLO honestly." },
+      explain: "Independent arithmetic: at 10 requests/hour one failure is a 10% hourly error rate; a 99.9% SLO allows 0.1%, so the burn is 100×. Over 30 days, 7,200 requests yield a 7.2-failure budget, so one failure consumes 13.9% and only about seven whole failures fit. The Workbook paragraph prints 1,000× for this scenario, but that conflicts with its definition and adjacent figures. The formula stays valid — signal-to-noise collapses. Mitigations: widen the window, aggregate across a bigger surface, add a minimum-volume precondition, or loosen the SLO honestly." },
     { type: "match",
       stem: "Match each artifact or claim to what it actually is.",
       pairs: [
@@ -546,6 +644,7 @@ def call_model(messages, model=MODEL):
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
 <script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive-w7-trace.js"></script>
 <script src="../../assets/js/codeviewer.js"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
