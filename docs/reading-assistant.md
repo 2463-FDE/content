@@ -84,8 +84,9 @@ attempt limits, not cost rails.
 
 ## The week assistant (curriculum page)
 
-Each week header on `index.html` gets an "Ask about this week" button. It opens the same modal
-against a whole week.
+Each week header on `index.html` with readings gets an "Ask about this week" button, unless the
+rendered week diverges from the canonical seed (see README "Curriculum resolution"). It opens the
+same modal against a whole week.
 
 Five readings is ~33k tokens of prose — wasteful to carry on every turn — so a week session is
 grounded in an **abridged digest**: one section per day (claims, named techniques, numbers, strong

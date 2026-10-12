@@ -1,0 +1,308 @@
+Phase 2 curriculum correction browser QA
+Recorded: 2026-09-23T20:30:42Z
+Tool: chrome-devtools-axi, isolated Chromium profile
+Server: local Python static servers only; no live backend/provider request
+Viewport: 320x800, DPR 2, mobile/touch emulation
+Fixture: tests/fixtures/curriculum-resolved.seed-v1.json (synthetic)
+
+Scenario: valid maximum-length unbroken labels
+- phase label: 100 unbroken characters (schema maximum)
+- week title: 200 unbroken characters (schema maximum)
+- viewport: 320
+- document scroll width: 320
+- horizontal overflow: 0
+- calendar computed columns: 296px (one column)
+- card width: 296
+- legend item width: 292
+- week cell width: 296
+- rendered cells: 50
+- rendered phase label length: 100
+- rendered week title length: 200
+
+Scenario: curriculum-loader asset returns synthetic 404
+- assets/js/curriculum-loader.js: synthetic 404
+- typeof window.FDE_CURRICULUM: undefined
+- typeof window.FDE_STATIC_CALENDAR_RENDER: function
+- viewport: 320
+- document scroll width: 320
+- horizontal overflow: 0
+- calendar computed columns: 296px (one column)
+- rendered weeks: 10
+- rendered cells: 50
+- rendered legend entries: 6
+- rendered progress controls: 40
+- rendered curriculum content links: 43
+- rendered ritual links: 91
+- first title: LLM fundamentals
+- first progress control: ▶ Start
+- after replacing FDE_PROGRESS.status with completed and dispatching fde-progress-sync:
+  - rendered cells: 50
+  - rendered progress controls: 40
+  - first progress control: ✓ Completed
+  - typeof window.FDE_CURRICULUM: undefined
+
+Expected console evidence: one 404 for the deliberately blocked curriculum-loader asset. No runtime JavaScript error occurred; the static calendar remained usable.
+
+Backend-contract follow-up
+Recorded: 2026-09-23T21:11:58Z
+Tool: chrome-devtools-axi, fresh isolated Chromium profile
+Server: local Python static server only; no backend/provider request
+Viewport: 320x800, DPR 2, mobile/touch emulation
+Storage after each scenario: localStorage=[], sessionStorage=[]
+Console errors: none
+
+Scenario: two backend-valid planned units, first with subtitle=null
+- rendered cells: 50
+- document scroll width: 320; horizontal overflow: 0
+- w01d1 and w01d2 class: cal-cell planned
+- outer cards aria-disabled: absent
+- described content regions aria-disabled: true
+- content region labels end with: curriculum content planned
+- visible badges: Planned
+- w01d1 normalized subtitle text: empty
+- curriculum title/part/progress actions in each planned card: 0
+- ritual links: w01d1=1, w01d2=2
+- ritual links beneath an aria-disabled ancestor: false
+- after rerender, focused element: A, text=🎤 AI Interview, data-focus-role=ritual-iv
+- focused ritual beneath an aria-disabled ancestor: false
+
+Scenario: available unit with subtitle=null
+- normalized subtitle text: empty
+- title href: weeks/w01/d1.html
+- progress control: ▶ Start; href=weeks/w01/d1.html
+- keyboard focus: A with data-focus-role=title
+- horizontal overflow: 0
+
+Final backend-contract review pass
+Recorded: 2026-09-24T03:35:33Z
+Tool: chrome-devtools-axi, fresh isolated Chromium profile
+Servers: local Python static servers only; no backend/provider request
+Viewport: 320x800, DPR 2, mobile/touch emulation
+Storage throughout: localStorage=[], sessionStorage=[]
+
+Scenario: valid maximum-length unbroken labels
+- phase label: 100 characters; week title: 200 characters
+- viewport/document width: 320/320; horizontal overflow: 0
+- computed calendar column/card width: 296/296
+- legend/week widths: 292/296
+- rendered cells: 50
+
+Scenario: real createLoader with synthetic one-unit assigned response
+- fetch was an in-memory stub; request target was synthetic.invalid and no network request occurred
+- resolved/state: true/dynamic
+- rendered weeks/cells: 1/1
+- published weeks: 1
+- assigned title replaced static seed: Assigned dotted content
+- static LLM fundamentals title present: false
+- subtitle=null rendered as empty text
+- phase/unit color=null published as code-owned #6b7280
+- computed swatch color: rgb(107, 114, 128); card accent: #6b7280
+- title and progress href: weeks/w01/d1.v2.html
+- horizontal overflow: 0
+
+Scenario: nullable color across available/planned/missing
+- all three states used computed swatch rgb(107, 114, 128) and card accent #6b7280
+- available: 2 curriculum actions, 1 active ritual
+- planned: Planned badge, 0 curriculum actions, 1 active ritual, disabled content-region label ends in curriculum content planned
+- missing: Unavailable badge, 0 curriculum actions, 1 active ritual, disabled content-region label ends in curriculum content unavailable
+- ritual focus survived each rerender and had no aria-disabled ancestor
+- horizontal overflow: 0
+
+Scenario: hostile encoded traversal through real createLoader
+- weeks/%2e%2e/escape.html resolution result/state: false/fallback
+- static fallback cells: 50; first title: LLM fundamentals
+- hostile rendered actions: 0
+- horizontal overflow: 0
+
+Scenario: curriculum-loader asset returns synthetic 404
+- typeof window.FDE_CURRICULUM: undefined
+- typeof window.FDE_STATIC_CALENDAR_RENDER: function
+- viewport/document width: 320/320; horizontal overflow: 0
+- computed calendar column: 296px
+- rendered weeks/cells/legend: 10/50/6
+- curriculum links/ritual links/progress controls: 43/91/40
+- after fde-progress-sync, first progress control: ✓ Completed
+- expected console output: the single deliberate loader-asset 404; no runtime JavaScript error
+
+Responsive accessibility final pass
+Recorded: 2026-09-24T04:07:15Z
+Tool: chrome-devtools-axi, fresh isolated Chromium profile
+Servers: local Python static servers only; synthetic responses remained in memory
+Storage throughout: localStorage=[], sessionStorage=[]
+
+Scenario: one-unit Wednesday assignment at 320x800, DPR 2
+- real createLoader result/state: true/dynamic
+- unit/cells: w01d3/1; computed calendar column: 296px
+- document width: 320; horizontal overflow: 0
+- visible responsive weekday: Wednesday (display:block, visibility:visible, no aria-hidden)
+- desktop Mon–Fri headers: display:none
+- accessibility snapshot includes one StaticText WEDNESDAY before the Assigned dotted content link; hidden Mon–Fri headers are absent
+- focused ritual survived rerender: AI Interview, data-focus-role=ritual-iv
+- active rituals: AI Interview and Alt research
+
+Scenario: same sparse Wednesday assignment at 1280x900
+- responsive Wednesday label: display:none
+- Wed desktop header: display:block
+- card and Wed header left edge: 535.59375px; card grid-column: 4
+- horizontal overflow: 0
+
+Scenario: Week N contrast independent of backend phase color
+- white phase, light theme: label rgb(31,35,41), surface rgb(255,255,255), contrast 15.78:1, decorative border rgb(255,255,255)
+- black phase, dark theme: label rgb(233,231,226), surface rgb(29,32,39), contrast 13.19:1, decorative border rgb(0,0,0)
+- null phase, dark theme: label rgb(233,231,226), surface rgb(29,32,39), contrast 13.19:1, decorative neutral border rgb(107,114,128)
+- computed label font size: 12px; all measured ratios exceed WCAG AA 4.5:1 for normal text
+
+Regression scenario: maximum labels at 320px
+- phase/week lengths: 100/200; rendered cells: 50
+- responsive weekday labels: 50, display:block
+- document width: 320; horizontal overflow: 0
+
+Regression scenario: curriculum-loader asset returns synthetic 404 at 320px
+- loader API/static renderer: undefined/function
+- rendered weeks/cells/progress: 10/50/40; progress-sync produced ✓ Completed
+- weekday labels: 50; first week Monday–Friday; display:block
+- desktop headers hidden; computed calendar column: 296px
+- document width: 320; horizontal overflow: 0
+- expected console output: the single deliberate loader-asset 404; no runtime JavaScript error
+
+Unavailable-state contrast and focus final pass
+Recorded: 2026-09-24T05:10:21Z
+Tools: chrome-devtools-axi DOM/accessibility probes and mobile Lighthouse
+Servers: local Python static/mock servers only; synthetic response and token; fresh empty-storage profiles
+Viewport for contrast/focus probes: 320x800, DPR 2, mobile/touch emulation
+
+Scenario: effective contrast by theme and card state
+- every available/planned/missing/soon card computed opacity: 1
+- light weekday-label minimum contrast: available 7.42:1; planned 7.92:1; missing 7.42:1; soon 7.42:1
+- dark weekday-label minimum contrast: available 6.62:1; planned 7.21:1; missing 6.62:1; soon 6.62:1
+- light ritual contrast by variant (same minima across available/planned/missing): client 4.68:1; system-design 6.30:1; alt-research 5.62:1; AI interview 5.18:1; FDE situation 6.09:1
+- dark ritual minimum across available/planned/missing: client 7.34:1; system-design 5.33:1; alt-research 6.22:1; AI interview 5.18:1; FDE situation 5.02:1
+- planned/missing curriculum actions: 0; active ritual links: 91
+- every measured value exceeds WCAG 2.1 AA 4.5:1 for normal text; document horizontal overflow: 0
+
+Scenario: delayed real-loader replacement preserves week-assistant focus
+- initial state/cells/title: loading/50/LLM fundamentals
+- focused control before response: w01 Ask about this week, data-focus-role=week-assistant
+- synthetic response delay: 3.5 seconds
+- final state/cells/title: dynamic/1/Assigned dotted content
+- week-assistant node was replaced and remounted: true
+- focus after replacement/integration signal: remounted w01 Ask about this week
+- accessibility snapshot marks the remounted button focusable and focused before the assigned title link
+- localStorage/sessionStorage remained empty
+
+Regression probes
+- maximum 100/200-character labels at 320px: 50 cards, 50 weekday labels, document width 320, overflow 0
+- loader asset synthetic 404 in dark mode: static renderer function, 10 weeks, 50 cards, 10 soon cards at opacity 1, 50 weekday labels, progress-sync produced ✓ Completed, overflow 0
+- expected loader-failure console output: one deliberate asset 404; no runtime JavaScript error
+
+Lighthouse mobile navigation audit (local stubbed-auth/mock-response server)
+- accessibility: 98; best practices: 96; SEO: 90
+- color-contrast audit: passed after resource-button foreground/background correction
+- sole remaining accessibility audit: pre-existing missing main landmark (not a contrast or focus finding)
+
+Final progress-contrast and failed-retry focus pass
+Recorded: 2026-09-24T06:07:59Z
+Tools: chrome-devtools-axi DOM/accessibility probes and mobile Lighthouse
+Isolation: fresh named browser session; local 127.0.0.1 fixture/stub server; dead external proxy; synthetic token/data only
+Viewport for direct probes: 320x800, DPR 2, mobile/touch emulation
+
+Rendered contrast matrix (computed foreground/background/effective ratio)
+- light progress: Start #c2410c/#fff1e8 4.69:1; Resume #fff/#c2410c 5.18:1; Completed #2f7d32/#ebfbee 4.77:1
+- dark progress: Start #ff9a5c/#2a1a10 8.00:1; Resume #fff/#c2410c 5.18:1; Completed #69db7c/effective rgb(35,53,47) 7.41:1
+- light milestone star: #8a4b00/#fff4e6 6.26:1; dark milestone star: #ffc04d/effective rgb(55,47,34) 8.08:1
+- light available title: normal 15.78:1; real hovered state 5.18:1 with underline
+- dark available title: normal 13.19:1; real hovered state 7.79:1 with underline
+- light weekday labels: available/planned 7.92:1; missing/soon 7.42:1
+- dark weekday labels: available/planned 7.21:1; missing/soon 6.62:1
+- light ritual variants: client 4.68:1; system-design 6.30:1; alt-research 5.62:1; AI interview 5.18:1; FDE situation 6.09:1
+- dark ritual variants: client 8.03:1; system-design 5.80:1; alt-research 6.81:1; AI interview 5.18:1; FDE situation 5.02:1
+- available/planned/missing/soon cards all computed opacity 1; document horizontal overflow 0
+- minimum measured calendar ratio: 4.68:1; all targeted normal text exceeds WCAG 2.1 AA 4.5:1
+
+Failed repeated-resolution focus probe
+- initial synthetic assignment: dynamic, 50 cells, 6 week assistants; focused w01 assistant
+- repeated local curriculum request returned synthetic 503
+- final state: fallback, 50 cells, 6 assistants; one assistant maximum per week
+- old focused node disconnected; corresponding new w01 node carried data-focus-role=week-assistant and received focus
+- a later unrelated progress render retained focus on an outside control, proving no stale week-focus request
+
+Mobile Lighthouse with real rendered Resume and Completed states
+- accessibility: 92; best practices: 96; SEO: 90; agentic browsing: 100
+- calendar progress labels produced no contrast failures
+- remaining accessibility findings are pre-existing and outside this bounded correction: light-theme topbar brand contrast and missing main landmark
+
+Assistant grounding and active-cancellation final pass
+Recorded: 2026-09-24T07:28:00Z
+Tools: chrome-devtools-axi DOM/focus/hover probes and mobile Lighthouse
+Isolation: fresh named browser session; local 127.0.0.1 fixture/stub server; dead external proxy; synthetic token/data only
+Viewport for direct probes: 320x800, DPR 2, mobile/touch emulation; horizontal overflow 0
+
+Canonical grounding parity
+- exact seed dynamic response: 50 cells, canonical markers on all exact weeks, six eligible assistants (w01-w06), maximum one per week
+- accepted one-unit dotted assignment: one `Assigned dotted content` card at `weeks/w01/d1.v2.html`, zero canonical markers, zero assistants, one active ritual
+- the previously focused canonical w01 button disconnected; browser focus moved to BODY; a later progress render left outside focus intact, proving stale focus was cleared
+- full divergent-href response: 50 cells, w01 assistant suppressed, unchanged w02 assistant retained, five total eligible assistants, 100 active rituals
+- no divergent week exposed a control capable of initiating canonical week-only tutoring
+
+Active request cancellation
+- exact dynamic state was primed, w01 assistant focused, and a synthetic 1.5-second local retry started
+- retry midpoint: state loading, exactly one integration signal, old node disconnected, one connected replacement focused, six assistants total, maximum one per week
+- cancel result: false settled in 0.4 ms; state fallback; integration-signal count remained one
+- the midpoint assistant remained connected and focused; no second fallback render/remount occurred
+- after the delayed response window: state remained fallback, the same control remained connected/focused, 50 fallback cells and six assistants remained; late assignment response did not render
+
+Fresh light/dark contrast preservation matrix
+- light progress Start/Resume/Completed: 4.69/5.18/4.77:1; dark: 8.00/5.18/7.41:1
+- light/dark milestone: 6.26/7.40:1; normal title: 15.78/13.19:1; real hovered title: 5.18/7.79:1
+- light weekdays available/planned/missing/soon: 7.92/7.92/7.42/7.42:1; dark: 7.21/7.21/6.62/6.62:1
+- light rituals client/system-design/alt-research/AI-interview/FDE: 4.68/6.30/5.62/5.18/6.09:1
+- dark rituals client/system-design/alt-research/AI-interview/FDE: 8.03/5.80/6.81/5.18/5.02:1
+- available/planned/missing/soon cards all computed opacity 1; minimum targeted ratio 4.68:1
+
+Local-only mobile Lighthouse with Resume and Completed rendered
+- report completed: accessibility 93; best practices 96; SEO 90; agentic browsing 100
+- no calendar contrast finding; only reported contrast node was the pre-existing light topbar brand at 3.43:1
+- remaining pre-existing accessibility finding: missing main landmark
+- CLI wrapper exceeded its 300-second return deadline after report.json and report.html were fully written
+
+Post-review cancellation race confirmation
+Recorded: 2026-09-24T08:03:14Z
+- fresh local-only 320x800 session loaded exact seed dynamic state with six eligible assistants and zero horizontal overflow
+- active delayed retry midpoint emitted one signal and replaced the focused w01 assistant once
+- cancel settled false in 0.4 ms; state fallback; signal count stayed one; the same intermediate assistant remained connected and focused
+- after the late-response window, state/cells/assistants remained fallback/50/6 and the connected focused node was unchanged
+- synchronous cancel from the third before-render announcement (the would-be assignment render) returned false with fallback state, 50 canonical cards, `LLM fundamentals` visible, no assigned dotted content, and six assistants
+
+Open-assistant parity revocation pass
+Recorded: 2026-09-24T08:55:00Z
+Tools: chrome-devtools-axi DOM/focus probes and mobile Lighthouse
+Isolation: fresh named browser session; local 127.0.0.1 static/mock server; dead external proxy; synthetic token, identity, curriculum, session, digest, message, and prompt data only
+Viewport: 320x800, DPR 2, mobile/touch emulation; light and dark schemes; horizontal overflow 0
+
+Authenticated loading and divergent active-session revocation
+- exact seed began with six canonical assistants
+- during the authenticated deferred curriculum request: loader state loading, authenticated-loading flag true, zero launchers
+- divergent w01 href settled dynamic with five assistants; w01 launcher absent and maximum one launcher per week
+- the open w01 modal closed, body overflow lock cleared, and focus moved intentionally to the w01 week heading
+- `rc-digest-w01`, `rc-sid-week:w01`, and `rc-log-week:w01` were all absent immediately after revocation
+- after both deferred week-start/digest responses completed: modal remained closed; name, prompt, and transcript stayed empty; send remained unlocked; all three cache keys remained absent
+
+Parity-loss matrix
+- repeated from a newly exact/fallback-eligible open w01 session into divergent href, one-unit partial assignment, planned w01, and missing w01
+- every transition removed the w01 launcher, closed the modal, unlocked the body, focused the w01 heading (or calendar fallback), and cleared all three week-only cache keys
+- after each pair of delayed week-start/digest responses completed, modal/transcript/prompt/cache state remained empty
+- partial assignment had zero assistants; full planned/missing fixtures retained eligible unaffected weeks; every week had at most one launcher
+
+Deferred message and custom-prompt suppression
+- an exact w01 session first established a synthetic client session and digest
+- one delayed message and one delayed custom-prompt request were started, then w01 changed to a divergent href
+- after both late responses completed: modal stayed closed; transcript, recap, note, busy/capped controls, and week-only cache remained reset
+- restoring exact parity mounted one w01 launcher; a fresh session reopened successfully with `Week 1`, one opening message, and a new synthetic session cache
+- server transcript confirms delayed `/reading/message` and `/reading/prompt/custom` requests completed; no live host/provider was contacted
+
+Regression and audit
+- fresh exact-parity state: 50 cards, six assistants, maximum one per week, horizontal overflow 0
+- no runtime JavaScript error in the final pass; the sole expected console resource error was the local synthetic `/codex-usage` 404
+- local mobile Lighthouse: accessibility 92, best practices 96, SEO 90, agentic browsing 100
+- remaining Lighthouse findings are pre-existing: light topbar brand contrast 3.43:1, missing main landmark, missing meta description, and expected local mock 404
+- dependency-free contrast matrix remained green in the 53-test suite; calendar CSS was unchanged by this correction
