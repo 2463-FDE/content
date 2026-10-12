@@ -40,7 +40,7 @@ before they become functional `ix-run` blocks. Tracked here per the fan-out plan
 
 ## W3–W8 current inventory
 
-**Status: deferred, not live.** The shipped pages contain 72 `.ix-future` placeholders across W4–W8. W3 has no placeholders because its client-side agent widgets are already implemented. The entries below inventory the placeholder copy already present in the reading pages; they do not promise a backend, launch date, or live provider connection.
+**Status: deferred, not live.** The shipped pages contain 71 `.ix-future` placeholders across W4–W8. W3 has no placeholders because its client-side agent widgets are already implemented. The entries below inventory the placeholder copy already present in the reading pages; they do not promise a backend, launch date, or live provider connection.
 
 ### Week 4
 
@@ -50,9 +50,8 @@ before they become functional `ix-run` blocks. Tracked here per the fan-out plan
 - **A handoff is just a tool call** — Planned: wire two OpenAI Agents SDK agents with a `transfer_to_refund_agent` handoff, send one message, and inspect the raw tool call — then re-run with an `input_filter` attached and diff exactly what history the receiving agent saw each time. Needs backend standup.
 - **Orchestrator-worker: parallelism with a price tag** — Planned: fan a research question out to 1 vs 4 parallel subagents and watch a live token meter climb toward the ~15× multiple alongside the coverage gain — feel the economics, not just read them. Needs backend standup.
 
-#### w04d2 — Durable Agents: State, Checkpointers & the Art of Not Losing Your Place (3)
+#### w04d2 — Durable Agents: State, Checkpointers & the Art of Not Losing Your Place (2)
 
-- **Checkpoints: a save file for every step** — Planned: a crash-and-resume lab — start a five-node refund graph with a real `thread_id`, kill the process at step 3 with a big red button, then re-invoke the same thread and watch it resume from the last checkpoint (and watch a fresh `thread_id` start from nothing, for contrast). Needs backend standup.
 - **interrupt(): pausing is just a checkpoint** — Planned: an approval-gate console — the refund agent hits `interrupt()` and its payload appears as a real approve/reject card; click approve and watch `Command(resume=True)` re-enter the node, or reject and watch the conditional edge route to a revision loop. Needs backend standup.
 - **Replay and fork: the history is a data structure** — Planned: a time-travel explorer — scrub through a real thread's checkpoint history on a timeline, pick a `checkpoint_id` to replay (and watch the re-executed LLM step come back different ), then `update_state` a fork and see both branches side by side. Needs backend standup.
 
@@ -74,7 +73,7 @@ before they become functional `ix-run` blocks. Tracked here per the fan-out plan
 - **The retriever ladder: vector entry, graph expansion** — Planned: fire the same question at a `VectorRetriever` and a `VectorCypherRetriever` side by side and diff the retrieved context — see exactly what the graph hop added. Needs backend standup.
 - **Local vs global search: match the mode to the question's shape** — Planned: ask one entity question and one "top themes" question against the same indexed corpus, toggling local vs global mode — watch local fan out from entities while global map-reduces over community summaries. Needs backend standup.
 
-_Week 4 subtotal: 15 deferred placeholders._
+_Week 4 subtotal: 14 deferred placeholders._
 
 ### Week 5
 
@@ -209,7 +208,7 @@ _Week 7 subtotal: 13 deferred placeholders._
 
 _Week 8 subtotal: 14 deferred placeholders._
 
-**Inventory total: 72 deferred placeholders.**
+**Inventory total: 71 deferred placeholders.**
 
 ### Setup, expected output, and troubleshooting metadata gap
 
