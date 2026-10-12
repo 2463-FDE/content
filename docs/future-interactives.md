@@ -40,7 +40,7 @@ before they become functional `ix-run` blocks. Tracked here per the fan-out plan
 
 ## W3–W8 current inventory
 
-**Status: deferred, not live.** The shipped pages contain 71 `.ix-future` placeholders across W4–W8. W3 has no placeholders because its client-side agent widgets are already implemented. The entries below inventory the placeholder copy already present in the reading pages; they do not promise a backend, launch date, or live provider connection.
+**Status: deferred, not live.** The shipped pages contain 65 `.ix-future` placeholders across W4–W8. W3 has no placeholders because its client-side agent widgets are already implemented. The entries below inventory the placeholder copy already present in the reading pages; they do not promise a backend, launch date, or live provider connection.
 
 ### Week 4
 
@@ -117,11 +117,10 @@ _Week 5 subtotal: 15 deferred placeholders._
 - **Deny → ask → allow, first match wins** — Planned: a permission-rule evaluator — paste a deny/ask/allow ruleset plus a candidate command, and step through which rule matches first and why the broad deny beats the narrow allow. Needs backend standup.
 - **Hooks: deterministic code at lifecycle events** — Planned: a hook playground — attach a PreToolUse hook to a sample tool call, toggle its exit code between 0, 1, and 2, and watch the call pass, warn, or block with stderr fed back to the model. Needs backend standup.
 
-#### w06d2 — The Agentic SDLC: Plan, TDD & Review Loops (3)
+#### w06d2 — The Agentic SDLC: Plan, TDD & Review Loops (2)
 
 - **Explore → Plan → Implement → Commit** — Planned: a plan-mode sandbox — the same seeded ticket run twice against a demo repo, once straight-to-code and once through Explore → Plan → Implement, with the two diffs side by side so you can see the wrong-problem failure happen live. Needs backend standup.
 - **Give the agent a check it can run — or you become the check** — Planned: a verification-ladder simulator — the same flaky task run at each rung (prompt-only, /goal, Stop hook, verification subagent), showing where "looks done" slips through and where the loop mechanically closes. Needs backend standup.
-- **Pipeline citizens: @claude, headless mode, and guardrails** — Planned: a headless fan-out lab — point a headless run at a batch of seeded files with JSON output and scoped tool permissions, watch OK and FAIL results stream back, and tighten the prompt until the batch goes clean. Needs backend standup.
 
 #### w06d3 — Alt Research: Cursor, Aider & Copilot vs Claude Code (3)
 
@@ -129,19 +128,17 @@ _Week 5 subtotal: 15 deferred placeholders._
 - **Copilot: from autocomplete brand to agent platform** — Planned: a delegation drill — write the issue description you'd hand to a cloud agent for a small real task, then an LLM grader reviews it against a delegation rubric (acceptance criteria present? scope bounded? test expectations stated?) and shows the draft PR a vague version would likely have produced. Needs backend standup.
 - **Benchmarks: what SWE-bench and the polyglot board actually measure** — Planned: a benchmark-claims workbench — paste a vendor's "X% on SWE-bench" quote and it extracts variant, scaffold, and date, flags what's missing, and shows how the same model's score moves across variants and harnesses. Needs backend standup.
 
-#### w06d4 — Brownfield: Modernizing Legacy Systems with Agents (3)
+#### w06d4 — Brownfield: Modernizing Legacy Systems with Agents (2)
 
-- **Broad → narrow: the comprehension workflow** — Planned: a legacy comprehension console — a seeded, undocumented legacy repo you interrogate broad→narrow ("overview" → "how does billing work?" → "trace one invoice"), with a live view of what each question cost in context and what the subagent actually read. Needs backend standup.
 - **Characterization tests: the code is its own spec** — Planned: a characterization workbench — a mystery legacy function behind an API; you probe it with inputs, record actual outputs into a pin-suite, then an agent "refactors" it and your suite either catches the behavior drift or doesn't. Needs backend standup.
 - **Data strangles last: ETL, CDC, and the rollback window** — Planned: a cutover simulator — drive a strangler migration's routing table and DB phases yourself (ETL load, CDC lag, consistency checks), inject a failure mid-cutover, and see what rollback costs before vs. after the legacy tables are dropped. Needs backend standup.
 
-#### w06d5 — AI-Augmented Feature Delivery, End to End (3)
+#### w06d5 — AI-Augmented Feature Delivery, End to End (2)
 
 - **"Looks done" is not a gate — build one** — Planned: a stop-gate sandbox — run the same seeded feature task twice, once with "looks done" as the stop signal and once with a Stop hook wired to the test suite, and diff what each session ships. Needs backend standup.
-- **Agents can run inside the gate, too** — Planned: a live headless run — paste a small diff, we pipe it through `claude -p --bare --output-format json` with a lint prompt, and you inspect the structured verdict and the `total_cost_usd` it reports. Needs backend standup.
 - **Blocking on AI findings is a decision you build** — Planned: a severity-gate builder — paste a check run's `bughunter-severity:` JSON, choose your blocking policy (block on `normal`? on nit volume? fail closed on missing runs?), and watch the merge button allow or refuse a set of sample PRs. Needs backend standup.
 
-_Week 6 subtotal: 15 deferred placeholders._
+_Week 6 subtotal: 12 deferred placeholders._
 
 ### Week 7
 
@@ -161,11 +158,9 @@ _Week 6 subtotal: 15 deferred placeholders._
 - **"We support OpenTelemetry" tells you nothing** — Planned: a Collector fanout sandbox — emit one instrumented span stream, route it to two backends simultaneously, and diff what each one actually stored from the same trace. Needs backend standup.
 - **Four incompatible meters — which is exactly the point** — Planned: a meter calculator — enter monthly traces, spans per trace, and payload size, and watch the same workload priced in units, requests, spans+GB, and LCU/LSU side by side. Needs backend standup.
 
-#### w07d4 — SRE for AI Systems: SLOs, Error Budgets, and the OTel GenAI Conventions (3)
+#### w07d4 — SRE for AI Systems: SLOs, Error Budgets, and the OTel GenAI Conventions (1)
 
 - **Alert on the rate you're spending, not the spike** — Planned: a burn-rate calculator — set an SLO, a window and an outage duration, and watch which of the 14.4× / 6× / 1× rules fire and how much budget is gone. Needs backend standup.
-- **Low traffic breaks the table outright** — Planned: a low-traffic simulator — dial requests/hour from 10,000 down to 10 and watch one failure swing from invisible to a 1,000× page. Needs backend standup.
-- **Cost is a reliability signal, and nobody emits it** — Planned: a cost-burn panel — toggle the cache-hit ratio on a week of token usage and watch derived spend cross its budget while latency and errors stay flat green. Needs backend standup.
 
 #### w07d5 — Guardrails and Observability, End to End (3)
 
@@ -173,7 +168,7 @@ _Week 6 subtotal: 15 deferred placeholders._
 - **Publish your own attribute contract** — Planned: a trace inspector — fire a seeded ungrounded summary and watch the guardrail span appear beside the model call, with its five attributes, `Unset` status, and the counter incrementing. Needs backend standup.
 - **Shadow first, enforce second** — Planned: a shadow-mode replay — run 200 seeded summaries in inspect-only, watch the ungrounded rate accumulate into a before-number, then flip to enforce. Needs backend standup.
 
-_Week 7 subtotal: 13 deferred placeholders._
+_Week 7 subtotal: 11 deferred placeholders._
 
 ### Week 8
 
@@ -183,9 +178,8 @@ _Week 7 subtotal: 13 deferred placeholders._
 - **LLM02, LLM08, LLM09: three ways the same data gets out** — Planned: an inversion demo — embed a short PHI-bearing sentence, run a Vec2Text-style reconstruction, and diff the recovered text against the original. Needs backend standup.
 - **The crosswalk is the part that makes it a framework** — Planned: a crosswalk lookup — pick an entry, see its ●/○/— row across all nine pinned frameworks, and export it as markdown for a risk register. Needs backend standup.
 
-#### w08d2 — Prompt Injection and Jailbreaks (2)
+#### w08d2 — Prompt Injection and Jailbreaks (1)
 
-- **Three legs, and you only need to remove one** — Planned: a trifecta auditor — paste a tool manifest and a data-source list, see which sessions hold all three legs. Needs backend standup.
 - **What survives an attacker who moves second** — Planned: a pattern picker — describe an agent's tools and data, step through the six patterns, see what each costs. Needs backend standup.
 
 #### w08d3 — Guardrail Frameworks: Pricing the Control (3)
@@ -206,9 +200,9 @@ _Week 7 subtotal: 13 deferred placeholders._
 - **The score is not the decision** — Planned: an SSVC deployer-tree walker — set the four decision points and watch the outcome and timeline resolve, tree path highlighted. Needs backend standup.
 - **A medium in an agent is not a medium** — Planned: an AIVSS calculator — enter a CVSS base, slide the ten agentic factors, watch the score, the agent class and the emitted SSVC outcome JSON move together. Needs backend standup.
 
-_Week 8 subtotal: 14 deferred placeholders._
+_Week 8 subtotal: 13 deferred placeholders._
 
-**Inventory total: 71 deferred placeholders.**
+**Inventory total: 65 deferred placeholders.**
 
 ### Setup, expected output, and troubleshooting metadata gap
 
