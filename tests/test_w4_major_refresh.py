@@ -589,6 +589,7 @@ take('crash', machine.crash());
 take('resume-before-prediction', machine.resume());
 take('partial', machine.submitPrediction({ checkpoint: 'cp-2' }));
 take('wrong', machine.submitPrediction({ checkpoint: 'cp-1', skipped: 'none', replayed: 'write_ledger', executionCount: '1' }));
+take('mixed', machine.submitPrediction({ checkpoint: 'cp-2', skipped: 'validate_request,load_order', replayed: 'load_order', executionCount: '2' }));
 take('correct', machine.submitPrediction({ checkpoint: 'cp-2', skipped: 'validate_request,load_order', replayed: 'calculate_refund', executionCount: '2' }));
 take('resume', machine.resume());
 take('replay', machine.step());
@@ -607,9 +608,20 @@ process.stdout.write(JSON.stringify({ log, reset, sideEffects }));
         self.assertEqual("incorrect", log["wrong"]["kind"])
         self.assertEqual(1, log["wrong"]["state"]["prediction"]["attempts"])
         self.assertEqual({"incorrect"}, {item["status"] for item in log["wrong"]["state"]["prediction"]["feedback"]})
+        answer_tokens = ("cp-2", "validate_request", "load_order", "calculate_refund", "twice", "2")
+        for label in ("wrong", "mixed"):
+            self.assertFalse(log[label]["state"]["canResume"], label)
+            revealed = " ".join([log[label]["reason"]] + [item["message"] for item in log[label]["state"]["prediction"]["feedback"]])
+            for token in answer_tokens:
+                self.assertNotIn(token, revealed, f"{label} feedback reveals {token}")
+        self.assertEqual(
+            ["correct", "correct", "incorrect", "correct"],
+            [item["status"] for item in log["mixed"]["state"]["prediction"]["feedback"]],
+        )
         self.assertTrue(log["correct"]["ok"])
         self.assertTrue(log["correct"]["state"]["canResume"])
-        self.assertEqual(2, log["correct"]["state"]["prediction"]["attempts"])
+        self.assertEqual(3, log["correct"]["state"]["prediction"]["attempts"])
+        self.assertIn("cp-2", " ".join(item["message"] for item in log["correct"]["state"]["prediction"]["feedback"]))
         self.assertEqual(["validate_request", "load_order"], log["resume"]["state"]["skipped"])
         self.assertEqual(["calculate_refund"], log["resume"]["state"]["replayQueue"])
         calculate = next(node for node in log["replay"]["state"]["nodes"] if node["id"] == "calculate_refund")

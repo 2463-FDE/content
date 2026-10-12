@@ -24,6 +24,12 @@
     replayed: "calculate_refund produced volatile output but never committed, so it must replay.",
     executionCount: "calculate_refund runs twice total: once before the crash and once during replay.",
   });
+  const PREDICTION_HINTS = Object.freeze({
+    checkpoint: "Hint: only node writes that finished committing before the crash create a durable checkpoint; volatile output does not.",
+    skipped: "Hint: recovery skips exactly the work whose results the last durable checkpoint already holds, and nothing past it.",
+    replayed: "Hint: find the node that produced output but crashed before its checkpoint committed; uncommitted work must run again.",
+    executionCount: "Hint: add the run that happened before the crash to any run that recovery performs.",
+  });
 
   function emptyPrediction() {
     return { attempts: 0, checked: false, answers: {}, feedback: [] };
@@ -132,19 +138,23 @@
       const normalized = Object.fromEntries(
         Object.keys(PREDICTION_ANSWERS).map(key => [key, String((answers || {})[key] || "")])
       );
-      const feedback = Object.keys(PREDICTION_ANSWERS).map(key => {
+      const keys = Object.keys(PREDICTION_ANSWERS);
+      const allCorrect = keys.every(key => normalized[key] === PREDICTION_ANSWERS[key]);
+      const feedback = keys.map(key => {
         if (!normalized[key]) {
           return { field: key, status: "missing", message: "Choose an answer for this concept before continuing." };
         }
-        const correct = normalized[key] === PREDICTION_ANSWERS[key];
+        if (normalized[key] !== PREDICTION_ANSWERS[key]) {
+          return { field: key, status: "incorrect", message: `Not yet. ${PREDICTION_HINTS[key]}` };
+        }
         return {
           field: key,
-          status: correct ? "correct" : "incorrect",
-          message: correct ? `Correct. ${PREDICTION_MESSAGES[key]}` : `Not yet. ${PREDICTION_MESSAGES[key]}`,
+          status: "correct",
+          message: allCorrect ? `Correct. ${PREDICTION_MESSAGES[key]}` : "Correct. Keep this answer while you revise the others.",
         };
       });
       const missing = feedback.some(item => item.status === "missing");
-      const correct = feedback.every(item => item.status === "correct");
+      const correct = allCorrect;
       state.prediction.answers = normalized;
       state.prediction.feedback = feedback;
       state.prediction.checked = correct;
@@ -155,7 +165,7 @@
         kind: missing ? "partial" : (correct ? "correct" : "incorrect"),
         reason: missing
           ? "Answer all four prediction prompts before checking."
-          : (correct ? "Prediction correct. Resume is now available." : "Review each explanation, revise the answers, and check again."),
+          : (correct ? "Prediction correct. Resume is now available." : "Use each hint, revise the answers, and check again."),
         feedback,
         state: snapshot(),
       };
