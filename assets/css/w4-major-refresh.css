@@ -56,6 +56,11 @@
   --cp-disabled-bg: #e5e7eb;
   --cp-disabled-line: #9ca3af;
   color: var(--cp-text);
+  container-type: inline-size;
+}
+/* Desktop three-column reading layouts leave the simulator narrow; stack it so prediction selects stay legible. */
+@container (max-width: 640px) {
+  .ix-checkpoint .cp-layout { grid-template-columns: minmax(0, 1fr); }
 }
 .ix-checkpoint .ix-k,
 .ix-checkpoint .cp-log summary { color: var(--cp-accent); }
@@ -107,7 +112,7 @@
 .cp-predict[hidden] { display: none; }
 .cp-predict h4 { margin: 0 0 4px; color: var(--cp-text); font-size: 14px; }
 .cp-predict > p { margin: 0 0 10px; color: var(--cp-muted); font-size: 12px; line-height: 1.45; }
-.cp-predict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.cp-predict-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 9px; }
 .cp-predict label { display: grid; gap: 4px; color: var(--cp-text); font-size: 11.5px; font-weight: 650; }
 .cp-predict select {
   width: 100%;
