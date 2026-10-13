@@ -17,6 +17,9 @@
 //      The old band (2,400-3,000) was hardcoded in three places and breached on all ten W5/W6
 //      days (measured 3,139-3,728). W7/W8 carry a heavier delivery load, so the band tightens
 //      and is enforced identically in the author prompt, the critic, and the salvage critic.
+//      SUPERSEDED for the reading prompts by the Core-30 contract in docs/week-fanout-plan.md
+//      (<=1,800 required-path words, round(words/150), "Core 30" label); wordMin/wordMax now
+//      only feed the reported `band` field.
 //
 //  D3. THE READING-MINUTE META LINE IS COMPUTED, NOT GUESSED.
 //      26 of 33 existing pages say "~18 min" regardless of length. The author now writes the
@@ -166,12 +169,12 @@ const readings = await parallel(DAYS.map((day) => () => gated(
     `(3) ${RDIR}/${day.slug}.md — your ONLY source of facts.\n`+
     `Write ${WDIR}/${day.slug}.html (FILENAME MUST BE ${day.slug}.html):\n`+
     `- <meta name="fde-day" content="${day.slug}"> and <meta name="fde-concepts" content="..."> using ONLY these canonical concept-ids: ${JSON.stringify(canonByDay[day.slug] || [])}.\n`+
-    `- **PROSE BUDGET: ${BAND}.** This band is TIGHTER than W5/W6, deliberately — those ran 3,139-3,728 words against a 3,000 ceiling and the learner day now carries a delivery block too. Count only text inside <article class="reading-col">. Going under is as much a failure as going over.\n`+
-    `- **THE META LINE IS COMPUTED, NOT GUESSED.** Line ~39 of the template reads \`<span><b>~18 min</b> · reading @${RATE} wpm + diagram + check</span>\`. Twenty-three of the thirty-three existing pages say "~18 min" whatever their length, and that is a defect you must not copy. Count your actual prose words, compute ceil(words/${RATE}), and write THAT number. Report both in wordCount and declaredMinutes.\n`+
+    `- **CORE-30 CONTRACT (docs/week-fanout-plan.md): the whole required day (reading + diagram + interaction + check) fits within 30 min.** Required-path prose inside <article class="reading-col"> is <=1,800 words; advanced material goes in details.deep[data-core="optional"] outside the required path and is NOT counted in that budget.\n`+
+    `- **THE PACING LABEL IS COMPUTED, NOT GUESSED.** Do not copy the template's "~18 min" meta line. Write a visible label shaped "Core 30 · ~N min read · N interaction · N-Q check": min-read N = round(required words / 150), and the interaction/check N values are the actual counts. Report the required-path word count and min-read N in wordCount and declaredMinutes.\n`+
     `- 7-9 scrolly .step sections.\n`+
     `- **WRITE FOR MID-LEVEL ENGINEERS, NOT NOVICES — this is a correctness constraint, not a tone note.** The expertise-reversal effect (Kalyuga, Ayres, Chandler & Sweller 2003) is that instructional techniques which help inexperienced learners "can lose their effectiveness and even have negative consequences when used with more experienced learners", because guidance that overlaps redundantly with an existing schema forces cross-referencing and consumes working memory — and "redundant information is frequently difficult to ignore", so you cannot fix it by telling the reader to skip ahead. This cohort has six weeks of production LLM, RAG, agent, spec and SDLC work behind them. Do NOT re-explain what a trace is, what an API call is, or what a test is. Assume W1-W6. Where a full worked example would be the obvious move, prefer a **completion problem** — a partially worked solution with the load-bearing step left for the reader — because worked examples do not compel careful study and completion problems do.\n`+
     `- window.DIAGRAM (nodes/edges/captions) modeled on the template; captions.length == number of steps; each step reveals a meaningful part of the concept. **Keep the total of all captions + node \`detail:\` strings under 700 words** — these render as the learner scrolls and are real reading time that the meta line does not capture.\n`+
-    `- 6-question comprehension modal + optional deep-dive modal.\n`+
+    `- Comprehension-check modal; its actual question count appears in the Core 30 label. Optional depth lives in details.deep[data-core="optional"].\n`+
     `- "Sources & deeper dive" <section class="reading-sources"> before </article> with the brief's verified URLs.\n`+
     `- **CLIENT COUPLING (week-fanout-plan.md:357-376) — this is a hard requirement:** the \`#goals-modal\` \`.deliv-list\` MUST name the learner's brownfield repo and deep-link \`../../client-delivery.html?w=${PACKET_W}\`. The deliverable is a slice of the ONE artifact week ${PACKET_W}'s packet asks for — not a standalone exercise. Read the \`## Client hook\` section of the brief for the tie-in. On the star day (d5), end on the packet's stated deliverable PLUS an outcome line: what changes for a person at the client, and the number that proves it.\n`+
     `- DO NOT build functional ix-run blocks. Where a live try-it belongs, insert <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: ... Needs backend standup.</p></div> and report each in futureInteractives.\n`+
@@ -185,11 +188,11 @@ const readings = await parallel(DAYS.map((day) => () => gated(
     `READING + DESIGN CRITIC for ${WDIR}/${day.slug}.html. Read it, ${RDIR}/${day.slug}.md (allowed sources), ${TEMPLATE} (structural reference). Load WebFetch (ToolSearch: select:WebFetch).\n`+
     `Count the prose words yourself with a Bash one-liner over <article class="reading-col"> — do NOT trust the author's reported number.\n`+
     `PASS only if ALL hold:\n`+
-    `- prose is ${BAND} — measured by you, not reported;\n`+
-    `- the meta line's minute figure equals ceil(measured_words/${RATE}) within +/-1; a bare "~18 min" that does not match the word count is an automatic FAIL;\n`+
+    `- required-path prose is <=1,800 words (excluding details.deep[data-core="optional"]) — measured by you, not reported;\n`+
+    `- a visible "Core 30 · ~N min read · N interaction · N-Q check" label is present whose min-read N = round(measured required words / 150) and whose interaction/check N values are the actual counts; a bare "~18 min" is an automatic FAIL;\n`+
     `- diagram captions + node detail strings total under 700 words;\n`+
     `- 7-9 .step sections; window.DIAGRAM present, captions.length == steps, nodes carry coords;\n`+
-    `- 6-Q modal + deep-dive present;\n`+
+    `- comprehension-check modal present; any optional depth in details.deep[data-core="optional"];\n`+
     `- .reading-sources present with >=3 URLs spot-checked live;\n`+
     `- every claim traces to the brief (flag invented facts);\n`+
     `- >=1 .ix-future placeholder and ZERO functional ix-run;\n`+
@@ -207,7 +210,7 @@ const readingsRepaired = await parallel(DAYS.map((day, i) => () => {
   if (r && r.status) return Promise.resolve(r)
   return agent(
     `POST-HOC SALVAGE CRITIC for ${WDIR}/${day.slug}.html. The authoring agent hard-failed its structured return, but it may have already written a valid file. If the file does NOT exist, return pass=false with critique "file missing — regenerate". Otherwise apply the FULL reading critic above: read it, ${RDIR}/${day.slug}.md, ${TEMPLATE}. Load WebFetch (ToolSearch: select:WebFetch). Count prose words yourself.\n`+
-    `PASS only if: prose ${BAND}; meta-line minutes == ceil(words/${RATE}) +/-1; diagram captions+details under 700 words; 7-9 .step sections; window.DIAGRAM present with captions.length == steps; 6-Q modal + deep-dive; .reading-sources with >=3 URLs spot-checked; every claim traces to the brief; >=1 .ix-future and ZERO functional ix-run; EXACTLY ONE Bedrock-only code popup (code-cta + #code-${day.slug} .code-modal + codeviewer.js); .deliv-list names the brownfield repo and links client-delivery.html?w=${PACKET_W}; meta fde-concepts uses only ${JSON.stringify(canonByDay[day.slug] || [])}.\n`+
+    `PASS only if: required-path prose <=1,800 words (excluding details.deep[data-core="optional"]); visible "Core 30 · ~N min read · N interaction · N-Q check" label whose min-read N = round(required words / 150) and whose interaction/check N values are the actual counts; diagram captions+details under 700 words; 7-9 .step sections; window.DIAGRAM present with captions.length == steps; comprehension-check modal present; any optional depth in details.deep[data-core="optional"]; .reading-sources with >=3 URLs spot-checked; every claim traces to the brief; >=1 .ix-future and ZERO functional ix-run; EXACTLY ONE Bedrock-only code popup (code-cta + #code-${day.slug} .code-modal + codeviewer.js); .deliv-list names the brownfield repo and links client-delivery.html?w=${PACKET_W}; meta fde-concepts uses only ${JSON.stringify(canonByDay[day.slug] || [])}.\n`+
     `Else pass=false with specific critiques. One-sentence summary.`,
     { schema: VERDICT, label:`${day.slug}:salvage-crit`, phase:'Readings' }
   ).then(v => ({ task:`${day.slug} reading`, status: (v && v.pass) ? 'done' : 'flagged', passes: 0,
