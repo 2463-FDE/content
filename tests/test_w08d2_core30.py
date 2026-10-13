@@ -12,7 +12,9 @@ Timing contract (frozen — change requires a deliberate curriculum decision):
 
 from __future__ import annotations
 
+import json
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -71,7 +73,6 @@ class Core30Contract(unittest.TestCase):
         texts: list[str] = []
         required_text(cls.article, texts)
         cls.required_words = len(" ".join(texts).split())
-        cls.page_source = PAGE.read_text(encoding="utf-8")
         metas = [
             e for e in cls.article.find_all("span")
             if "core30-meta" in e.classes()
@@ -120,10 +121,31 @@ class Core30Contract(unittest.TestCase):
         )
 
     def test_pacing_label_check_count_is_true(self) -> None:
-        quiz = re.search(r"window\.QUIZ = \{.*?\n\};", self.page_source, re.S)
-        self.assertIsNotNone(quiz, "window.QUIZ missing")
-        stems = len(re.findall(r"\bstem:", quiz.group(0)))
-        self.assertIn(f"· {stems}-Q check", self.meta_text)
+        embedded = "\n".join(
+            text_of(script) for script in self.root.find_all("script")
+            if not script.attrs.get("src")
+        )
+        probe = """
+const vm = require('vm');
+let source = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => source += chunk);
+process.stdin.on('end', () => {
+  const sandbox = { window: {} };
+  vm.runInNewContext(source, sandbox, { filename: 'w08d2-embedded.js' });
+  const questions = sandbox.window.QUIZ && sandbox.window.QUIZ.questions;
+  process.stdout.write(JSON.stringify({ questions: Array.isArray(questions) ? questions.length : null }));
+});
+"""
+        result = subprocess.run(
+            ["node", "-e", probe], input=embedded, text=True, capture_output=True, check=True,
+        )
+        questions = json.loads(result.stdout)["questions"]
+        self.assertIsNotNone(questions, "window.QUIZ.questions missing")
+        self.assertGreater(questions, 0)
+        check = re.search(r"· (\d+)-Q check", self.meta_text)
+        self.assertIsNotNone(check, f"no 'N-Q check' in meta: {self.meta_text!r}")
+        self.assertEqual(int(check.group(1)), questions)
 
     def test_optional_depth_is_preserved_not_deleted(self) -> None:
         deep = [

@@ -1380,6 +1380,7 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
   .learning-objectives { break-inside: avoid; margin: 5mm 0; }
   .learning-objectives-list { color: #222 !important; }
   .lesson-support:not([open]) > :not(summary) { display: block !important; }
+  details.deep:not([open]) > :not(summary) { display: block !important; }
 
   .reading-col .step, .step, .lstep, .lesson-prose .lstep {
     display: block !important; min-height: 0 !important; opacity: 1 !important;
@@ -1417,5 +1418,7 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
   }
 }

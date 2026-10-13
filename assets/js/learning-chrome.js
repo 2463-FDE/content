@@ -111,7 +111,7 @@
     doc.__fdeLearningPrintSupport = true;
 
     view.addEventListener("beforeprint", function () {
-      canonicalItems(doc, ".lesson-support", Infinity).forEach(function (details) {
+      canonicalItems(doc, ".lesson-support, details.deep[data-core=optional]", Infinity).forEach(function (details) {
         if (!details.open) {
           details.open = true;
           details.setAttribute("data-opened-for-print", "");
@@ -119,7 +119,7 @@
       });
     });
     view.addEventListener("afterprint", function () {
-      canonicalItems(doc, ".lesson-support[data-opened-for-print]", Infinity).forEach(function (details) {
+      canonicalItems(doc, ".lesson-support[data-opened-for-print], details.deep[data-opened-for-print]", Infinity).forEach(function (details) {
         details.open = false;
         details.removeAttribute("data-opened-for-print");
       });
