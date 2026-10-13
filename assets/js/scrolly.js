@@ -4,6 +4,8 @@
    is obvious. Each <section class="step" data-diagram="i" data-step="n">
    activates diagram i / step n and its TOC entry at viewport center. */
 (function () {
+  const SCROLL_BEHAVIOR = typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
   // short, scannable TOC label from a long section heading
   function shortLabel(t) {
     t = (t || "").trim();
@@ -48,7 +50,7 @@
           const ph = document.createElement("button");
           ph.type = "button"; ph.className = "toc-part-head";
           ph.innerHTML = `<span class="cv">▸</span><span class="pt">${title}</span>`;
-          ph.addEventListener("click", () => g.items[0].scrollIntoView({ behavior: "smooth", block: "start" }));
+          ph.addEventListener("click", () => g.items[0].scrollIntoView({ behavior: SCROLL_BEHAVIOR, block: "start" }));
           part.appendChild(ph);
         }
         const ul = document.createElement("ul");
@@ -58,7 +60,7 @@
           const li = document.createElement("li");
           const a = document.createElement("a");
           a.href = "#"; a.textContent = shortLabel(h.textContent); a.title = h.textContent;
-          a.addEventListener("click", (e) => { e.preventDefault(); s.scrollIntoView({ behavior: "smooth", block: "start" }); });
+          a.addEventListener("click", (e) => { e.preventDefault(); s.scrollIntoView({ behavior: SCROLL_BEHAVIOR, block: "start" }); });
           li.appendChild(a); ul.appendChild(li);
           stepToLink.set(s, a);
         });

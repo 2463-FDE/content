@@ -14,6 +14,8 @@
 
 (function () {
   const SVGNS = "http://www.w3.org/2000/svg";
+  const REDUCE_MOTION = typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   let root = null, captionEl = null, titleEl = null;
   let specs = [], activeIdx = -1;
   let cfg = null, current = -1;
@@ -143,6 +145,11 @@
     g.classList.add("shown");
     const target = g._rect || g._path;
     if (!target) return;
+    if (REDUCE_MOTION) {
+      target.style.transition = "none";
+      target.style.strokeDashoffset = 0;
+      return;
+    }
     requestAnimationFrame(() => {
       target.style.transition = "stroke-dashoffset .6s ease";
       target.style.strokeDashoffset = 0;

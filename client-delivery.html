@@ -56,6 +56,22 @@
   .cd-dig code { font-family:var(--mono); font-size:.8em; background:var(--code-bg); padding:1px 5px; border-radius:4px; }
   .cd-deliv { background:var(--surface-2); border:1px solid var(--good-line); border-radius:12px; padding:14px 16px; font-size:15.5px; line-height:1.55; }
   .cd-quota.callout { margin:14px 0 0; }
+
+  /* ---- LTM cohort direction (static, design-stage) ---- */
+  .cd-concept { margin-top:46px; padding-top:34px; border-top:1px solid var(--line); }
+  .cd-concept .cc-stage { display:inline-block; margin:0 0 12px; font-size:12.5px; font-weight:700; letter-spacing:.04em; color:var(--accent-ink); background:var(--accent-soft); border:1px dashed var(--accent-line); border-radius:8px; padding:5px 11px; }
+  .cd-concept h2 { font-size:28px; margin:0 0 8px; letter-spacing:-.3px; }
+  .cd-concept .cc-lede { color:var(--ink-soft); font-size:16.5px; line-height:1.55; max-width:760px; margin:0 0 20px; }
+  .cc-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0 0 20px; }
+  @media (max-width:760px){ .cc-grid { grid-template-columns:1fr; } }
+  .cc-proj { border:1.5px solid var(--line); background:var(--surface); border-radius:12px; padding:16px 18px; }
+  .cc-proj .pj-k { font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--accent); }
+  .cc-proj h3 { font-size:18px; margin:4px 0 6px; }
+  .cc-proj p { font-size:14.5px; line-height:1.55; color:var(--ink-soft); margin:0; }
+  .cc-fig { margin:0 0 18px; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:18px 18px 10px; }
+  .cc-fig svg { display:block; width:100%; height:auto; }
+  .cc-fig svg text { font-family:inherit; }
+  .cc-fig figcaption { font-size:13.5px; color:var(--ink-soft); line-height:1.5; border-top:1px dashed var(--line); margin-top:12px; padding:10px 2px 4px; }
 </style>
 </head>
 <body>
@@ -92,6 +108,100 @@
   <div class="cd-projtabs" id="projtabs"></div>
   <div class="cd-weeks" id="weeks"></div>
   <div class="cd-panel" id="panel"></div>
+
+  <!-- ============== LTM cohort direction — static concept, design stage ============== -->
+  <section class="cd-concept" aria-labelledby="ltm-concept-h">
+    <p class="cc-stage">Design-stage direction — nothing in this section is built yet</p>
+    <h2 id="ltm-concept-h">Where the next cohort's client work is heading</h2>
+    <p class="cc-lede">The healthcare and finance packets above are the proven pattern. For the LTM cohort, the same
+    pattern becomes a two-project arc with one shared storyline: you modernize a legacy system solo, then a team
+    inherits that system as a platform engagement. Client domains are drawn from LTM's own published US client
+    evidence.</p>
+
+    <div class="cc-grid">
+      <div class="cc-proj">
+        <div class="pj-k">Project 1 · Weeks 1–5 · solo</div>
+        <h3>Legacy modernization</h3>
+        <p>Each learner works a brownfield system alone for a fictional US property &amp; casualty insurance
+        carrier — discovery, findings, and focused increments, in the same ask-per-week rhythm as the packets
+        above.</p>
+      </div>
+      <div class="cc-proj">
+        <div class="pj-k">Project 2 · Weeks 6–10 · team of 2–3</div>
+        <h3>Platform engagement</h3>
+        <p>A fictional US regional banking / payments firm inherits the Project 1 system. Teams of 2–3 developers
+        carry it to delivery: platform work, handover, and a final showcase. A US utility is the cross-industry
+        alternative for this overlay, pending trainer confirmation.</p>
+      </div>
+    </div>
+
+    <figure class="cc-fig">
+      <svg viewBox="0 0 960 408" role="img" aria-labelledby="ccf-title ccf-desc">
+        <title id="ccf-title">Two-project arc with the Week 6 handover boundary</title>
+        <desc id="ccf-desc">Project 1, worked solo in Weeks 1 to 5 as legacy modernization for a fictional US
+        property and casualty insurer, crosses a handover boundary at Week 6 and is inherited by Project 2, a team
+        of two to three developers running a platform engagement for a fictional US regional banking and payments
+        firm through Week 10. Both projects sit on one environment band, where each learner chooses AWS or GCP at
+        the start with a one-cloud focus expected, and one persona band: in-platform chat with the client's
+        technical lead, and an authenticated simulated stakeholder email inbox whose replies arrive in 15 to 30
+        minutes.</desc>
+        <!-- handover boundary -->
+        <line x1="480" y1="46" x2="480" y2="196" stroke="var(--accent)" stroke-width="2" stroke-dasharray="7 6"/>
+        <text x="480" y="30" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--accent-ink)">Week 6 · handover boundary</text>
+        <!-- project 1 -->
+        <g>
+          <rect x="54" y="66" width="340" height="112" rx="12" fill="var(--surface-2)" stroke="var(--ink-soft)" stroke-width="1.6"/>
+          <text x="74" y="94" font-size="12" font-weight="700" letter-spacing="1" fill="var(--accent)">PROJECT 1 · WEEKS 1–5 · SOLO</text>
+          <text x="74" y="120" font-size="16" font-weight="650" fill="var(--ink)">Legacy modernization</text>
+          <text x="74" y="143" font-size="12.5" fill="var(--ink-soft)">fictional US P&amp;C insurance carrier</text>
+          <text x="74" y="161" font-size="12.5" fill="var(--ink-soft)">one learner · one brownfield</text>
+        </g>
+        <!-- project 2 -->
+        <g>
+          <rect x="566" y="66" width="340" height="112" rx="12" fill="var(--surface-2)" stroke="var(--ink-soft)" stroke-width="1.6"/>
+          <text x="586" y="94" font-size="12" font-weight="700" letter-spacing="1" fill="var(--accent)">PROJECT 2 · WEEKS 6–10 · TEAM OF 2–3</text>
+          <text x="586" y="120" font-size="16" font-weight="650" fill="var(--ink)">Platform engagement</text>
+          <text x="586" y="143" font-size="12.5" fill="var(--ink-soft)">fictional US regional bank · payments</text>
+          <text x="586" y="161" font-size="12.5" fill="var(--ink-soft)">inherits the Project 1 system</text>
+        </g>
+        <!-- inheritance arrow -->
+        <defs>
+          <marker id="cc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/>
+          </marker>
+        </defs>
+        <line x1="394" y1="122" x2="562" y2="122" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#cc-arrow)"/>
+        <text x="478" y="110" text-anchor="middle" font-size="12" fill="var(--ink-soft)">same codebase, new client</text>
+        <!-- environment band -->
+        <g>
+          <rect x="54" y="216" width="852" height="62" rx="12" fill="var(--surface)" stroke="var(--line)" stroke-width="1.6"/>
+          <text x="74" y="241" font-size="12" font-weight="700" letter-spacing="1" fill="var(--ink-soft)">ENVIRONMENT · SPANS BOTH PROJECTS</text>
+          <text x="74" y="262" font-size="13.5" fill="var(--ink)">You choose AWS or GCP at the start (both allowed) — a one-cloud focus is expected.</text>
+        </g>
+        <!-- persona band -->
+        <g>
+          <rect x="54" y="296" width="852" height="94" rx="12" fill="var(--accent-soft)" stroke="var(--accent-line)" stroke-width="1.6"/>
+          <text x="74" y="322" font-size="12" font-weight="700" letter-spacing="1" fill="var(--accent-ink)">CLIENT PERSONAS · IN-PLATFORM · SPANS BOTH PROJECTS</text>
+          <text x="74" y="346" font-size="13.5" fill="var(--ink)">Chat — the client's technical lead, a live conversation in the platform.</text>
+          <text x="74" y="370" font-size="13.5" fill="var(--ink)">Simulated stakeholder email — an authenticated in-platform inbox; replies arrive in 15–30 minutes.</text>
+        </g>
+      </svg>
+      <figcaption>The two-project arc as a boundary map: solo legacy modernization (Weeks 1–5, fictional US P&amp;C
+      insurer) crosses the Week 6 handover boundary into a 2–3-person platform engagement (Weeks 6–10, fictional US
+      regional bank / payments). Both sit on a shared environment band — you pick AWS or GCP at the start, one-cloud
+      focus expected — and a shared persona band: in-platform technical-lead chat plus an authenticated simulated
+      stakeholder email inbox with 15–30-minute replies. Design-stage diagram; none of these systems exist yet.</figcaption>
+    </figure>
+
+    <ul class="cd-list">
+      <li><b>One shared truth:</b> both projects tell one client storyline — personas, constraints, and artifacts
+      stay consistent across the handover, with negotiable asks separated from hard constraints.</li>
+      <li><b>Cloud choice:</b> AWS, GCP, or both, chosen once at the top of the curriculum; the material expects
+      most learners to focus on a single cloud.</li>
+      <li><b>Communication:</b> persona chat and the delayed stakeholder email are design-stage concepts — no
+      backend, scheduler, or email machinery exists; communication coaching is formative only, never graded.</li>
+    </ul>
+  </section>
 </div>
 
 <footer class="foot">2463-FDE · Client Delivery — problem identification first, solutioning second</footer>
