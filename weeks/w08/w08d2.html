@@ -69,7 +69,7 @@
         <div class="meta">
           <span><b>Week 8</b> · Day 2</span>
           <span>Security · Governance · Responsible AI</span>
-          <span><b>~21 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" title="Core 30: the required path — reading, diagram, one interaction, and the check — fits a 30-minute day. Marked details blocks are optional depth outside the cap."><b>Core 30</b> · ~12 min read · 1 interaction · 6-Q check</span>
         </div>
         <p class="summary">Your client wants the AI feature turned on for everyone. Today is where you can say
         precisely why that is a security decision and not a rollout decision. Prompt injection held <strong>#1 through
@@ -114,14 +114,20 @@
         <p><strong>Jailbreak is a strict subset, not a synonym</strong> — the case where the attacker's goal is making
         the model violate its safety protocols. Willison argues the conflation is why engineers ignore this: people who
         picture a chatbot tricked into a napalm recipe file it as the vendor's embarrassment, not their bug.</p>
-        <p>New in 2026 is the <strong>delivery-surface trust taxonomy</strong>. <em>Untrusted</em>: public pages,
-        unknown-sender mail, search results. <em>Semi-trusted</em>: issue titles, package READMEs, third-party API
-        responses — "content the user chose to retrieve but did not author." <em>Trusted</em>: your own repos and
-        databases, where "the developer may not realize an attacker has placed content here… via an unrelated upstream
-        vector such as a public bug-report form." That third row is where your Week 8 packet lives. Then threat-model on
-        OWASP's three axes: <strong>delivery surface</strong>, <strong>propagation</strong> (single-shot, multi-step,
-        cross-session, self-replicating), and <strong>encoding</strong> (plain, base64, invisible Unicode,
-        multimodal).</p>
+        <p>Then tag every delivery surface <em>untrusted / semi-trusted / trusted</em> — the <strong>trusted</strong>
+        row (your own repos and databases) is where developers get surprised, because an attacker can write there via an
+        unrelated upstream vector. That row is where your Week 8 packet lives.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper — the full 2026 trust taxonomy and threat-model axes · optional, +1 min</summary>
+          <p>New in 2026 is the <strong>delivery-surface trust taxonomy</strong>. <em>Untrusted</em>: public pages,
+          unknown-sender mail, search results. <em>Semi-trusted</em>: issue titles, package READMEs, third-party API
+          responses — "content the user chose to retrieve but did not author." <em>Trusted</em>: your own repos and
+          databases, where "the developer may not realize an attacker has placed content here… via an unrelated upstream
+          vector such as a public bug-report form." Then threat-model on
+          OWASP's three axes: <strong>delivery surface</strong>, <strong>propagation</strong> (single-shot, multi-step,
+          cross-session, self-replicating), and <strong>encoding</strong> (plain, base64, invisible Unicode,
+          multimodal).</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -141,10 +147,14 @@
         a user-uploaded image"). <strong>JSON-encode the payload</strong>, so an attacker cannot close a quote or tag to
         break out into instruction context. And <strong>screen tool output before the model acts on it</strong>.</p>
         <p>The corollary catches everyone once: <strong>do not put your own instructions in tool results</strong> —
-        content there is treated as untrusted, so yours may be ignored or flagged. Send it in the next user turn. Tool
-        <em>descriptions</em> are model-read text too: the malicious <code>postmark-mcp</code> package BCC'd mail to an
-        attacker across an estimated 300 organizations, and pinning does not stop description poisoning that leaves the
-        version unchanged.</p>
+        content there is treated as untrusted, so yours may be ignored or flagged. Send it in the next user turn.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper — tool descriptions are an attack surface too · optional, +1 min</summary>
+          <p>Tool <em>descriptions</em> are model-read text just like tool results: the malicious
+          <code>postmark-mcp</code> package BCC'd mail to an attacker across an estimated 300 organizations, and pinning
+          does not stop description poisoning that leaves the version unchanged. Audit descriptions on every MCP server
+          you adopt, not just the code.</p>
+        </details>
         <button class="code-cta" type="button" data-modal="code-w08d2"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· screen_tool_output.py</span></button>
       </section>
 
@@ -162,12 +172,15 @@
         to pass stolen information back to an attacker." OWASP Scenario #2 is the demo everyone should run once: a page
         of hidden instructions, a markdown image whose URL exfiltrates the conversation, and a user who "sees only the
         rendered image, never the instruction."</p>
-        <p>Run it on the architecture your packet asks you to widen. Riverbend's summarizer: private data is the
-        encounter record; untrusted content is the notes field plus HL7 segments; leg three is whatever the summary
-        renders into, and the portal renders markdown. Meridian's scorer: the applicant file and bureau pull; applicant
-        free text, uploads and the poisonable corpus; any outbound call on the decision path. In both, <strong>nobody
-        wrote leg three on purpose</strong> — it arrived as a rendering default. That is why "roll it out wider" is a
-        security decision.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper — the trifecta check run on both brownfields, worked · optional, +1 min</summary>
+          <p>Run it on the architecture your packet asks you to widen. Riverbend's summarizer: private data is the
+          encounter record; untrusted content is the notes field plus HL7 segments; leg three is whatever the summary
+          renders into, and the portal renders markdown. Meridian's scorer: the applicant file and bureau pull; applicant
+          free text, uploads and the poisonable corpus; any outbound call on the decision path. In both, <strong>nobody
+          wrote leg three on purpose</strong> — it arrived as a rendering default. That is why "roll it out wider" is a
+          security decision.</p>
+        </details>
         <div class="trifecta-auditor" data-trifecta-auditor>
           <div class="audit-head">
             <div class="ix-k">✓ Practice · lethal-trifecta auditor</div>
@@ -240,12 +253,15 @@
         search and human-guided exploration to <strong>bypass 12 recent defenses with attack success above 90% for
         most</strong> — and "the majority of defenses originally reported near-zero attack success rates." A vendor
         quoting a static-suite number is quoting a number about the suite.</p>
-        <p>OpenAI reports the most effective real-world attacks "increasingly resemble social engineering more than
-        simple prompt overrides," which makes detection "the same very difficult problem as detecting a lie" — their
-        published example is a plausible corporate follow-up email instructing the assistant to submit an employee's
-        home address to a "compliance validation system." It worked 50% of the time. Provenance marking does work on
-        non-adaptive attackers — spotlighting took attack success from over 50% to under 2% — but StruQ fell to
-        adaptive attack.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper — what real attacks look like, and where provenance marking helps · optional, +1 min</summary>
+          <p>OpenAI reports the most effective real-world attacks "increasingly resemble social engineering more than
+          simple prompt overrides," which makes detection "the same very difficult problem as detecting a lie" — their
+          published example is a plausible corporate follow-up email instructing the assistant to submit an employee's
+          home address to a "compliance validation system." It worked 50% of the time. Provenance marking does work on
+          non-adaptive attackers — spotlighting took attack success from over 50% to under 2% — but StruQ fell to
+          adaptive attack.</p>
+        </details>
         <p>So keep the classifiers. They cut volume and produce signal you can alert on. Just do not let anyone call
         them the boundary. Guardrail vendors advertise catching 95% of attacks, and
         <strong>"in web application security 95% is very much a failing grade."</strong> Even Anthropic's best published
@@ -285,13 +301,16 @@
         an agent has ingested untrusted input, it must be constrained so it is <strong>impossible</strong> for that
         input to trigger consequential actions. Any attacker who gets tokens in has "complete control over what happens
         next."</p>
-        <p>The six patterns are a design vocabulary worth carrying: <strong>Action-Selector</strong> (an LLM-modulated
-        switch statement — tools fire, no output returns); <strong>Plan-Then-Execute</strong> (output returns, but the
-        plan is fixed before untrusted content is seen, so an injection "might corrupt the body of the email that is
-        sent, but it won't be able to change the recipient"); <strong>LLM Map-Reduce</strong>; <strong>Dual LLM</strong>
-        (a privileged model never sees untrusted content, driving a quarantined one via symbolic variables);
-        <strong>Code-Then-Execute</strong>; <strong>Context-Minimization</strong>. CaMeL productizes it and prices it
-        honestly: <strong>77% of AgentDojo tasks with provable security versus 84% undefended.</strong></p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper — the six injection-resistant design patterns · optional, +2 min</summary>
+          <p>The six patterns are a design vocabulary worth carrying: <strong>Action-Selector</strong> (an LLM-modulated
+          switch statement — tools fire, no output returns); <strong>Plan-Then-Execute</strong> (output returns, but the
+          plan is fixed before untrusted content is seen, so an injection "might corrupt the body of the email that is
+          sent, but it won't be able to change the recipient"); <strong>LLM Map-Reduce</strong>; <strong>Dual LLM</strong>
+          (a privileged model never sees untrusted content, driving a quarantined one via symbolic variables);
+          <strong>Code-Then-Execute</strong>; <strong>Context-Minimization</strong>. CaMeL productizes it and prices it
+          honestly: <strong>77% of AgentDojo tasks with provable security versus 84% undefended.</strong></p>
+        </details>
         <p>Four controls to ship. <strong>Deterministic mediation</strong> (OWASP #4): credentials and state-change
         capability live in application code, not the model, with privileged calls routed through a policy engine that
         re-validates arguments at execution time — the same shape as Week 6's maker-checker.
@@ -312,16 +331,19 @@
         negative outcome," so the author sees it privately, first. <strong>Reduce Harm</strong>: demo the minimum that
         proves the claim — a marker string and a sink you control, never a real record from the Week 1 log dump.
         <strong>Incentivize Desired Behavior</strong>: reward the person who shipped what you could test.</p>
-        <p>Simultaneity is why the fix ships in the same breath as the exploit. CISA's program exists so stakeholders
-        "receive critical information simultaneously, thereby minimizing the window of exploitation" — so your demo is
-        not finished until you have named the control, the file, and the date. An exploit without a dated fix is
-        theater; with one, it is a ticket.</p>
-        <p>The face-saving frame is factual rather than diplomatic, which is what makes it work: <strong>this is an
-        unsolved industry problem.</strong> Every vendor on the list — ChatGPT, Bard, Copilot, Slack, Grok, GitHub's own
-        MCP server — shipped it. A finding here is a design decision nobody has made yet, not a competence gap. On
-        healthcare there is a cleaner on-ramp still: Week 7 already produced a transcript where the summarizer invented
-        a medication. Frame yours as the escalation — that was a hallucination, this is attacker-<em>chosen</em>
-        clinical content — and it lands on the artifact, not the author.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper — simultaneity and the face-saving frame · optional, +2 min</summary>
+          <p>Simultaneity is why the fix ships in the same breath as the exploit. CISA's program exists so stakeholders
+          "receive critical information simultaneously, thereby minimizing the window of exploitation" — so your demo is
+          not finished until you have named the control, the file, and the date. An exploit without a dated fix is
+          theater; with one, it is a ticket.</p>
+          <p>The face-saving frame is factual rather than diplomatic, which is what makes it work: <strong>this is an
+          unsolved industry problem.</strong> Every vendor on the list — ChatGPT, Bard, Copilot, Slack, Grok, GitHub's own
+          MCP server — shipped it. A finding here is a design decision nobody has made yet, not a competence gap. On
+          healthcare there is a cleaner on-ramp still: Week 7 already produced a transcript where the summarizer invented
+          a medication. Frame yours as the escalation — that was a hallucination, this is attacker-<em>chosen</em>
+          clinical content — and it lands on the artifact, not the author.</p>
+        </details>
 
         <div class="callout mindset">
           <div class="k">FDE mindset</div>
@@ -332,7 +354,7 @@
         </div>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/final/LLM01_PromptInjection.md" target="_blank" rel="noopener">OWASP LLM01:2026 — Prompt Injection</a> — trust taxonomy, three-axis anatomy, 11 mitigations, 9 scenarios. The repo moved: this is canonical.</li>
