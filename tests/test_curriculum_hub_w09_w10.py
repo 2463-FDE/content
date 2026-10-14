@@ -346,6 +346,106 @@ document.body.appendChild(frame);
         self.assertTrue(states["unrelatedDeepLink"]["mainHidden"])
         self.assertEqual(states["unrelatedDeepLink"]["h1"], "Kafka foundations and event-driven judgement")
 
+    def test_batch_and_cloud_selection_stay_paired_across_history_and_reload(self) -> None:
+        chrome = find_chrome()
+        if not chrome:
+            self.skipTest("Chrome/Chromium is unavailable")
+        hub = (ROOT / "index.html").as_uri()
+        script = """
+const hub = %s, out = {};
+const frame = document.createElement('iframe');
+frame.style.cssText = 'width:1280px;height:800px;border:0';
+let stage = 0;
+function state(doc) {
+  const url = new URL(doc.defaultView.location.href);
+  return {
+    batchParam: url.searchParams.get('batch'),
+    cloudParam: url.searchParams.get('cloud'),
+    batch: doc.querySelector('[data-batch-context] input')?.value || null,
+    model: doc.body.dataset.curriculumModel || null,
+    cloudView: doc.documentElement.getAttribute('data-cloud-view'),
+    checked: doc.querySelector('input[data-cloud-path-option]:checked')?.value || null,
+    calendarHidden: doc.getElementById('cal')?.hidden ?? null,
+  };
+}
+frame.onload = () => setTimeout(() => {
+  const doc = frame.contentDocument, win = frame.contentWindow;
+  if (stage === 0) {
+    out.initial = state(doc);
+    doc.querySelector('[data-batch-context] input').value = '2567';
+    doc.querySelector('[data-batch-context] button').click();
+    setTimeout(() => {
+      out.batchSelected = state(doc);
+      doc.querySelector('input[data-cloud-path-option][value="aws"]').click();
+      setTimeout(() => {
+        out.cloudSelected = state(doc);
+        win.history.back();
+        setTimeout(() => {
+          out.back = state(doc);
+          win.history.forward();
+          setTimeout(() => {
+            out.forward = state(doc);
+            stage = 1;
+            win.location.reload();
+          }, 160);
+        }, 160);
+      }, 160);
+    }, 160);
+  } else {
+    out.reload = state(doc);
+    document.body.setAttribute('data-result', JSON.stringify(out));
+  }
+}, 450);
+frame.src = hub + '?batch=2463&cloud=gcp';
+document.body.appendChild(frame);
+""" % json.dumps(hub)
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp) / "batch-cloud-harness.html"
+            harness.write_text(
+                f"<!doctype html><html><body><script>{script}</script></body></html>"
+            )
+            result = subprocess.run(
+                [
+                    chrome,
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-first-run",
+                    "--no-default-browser-check",
+                    f"--user-data-dir={Path(tmp) / 'profile'}",
+                    "--allow-file-access-from-files",
+                    "--window-size=1400,900",
+                    "--virtual-time-budget=15000",
+                    "--dump-dom",
+                    harness.as_uri(),
+                ],
+                text=True,
+                capture_output=True,
+                timeout=60,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr[-1000:])
+        match = re.search(r'data-result="([^"]*)"', result.stdout)
+        self.assertIsNotNone(match, "batch/cloud harness did not report state")
+        states = json.loads(html.unescape(match.group(1)))
+
+        expected = {
+            "initial": ("2463", "unavailable", "gcp"),
+            "batchSelected": ("2567", "ltm-2567", "gcp"),
+            "cloudSelected": ("2567", "ltm-2567", "aws"),
+            "back": ("2463", "unavailable", "gcp"),
+            "forward": ("2567", "ltm-2567", "aws"),
+            "reload": ("2567", "ltm-2567", "aws"),
+        }
+        for key, (batch, model, cloud) in expected.items():
+            with self.subTest(state=key):
+                observed = states[key]
+                self.assertEqual(observed["batchParam"], batch)
+                self.assertEqual(observed["batch"], batch)
+                self.assertEqual(observed["model"], model)
+                self.assertEqual(observed["calendarHidden"], model == "unavailable")
+                self.assertEqual(observed["cloudParam"], cloud)
+                self.assertEqual(observed["cloudView"], cloud)
+                self.assertEqual(observed["checked"], cloud)
+
     def test_unsupported_batch_cannot_render_2567_client_delivery_packets(self) -> None:
         chrome = find_chrome()
         if not chrome:
