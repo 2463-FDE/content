@@ -1,7 +1,7 @@
 /* Authoritative Week 9–10 transfer data.
    Provenance: the captain-approved curriculum record excerpted in
    docs/research/w09/w09-source-excerpt.md and docs/research/w10/w10-source-excerpt.md,
-   reconciled with the 2026-10-13 target-state report and existing W8 research.
+   reconciled with the 2026-10-13 target-state report and preserved security research.
    Provider certification objectives are intentionally absent: that evidence lane
    integrates later through FDE_CURRICULUM_CONFIG.cloudPath. */
 (function (root, factory) {
@@ -27,8 +27,11 @@
   var shared = {
     securitySources: [
       { label: "Authoritative W9 transfer record", href: "../../docs/research/w09/w09-evidence-index.md" },
-      { label: "OWASP LLM Top 10 2026 research already verified for Week 8", href: "../../docs/research/w08/w08d1.md" },
-      { label: "Prompt-injection architecture research already verified for Week 8", href: "../../docs/research/w08/w08d2.md" }
+      { label: "Preserved OWASP LLM Top 10 2026 security research", href: "../../docs/research/w09/archive-week8-security/w08d1.md" },
+      { label: "Preserved prompt-injection architecture research", href: "../../docs/research/w09/archive-week8-security/w08d2.md" },
+      { label: "Preserved guardrail-framework evidence", href: "../../docs/research/w09/archive-week8-security/w08d3.md" },
+      { label: "Preserved governance and privacy evidence", href: "../../docs/research/w09/archive-week8-security/w08d4.md" },
+      { label: "Preserved red-team and deployment-gate evidence", href: "../../docs/research/w09/archive-week8-security/w08d5.md" }
     ],
     rolloutSources: [
       { label: "Authoritative W10 transfer record", href: "../../docs/research/w10/w10-evidence-index.md" },
@@ -41,19 +44,19 @@
     w09d1: {
       week: 9, day: 1, phase: "AI Security, Governance & System Hardening", title: "Threat-model the system you actually built",
       concepts: ["system-threat-model", "prompt-injection", "data-leakage", "model-poisoning", "tool-misuse"],
-      summary: "Week 8 named the risks. Week 9 starts by applying them to the inherited brownfield system. Build one threat model from real data flows, agent capabilities, memory, and tools; then choose the first hardening decision from evidence rather than from a generic checklist.",
+      summary: "Week 8 made the inherited system operable; Week 9 applies preserved security research to harden it. Build one threat model from real data flows, agent capabilities, memory, tools, and telemetry boundaries; then choose the first hardening decision from evidence rather than from a generic checklist.",
       sections: [
         ["Start from the delivered system", "A threat model begins with the system on main, not an ideal architecture. Mark the user entry points, retrieved content, memories, model calls, tools, and outbound sinks. Reuse the diagrams and findings from Weeks 2–8 so every boundary has an artifact behind it. Anything not observed is an assumption and belongs in a separate column."],
         ["Name assets and consequences", "List what the client would lose: confidential data, correct decisions, service availability, audit evidence, and stakeholder trust. Connect each asset to a concrete client consequence. This keeps a technical finding from becoming an isolated severity score and gives the Friday readout a reason the client can act on."],
-        ["Trace attacker-controlled input", "Follow direct user text, retrieved records, tool responses, issue content, uploaded files, and persistent memory. Week 8 established that instructions and data share one model context. The hardening move is therefore to identify where untrusted content enters and which later capability could turn it into an action."],
+        ["Trace attacker-controlled input", "Follow direct user text, retrieved records, tool responses, issue content, uploaded files, and persistent memory. Preserved security research establishes that instructions and data can share one model context; Week 8 adds telemetry and incident boundaries. The hardening move is to identify where untrusted content enters and which later capability could turn it into an action."],
         ["Map capability and privilege", "For each tool, record read, write, external communication, credential, and approval scope. A tool name is not a permission boundary. The application or downstream service must enforce the decision. Highlight any session that combines private data, untrusted content, and external communication."],
         ["Separate prevention from containment", "Classifiers, filters, and input rules can reduce attack volume. They do not replace least privilege, deterministic mediation, sink controls, bounded memory, or human approval for irreversible actions. Put each proposed control in a prevent, contain, detect, or recover column so the architecture does not overclaim what a filter guarantees."],
         ["Choose one hardening slice", "The day ends with one bounded decision: remove a capability, narrow a permission, gate a sink, or isolate a context. Record the owner, affected path, evidence, and verification method. Do not open five security workstreams because the list contains five threat names."],
         ["Prepare the security readout", "State the client asset, attack path, removed capability, and residual risk in four sentences. Show the changed boundary on the diagram. The Week 9 milestone begins when another engineer can reproduce the threat path and verify the control without relying on the author’s explanation."]
       ],
-      optional: ["Optional depth — revisit the Week 8 threat taxonomy", "Open the Week 8 sources and attach current risk IDs only where they improve traceability. A framework label is evidence routing, not proof that a control works."],
+      optional: ["Optional depth — revisit the preserved threat taxonomy", "Open the archived security sources and attach current risk IDs only where they improve traceability. A framework label is evidence routing, not proof that a control works."],
       drill: { prompt: "The agent reads customer-uploaded documents, can query private case data, and can render model-supplied external links. Which first change most directly removes the high-impact combination?", options: ["Add a stronger system prompt", "Block or require approval for external link rendering after untrusted content enters context", "Increase the model context window"], answer: 1, feedback: "Gate the sink. It removes the external-communication leg with an enforceable application control; prompt wording does not create that boundary." },
-      demoNote: "Show the diagram at section 4, run the decision drill, then open Daily goals. Emphasize that W9 applies W8 evidence rather than repeating a risk list.",
+      demoNote: "Show the diagram at section 4, run the decision drill, then open Daily goals. Emphasize that W9 applies preserved security research and Week 8 reliability evidence rather than repeating either one.",
       checks: checks([
         ["What is the authoritative starting point for the threat model?", "The system and artifacts currently delivered on main.", "The exercise models the real brownfield system, with assumptions labeled.", ["A reference architecture for the target-state system.", "The OWASP LLM Top 10 list, applied category by category.", "The original Week 1 design document."]],
         ["What makes a tool boundary enforceable?", "Application or downstream authorization independent of model judgement.", "A model choosing a tool is not authorization.", ["A system prompt that tells the model which tools it may call.", "A descriptive tool name and docstring that state its intended scope.", "A classifier that scores each tool request before the model runs it."]],

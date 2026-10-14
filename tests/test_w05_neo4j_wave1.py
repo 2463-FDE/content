@@ -443,7 +443,6 @@ function load(entries, i) {
   if (i >= entries.length) { document.body.dataset.result = JSON.stringify(out); return; }
   const [key, url] = entries[i], frame = document.createElement('iframe');
   frame.onload = () => setTimeout(() => {
-    if (key === 'lesson') frame.contentDocument.querySelector('[data-modal="deep-modal"]').click();
     out[key] = frame.contentDocument.body.innerText.replace(/\s+/g, ' ').trim();
     frame.remove(); load(entries, i + 1);
   }, 350);

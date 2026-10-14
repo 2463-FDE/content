@@ -46,14 +46,14 @@
             <button class="btn" id="hub-open" type="button">Open lesson</button>
           </div>
           <p id="hub-launch-status" class="hub-launch-status" role="status" aria-live="polite">Choose any available day.</p>
-          <div class="hub-demo-links"><a href="weeks/w05/w05d1.html">Start Week 5 Neo4j</a><a href="weeks/w09/w09d1.html">Start Week 9 hardening</a><a href="weeks/w10/w10d5.html">Open capstone showcase</a><a href="client-delivery.html?w=5">Open Week 5 delivery packet</a></div>
+          <div class="hub-demo-links"><a href="weeks/w05/w05d1.html">Start Week 5 Neo4j</a><a href="weeks/w07/w07d1.html">Start Week 7 IaC</a><a href="weeks/w08/w08d1.html">Start Week 8 reliability</a><a href="weeks/w09/w09d1.html">Start Week 9 hardening</a><a href="weeks/w10/w10d5.html">Open capstone showcase</a><a href="client-delivery.html?w=7">Open Project 2 delivery packet</a></div>
         </div>
       </section>
 
       <div class="legend"></div>
 
       <p class="core30-key"><b>Core 30</b> — a marked day's required path (reading · essential diagram · one interaction · comprehension check)
-      is budgeted to 30 minutes; <code>Deeper</code> blocks are optional extra depth outside the cap. All Week 5 and Week 9–10 routes, plus Week 8 Day 2, publish the pacing label.</p>
+      is budgeted to 30 minutes; <code>Deeper</code> blocks are optional extra depth outside the cap. Weeks 5–10 publish the pacing label; each Week 7–8 route also includes a no-JavaScript text path.</p>
 
       <div class="cal" id="cal"></div>
 
@@ -127,18 +127,18 @@ window.WEEKS = [
     { t:"Event-driven agents & streaming stores", s:"MSK judgement · async agents · backpressure · Chroma/Neo4j", href:"weeks/w06/w06d3.html" },
     { t:"Build, fail & operate the pipeline", s:"rebalance · lag alerts · OTel headers · runbooks · static egress", href:"weeks/w06/w06d4.html" },
     { t:"Pipeline defense & measured readout", s:"throughput/lag · synthetic egress · fallback · retrospective", star:true, href:"weeks/w06/w06d5.html" } ]},
-  { w:7, phase:"obs", title:"Observability, SRE & Guardrails", days:[
-    { t:"Traces, spans & LangSmith", s:"run trees · cost/latency attribution · a shareable URL, not an adjective", href:"weeks/w07/w07d1.html" },
-    { t:"Evals in production", s:"offline sets · online eval · LLM-as-judge bias", href:"weeks/w07/w07d2.html" },
-    { t:"Alt research: tracing platforms", s:"Langfuse · Phoenix · Helicone vs LangSmith", href:"weeks/w07/w07d3.html" },
-    { t:"SRE for AI — SLOs & OTel GenAI", s:"error budgets · burn-rate alerting · cost as a signal", href:"weeks/w07/w07d4.html" },
-    { t:"Guardrails + observability E2E", s:"the demo is the guardrail refusing", href:"weeks/w07/w07d5.html", star:true } ]},
-  { w:8, phase:"sec", title:"Security, Governance & Responsible AI", days:[
-    { t:"OWASP Top 10 for LLM Apps", s:"the framework that makes a finding boring", href:"weeks/w08/w08d1.html" },
-    { t:"Prompt injection & jailbreaks", s:"direct vs indirect · the lethal trifecta", href:"weeks/w08/w08d2.html" },
-    { t:"Alt research: guardrail frameworks", s:"NeMo · Guardrails AI · LLM Guard · Presidio", href:"weeks/w08/w08d3.html" },
-    { t:"Governance, PII & responsible AI", s:"the PHI/PII boundary · saying no with an alternative", href:"weeks/w08/w08d4.html" },
-    { t:"Red-team + secure agent deploy E2E", s:"triage by client consequence, not CVSS", href:"weeks/w08/w08d5.html", star:true } ]},
+  { w:7, phase:"prod", title:"Terraform + Ansible & AI CI/CD", days:[
+    { t:"Terraform foundations & plan discipline", s:"IaC judgement · providers · resources · state · lifecycle", href:"weeks/w07/w07d1.html" },
+    { t:"Modules, drift & AI plan review", s:"environments · secrets · drift · human control", href:"weeks/w07/w07d2.html" },
+    { t:"Ansible configuration & idempotence", s:"inventory · playbooks · roles · handlers · promotion estimate", href:"weeks/w07/w07d3.html" },
+    { t:"AI CI/CD gates", s:"quality · security · drift · evals · approval · rollback", href:"weeks/w07/w07d4.html" },
+    { t:"Project 2 infrastructure delivery", s:"primary-cloud ADR · rebuild evidence · two-audience defense", href:"weeks/w07/w07d5.html", star:true } ]},
+  { w:8, phase:"obs", title:"AI Observability, SRE & Reliability Guardrails", days:[
+    { t:"AI service signals & SLOs", s:"latency · quality · cost · negotiated error budgets", href:"weeks/w08/w08d1.html" },
+    { t:"OTel signals & GenAI spans", s:"traces · metrics · logs · Collector · drift evidence", href:"weeks/w08/w08d2.html" },
+    { t:"Cross-system correlation", s:"agents · tools · models · Kafka · bad-answer root cause", href:"weeks/w08/w08d3.html" },
+    { t:"Evaluations & reliability guardrails", s:"offline/online evals · circuits · graceful degradation", href:"weeks/w08/w08d4.html" },
+    { t:"Incident response & reliability evidence", s:"runbooks · rollback · tradeoffs · client readout", href:"weeks/w08/w08d5.html", star:true } ]},
   { w:9, phase:"sec", title:"AI Security, Governance & System Hardening", days:[
     { t:"Threat-model the delivered system", s:"prompt injection · leakage · poisoning · tool misuse", href:"weeks/w09/w09d1.html" },
     { t:"Least privilege across agents & MCP", s:"RBAC · auth boundaries · PII · secrets", href:"weeks/w09/w09d2.html" },

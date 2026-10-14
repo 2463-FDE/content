@@ -134,7 +134,7 @@ const recon = await gated(
     JSON.stringify(rawConcepts, null, 1) + '\n'+
     `FIRST read ${BACKEND} — the CONCEPTS object is the LIVE, already-shipped taxonomy (Weeks 0-6 plus pre-seeded stubs). Those ids are plain kebab-case; the day is noted in the LABEL, never in the id.\n`+
     `Produce a CLEAN canonical taxonomy:\n`+
-    `- If a proposed concept means the SAME thing as a live CONCEPTS id, REUSE that exact live id — do NOT mint a synonym. Pre-seeded stubs (notably \`agent-observability\` and \`output-guardrails\`, which are the intended homes for much of W7) MUST be reused, not duplicated.\n`+
+    `- If a proposed concept means the SAME thing as a live CONCEPTS id, REUSE that exact live id — do NOT mint a synonym. Pre-seeded stubs (notably \`agent-observability\` and \`output-guardrails\`, which are intended homes for matching Week 8 concepts) MUST be reused, not duplicated.\n`+
     `- Merge near-duplicates and exact duplicates WITHIN this week into ONE canonical id (kebab-case).\n`+
     `- For genuinely new concepts, mint a plain kebab-case id that collides with NO live CONCEPTS id and NO other canonical id.\n`+
     `- isNew = false for any id reused from the live taxonomy, true for a newly minted id.\n`+

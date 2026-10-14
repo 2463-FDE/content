@@ -22,6 +22,8 @@ assets/
   js/batch-context.js    reusable viewer-local batch selector
   js/curriculum-lessons-w06.js authoritative Week 6 Kafka lesson data
   js/kafka-lesson.js     shared Week 6 route renderer + decision practice
+  js/curriculum-lessons-w07-w08.js authoritative Week 7–8 IaC/reliability data
+  js/platform-lesson.js  shared Week 7–8 Core-30 renderer + decision practice
   js/curriculum-lessons-w09-w10.js authoritative Week 9–10 transfer data
   js/capstone-lesson.js  shared Week 9–10 route renderer
 ```
@@ -30,7 +32,7 @@ Zero build step, zero dependencies. Edit HTML/CSS/JS, commit, Pages redeploys.
 
 ## Authoring a reading page
 
-Legacy pages define two globals and include the shared scripts. Week 6 and Week 9–10 routes instead consume their shared lesson-data files and renderers:
+Legacy pages define two globals and include the shared scripts. Week 6, Week 7–8, and Week 9–10 routes instead consume their shared lesson-data files and renderers. Week 7 is Terraform + Ansible & AI CI/CD; Week 8 is AI Observability, SRE & Reliability Guardrails; Week 9 retains security/governance/hardening.
 
 - `window.DIAGRAM = { width, height, nodes:[{id,step,x,y,w,h,label}], edges:[{id,step,from,to,label?,bend?}], captions:[...] }`
   Steps reveal in order as the reader scrolls; the matching `.step` section drives `Diagram.goTo(n)`.

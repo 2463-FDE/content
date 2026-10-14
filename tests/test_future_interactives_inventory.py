@@ -89,22 +89,16 @@ def documented_inventory():
             re.MULTILINE,
         )
     }
-    headline = int(
-        re.search(
-            r"shipped pages contain (\d+) `\.ix-future` placeholders across W4–W8",
-            inventory_section,
-        ).group(1)
-    )
     total = int(
         re.search(r"\*\*Inventory total: (\d+) deferred placeholders\.\*\*", inventory_section).group(1)
     )
-    return days, subtotals, headline, total
+    return days, subtotals, total
 
 
 class FutureInteractiveInventoryTest(unittest.TestCase):
     def test_document_matches_shipped_week_4_through_8_placeholders(self):
         live = live_inventory()
-        documented, subtotals, headline, total = documented_inventory()
+        documented, subtotals, total = documented_inventory()
 
         self.assertEqual(set(live), set(documented))
         live_weekly = defaultdict(int)
@@ -116,7 +110,6 @@ class FutureInteractiveInventoryTest(unittest.TestCase):
 
         self.assertEqual(subtotals, dict(live_weekly))
         live_total = sum(live_weekly.values())
-        self.assertEqual(headline, live_total)
         self.assertEqual(total, live_total)
         self.assertEqual(total, sum(subtotals.values()))
 

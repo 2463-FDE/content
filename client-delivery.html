@@ -393,86 +393,76 @@ window.CLIENT = {
         deliverable: "A local/static Kafka pipeline package: event/schema and partition decision, agent/Chroma/Neo4j side-effect state machine, retry/DLQ path, broker-failure worksheet, lag alert, OTel header map, runbook, throughput/lag report, synthetic egress formula, and two-audience readout."
       },
       7: {
-        title: "Observability / SRE / Guardrails",
-        tie: "Golden-signal instrumentation, tracing, alerting; guardrails on LLM output.",
-        ask: "The portal feels flaky and I'm always the last to hear about it — usually a patient complains before I even know there's a problem. I want real visibility so I can get ahead of issues. And that patient AI summary you stood up makes me nervous now that it's live; I need to know it can't say something off about a patient. Here's a week of logs. And I don't want to be told it hasn't said anything wrong — I want to be shown it can't.",
+        title: "Terraform + Ansible & AI CI/CD",
+        tie: "Turn the inherited Kafka/agent/graph platform into a reviewable infrastructure and configuration package with human-controlled delivery gates.",
+        ask: "The team can explain the pipeline, but nobody can reproduce the environment or show me what would change before release. Give us one reviewed infrastructure plan, one configuration contract, and a pipeline that stops unsafe changes. Keep this as evidence only; do not touch an account.",
         handover: [
-          "A week of raw latency logs — plain text, no trace IDs, no structured fields; you can't follow one request across services.",
-          "Incident note: \"intake froze ~20 min Tuesday, no alert fired — I found out from a front-desk phone call.\"",
-          "That frozen window lines up with the same intake/eligibility path from the W3 payer outage.",
-          "The AI summary you shipped is live and unguarded — whether it has already invented a medication is something you will have to find out, not something I can hand you.",
-          "That summary endpoint returns the model output directly — no grounding check, no validation, no 'refuse if unknown.'",
-          "No dashboard, no SLO definition, and no alerting config anywhere in the repo."
+          "The Week 6 event/agent/Chroma/Neo4j architecture, synthetic workload, runbook, prior client-system idempotency gap, and one team-primary-cloud ADR template.",
+          "An inert Terraform root/module sample with AWS and GCP provider seams, illustrative state/backend rows, and a saved synthetic plan transcript.",
+          "A synthetic Ansible inventory, role tree, playbook diff, and first/second/drift run expectations; no hosts, credentials, or provider access.",
+          "A CI gate worksheet covering deterministic tests, security/policy, drift, AI evaluation, human approval, rollback, and evidence identity."
         ],
         dig: [
-          "With these logs, can you reconstruct a single slow request end-to-end? What's missing to make that possible?",
-          "Why did a 20-minute outage produce zero alerts — what would have had to exist to page someone?",
-          "Run your own summary against the seed corpus — can you make it state something the record does not support? What would have caught it before a clinician saw it?",
-          "What are the few golden signals for the intake path you'd watch, and which single alert is worth firing?"
+          "Which objects belong in Terraform, which configuration belongs in Ansible, and who owns the handoff?",
+          "Which plan action could replace or destroy durable clinical data, and what evidence would stop it?",
+          "How does the AI reviewer help without gaining apply, merge, or approval authority?",
+          "What makes the Project 2 environment reproducible while preserving one primary-cloud decision?"
         ],
-        stated: [
-          "The portal is flaky and the client is last to know.",
-          "Wants the AI summary to not 'say anything crazy.'"
-        ],
+        stated: ["Wants reproducible infrastructure and configuration evidence.", "Wants unsafe delivery to stop before change authority."],
         hidden: [
-          "<b>No observability on the intake/eligibility path</b> — availability cliffs are invisible (no alert, no MTTR); every outage is discovered by patients first.",
-          "<b>The LLM feature has no output guardrail</b> — hallucinated clinical content is a clinical-safety + liability risk."
+          "<b>State and plan artifacts can expose sensitive values</b> — access, retention, locking, and review are part of the design.",
+          "<b>A green plan or AI summary is not approval</b> — exact plan identity, human authority, rollback, and rebuild evidence remain separate controls."
         ],
-        facilitator: "Two threads converge: the unmonitored availability cliff (from W3) and the ungrounded AI output. Keep scope to one instrumented path + one guardrail.",
-        deliverable: "An observability instrument for the intake path: structured tracing on the critical span, a golden-signals dashboard spec, and one working alert (latency/error-rate SLO breach) + a content guardrail on the LLM summary (grounding/validation + refuse-unknown)."
+        facilitator: "Use only inert configuration, synthetic plan/inventory evidence, and static gate outcomes. Require learners to distinguish provision, configure, validate, approve, recover, and prove. Preserve the primary-cloud ADR and AWS/GCP seams without implementing the picker.",
+        deliverable: "A Project 2 infrastructure delivery package: primary-cloud ADR, provider/module/state design, annotated synthetic Terraform plan, Ansible inventory/role/idempotence evidence, CI quality/security/drift/eval gates, human approval boundary, rollback/rebuild tabletop, and two-audience readout. No init, plan command, apply, destroy, host connection, deploy, or account action."
       },
       8: {
-        title: "Security / Governance / Responsible AI",
-        tie: "Data governance, responsible-AI design, PII handling, third-party/vendor risk.",
-        ask: "The board is really excited — they want the AI visit-summary turned on for every patient, automatically, as our headline feature. Let's make it happen this week. We're already sending data to whatever AI service you wired up, so the privacy side is handled, isn't it? Can you just flip it on for everyone?",
+        title: "AI Observability, SRE & Reliability Guardrails",
+        tie: "Instrument and operate the inherited patient-intake and AI-summary path with correlated OTel signals, SLOs, evaluations, guardrails, incidents, and runbooks.",
+        ask: "The portal still feels flaky and the summary feature can fail even when it returns 200. Show me one evidence path from patient impact through traces, metrics, logs, quality checks, and a runbook decision so my team knows before a patient does.",
         handover: [
-          "Your AI summary currently sends the full encounter record <code>{name, dob, mrn, notes}</code> to the cloud LLM vendor — nothing is stripped before it leaves the building.",
-          "Nobody has checked whether the model provider you chose is covered by a Business Associate Agreement, or what its data-retention terms actually say — that question has never been asked in writing.",
-          
-          "A sample row from that 'de-identified' analytics export: <code>{zip:90210, dob:1971-03-02, mrn:'M4471', device_id:'IPAD-07', visit_date:'2026-06-14'}</code>.",
-          "HHS Safe-Harbor reference: the list of 18 identifiers that must be removed for de-identification.",
-          "No data-flow diagram of what leaves the PHI boundary, or under what agreement."
+          "Synthetic intake/Kafka/agent/model/tool traces with no PHI payload, plus correlated metrics and structured logs.",
+          "A labeled summary fixture set covering grounded, unsupported, incomplete, refused, and degraded outcomes; historical judge evidence stays dated and non-guaranteeing.",
+          "A blank SLO/error-budget policy for latency and grounded outcome quality, plus synthetic token/cost dimensions.",
+          "An incident card linking retrieval-version change, queue age, model retries, guardrail outcome, alert, and runbook branches."
         ],
         dig: [
-          "Trace exactly which fields leave Riverbend when the AI summary runs — and is there a signed BAA covering that vendor?",
-          "Check the 'de-identified' export against the 18 Safe-Harbor identifiers — how many are still present?",
-          "Could you re-identify someone from {ZIP + DOB + visit date}? (it's famously few fields.)",
-          "What has to happen to data BEFORE it crosses to a vendor for this feature to be lawful?"
+          "Can one trace correlate intake, Kafka, agent, retrieval, model, tool, and guardrail work without exporting PHI?",
+          "What exactly is a good summary event, who labels it, and what happens when its error budget is spent?",
+          "Which signal distinguishes provider latency from retrieval degradation or one hot event partition?",
+          "When should the operator retry, open a circuit, degrade, roll back, or escalate?"
         ],
-        stated: [
-          "Board wants automatic visit-summaries for every patient.",
-          "Client believes the analytics export is already 'de-identified.'"
-        ],
+        stated: ["Wants visibility before patient impact is reported.", "Wants reliability evidence for an AI summary, not a model assurance."],
         hidden: [
-          "<b>PHI to an LLM vendor with no BAA + no de-identification (D13, #5)</b> is an impermissible disclosure (164.502(e)).",
-          "<b>The 'de-identified' export is re-identifiable</b> — missing 17 of 18 Safe-Harbor identifiers (#14)."
+          "<b>HTTP success can still be an implicit reliability failure</b> — unsupported or incomplete clinical content needs a reviewed quality signal.",
+          "<b>Telemetry can become a second PHI store</b> — payload-free defaults, classification, access, retention, and deletion are part of observability."
         ],
-        facilitator: "The flagship feature is an unsignaled breach; 'anonymized' data isn't. Let them enumerate the 18 Safe-Harbor identifiers against the export to feel the gap.",
-        quota: "Multi-field LLM scrub — test the redactor offline with unit tests, not by spamming the LLM.",
-        deliverable: "A responsible-AI design package: a Safe-Harbor de-identification scrub (18 identifiers, unit-tested redactor) used before any LLM/analytics path + a data-flow + BAA/vendor-governance memo (what leaves the PHI boundary, under what agreement) + a recommendation gate."
+        facilitator: "Carry forward the strongest former Week 7 observability work into Week 8. Keep Week 9 security/hardening separate. Use synthetic payload-free evidence and make the learner choose from SLO, evaluation, guardrail, budget, and incident consequences.",
+        deliverable: "A reliability evidence package for one patient-intake/summary path: OTel trace/metric/log contract, model/agent/tool/Kafka correlation, dashboard and alert spec, latency/quality SLO and error-budget policy, evaluation/guardrail signals, incident timeline, runbook branch, rollback/degraded-mode evidence, cost/latency/reliability tradeoff, and two-audience readout."
       },
       9: {
         title: "AI Security, Governance &amp; System Hardening",
-        tie: "Apply the Week 8 security foundation to the inherited healthcare system: threat model, least privilege, governance evidence, audit, remediation, and readout.",
-        ask: "Before we discuss rollout, show me the highest-consequence AI path, what power it has, what you changed, and how my team can verify the control.",
+        tie: "Apply preserved security/governance research and Week 8 reliability evidence to the inherited healthcare system: threat model, least privilege, data governance, audit, remediation, and readout.",
+        ask: "The board wants automatic visit summaries for every patient. Before rollout, show me exactly what leaves the PHI boundary, how untrusted content could move it, what power the AI path has, what you changed, and how my team can verify the control.",
         handover: [
-          "The complete Weeks 1–8 system, decision trail, and responsible-AI package — this is the audit boundary, not a greenfield example.",
-          "A provider-neutral control matrix with prevent, contain, detect, and recover evidence. AWS/GCP product and certification cells remain explicitly pending.",
-          "Synthetic red-team fixtures and local test paths only; no real credentials, production targets, or external sends."
+          "The complete Weeks 1–8 system and reliability package; the current summary path still contains a synthetic full encounter record {name, dob, mrn, notes} and no assumed BAA.",
+          "A synthetic 'de-identified' export that removes only name while retaining ZIP, dates, MRN, and device ID, plus the preserved Safe-Harbor research.",
+          "A provider-neutral prevent/contain/detect/recover matrix and safe prompt-injection/red-team fixtures. AWS/GCP certification and product cells remain pending.",
+          "Local tests only; no PHI, credentials, production target, provider call, external send, or deployment."
         ],
         dig: [
-          "Which client asset and consequence make this the first path to harden?",
-          "Where does untrusted content meet private data, privilege, or an external sink?",
-          "Which boundary is enforced by application or downstream policy rather than model judgement?",
-          "Can another engineer reproduce the finding, denial, remediation, and residual risk from the package?"
+          "Which fields leave the PHI boundary and under what verified agreement, retention, access, and deletion terms?",
+          "Where can untrusted content meet private data, tool privilege, memory, telemetry, or an external sink?",
+          "Which Safe-Harbor identifiers survive the synthetic export, and what unit/negative tests prove the redactor boundary?",
+          "Can another engineer reproduce the finding, least-privilege denial, remediation, residual risk, and governance gate?"
         ],
-        stated: ["Wants a defensible security and governance position before rollout.", "Wants evidence the team can operate after handoff."],
+        stated: ["Wants a defensible security and governance position before wider rollout.", "Wants evidence the client team can operate after handoff."],
         hidden: [
-          "<b>A risk list is not a hardened system</b> — one enforceable control and its negative test are required.",
-          "<b>Provider or compliance labels without dated evidence overclaim readiness</b> — unknowns stay visible."
+          "<b>PHI sent without a verified covered agreement and tested minimization is an unresolved governance boundary</b> — a risk list or vendor label is not evidence.",
+          "<b>Instructions and data can share context</b> — output filters do not replace least privilege, sink controls, bounded memory, safe telemetry, and human approval."
         ],
-        facilitator: "Start from the delivered system. Run one threat path, one least-privilege decision, one safe peer red-team, and the executive/technical readout. Certification objectives belong to the parallel evidence lane.",
-        deliverable: "A reproducible audit package: system boundary, threat path, control-evidence map, one remediated control with positive and negative tests, residual-risk disposition, and two-audience readout."
+        facilitator: "Start from the delivered system and preserved security sources. Run one threat path, one PHI/data-flow decision, one least-privilege change, one safe peer red-team, and one executive/technical readout. Keep provider and certification claims in their owned evidence lane.",
+        deliverable: "A reproducible healthcare security/governance package: system and PHI data-flow boundary, threat path, Safe-Harbor/BAA/vendor-evidence gate, control map, one remediated least-privilege or sink control with positive and negative tests, local red-team evidence, residual-risk disposition, and two-audience readout."
       },
 10: {
         title: "Production Rollout, Showcase &amp; Client Handoff",
@@ -677,84 +667,76 @@ window.CLIENT = {
         deliverable: "A local/static Kafka pipeline package: event/schema and partition decision, duplicate-safe side-effect state, retry/DLQ path, broker-failure worksheet, lag/reconciliation alert, OTel header map, runbook, throughput/lag report, synthetic egress formula, fallback, and two-audience readout."
       },
       7: {
-        title: "Observability / SRE / Guardrails",
-        tie: "Golden-signal instrumentation, tracing, alerting; reconciliation as a control; guardrails.",
-        ask: "Payments feel flaky, and my finance team grumbles about 'noise' at month-end that they just write off. I want visibility so I'm not the last to know when something's off. I attached a month of payments and the processor's settlement file — finance says they 'mostly tie out.' Help me get ahead of this.",
+        title: "Terraform + Ansible & AI CI/CD",
+        tie: "Turn the inherited Kafka/agent/graph platform into a reviewable infrastructure and configuration package with human-controlled delivery gates.",
+        ask: "The team can explain the pipeline, but nobody can reproduce the environment or show me what would change before release. Give us one reviewed infrastructure plan, one configuration contract, and a pipeline that stops unsafe changes. Keep this as evidence only; do not touch an account.",
         handover: [
-          "A month of <code>payments</code> rows + the processor <code>settlement.csv</code>: the totals differ by a small, persistent amount that nobody reconciles.",
-          "Raw payment-path logs with no trace IDs — a few double-fund events from a prior client-system idempotency gap are buried in them.",
-          "Finance email: \"month-end is always a little noisy, we just adjust to the bank number.\"",
-          "A <code>services/servicing-service/app/reconciliation.py</code> stub exists but never runs on a schedule and reports no breaks; <code>docs/runbook.md</code> notes finance reconciles by hand and \"totals do not tie out.\"",
-          "No alerting on payment error rate, and none on a reconciliation break.",
-          "The split is now across two services — <code>payment-service</code> captures the charge and <code>servicing-service</code> applies it — with no shared trace ID tying the two halves together at month-end."
+          "The Week 6 payment-event/agent/Chroma/Neo4j architecture, synthetic workload, runbook, prior client-system idempotency gap, and one team-primary-cloud ADR template.",
+          "An inert Terraform root/module sample with AWS and GCP provider seams, illustrative state/backend rows, and a saved synthetic plan transcript.",
+          "A synthetic Ansible inventory, role tree, playbook diff, and first/second/drift run expectations; no hosts, credentials, or provider access.",
+          "A CI gate worksheet covering deterministic tests, security/policy, drift, AI evaluation, human approval, rollback, and evidence identity."
         ],
         dig: [
-          "Sum the ledger vs the settlement file — do they tie out exactly? What is the variance?",
-          "Is 'month-end noise' random, or a consistent, directional gap that signals a real leak?",
-          "Find the double-fund events in the logs — could anyone see them without instrumentation?",
-          "What single control would turn \"we adjust to the bank number\" into \"we know exactly why it differs\"?"
+          "Which objects belong in Terraform, which configuration belongs in Ansible, and who owns the handoff?",
+          "Which plan action could replace or destroy durable financial data, and what evidence would stop it?",
+          "How does the AI reviewer help without gaining apply, merge, or approval authority?",
+          "What makes the Project 2 environment reproducible while preserving one primary-cloud decision?"
         ],
-        stated: [
-          "Payments feel flaky.",
-          "Finance complains about month-end 'noise.'"
-        ],
+        stated: ["Wants reproducible infrastructure and configuration evidence.", "Wants unsafe delivery to stop before change authority."],
         hidden: [
-          "<b>No reconciliation between ledger and settlement (D7, #5)</b> — the 'month-end noise' is a SOX-material control gap.",
-          "The unidempotent double-funds are invisible without instrumentation."
+          "<b>State and plan artifacts can expose sensitive values</b> — access, retention, locking, and review are part of the design.",
+          "<b>A green plan or AI summary is not approval</b> — exact plan identity, human authority, rollback, and rebuild evidence remain separate controls."
         ],
-        facilitator: "<b>Sam is in the room now.</b> 'Noise' is the symptom of a missing control. Have them tie the settlement file to the ledger and watch the variance fail to reconcile.",
-        quota: "Reconciliation — run on a sampled month, not the full history.",
-        deliverable: "An observability + reconciliation instrument: structured tracing on the payment span, a daily reconciliation job + break-report (ledger vs settlement), and one alert on a reconciliation break or error-rate SLO. One instrumented path + one control."
+        facilitator: "Use only inert configuration, synthetic plan/inventory evidence, and static gate outcomes. Require learners to distinguish provision, configure, validate, approve, recover, and prove. Preserve the primary-cloud ADR and AWS/GCP seams without implementing the picker.",
+        deliverable: "A Project 2 infrastructure delivery package for the payment and decision platform: primary-cloud ADR, provider/module/state design, annotated synthetic Terraform plan, Ansible inventory/role/idempotence evidence, CI quality/security/drift/eval gates, human approval boundary, rollback/rebuild tabletop, and two-audience readout. No init, plan command, apply, destroy, host connection, deploy, or account action."
       },
       8: {
-        title: "Security / Governance / Responsible AI",
-        tie: "Responsible-AI design, model governance, fair-lending monitoring, data governance.",
-        ask: "The board loves the AI scorer — let's roll it out to more products and put together a slick page on how advanced our underwriting is. I attached the recent decision logs; the model's humming along. Let's make this a marketing moment. Wider is better, right?",
+        title: "AI Observability, SRE & Reliability Guardrails",
+        tie: "Operate the inherited payment, settlement, event, and AI-decision path with correlated OTel evidence, correctness SLOs, guardrails, incidents, and runbooks.",
+        ask: "Payments and settlement still produce month-end noise, and the AI decision path can be wrong while every API says success. Give me one evidence path that catches latency, duplicate money effects, reconciliation breaks, reason-quality failures, and cost before finance or an applicant finds them.",
         handover: [
-          "Decision logs from the W3 model: every denial carries the same generic adverse-action string (\"purchasing history\") — the scorecard draws from a hardcoded two-item list (<code>GENERIC_REASONS</code> in <code>decision.py</code>) and emits one regardless of the real driver.",
-          "No model card, no model documentation, and no record of the features/version used per decision.",
-          "No fair-lending disparity check and no monitoring of denial-reason accuracy anywhere.",
-          
-          "<b>12 CFR 1002.9</b> requires specific, accurate adverse-action reasons — there is no exemption for a model that cannot explain itself. (CFPB Circulars 2022-03 and 2023-03 said the same and were <b>withdrawn 2025-05-12</b>; cite the regulation, not the circular.)",
-          "<code>services/decision-service</code> records only the outcome — no model id, version, or feature set per decision — so there is no registry to govern or roll back as the scorer is rolled wider."
+          "Synthetic payment/Kafka/agent/model/tool traces with tokenized identities, plus correlated metrics and structured logs without PAN, CVV, SSN, or borrower payload.",
+          "A deterministic ledger-versus-settlement fixture and labeled decision-reason examples; use deterministic checks before any semantic judge.",
+          "A blank latency/correctness SLO and error-budget policy, synthetic token/cost dimensions, and one team-primary-cloud environment map.",
+          "An incident card linking a retrieval/model version, duplicate event attempt, reconciliation break, guardrail/evaluation result, alert, and runbook branch."
         ],
         dig: [
-          "Across many decisions, how many *distinct* adverse-action reasons does the model actually emit?",
-          "There is no disparity data at all today — what would you need to collect before anyone could claim this model is fair?",
-          "If a regulator asked \"how does this model decide, and is it fair?\", what documentation exists today?",
-          "What does 'responsible AI' require here beyond a marketing page — reason accuracy, monitoring, a model card?"
+          "Can one trace correlate payment capture, Kafka, servicing, model, tool, and reconciliation without exposing regulated payload?",
+          "Which deterministic correctness SLI proves ledger and settlement tie, and which labeled quality SLI tests reasons?",
+          "How do per-partition age, retries, tool calls, evaluation failures, and cost per accepted decision change the diagnosis?",
+          "When should the operator stop release, queue work, degrade, roll back, forward-repair, or escalate?"
         ],
-        stated: [
-          "Board loves the AI scorer — roll it out wider.",
-          "Wants a marketing page about how advanced it is."
-        ],
+        stated: ["Wants visibility before finance or customers report a break.", "Wants reliability evidence for AI decisions and money movement."],
         hidden: [
-          "<b>The AI scorer is an ECOA liability at scale (#2, D10)</b> — generic reasons, no governance, no disparity monitoring, no model card.",
-          "12 CFR 1002.9 (the obligation CFPB Circular 2023-03 restated before it was withdrawn 2025-05-12) = no AI exemption; rolling it wider multiplies fair-lending exposure."
+          "<b>HTTP success can hide money-correctness and reason-quality failures</b> — deterministic reconciliation and versioned evaluation are separate reliability signals.",
+          "<b>Observability can widen regulated-data exposure</b> — safe correlation IDs and payload-free defaults are required."
         ],
-        facilitator: "Responsible-AI isn't a marketing page; it's reason accuracy + monitoring + documentation. The ZIP approval-rate pattern is the disparate-impact prompt.",
-        quota: "Model reason-mapping — test the mapping logic with fixtures, don't spam the live model.",
-        deliverable: "A responsible-AI / fair-lending governance package: a reason-code → specific-consumer-reason mapping (tested against the model's real drivers), a model card, and a fair-lending monitoring spec (denial-reason accuracy + disparity check). Governance artifacts; not a model rebuild."
+        facilitator: "Carry forward former Week 7 tracing, evaluation, SLO, cost, and guardrail conclusions into Week 8. Keep Week 9 security/hardening separate. Prefer deterministic reconciliation and use semantic judges only where expert-labeled meaning requires them.",
+        deliverable: "A reliability evidence package for one payment/decision path: OTel trace/metric/log contract, model/agent/tool/Kafka/reconciliation correlation, dashboard and alert spec, latency/correctness/quality SLO and error-budget policy, evaluation/guardrail signals, incident timeline, runbook branch, rollback/degraded-mode evidence, cost/latency/reliability tradeoff, and two-audience readout."
       },
       9: {
         title: "AI Security, Governance &amp; System Hardening",
-        tie: "Apply the Week 8 security foundation to the inherited financial-services system: threat model, least privilege, governance evidence, audit, remediation, and readout.",
-        ask: "Before we discuss rollout, show me the highest-consequence AI path, what power it has, what you changed, and how my team can verify the control.",
+        tie: "Apply preserved security/governance research and Week 8 reliability evidence to the inherited financial-services system: threat model, least privilege, fair-lending governance, audit, remediation, and readout.",
+        ask: "The board wants the AI scorer across more products. Before rollout, show me whether applicant content can influence the decision, what data or tools the path can reach, whether every reason is specific and reproducible, what you changed, and how compliance can verify it.",
         handover: [
-          "The complete Weeks 1–8 system, decision trail, and responsible-AI package — this is the audit boundary, not a greenfield example.",
-          "A provider-neutral control matrix with prevent, contain, detect, and recover evidence. AWS/GCP product and certification cells remain explicitly pending.",
-          "Synthetic red-team fixtures and local test paths only; no real credentials, production targets, or external sends."
+          "The complete Weeks 1–8 system and reliability package; synthetic decisions still expose a generic adverse-action-reason gap and incomplete model/version evidence.",
+          "A synthetic applicant corpus with untrusted free text/uploads, tokenized identities, deterministic reconciliation fixtures, and labeled reason-quality examples.",
+          "A provider-neutral prevent/contain/detect/recover matrix and safe prompt-injection/red-team fixtures. AWS/GCP certification and product cells remain pending.",
+          "Local tests only; no applicant data, credentials, production target, provider call, external send, decision, or deployment."
         ],
         dig: [
-          "Which client asset and consequence make this the first path to harden?",
-          "Where does untrusted content meet private data, privilege, or an external sink?",
-          "Which boundary is enforced by application or downstream policy rather than model judgement?",
-          "Can another engineer reproduce the finding, denial, remediation, and residual risk from the package?"
+          "Can applicant-controlled content alter retrieval, model judgement, a tool call, reason code, or an external sink?",
+          "Which application or downstream boundary enforces least privilege independently of model judgement?",
+          "Can each synthetic denial map to a specific tested reason, model/version record, and governance owner without claiming a legal conclusion?",
+          "Can another engineer reproduce the exploit, denial, remediation, residual risk, and wider-rollout gate?"
         ],
-        stated: ["Wants a defensible security and governance position before rollout.", "Wants evidence the team can operate after handoff."],
-        hidden: ["<b>A risk list is not a hardened system</b> — one enforceable control and its negative test are required.", "<b>Provider or compliance labels without dated evidence overclaim readiness</b> — unknowns stay visible."],
-        facilitator: "Start from the delivered system. Run one threat path, one least-privilege decision, one safe peer red-team, and the executive/technical readout. Certification objectives belong to the parallel evidence lane.",
-        deliverable: "A reproducible audit package: system boundary, threat path, control-evidence map, one remediated control with positive and negative tests, residual-risk disposition, and two-audience readout."
+        stated: ["Wants a defensible security, governance, and reason-evidence position before wider rollout.", "Wants controls compliance and operations can verify after handoff."],
+        hidden: [
+          "<b>Generic or irreproducible reasons make wider rollout indefensible</b> — model marketing is not governance evidence.",
+          "<b>Applicant content plus private data, privilege, and an external sink creates a high-consequence path</b> — filters do not replace deterministic mediation and least privilege."
+        ],
+        facilitator: "Start from the delivered system and preserved security sources. Run one threat path, one reason-governance decision, one least-privilege change, one safe peer red-team, and one executive/technical readout. Avoid legal conclusions and keep provider/certification claims in their owned evidence lane.",
+        deliverable: "A reproducible finance security/governance package: system/data boundary, threat path, tested reason-code/model-evidence gate, control map, one remediated least-privilege or sink control with positive and negative tests, local red-team evidence, residual-risk disposition, and two-audience readout."
       },
 10: {
         title: "Production Rollout, Showcase &amp; Client Handoff",

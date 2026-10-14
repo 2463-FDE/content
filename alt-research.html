@@ -109,7 +109,7 @@
     <span class="em">🗓️</span>
     <span class="tx">Each week has <b>4 alternatives</b> and there are <b>4 of you</b> — log in and you'll be assigned <b>one</b>.
     <b>Research your assigned alternative this week, then present it to the group for ~10 minutes on Friday.</b>
-    Across four weeks the rotation puts everyone in every slot.
+    Across assigned weeks the rotation distributes every slot.
     <b>Exception — Week 4 runs as a collective:</b> no individual assignments; the group researches all options together and presents one shared comparison.</span>
     <a class="ritual ar" style="margin-top:10px;display:inline-block" href="alt-research-example.html">📄 See an example submission (Next.js vs Vue vs Angular)</a>
   </div>
@@ -128,11 +128,11 @@
   <div class="ar-panel" id="panel"></div>
 </div>
 
-<footer class="foot">2463-FDE · Alternative Research — every current-state fact cited, researched via /web-research on 2026-06-28</footer>
+<footer class="foot">2463-FDE · Alternative Research — every current-state fact cited in its brief; Week 7–8 remap reviewed 2026-10-14</footer>
 
 <script>
 /* ============================================================================
-   Wednesday Alternative-Research briefs, keyed by week (W1-W8).
+   Wednesday Alternative-Research briefs, keyed by week (W1-W9).
    Learner-visible: space, alts[] (named alternatives + honest tradeoffs),
                     task (recommend-and-defend), sources[] (cited, dated).
    Trainer-only:    trainer (what a strong evaluation surfaces).
@@ -304,7 +304,32 @@ window.ALT = {
   },
 
   7: {
-    title: "Observability, SRE & Guardrails",
+    title: "Terraform + Ansible & AI CI/CD",
+    space: "Content space: reproducible infrastructure and configuration delivery. Compare stateful IaC, provider-native templates, configuration/image approaches, and CI review controls without executing any provider or deployment action.",
+    alts: [
+      { name: "Terraform root/modules with reviewed saved plans",
+        body: "The source-assigned baseline: provider plugins model infrastructure resources, state binds configuration to managed identity, modules package stable ownership boundaries, and a saved plan makes one exact proposed change reviewable. The strength is a mature cross-provider workflow; the risk is that state and plan artifacts can contain sensitive data and that a thin so-called cloud-neutral wrapper can hide important AWS/GCP semantics. Separate approval from apply and keep examples static." },
+      { name: "OpenTofu as a compatible IaC alternative",
+        body: "A community-governed Terraform-compatible alternative worth evaluating for licensing, provider compatibility, state migration, team skills, support, and long-term exit. Compatibility is an evidence question, not an assumption: test the exact providers, modules, state format, lock file, policy and CI path the client owns before recommending a switch. The Week 7 learner path remains Terraform because that is the authoritative source scope." },
+      { name: "Provider-native IaC — CloudFormation/CDK or Google Cloud Infrastructure Manager",
+        body: "Provider-native tooling can expose new service features and identity conventions quickly and may align with an existing cloud operating model. It also narrows portability and creates a different state, testing, import and rollback story. Compare one primary-cloud implementation honestly rather than forcing AWS and GCP resources behind identical names. The decision belongs in the team's primary-cloud ADR with clear flip conditions." },
+      { name: "Configuration convergence — Ansible vs immutable images or bootstrap",
+        body: "Ansible gives reviewable inventory, modules, roles, handlers, check/diff evidence and repeatable drift repair for known targets. Immutable-image pipelines or managed bootstrap can reduce mutable-host work but move rebuild time and artifact ownership elsewhere. A shell provisioner is rarely a neutral shortcut. Compare idempotence, secret handling, promotion, rollback, recovery time, target scope and who operates the control plane." }
+    ],
+    task: "Using the trainer's synthetic Project 2 workload, compare Terraform, OpenTofu, provider-native IaC, and an Ansible-versus-immutable configuration strategy. Recommend one primary-cloud delivery path and state the state boundary, provider-specific seam, review gates, rollback/rebuild proof, and one fact that would reverse the choice. Do not initialize, connect, plan, apply, destroy, or deploy.",
+    trainer: "Strong work separates provision, configure, validate, approve and recover. It refuses to treat a green plan or AI summary as authority, prices state/secret and operator ownership, preserves provider-native differences, and uses AI only to propose plan findings, tests or review questions. One primary-cloud ADR is required; the cross-provider comparison is a decision seam, not an implemented picker.",
+    sources: [
+      { label: "Terraform — providers", url: "https://developer.hashicorp.com/terraform/language/providers", date: "2026-10-14" },
+      { label: "Terraform — state purpose", url: "https://developer.hashicorp.com/terraform/language/state/purpose", date: "2026-10-14" },
+      { label: "Terraform — plan command", url: "https://developer.hashicorp.com/terraform/cli/commands/plan", date: "2026-10-14" },
+      { label: "OpenTofu — documentation", url: "https://opentofu.org/docs/", date: "2026-10-14" },
+      { label: "Ansible — playbooks", url: "https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_intro.html", date: "2026-10-14" },
+      { label: "GitHub Actions — workflow permissions", url: "https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#permissions", date: "2026-10-14" }
+    ]
+  },
+
+  8: {
+    title: "AI Observability, SRE & Reliability Guardrails",
     space: "Content space: monitoring probabilistic AI systems. Alternatives across LLM observability/eval platforms, tracing (OpenTelemetry-based vs vendor), and drift tooling.",
     alts: [
       { name: "Langfuse (OSS, self-hostable)",
@@ -328,7 +353,7 @@ window.ALT = {
     ]
   },
 
-  8: {
+  9: {
     title: "Security, Governance & Responsible AI",
     space: "Content space: securing and governing AI systems. Alternatives across AI security/guardrail tools, secrets/scanning, and policy/governance — and the data-flow question that decides them.",
     alts: [
@@ -364,7 +389,7 @@ window.ALT = {
   (function () { const w = new URLSearchParams(location.search).get("w"); if (w && WEEK_KEYS.includes(Number(w))) state.week = Number(w); })();
 
   // ---- week selector ----
-  for (let w = 1; w <= 8; w++) {
+  for (const w of WEEK_KEYS) {
     const btn = document.createElement("button");
     btn.className = "ar-week";
     btn.dataset.week = w;
