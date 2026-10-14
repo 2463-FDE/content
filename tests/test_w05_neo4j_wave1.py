@@ -188,7 +188,9 @@ class Week5Neo4jWave1Tests(unittest.TestCase):
             with self.subTest(route=path.stem):
                 self.assertEqual(4, len(values))
                 self.assertEqual(4, len(set(values)))
-                self.assertNotIn("data-correct", path.read_text(encoding="utf-8"))
+                self.assertFalse(
+                    any("data-correct" in node.attrs for node in lab.find_all())
+                )
                 correct = expected_answers[path.stem]
                 self.assertIn(correct, values)
                 for value in values:
@@ -290,8 +292,8 @@ class Week5Neo4jWave1Tests(unittest.TestCase):
 
         non_archify = set(EXPECTED_TITLES) - ARCHIFY_ROUTES
         for lesson_id in non_archify:
-            source = (ROOT / "weeks" / "w05" / f"{lesson_id}.html").read_text(encoding="utf-8")
-            self.assertNotIn('class="fde-archify"', source)
+            page = ParsedPage(ROOT / "weeks" / "w05" / f"{lesson_id}.html")
+            self.assertEqual([], page.root.find_all("svg", "fde-archify"))
 
     def test_browser_renders_week5_across_hub_trainer_and_delivery_surfaces(self) -> None:
         chrome = find_chrome()
