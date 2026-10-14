@@ -19,7 +19,7 @@ assets/
   js/scrolly.js          scroll position -> diagram step
   js/quiz.js             comprehension checks + tracking seam
   js/curriculum-config.js single-source client, batch, and cloud-lane config
-  js/batch-context.js    reusable viewer-local batch selector
+  js/batch-context.js    batch selector + URL/storage restore, model gating
   js/curriculum-lessons-w06.js authoritative Week 6 Kafka lesson data
   js/kafka-lesson.js     shared Week 6 route renderer + decision practice
   js/curriculum-lessons-w07-w08.js authoritative Week 7–8 IaC/reliability data
