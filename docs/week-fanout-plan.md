@@ -390,8 +390,9 @@ Rules for authoring W7+:
 4. Reserve "your own project (or a past one)" only for landscape/comparison days where the client
    system genuinely isn't the subject (e.g. a tool-matrix day).
 
-**Retrofit status:** W5 and W6 done (2026-07-30). **W2, W3, W4 still use the old "your project /
-notes repo" framing** — tracked retrofit, not yet scheduled. Rationale for the ordering: the cohort
-was mid-W5 when this landed, so W5/W6 were the weeks still in front of them.
+**Retrofit status:** W6 done (2026-07-30). W5 was subsequently replaced by the source-authoritative
+Neo4j/context-engineering curriculum. **W2, W3, W4 still use the old "your project / notes repo"
+framing** — tracked retrofit, not yet scheduled.
 
-Origin: `content/docs/w05-fde-alignment-review.md` (Gap 2 — two parallel week-5s that never touch).
+The superseded Week 5 review is retained as a short historical pointer in
+`docs/w05-fde-alignment-review.md`.
