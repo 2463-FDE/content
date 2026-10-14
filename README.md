@@ -4,6 +4,8 @@ Reading content + live diagrams + comprehension checks for the **2463-FDE Forwar
 
 **Live:** https://2463-fde.github.io/content/
 
+Learners pick an **AWS · GCP · Both** path on the hub (shareable as `?cloud=aws|gcp|both`); `certifications.html` maps each path to its certification target. Design and authoring contract: [`docs/cloud-paths.md`](docs/cloud-paths.md).
+
 ## What's here
 
 ```
