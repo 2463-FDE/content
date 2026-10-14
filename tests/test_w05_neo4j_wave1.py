@@ -428,6 +428,53 @@ load(Object.keys(pages), 0);
         self.assertEqual(title, rendered["finance"]["title"])
         self.assertEqual(title, rendered["research"]["title"])
 
+    def test_browser_keeps_idempotency_as_prior_client_context(self) -> None:
+        chrome = find_chrome()
+        if not chrome:
+            self.skipTest("Chrome/Chromium is unavailable")
+        pages = {
+            "delivery": (ROOT / "client-delivery.html").as_uri() + "?w=7&p=finance",
+            "lesson": (ROOT / "weeks/w07/w07d1.html").as_uri(),
+        }
+        harness_script = r"""
+const pages = %s, out = {};
+localStorage.setItem('fde_identity', JSON.stringify({code:'T', name:'Trainer Test', role:'trainer'}));
+function load(entries, i) {
+  if (i >= entries.length) { document.body.dataset.result = JSON.stringify(out); return; }
+  const [key, url] = entries[i], frame = document.createElement('iframe');
+  frame.onload = () => setTimeout(() => {
+    if (key === 'lesson') frame.contentDocument.querySelector('[data-modal="deep-modal"]').click();
+    out[key] = frame.contentDocument.body.innerText.replace(/\s+/g, ' ').trim();
+    frame.remove(); load(entries, i + 1);
+  }, 350);
+  frame.src = url; document.body.appendChild(frame);
+}
+load(Object.entries(pages), 0);
+""" % json.dumps(pages)
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp) / "w7-attribution-harness.html"
+            harness.write_text(
+                f"<!doctype html><html><body><script>{harness_script}</script></body></html>",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    "--no-default-browser-check", "--allow-file-access-from-files",
+                    f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=5000",
+                    "--dump-dom", harness.as_uri(),
+                ],
+                text=True, capture_output=True, timeout=40,
+            )
+        self.assertEqual(0, result.returncode, result.stderr[-1000:])
+        match = re.search(r'data-result="([^"]*)"', result.stdout)
+        self.assertIsNotNone(match, "attribution harness did not report")
+        rendered = json.loads(html.unescape(match.group(1)))
+        for surface, text in rendered.items():
+            with self.subTest(surface=surface):
+                self.assertIn("prior client-system idempotency gap", text)
+                self.assertNotIn("W5 idempotency gap", text)
+
     def test_browser_renders_diagram_and_meaningful_no_js_fallback(self) -> None:
         chrome = find_chrome()
         if not chrome:
