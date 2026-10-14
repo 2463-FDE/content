@@ -48,7 +48,7 @@
       var week = selectedWeek();
       var day = week && week.days[Number(daySelect.value)];
       var href = firstHref(day);
-      if (href) window.location.assign(href);
+      if (href) window.location.assign(window.FDEBatchContext ? window.FDEBatchContext.currentHref(href) : href);
     }
 
     weekSelect.addEventListener("change", fillDays);

@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "assets/js/curriculum-lessons-w07-w08.js"
@@ -398,9 +399,10 @@ load(Object.entries(pages), 0);
         self.assertIn("adverse-action-reason gap", rendered["client9f"]["text"])
         self.assertIn("Security, Governance & Responsible AI", rendered["alt9"]["text"])
         self.assertIn("Week 8 made the inherited system operable", rendered["week9"]["text"])
-        links = rendered["week9"]["links"]
-        self.assertIn("../../docs/research/w09/archive-week8-security/w08d1.md", links)
-        self.assertIn("../../docs/research/w09/archive-week8-security/w08d5.md", links)
+        links = [urlparse(link).path for link in rendered["week9"]["links"]]
+        for day in (1, 5):
+            archive = f"docs/research/w09/archive-week8-security/w08d{day}.md"
+            self.assertTrue(any(path.endswith("/" + archive) for path in links), archive)
         self.assertFalse((ROOT / "assets/js/interactive-w7-trace.js").exists())
         self.assertFalse((ROOT / "assets/js/interactive-security.js").exists())
         self.assertTrue((ROOT / "assets/js/archive/interactive-w7-trace-observability-v1.js").exists())

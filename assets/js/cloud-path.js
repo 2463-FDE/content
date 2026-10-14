@@ -202,6 +202,7 @@
   }
 
   var pickerCount = 0;
+  var historyBound = false;
 
   /* Accessible radio-group picker: AWS · GCP · Both. */
   function buildPicker(doc, compact) {
@@ -312,6 +313,16 @@
     ensureStyles(doc);
     mountPickers(doc);
     apply(doc);
+    if (!historyBound && typeof window !== "undefined" && typeof window.addEventListener === "function") {
+      historyBound = true;
+      window.addEventListener("popstate", function () {
+        var linked = fromSearch(window.location ? window.location.search : "");
+        if (!linked || linked === state.selection) return;
+        state = { selection: linked, source: "url" };
+        write(env().session, SESSION_KEY, linked);
+        apply(doc);
+      });
+    }
   }
 
   return {
