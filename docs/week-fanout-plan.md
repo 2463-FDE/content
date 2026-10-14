@@ -132,7 +132,7 @@ related/current tech that looks missing. **Correct me where my read is wrong.**
 | W8 | AI Observability, SRE & Reliability Guardrails | **Source-remapped 2026-10-14.** Service signals/SLOs → OTel traces/metrics/logs and model-agent-tool-Kafka correlation → eval/guardrail/circuit/degraded-mode evidence → incidents/runbooks/readout. Former W7 conclusions survive here with their original dates. |
 | W9-10 | AI Security, Governance & System Hardening / Production Rollout, Showcase & Client Handoff | **Authored** as shared transfer data in `assets/js/curriculum-lessons-w09-w10.js`, evidence in `docs/research/w09/` and `docs/research/w10/`. Preserved former-W8 security research now lives under `docs/research/w09/archive-week8-security/`. AWS/GCP certification objectives and provider facts stay evidence-gated until the parallel research lane lands. |
 
-### Alt-research day topics (Wed of W1-8)
+### Alt-research day topics (Wed of W1-9)
 
 The Wed Alt-research day is where we surface alternatives to the week's core tool
 so learners see the landscape, not just our pick:
