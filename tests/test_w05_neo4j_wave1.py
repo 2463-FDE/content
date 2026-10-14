@@ -300,6 +300,8 @@ class Week5Neo4jWave1Tests(unittest.TestCase):
         pages = {
             "hub": (ROOT / "index.html").as_uri(),
             "trainer": (ROOT / "trainer.html").as_uri(),
+            "delivery": (ROOT / "delivery-track.html").as_uri(),
+            "atlas": (ROOT / "atlas/index.html").as_uri(),
             "healthcare": (ROOT / "client-delivery.html").as_uri() + "?w=5&p=healthcare",
             "finance": (ROOT / "client-delivery.html").as_uri() + "?w=5&p=finance",
             "research": (ROOT / "alt-research.html").as_uri() + "?w=5",
@@ -323,6 +325,10 @@ function load(keys, i) {
     } else if (key === 'trainer') {
       const link = [...d.querySelectorAll('.tr-curriculum-actions a')].find(el => el.textContent.trim() === 'Demo Neo4j');
       out[key] = {text: d.querySelector('.tr-curriculum')?.textContent.replace(/\s+/g, ' ').trim() || '', href: link?.getAttribute('href') || ''};
+    } else if (key === 'delivery') {
+      out[key] = {text: d.body.textContent.replace(/\s+/g, ' ').trim()};
+    } else if (key === 'atlas') {
+      out[key] = {content: JSON.stringify(frame.contentWindow.FDE?.BRANCHES || [])};
     } else {
       out[key] = {title: d.querySelector('#panel h2')?.textContent.trim() || ''};
     }
@@ -369,6 +375,13 @@ load(Object.keys(pages), 0);
         )
         self.assertIn("Week 5 Neo4j/context engineering live", rendered["trainer"]["text"])
         self.assertEqual("weeks/w05/w05d1.html", rendered["trainer"]["href"])
+        self.assertIn("XY reframe, live", rendered["delivery"]["text"])
+        self.assertNotIn("W5 · XY", rendered["delivery"]["text"])
+        self.assertNotIn("XY reframe from W5", rendered["delivery"]["text"])
+        self.assertIn("Loop Engineering", rendered["atlas"]["content"])
+        self.assertIn("Scope &rarr; Sequence &rarr; Build &rarr; Ship &rarr; Measure", rendered["atlas"]["content"])
+        self.assertNotIn("Loop Engineering in Week 5", rendered["atlas"]["content"])
+        self.assertNotIn("Taught in Week 5 Day 5", rendered["atlas"]["content"])
         self.assertEqual(title, rendered["healthcare"]["title"])
         self.assertEqual(title, rendered["finance"]["title"])
         self.assertEqual(title, rendered["research"]["title"])
