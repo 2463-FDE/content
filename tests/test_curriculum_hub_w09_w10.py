@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import re
 import shutil
@@ -218,6 +219,164 @@ class CurriculumHubTransferTests(unittest.TestCase):
         self.assertIn('id="hub-week"', hub)
         self.assertIn('id="hub-day"', hub)
         self.assertIn("Weeks 1–10 routed", hub)
+
+    def test_batch_selection_swaps_model_and_survives_navigation_history(self) -> None:
+        chrome = find_chrome()
+        if not chrome:
+            self.skipTest("Chrome/Chromium is unavailable")
+        hub = (ROOT / "index.html").as_uri()
+        week5 = (ROOT / "weeks/w05/w05d1.html").as_uri()
+        week6 = (ROOT / "weeks/w06/w06d1.html").as_uri()
+        script = """
+const routes = %s;
+const frame = document.createElement('iframe');
+frame.style.cssText = 'width:1280px;height:800px;border:0';
+let stage = 0;
+const out = {};
+function state(doc) {
+  const visibleTitles = [...doc.querySelectorAll('.cal-week .wt')]
+    .filter(node => node.offsetParent !== null).map(node => node.textContent);
+  return {
+    url: doc.defaultView.location.href,
+    batch: doc.querySelector('[data-batch-context] input')?.value || null,
+    model: doc.body.dataset.curriculumModel || null,
+    empty: doc.getElementById('curriculum-model-status')?.textContent || '',
+    calendarHidden: doc.getElementById('cal')?.hidden ?? null,
+    mainHidden: doc.querySelector('main')?.hidden ?? null,
+    h1: doc.querySelector('main h1')?.textContent || '',
+    visibleTitles,
+    stored: doc.defaultView.localStorage.getItem('fde_batch_context'),
+    hubBack: doc.querySelector('.snav-btn')?.href || '',
+  };
+}
+function finish() { document.body.setAttribute('data-result', JSON.stringify(out)); }
+frame.onload = () => setTimeout(() => {
+  const doc = frame.contentDocument;
+  if (stage === 0) {
+    out.other = state(doc);
+    const input = doc.querySelector('[data-batch-context] input');
+    input.value = '2567';
+    doc.querySelector('[data-batch-context] button').click();
+    setTimeout(() => {
+      out.selected = state(doc);
+      frame.contentWindow.history.back();
+      setTimeout(() => {
+        out.back = state(doc);
+        frame.contentWindow.history.forward();
+        setTimeout(() => {
+          out.forward = state(doc);
+          stage = 1;
+          frame.contentWindow.location.reload();
+        }, 160);
+      }, 160);
+    }, 160);
+  } else if (stage === 1) {
+    out.reload = state(doc);
+    stage = 2;
+    frame.src = routes.week5 + '?batch=2567';
+  } else if (stage === 2) {
+    out.week5 = state(doc);
+    frame.contentWindow.localStorage.setItem('fde_batch_context', '2463');
+    stage = 3;
+    frame.src = routes.week6 + '?batch=2567';
+  } else if (stage === 3) {
+    out.week6 = state(doc);
+    stage = 4;
+    frame.src = routes.week6 + '?batch=2463';
+  } else {
+    out.unrelatedDeepLink = state(doc);
+    finish();
+  }
+}, 450);
+frame.src = routes.hub + '?batch=2463';
+document.body.appendChild(frame);
+""" % json.dumps({"hub": hub, "week5": week5, "week6": week6})
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp) / "batch-model-harness.html"
+            harness.write_text(
+                f"<!doctype html><html><body><script>{script}</script></body></html>"
+            )
+            result = subprocess.run(
+                [
+                    chrome,
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-first-run",
+                    "--no-default-browser-check",
+                    f"--user-data-dir={Path(tmp) / 'profile'}",
+                    "--allow-file-access-from-files",
+                    "--window-size=1400,900",
+                    "--virtual-time-budget=20000",
+                    "--dump-dom",
+                    harness.as_uri(),
+                ],
+                text=True,
+                capture_output=True,
+                timeout=60,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr[-1000:])
+        match = re.search(r'data-result="([^"]*)"', result.stdout)
+        self.assertIsNotNone(match, "batch harness did not report state")
+        states = json.loads(html.unescape(match.group(1)))
+
+        self.assertEqual(states["other"]["model"], "unavailable")
+        self.assertTrue(states["other"]["calendarHidden"])
+        self.assertEqual(states["other"]["visibleTitles"], [])
+        self.assertIn("No curriculum is configured", states["other"]["empty"])
+
+        for key in ("selected", "forward", "reload"):
+            with self.subTest(state=key):
+                self.assertEqual(states[key]["batch"], "2567")
+                self.assertEqual(states[key]["model"], "ltm-2567")
+                self.assertFalse(states[key]["calendarHidden"])
+                self.assertIn("Neo4j Knowledge Graphs & Context Engineering", states[key]["visibleTitles"])
+                self.assertIn("Kafka & Event-Driven AI Pipelines", states[key]["visibleTitles"])
+        self.assertEqual(states["back"]["model"], "unavailable")
+        self.assertTrue(states["back"]["calendarHidden"])
+
+        self.assertEqual(states["week5"]["model"], "ltm-2567")
+        self.assertEqual(states["week5"]["h1"], "Model the Client Domain as a Property Graph")
+        self.assertIn("batch=2567", states["week5"]["hubBack"])
+        self.assertEqual(states["week6"]["model"], "ltm-2567")
+        self.assertEqual(states["week6"]["stored"], "2567", "deep link must beat stale storage")
+        self.assertEqual(states["week6"]["h1"], "Kafka foundations and event-driven judgement")
+        self.assertIn("batch=2567", states["week6"]["hubBack"])
+
+        self.assertEqual(states["unrelatedDeepLink"]["model"], "unavailable")
+        self.assertTrue(states["unrelatedDeepLink"]["mainHidden"])
+        self.assertEqual(states["unrelatedDeepLink"]["h1"], "Kafka foundations and event-driven judgement")
+
+    def test_no_javascript_preserves_the_static_hub_fallback(self) -> None:
+        chrome = find_chrome()
+        if not chrome:
+            self.skipTest("Chrome/Chromium is unavailable")
+        with tempfile.TemporaryDirectory() as profile:
+            default = Path(profile) / "Default"
+            default.mkdir()
+            (default / "Preferences").write_text(
+                json.dumps({"profile": {"default_content_setting_values": {"javascript": 2}}})
+            )
+            result = subprocess.run(
+                [
+                    chrome,
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-first-run",
+                    "--no-default-browser-check",
+                    f"--user-data-dir={profile}",
+                    "--allow-file-access-from-files",
+                    "--virtual-time-budget=1000",
+                    "--dump-dom",
+                    (ROOT / "index.html").as_uri(),
+                ],
+                text=True,
+                capture_output=True,
+                timeout=30,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr[-1000:])
+        self.assertIn('<h1 id="hub-title">Curriculum hub</h1>', result.stdout)
+        self.assertIn('<div class="cal" id="cal" data-curriculum-surface=""></div>', result.stdout)
+        self.assertNotIn('<section id="curriculum-model-status"', result.stdout)
 
     def test_signed_in_topbar_keeps_batch_apply_clear_of_theme_toggle(self) -> None:
         chrome = find_chrome()

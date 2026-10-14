@@ -12,6 +12,7 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 try:
     from test_curriculum_currency import Element, ParsedPage
@@ -411,12 +412,14 @@ load(Object.keys(pages), 0);
             ],
             [day["title"] for day in rendered["hub"]["days"]],
         )
-        self.assertEqual(
-            [f"weeks/w05/w05d{day}.html" for day in range(1, 6)],
-            [day["href"] for day in rendered["hub"]["days"]],
-        )
-        self.assertIn("Week 5 Neo4j/context engineering live", rendered["trainer"]["text"])
-        self.assertEqual("weeks/w05/w05d1.html", rendered["trainer"]["href"])
+        for day, rendered_day in enumerate(rendered["hub"]["days"], 1):
+            route = urlparse(rendered_day["href"])
+            self.assertTrue(route.path.endswith(f"/weeks/w05/w05d{day}.html"), route.path)
+            self.assertEqual(parse_qs(route.query).get("batch"), ["2567"])
+        self.assertIn("Week 5 Neo4j and Week 6 Kafka live", rendered["trainer"]["text"])
+        trainer_route = urlparse(rendered["trainer"]["href"])
+        self.assertTrue(trainer_route.path.endswith("/weeks/w05/w05d1.html"))
+        self.assertEqual(parse_qs(trainer_route.query).get("batch"), ["2567"])
         self.assertIn("XY reframe, live", rendered["delivery"]["text"])
         self.assertNotIn("W5 · XY", rendered["delivery"]["text"])
         self.assertNotIn("XY reframe from W5", rendered["delivery"]["text"])

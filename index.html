@@ -32,13 +32,13 @@
           <div class="capstone-kicker">Trainer-facing source of truth · ten-week program</div>
           <h1 id="hub-title">Curriculum hub</h1>
           <p>Run the complete program for <strong data-client-name>the client</strong> from one calendar. Current viewer context: <strong>Batch <span data-batch-value>loading</span></strong>. Change the batch in the top bar; the choice follows you across the hub and lesson routes.</p>
-          <div class="hub-status-row" aria-label="Curriculum status">
+          <div class="hub-status-row" data-curriculum-surface aria-label="Curriculum status">
             <span class="hub-status is-ready">Weeks 1–10 routed</span>
             <span class="hub-status">Core 30 marked</span>
             <span class="hub-status is-pending" data-cloud-path-status>AWS/GCP evidence seam pending</span>
           </div>
         </div>
-        <div class="hub-launcher" aria-labelledby="launcher-title">
+        <div class="hub-launcher" data-curriculum-surface aria-labelledby="launcher-title">
           <h2 id="launcher-title">Trainer launchpad</h2>
           <div class="hub-launcher-controls">
             <label>Week<select id="hub-week" aria-describedby="hub-launch-status"></select></label>
@@ -50,14 +50,14 @@
         </div>
       </section>
 
-      <div class="legend"></div>
+      <div class="legend" data-curriculum-surface></div>
 
-      <p class="core30-key"><b>Core 30</b> — a marked day's required path (reading · essential diagram · one interaction · comprehension check)
+      <p class="core30-key" data-curriculum-surface><b>Core 30</b> — a marked day's required path (reading · essential diagram · one interaction · comprehension check)
       is budgeted to 30 minutes; <code>Deeper</code> blocks are optional extra depth outside the cap. Weeks 5–10 publish the pacing label; each Week 7–8 route also includes a no-JavaScript text path.</p>
 
-      <div class="cal" id="cal"></div>
+      <div class="cal" id="cal" data-curriculum-surface></div>
 
-      <div class="cal-foot">
+      <div class="cal-foot" data-curriculum-surface>
         <span>◆ FDE Situation session</span>
         <span>★ Assessment / project milestone</span>
         <span class="trainer-only" style="display:none">🔑 You're in <b>trainer view</b> — extra notes appear on the client-delivery page.</span>

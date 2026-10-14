@@ -1378,6 +1378,14 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
 .batch-context button:hover { border-color:var(--accent); color:var(--accent-ink); }
 .batch-context-status { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
 .batch-context-error { color:var(--bad-ink); font-weight:700; }
+[data-curriculum-surface][hidden], [data-batch-hidden="true"] { display:none !important; }
+.curriculum-model-empty {
+  max-width:720px; margin:32px auto; padding:20px 22px; border:1px solid var(--warn-line);
+  border-radius:12px; color:var(--warn-ink); background:var(--warn-soft); font-weight:700; line-height:1.5;
+}
+.curriculum-hub-intro > .curriculum-model-empty { align-self:start; margin:0; }
+.cal-main > .curriculum-model-empty { margin:24px 0; }
+.tr-wrap > .curriculum-model-empty { margin:18px 0; }
 
 .curriculum-hub-intro {
   display:grid; grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr); gap:clamp(24px,4vw,56px);
