@@ -56,6 +56,13 @@
       Array.prototype.forEach.call(doc.querySelectorAll("[data-client-name]"), function (node) {
         node.textContent = config.clientIdentity;
       });
+      Array.prototype.forEach.call(doc.querySelectorAll("[data-cloud-path-status]"), function (node) {
+        var cloud = config.cloudPath || {};
+        node.textContent = cloud.label || "Cloud evidence status unavailable";
+        node.setAttribute("data-cloud-path-status", cloud.status || "unavailable");
+        node.classList.toggle("is-pending", !cloud.active);
+        node.classList.toggle("is-ready", !!cloud.active);
+      });
       try { root.dispatchEvent(new CustomEvent("fde-batch-change", { detail: { batch: value } })); }
       catch (error) { /* CustomEvent is optional in older browsers */ }
     }

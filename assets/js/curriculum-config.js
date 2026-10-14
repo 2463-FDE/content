@@ -16,6 +16,7 @@
     }),
     cloudPath: Object.freeze({
       status: "evidence-lane-pending",
+      label: "AWS/GCP evidence seam pending",
       options: Object.freeze(["aws", "gcp", "both"]),
       active: false
     })

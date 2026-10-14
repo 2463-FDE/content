@@ -78,15 +78,43 @@ class CurriculumHubTransferTests(unittest.TestCase):
         self.assertFalse(result["bad"]["ok"])
         self.assertEqual(result["still"], "987654321")
 
-    def test_identity_and_cloud_integration_seams_are_data_driven(self) -> None:
-        config = node_json(
-            "const c=require('./assets/js/curriculum-config.js');"
-            "console.log(JSON.stringify(c));"
+    def test_identity_and_cloud_status_render_from_config(self) -> None:
+        result = node_json(
+            "const api=require('./assets/js/batch-context.js');"
+            "const cfg=require('./assets/js/curriculum-config.js');"
+            "function node(){const a={},c=new Set(['is-pending']);return {a,c,textContent:'',"
+            "setAttribute:(k,v)=>{a[k]=v},classList:{toggle:(n,on)=>on?c.add(n):c.delete(n)}};}"
+            "function render(config){const n={'[data-client-name]':[node()],'[data-cloud-path-status]':[node()]};"
+            "api.mount({querySelectorAll:q=>n[q]||[]},config,null);"
+            "const b=n['[data-cloud-path-status]'][0];"
+            "return {client:n['[data-client-name]'][0].textContent,badge:b.textContent,"
+            "status:b.a['data-cloud-path-status'],classes:[...b.c].sort()};}"
+            "const active=Object.assign({},cfg,{cloudPath:{status:'evidence-lane-integrated',label:'AWS/GCP evidence integrated',active:true}});"
+            "console.log(JSON.stringify({pending:render(cfg),active:render(active)}));"
         )
-        self.assertEqual(config["clientIdentity"], "LTM, formerly LTIMindtree")
-        self.assertEqual(config["cloudPath"]["status"], "evidence-lane-pending")
-        self.assertEqual(config["cloudPath"]["options"], ["aws", "gcp", "both"])
-        self.assertFalse(config["cloudPath"]["active"])
+        self.assertEqual(result["pending"]["client"], "LTM, formerly LTIMindtree")
+        self.assertEqual(result["pending"]["badge"], "AWS/GCP evidence seam pending")
+        self.assertEqual(result["pending"]["status"], "evidence-lane-pending")
+        self.assertEqual(result["pending"]["classes"], ["is-pending"])
+        self.assertEqual(result["active"]["badge"], "AWS/GCP evidence integrated")
+        self.assertEqual(result["active"]["status"], "evidence-lane-integrated")
+        self.assertEqual(result["active"]["classes"], ["is-ready"])
+
+    def test_comprehension_checks_use_question_specific_distractors(self) -> None:
+        questions = node_json(
+            "const d=require('./assets/js/curriculum-lessons-w09-w10.js');"
+            "console.log(JSON.stringify(Object.values(d).flatMap(v=>v.checks)));"
+        )
+        self.assertEqual(len(questions), 60)
+        seen: dict[str, str] = {}
+        for question in questions:
+            with self.subTest(stem=question["stem"]):
+                options = question["options"]
+                self.assertEqual(len(options), 4)
+                self.assertEqual(len(set(options)), 4)
+                for distractor in options[: question["answer"]] + options[question["answer"] + 1 :]:
+                    self.assertNotIn(distractor, seen, f"reused from: {seen.get(distractor)}")
+                    seen[distractor] = question["stem"]
 
     def test_browser_renders_a_representative_route_and_essential_diagram(self) -> None:
         chrome = find_chrome()

@@ -1,6 +1,6 @@
 /* Authoritative Week 9–10 transfer data.
-   Provenance: the captain-approved local derivative
-   /Users/jestercharles/ltimindtree/ltim-custom-fde-curriculum.md (W9–W10),
+   Provenance: the captain-approved curriculum record excerpted in
+   docs/research/w09/w09-source-excerpt.md and docs/research/w10/w10-source-excerpt.md,
    reconciled with the 2026-10-13 target-state report and existing W8 research.
    Provider certification objectives are intentionally absent: that evidence lane
    integrates later through FDE_CURRICULUM_CONFIG.cloudPath. */
@@ -12,11 +12,12 @@
   "use strict";
 
   function checks(items) {
-    return items.map(function (item, index) {
+    return items.map(function (item) {
+      if (!Array.isArray(item[3]) || item[3].length !== 3) throw new Error("Check needs three distractors: " + item[0]);
       return {
         type: "scq",
         stem: item[0],
-        options: [item[1], "Proceed without evidence and document the result later.", "Treat the item as optional because it is late in the program.", "Replace the client decision with a tool-generated assumption."],
+        options: [item[1]].concat(item[3]),
         answer: 0,
         explain: item[2]
       };
@@ -54,12 +55,12 @@
       drill: { prompt: "The agent reads customer-uploaded documents, can query private case data, and can render model-supplied external links. Which first change most directly removes the high-impact combination?", options: ["Add a stronger system prompt", "Block or require approval for external link rendering after untrusted content enters context", "Increase the model context window"], answer: 1, feedback: "Gate the sink. It removes the external-communication leg with an enforceable application control; prompt wording does not create that boundary." },
       demoNote: "Show the diagram at section 4, run the decision drill, then open Daily goals. Emphasize that W9 applies W8 evidence rather than repeating a risk list.",
       checks: checks([
-        ["What is the authoritative starting point for the threat model?", "The system and artifacts currently delivered on main.", "The exercise models the real brownfield system, with assumptions labeled."],
-        ["What makes a tool boundary enforceable?", "Application or downstream authorization independent of model judgement.", "A model choosing a tool is not authorization."],
-        ["How should filters be represented?", "As risk-reduction controls, separate from containment boundaries.", "This avoids promising prevention where only detection exists."],
-        ["What should each threat connect to?", "A client asset and consequence.", "The client decides from consequence, not taxonomy alone."],
-        ["What is the day’s implementation scope?", "One bounded hardening decision with owner and verification.", "Narrow scope is what makes the control demonstrable."],
-        ["What closes the day?", "A reproducible threat path and a changed boundary another engineer can verify.", "Reproducibility converts a concern into delivery evidence."]
+        ["What is the authoritative starting point for the threat model?", "The system and artifacts currently delivered on main.", "The exercise models the real brownfield system, with assumptions labeled.", ["A reference architecture for the target-state system.", "The OWASP LLM Top 10 list, applied category by category.", "The original Week 1 design document."]],
+        ["What makes a tool boundary enforceable?", "Application or downstream authorization independent of model judgement.", "A model choosing a tool is not authorization.", ["A system prompt that tells the model which tools it may call.", "A descriptive tool name and docstring that state its intended scope.", "A classifier that scores each tool request before the model runs it."]],
+        ["How should filters be represented?", "As risk-reduction controls, separate from containment boundaries.", "This avoids promising prevention where only detection exists.", ["As the primary prevention boundary for untrusted input.", "As a replacement for least privilege on low-risk tools.", "As a detection control that also guarantees containment."]],
+        ["What should each threat connect to?", "A client asset and consequence.", "The client decides from consequence, not taxonomy alone.", ["A CVSS-style severity score.", "The OWASP category it belongs to.", "The engineer who first reported it."]],
+        ["What is the day’s implementation scope?", "One bounded hardening decision with owner and verification.", "Narrow scope is what makes the control demonstrable.", ["One remediation workstream for each threat category found.", "A full enterprise security audit of the brownfield system.", "A ranked backlog of every finding, with no change made today."]],
+        ["What closes the day?", "A reproducible threat path and a changed boundary another engineer can verify.", "Reproducibility converts a concern into delivery evidence.", ["A completed threat taxonomy covering every OWASP category.", "A signed attestation from the author that the system is safe.", "A list of recommended tools for the next sprint."]]
       ]),
       sources: shared.securitySources
     },
@@ -81,12 +82,12 @@
       drill: { prompt: "An MCP-backed ticket tool uses one service token that can read and update every customer. What is the first defensible redesign?", options: ["Hide the token in the system prompt", "Propagate the user and resource scope, split read from update, and enforce both at execution", "Ask the model to confirm customer ownership"], answer: 1, feedback: "Identity and resource scope must be enforced by the tool or downstream service. Model confirmation is not authorization." },
       demoNote: "Use the decision drill to distinguish auth from authorization. Point out the provider-neutral optional block as the explicit integration seam for the dual-cloud lane.",
       checks: checks([
-        ["What must an MCP capability inventory include?", "Identity, operation, resource, credential, destination, and approval scope.", "Those fields expose privilege and trust boundaries."],
-        ["What must survive a handoff?", "The original user and authorization scope.", "A shared service identity must not erase caller context."],
-        ["Where should sensitive data be reduced?", "Before prompts, tools, traces, memory, and external calls.", "Later filtering cannot undo disclosure."],
-        ["Where do credentials belong?", "Application-controlled secret storage and execution boundaries.", "Model context is not a secret boundary."],
-        ["What are coding-agent permissions?", "Defense in depth, not authority for production action.", "The task authorizes no real external changes."],
-        ["What evidence proves least privilege?", "Negative tests showing forbidden actions are denied.", "Success-only tests do not test the boundary."]
+        ["What must an MCP capability inventory include?", "Identity, operation, resource, credential, destination, and approval scope.", "Those fields expose privilege and trust boundaries.", ["Tool names, descriptions, and example prompts.", "Server version, latency, and uptime.", "The model that calls each tool and its temperature setting."]],
+        ["What must survive a handoff?", "The original user and authorization scope.", "A shared service identity must not erase caller context.", ["The intermediate agent’s service identity.", "The full conversation transcript.", "The last tool response, cached for reuse."]],
+        ["Where should sensitive data be reduced?", "Before prompts, tools, traces, memory, and external calls.", "Later filtering cannot undo disclosure.", ["In the model response, before it is shown to the user.", "In the nightly log-retention job.", "In the observability dashboard, by masking fields."]],
+        ["Where do credentials belong?", "Application-controlled secret storage and execution boundaries.", "Model context is not a secret boundary.", ["In the system prompt, so the agent can authenticate tool calls.", "In agent memory, scoped to the session.", "In tool descriptions, so the model passes them correctly."]],
+        ["What are coding-agent permissions?", "Defense in depth, not authority for production action.", "The task authorizes no real external changes.", ["Approval to make production changes once hooks pass.", "A replacement for code review on agent-authored changes.", "A model-level guarantee that unsafe commands are refused."]],
+        ["What evidence proves least privilege?", "Negative tests showing forbidden actions are denied.", "Success-only tests do not test the boundary.", ["A passing happy-path test for each allowed action.", "A permission list in the design document.", "A model evaluation showing the agent declines risky requests."]]
       ]),
       sources: shared.securitySources
     },
@@ -108,12 +109,12 @@
       drill: { prompt: "A row says ‘human review enabled’ but has no trigger, reviewer, timeout, or fallback. What should the team do?", options: ["Mark it complete because a UI button exists", "Treat it as an evidence gap and define the operating rule before rollout", "Ask the model when review is necessary"], answer: 1, feedback: "Oversight is an operating control only when its trigger, authority, timing, and failure path are explicit." },
       demoNote: "Open the optional evidence-gap register and explain why provider objectives are not guessed. This is the honest seam the parallel AWS/GCP lane will fill.",
       checks: checks([
-        ["How are named regulations used on this page?", "As scoped comparison topics whose applicability must be verified.", "The curriculum does not turn a topic list into legal advice."],
-        ["What fields make a control row reviewable?", "Boundary, control, test, evidence, owner, and review date.", "These convert a claim into an auditable artifact."],
-        ["What should an audit trail reconstruct?", "Requester, authority, component, action, and result.", "The chain matters more than raw prompt retention."],
-        ["What can explainability include?", "Provenance, policy decisions, tool arguments, approvals, and outcome.", "A model-generated narrative is only one layer."],
-        ["When is human oversight real?", "When trigger, authority, exact action, timing, and fallback are defined.", "A vague review promise is not a control."],
-        ["What is intentionally deferred?", "Verified provider-specific mappings and certification objectives.", "That prevents duplication and invented cloud claims."]
+        ["How are named regulations used on this page?", "As scoped comparison topics whose applicability must be verified.", "The curriculum does not turn a topic list into legal advice.", ["As a confirmed list of regulations that apply to the client.", "As legal conclusions the client can rely on.", "As a checklist that certifies compliance once each row is filled."]],
+        ["What fields make a control row reviewable?", "Boundary, control, test, evidence, owner, and review date.", "These convert a claim into an auditable artifact.", ["Regulation name, article number, and status color.", "Risk category, severity, and likelihood.", "Owner name and a free-text description."]],
+        ["What should an audit trail reconstruct?", "Requester, authority, component, action, and result.", "The chain matters more than raw prompt retention.", ["Every raw prompt and completion, retained indefinitely.", "Model latency and token usage per call.", "The final answer the user saw, and nothing else."]],
+        ["What can explainability include?", "Provenance, policy decisions, tool arguments, approvals, and outcome.", "A model-generated narrative is only one layer.", ["Only the model’s own explanation of its answer.", "The model weights and training data.", "A confidence score attached to each response."]],
+        ["When is human oversight real?", "When trigger, authority, exact action, timing, and fallback are defined.", "A vague review promise is not a control.", ["When a reviewer is named in the project charter.", "When every output is logged for later review.", "When users can flag answers they disagree with."]],
+        ["What is intentionally deferred?", "Verified provider-specific mappings and certification objectives.", "That prevents duplication and invented cloud claims.", ["The threat model for the delivered system.", "Audit-trail design for agent actions.", "Human-oversight triggers for irreversible actions."]]
       ]),
       sources: shared.securitySources
     },
@@ -135,12 +136,12 @@
       drill: { prompt: "A peer finds a prompt-injection path in a demo. Which next step makes the exercise delivery work?", options: ["Add the exploit screenshot to the showcase", "Pair on one enforceable control, rerun the scoped test, and link the evidence", "Run broader attacks until the count looks impressive"], answer: 1, feedback: "The purpose is remediation evidence. Counts and screenshots do not show that the system boundary changed." },
       demoNote: "Show the optional blank cloud matrix as the integration seam, then use the drill to move from finding to fix. No provider claim is invented here.",
       checks: checks([
-        ["When does a check belong in CI?", "When scope, fixture, threshold, output, and failure behavior are explicit.", "That makes the gate actionable and repeatable."],
-        ["What data should secret-scanning demos use?", "Synthetic fixtures and redacted findings.", "The curriculum must not expose real credentials."],
-        ["What are the control-matrix columns?", "Prevent, contain, detect, recover, plus evidence and enforcement layer.", "The matrix distinguishes control purpose."],
-        ["How broad is today’s audit?", "One high-consequence path across the Weeks 1–8 system arc.", "Bounded scope can be completed and defended."],
-        ["How is a peer red team run safely?", "Agreed scope, synthetic data, controlled sink, author notice, and stop condition.", "The exercise must reduce harm."],
-        ["What closes a finding?", "A changed control linked to a passing test or repeat run.", "Remediation evidence is the exit condition."]
+        ["When does a check belong in CI?", "When scope, fixture, threshold, output, and failure behavior are explicit.", "That makes the gate actionable and repeatable.", ["When it catches at least one issue in a manual trial.", "When the security team requests it.", "When it runs in under a minute, whatever its output."]],
+        ["What data should secret-scanning demos use?", "Synthetic fixtures and redacted findings.", "The curriculum must not expose real credentials.", ["A rotated production key, so the scanner sees a real format.", "A teammate’s personal access token, revoked after the demo.", "Real credentials from a non-production account."]],
+        ["What are the control-matrix columns?", "Prevent, contain, detect, recover, plus evidence and enforcement layer.", "The matrix distinguishes control purpose.", ["Low, medium, high, and critical severity.", "AWS, GCP, and on-premises provider products.", "Owner, due date, and status."]],
+        ["How broad is today’s audit?", "One high-consequence path across the Weeks 1–8 system arc.", "Bounded scope can be completed and defended.", ["Every component and integration in the Weeks 1–8 system.", "Only the Week 8 observability changes.", "Whatever the red team reaches before the session ends."]],
+        ["How is a peer red team run safely?", "Agreed scope, synthetic data, controlled sink, author notice, and stop condition.", "The exercise must reduce harm.", ["Against the peer’s live deployment, unannounced, for realism.", "Using real customer data, so the findings are representative.", "With no stop condition, so every path is explored."]],
+        ["What closes a finding?", "A changed control linked to a passing test or repeat run.", "Remediation evidence is the exit condition.", ["A ticket marked resolved by its owner.", "A merged pull request that mentions the finding.", "A reviewer’s agreement that the risk is low."]]
       ]),
       sources: shared.securitySources
     },
@@ -162,12 +163,12 @@
       drill: { prompt: "The audit has one fixed issue, one accepted residual risk, and one item with no owner or date. How should the last item be labeled?", options: ["Accepted", "Open evidence gap that blocks closure", "Fixed because it is documented"], answer: 1, feedback: "Documentation alone is not disposition. Without authority, owner, and date, the item remains open." },
       demoNote: "Show the visible certification evidence-gap note. Consequence: trainers can coach provider choice now, but cannot claim objective coverage yet.",
       checks: checks([
-        ["What must an audit package survive?", "The author leaving the room.", "Artifacts and links must carry the evidence."],
-        ["What does fixed mean?", "The control changed and the test passed.", "A code change without verification is not closure."],
-        ["What does accepted risk require?", "Authorized stakeholder, recorded rationale, and review date.", "Risk acceptance is an authority decision."],
-        ["How does the executive readout begin?", "Client consequence, decision, and outcome.", "Tools and severity labels come later."],
-        ["What does the technical defense show?", "Reproduction, changed boundary, negative test, and tradeoff.", "The technical room needs verification details."],
-        ["What certification content is available now?", "Learner-goal discussion only; objective mapping is pending verified evidence.", "This keeps the later cloud lane authoritative."]
+        ["What must an audit package survive?", "The author leaving the room.", "Artifacts and links must carry the evidence.", ["A single executive read-through.", "Export to a slide deck.", "A rerun of the scanner on the next commit."]],
+        ["What does fixed mean?", "The control changed and the test passed.", "A code change without verification is not closure.", ["A pull request that addresses the finding was merged.", "The owner reports the issue is no longer reproducible.", "The finding was moved to accepted risk."]],
+        ["What does accepted risk require?", "Authorized stakeholder, recorded rationale, and review date.", "Risk acceptance is an authority decision.", ["The engineer’s judgement that the risk is low.", "A ticket left open in the backlog.", "A severity label below high."]],
+        ["How does the executive readout begin?", "Client consequence, decision, and outcome.", "Tools and severity labels come later.", ["The tool stack and its architecture diagram.", "Severity counts by OWASP category.", "A live demo of the red-team attack."]],
+        ["What does the technical defense show?", "Reproduction, changed boundary, negative test, and tradeoff.", "The technical room needs verification details.", ["The executive summary and its business case.", "The full list of scanner findings.", "A comparison of security vendors."]],
+        ["What certification content is available now?", "Learner-goal discussion only; objective mapping is pending verified evidence.", "This keeps the later cloud lane authoritative.", ["A complete mapping of lessons to AWS and GCP certification objectives.", "Provider-specific practice questions for each certification.", "A recommended certification for each learner, based on their cloud choice."]]
       ]),
       sources: shared.securitySources
     },
@@ -189,12 +190,12 @@
       drill: { prompt: "A rollout plan lists steps and owners but no rollback trigger. What is the highest-value correction?", options: ["Add more implementation detail", "Define the observable condition that pauses or reverses cutover", "Increase the estimate buffer"], answer: 1, feedback: "A reversible rollout needs an objective trigger tied to a tested recovery path." },
       demoNote: "Point to the explicit no-deployment boundary, then open the placement memo optional block to show where the later dual-cloud data lands.",
       checks: checks([
-        ["What makes a rollout plan more than a task list?", "A sequence with entry, pause, success, and rollback conditions.", "The plan governs a decision, not only work."],
-        ["What external action is authorized?", "None; the plan and exercises remain local or simulated.", "Deployment and infrastructure are excluded."],
-        ["How is production readiness shown?", "Each NFR links to current test or observation evidence.", "The label itself proves nothing."],
-        ["How are superseded decisions handled?", "Retained in history and marked superseded.", "Traceability requires the decision path."],
-        ["What does a risk row need?", "Trigger, consequence, mitigation, owner, and recovery action.", "Those fields make the risk operational."],
-        ["What stays pending in the placement memo?", "Provider facts and objective mapping awaiting verified dual-cloud evidence.", "The shared schema can land before provider claims."]
+        ["What makes a rollout plan more than a task list?", "A sequence with entry, pause, success, and rollback conditions.", "The plan governs a decision, not only work.", ["A Gantt chart with owners and dates.", "A list of every ticket in the release.", "Effort estimates for each task."]],
+        ["What external action is authorized?", "None; the plan and exercises remain local or simulated.", "Deployment and infrastructure are excluded.", ["A production deployment after the readiness review.", "Provisioning a staging environment in the client account.", "Sending the rollout plan to client stakeholders."]],
+        ["How is production readiness shown?", "Each NFR links to current test or observation evidence.", "The label itself proves nothing.", ["A 'production-ready' label on the release.", "A checklist the team ticks off from memory.", "Agreement in the stand-up that the system is ready."]],
+        ["How are superseded decisions handled?", "Retained in history and marked superseded.", "Traceability requires the decision path.", ["Deleted, so the log shows only current decisions.", "Overwritten in place with the new decision.", "Moved to a personal notes file."]],
+        ["What does a risk row need?", "Trigger, consequence, mitigation, owner, and recovery action.", "Those fields make the risk operational.", ["A severity color and a description.", "Likelihood and impact scores only.", "The name of the person who raised it."]],
+        ["What stays pending in the placement memo?", "Provider facts and objective mapping awaiting verified dual-cloud evidence.", "The shared schema can land before provider claims.", ["The memo’s field schema and decision structure.", "Workload volume and data-boundary assumptions.", "The flip conditions that would change the recommendation."]]
       ]),
       sources: shared.rolloutSources
     },
@@ -216,12 +217,12 @@
       drill: { prompt: "A regression report passed, but it was run before the final conflict resolution. What is its status?", options: ["Current because the conflict was small", "Stale for the affected contract; rerun the relevant checks", "Valid if the author approves it"], answer: 1, feedback: "Evidence belongs to a specific candidate. A changed candidate invalidates affected results." },
       demoNote: "Use the drill to explain candidate-to-evidence traceability. Remind the trainer that release execution is a rehearsal only, with no cloud or deployment action.",
       checks: checks([
-        ["What identifies the release candidate?", "A specific commit or immutable artifact.", "Evidence must bind to one candidate."],
-        ["What happens on a failed regression?", "The rehearsal blocks until fix or authorized disposition.", "A failing gate cannot be waved through silently."],
-        ["How are hot paths selected?", "From client outcomes and the risk register.", "This focuses limited validation effort."],
-        ["What is a merge conflict?", "A collision of intent that needs a recorded contract decision.", "Compilation alone is not resolution."],
-        ["What must operational evidence include?", "Signal, threshold or interpretation, and owner.", "A picture without response ownership is weak evidence."],
-        ["What does security sign-off state?", "Reviewer, scope, residual risk, and next review.", "It never means zero risk."]
+        ["What identifies the release candidate?", "A specific commit or immutable artifact.", "Evidence must bind to one candidate.", ["The branch name at release time.", "The sprint number.", "The date of the readiness review."]],
+        ["What happens on a failed regression?", "The rehearsal blocks until fix or authorized disposition.", "A failing gate cannot be waved through silently.", ["The rehearsal continues and the failure is logged for later.", "The failing test is skipped for this release.", "The threshold is lowered until the gate passes."]],
+        ["How are hot paths selected?", "From client outcomes and the risk register.", "This focuses limited validation effort.", ["The endpoints with the most lines of code.", "Every endpoint, tested equally.", "Whichever paths the newest feature touched."]],
+        ["What is a merge conflict?", "A collision of intent that needs a recorded contract decision.", "Compilation alone is not resolution.", ["A textual overlap that git resolves by picking the newer side.", "A build failure caused by a dependency upgrade.", "A formatting difference between two branches."]],
+        ["What must operational evidence include?", "Signal, threshold or interpretation, and owner.", "A picture without response ownership is weak evidence.", ["A screenshot of a green dashboard.", "Total request count for the release window.", "The full list of configured alerts."]],
+        ["What does security sign-off state?", "Reviewer, scope, residual risk, and next review.", "It never means zero risk.", ["That the system has no remaining vulnerabilities.", "That every scanner passed with zero findings.", "That the security team has approved all future changes."]]
       ]),
       sources: shared.rolloutSources
     },
@@ -243,12 +244,12 @@
       drill: { prompt: "A rollback document says ‘redeploy the previous version’ but does not identify it or address data compatibility. What should happen?", options: ["Accept it as a high-level runbook", "Block readiness until the candidate and compatibility check are explicit", "Ask the model to select the prior version during an incident"], answer: 1, feedback: "Rollback is an executable decision path. Ambiguous versions and data state make it unsafe." },
       demoNote: "Navigate from the diagram to the handoff completeness optional block. The core demonstration is that a new operator, not the author, can find and run the path.",
       checks: checks([
-        ["How do smoke tests differ from regressions?", "They are the smallest fast checks proving service and outcome after change.", "Operators need a rapid verification path."],
-        ["What identifies rollback?", "Previous candidate, trigger, procedure, compatibility, owner, and verification.", "‘Go back’ is not executable."],
-        ["What does a failure drill test?", "Signals, runbook, containment, recovery, and operating ambiguity.", "It tests the whole operating system."],
-        ["What should a runbook remove?", "Dependence on the original author’s memory or access.", "Handoff must survive team change."],
-        ["How are dashboards selected?", "By service health, client outcome, and response ownership.", "Panel volume is not readiness."],
-        ["How are secrets handled in access docs?", "Responsibilities and classes are documented; secret values are not.", "The handoff must not create a new leak."]
+        ["How do smoke tests differ from regressions?", "They are the smallest fast checks proving service and outcome after change.", "Operators need a rapid verification path.", ["They run the full eval suite more often.", "They are manual checks performed by the client.", "They replace regression tests after the first release."]],
+        ["What identifies rollback?", "Previous candidate, trigger, procedure, compatibility, owner, and verification.", "‘Go back’ is not executable.", ["A runbook line that says 'revert the deploy'.", "The on-call engineer’s judgement at the time.", "Restoring the most recent backup, whatever its age."]],
+        ["What does a failure drill test?", "Signals, runbook, containment, recovery, and operating ambiguity.", "It tests the whole operating system.", ["Whether the service can be restarted.", "Whether the alerting tool sends email.", "The speed of the most experienced engineer."]],
+        ["What should a runbook remove?", "Dependence on the original author’s memory or access.", "Handoff must survive team change.", ["The need for monitoring dashboards.", "Every manual step, by requiring full automation.", "Reviews by the receiving team."]],
+        ["How are dashboards selected?", "By service health, client outcome, and response ownership.", "Panel volume is not readiness.", ["By including every metric the system emits.", "By the panels the original author found useful.", "By how they look in the showcase."]],
+        ["How are secrets handled in access docs?", "Responsibilities and classes are documented; secret values are not.", "The handoff must not create a new leak.", ["Listed in a protected appendix of the handoff package.", "Shared in the handoff meeting chat.", "Omitted entirely, along with who owns access."]]
       ]),
       sources: shared.rolloutSources
     },
@@ -270,12 +271,12 @@
       drill: { prompt: "A reviewer requests a visual cleanup during freeze; it does not block understanding or the demo. What is the correct disposition?", options: ["Merge it because it improves the showcase", "Defer it; freeze exceptions are limited to the defined authority and blocking criteria", "Let the presenter decide without recording it"], answer: 1, feedback: "Freeze protects the evidence set. Non-blocking polish waits unless the agreed exception authority decides otherwise." },
       demoNote: "Demonstrate the executive/technical switch: first summarize the outcome, then jump to an essential diagram and one interaction. Show the rubric optional block last.",
       checks: checks([
-        ["What defines the release freeze?", "Candidate, time, exception authority, and blocking criteria.", "Those facts prevent informal scope drift."],
-        ["What states does readiness use?", "Ready, blocked, or accepted by named authority.", "Ambiguous green states hide decisions."],
-        ["What is the narrative sequence?", "Ask, constraint, decision, change, evidence, residual risk.", "It keeps the story traceable."],
-        ["Why include a planned failure?", "To demonstrate detection, recovery, and communication safely.", "It shows operating maturity."],
-        ["What opens the executive cut?", "Before, outcome, evidence, and requested decision.", "Implementation detail follows value."],
-        ["What does peer review verify?", "Claims reach evidence and instructions reach runnable steps.", "The review tests delivery, not taste."]
+        ["What defines the release freeze?", "Candidate, time, exception authority, and blocking criteria.", "Those facts prevent informal scope drift.", ["A calendar date announced in the team chat.", "The point at which tests stop being run.", "The moment the client approves the demo."]],
+        ["What states does readiness use?", "Ready, blocked, or accepted by named authority.", "Ambiguous green states hide decisions.", ["Green, amber, and red.", "Percent complete per workstream.", "Done and not done."]],
+        ["What is the narrative sequence?", "Ask, constraint, decision, change, evidence, residual risk.", "It keeps the story traceable.", ["Tools, architecture, features, then demo.", "Timeline of the ten weeks in order.", "Team introductions, then a feature tour."]],
+        ["Why include a planned failure?", "To demonstrate detection, recovery, and communication safely.", "It shows operating maturity.", ["To make the demo more dramatic.", "To show that tests can be skipped safely.", "To fill time if the main demo runs short."]],
+        ["What opens the executive cut?", "Before, outcome, evidence, and requested decision.", "Implementation detail follows value.", ["The architecture diagram and stack choices.", "A walkthrough of the codebase.", "The team’s velocity metrics."]],
+        ["What does peer review verify?", "Claims reach evidence and instructions reach runnable steps.", "The review tests delivery, not taste.", ["Slide design and presentation style.", "That the code follows the reviewer’s preferred conventions.", "That the demo runs faster than last week."]]
       ]),
       sources: shared.rolloutSources
     },
@@ -297,12 +298,12 @@
       drill: { prompt: "A showcase slide has a confident provider recommendation, but its cost and objective cells are still pending verified evidence. What should the presenter do?", options: ["Present it as final and update sources later", "State the shared method, assumptions, gap, and flip conditions; withhold the final provider claim", "Remove all workload-placement discussion"], answer: 1, feedback: "The shared decision method is demonstrable now. The provider conclusion is not, so the gap and consequence stay visible." },
       demoNote: "This is the trainer’s capstone demo route. Show the batch context, the interaction, the diagram, the evidence-gap disclosure, and the final handoff list.",
       checks: checks([
-        ["What must the opening avoid implying?", "Real deployment, resources, sends, or publication that did not occur.", "The showcase must preserve scope truth."],
-        ["What proves the two-project arc?", "Decisions, tests, risks, and artifacts survive the Week 6 handover.", "Inheritance distinguishes the arc from two unrelated projects."],
-        ["What does the representative demo name?", "Data, expected result, failure signal, and recovery sentence.", "A script makes the demonstration reproducible."],
-        ["How is architecture defended?", "With boundaries, tradeoffs, tests, decisions, and changed-assumption analysis.", "Confidence comes from evidence, not absolutes."],
-        ["What happens when provider facts are pending?", "The method and assumptions are shown; the provider conclusion is withheld.", "This protects the parallel evidence lane’s authority."],
-        ["What does final sign-off state?", "Reviewed scope, delivered package, residual risks, owners, and exclusions.", "Sign-off is bounded, not a claim of completeness everywhere."]
+        ["What must the opening avoid implying?", "Real deployment, resources, sends, or publication that did not occur.", "The showcase must preserve scope truth.", ["That the team made tradeoffs.", "That residual risks remain.", "That assumptions were used in the placement memo."]],
+        ["What proves the two-project arc?", "Decisions, tests, risks, and artifacts survive the Week 6 handover.", "Inheritance distinguishes the arc from two unrelated projects.", ["Two separate demos shown back to back.", "A shared repository name across both projects.", "The same team members on both projects."]],
+        ["What does the representative demo name?", "Data, expected result, failure signal, and recovery sentence.", "A script makes the demonstration reproducible.", ["Every feature built over ten weeks.", "Only the happy-path output.", "The tools used to build it."]],
+        ["How is architecture defended?", "With boundaries, tradeoffs, tests, decisions, and changed-assumption analysis.", "Confidence comes from evidence, not absolutes.", ["By stating that the chosen stack is industry standard.", "By listing every component in the system.", "By asserting that the design has no weaknesses."]],
+        ["What happens when provider facts are pending?", "The method and assumptions are shown; the provider conclusion is withheld.", "This protects the parallel evidence lane’s authority.", ["The team picks the provider it knows best and states it as final.", "Provider facts are estimated from older pricing pages.", "The placement section is removed from the showcase."]],
+        ["What does final sign-off state?", "Reviewed scope, delivered package, residual risks, owners, and exclusions.", "Sign-off is bounded, not a claim of completeness everywhere.", ["That the system is complete and needs no further work.", "That every original requirement was delivered unchanged.", "That the client accepts all future maintenance."]]
       ]),
       sources: shared.rolloutSources
     }

@@ -2,9 +2,9 @@
 
 - **Status:** approved curriculum transfer; external execution prohibited
 - **Prepared:** 2026-10-14
-- **Primary curriculum record:** `/Users/jestercharles/ltimindtree/ltim-custom-fde-curriculum.md`, Week 10
-- **Supporting curriculum record:** `/Users/jestercharles/ltimindtree/revpro-additions-w1-w10.md`, Week 10
-- **Reconciliation record:** `/Users/jestercharles/.treehouse/kun-agent-workspace-8bf1b0/1/kun-agent-workspace/data/fde-ltim-reactivation-current-target-plan/report.md`
+- **Primary curriculum record:** [`w10-source-excerpt.md`](w10-source-excerpt.md) — verbatim Week 10 section of the approved curriculum record
+- **Supporting curriculum record:** RevPro additions record, Week 10 entries 34–37 (included in the same excerpt)
+- **Reconciliation record:** 2026-10-13 target-state scout report (program-owner record, not published). Findings used here: the derivative defines W9 as AI security & hardening and W10 as wrap-up, rollout & client showcase; W9–W10 had no reading pages; the client rebranded to "LTM Limited (Formerly LTIMindtree Limited)"; no provisioning, deployment, or external action is authorized.
 
 ## Day-by-day transfer
 
