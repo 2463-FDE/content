@@ -236,7 +236,8 @@
     summary.setAttribute("role", "status");
     summary.setAttribute("aria-live", "polite");
     fieldset.appendChild(summary);
-    if (!compact) {
+    var onCertPage = typeof window !== "undefined" && window.location && /certifications\.html$/.test(window.location.pathname || "");
+    if (!compact && !onCertPage) {
       var more = doc.createElement("a");
       more.className = "cloud-picker-link";
       more.href = siteRoot(doc) + "certifications.html";

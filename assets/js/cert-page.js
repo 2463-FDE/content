@@ -161,10 +161,11 @@
       pages.replaceChildren();
       model.providerPages.forEach(function (p) {
         var item = el(doc, "li", {});
-        item.appendChild(link(doc, p.href + "?cloud=aws", p.label + " — " + p.title + " (AWS)"));
-        item.appendChild(doc.createTextNode(" · "));
+        item.appendChild(link(doc, p.href, p.label + " — " + p.title));
+        item.appendChild(el(doc, "span", { class: "cert-ltm" }, " · LTM " + p.ltm + " · open as "));
+        item.appendChild(link(doc, p.href + "?cloud=aws", "AWS"));
+        item.appendChild(doc.createTextNode(" / "));
         item.appendChild(link(doc, p.href + "?cloud=gcp", "GCP"));
-        item.appendChild(el(doc, "span", { class: "cert-ltm" }, " · LTM " + p.ltm));
         pages.appendChild(item);
       });
     }
