@@ -84,6 +84,7 @@ window.PHASES = {
   found:  { label:"Foundation AI Engineering", c:"#e8590c" },
   agent:  { label:"Agentic Systems",           c:"#1c7ed6" },
   sdlc:   { label:"AI-Native SDLC",            c:"#7048e8" },
+  prod:   { label:"Production AI Systems",     c:"#0b7285" },
   obs:    { label:"AI Observability",          c:"#0ca678" },
   sec:    { label:"Production & Security",      c:"#e03131" },
   cap:    { label:"Delivery & Handover",       c:"#f08c00" }
@@ -119,12 +120,12 @@ window.WEEKS = [
     { t:"Spec frameworks & tooling", s:"spec-kit · Kiro · ADRs · lock vs defer", href:"weeks/w05/w05d3.html" },
     { t:"Decomposition + NFRs", s:"phased plans · the system graph · perf/scale/security", href:"weeks/w05/w05d4.html" },
     { t:"Spec→impl handoff E2E", s:"handoff · loop design · outcome gate · milestone", star:true, href:"weeks/w05/w05d5.html" } ]},
-  { w:6, phase:"sdlc", title:"AI-Augmented SDLC", days:[
-    { t:"Coding-agents landscape", s:"Claude Code focus · permissions · CLAUDE.md · skills/hooks", href:"weeks/w06/w06d1.html" },
-    { t:"Agentic SDLC loops", s:"plan-first · TDD with agents · AI review · CI/CD", href:"weeks/w06/w06d2.html" },
-    { t:"Coding-agent alternatives", s:"alt: Cursor · Aider · Copilot vs Claude Code", href:"weeks/w06/w06d3.html" },
-    { t:"Brownfield & LEGMOD with agents", s:"strangler-fig · characterization tests · incremental", href:"weeks/w06/w06d4.html" },
-    { t:"AI-augmented delivery E2E", s:"spec → PR → gates → merge · milestone", star:true, href:"weeks/w06/w06d5.html" } ]},
+  { w:6, phase:"prod", title:"Kafka & Event-Driven AI Pipelines", days:[
+    { t:"Kafka foundations & event judgement", s:"topics · partitions · offsets · KRaft · local CLI", href:"weeks/w06/w06d1.html" },
+    { t:"Delivery semantics, schemas & economics", s:"lag · retries/DLQ · transactions · Python · managed Kafka", href:"weeks/w06/w06d2.html" },
+    { t:"Event-driven agents & streaming stores", s:"MSK judgement · async agents · backpressure · Chroma/Neo4j", href:"weeks/w06/w06d3.html" },
+    { t:"Build, fail & operate the pipeline", s:"rebalance · lag alerts · OTel headers · runbooks · static egress", href:"weeks/w06/w06d4.html" },
+    { t:"Pipeline defense & measured readout", s:"throughput/lag · synthetic egress · fallback · retrospective", star:true, href:"weeks/w06/w06d5.html" } ]},
   { w:7, phase:"obs", title:"Observability, SRE & Guardrails", days:[
     { t:"Traces, spans & LangSmith", s:"run trees · cost/latency attribution · a shareable URL, not an adjective", href:"weeks/w07/w07d1.html" },
     { t:"Evals in production", s:"offline sets · online eval · LLM-as-judge bias", href:"weeks/w07/w07d2.html" },

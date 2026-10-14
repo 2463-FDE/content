@@ -67,10 +67,10 @@
         portable; the executor is a commodity.</p>
         <p>Days 1–4 gave you the upstream artifacts: what a spec is, how to synthesize requirements, which frameworks
         exist, how to decompose a plan into tasks. Today consumes them. We deliberately treat the agent itself as a black
-        box — coding-agent tooling in depth is Week 6. What matters today is the <em>protocol</em> around the agent: what
-        you check before handing off, what you hand, how the agent proves its work, and how you review what comes back.
-        That protocol is what a client is actually buying when they buy "AI-assisted delivery" — anyone can prompt an
-        agent; an FDE runs a pipeline.</p>
+        box; its delivery discipline remains a supporting skill across later weeks. Week 6 applies this protocol to a
+        Kafka and event-driven AI pipeline. What matters today is what you check before handing off, what you hand, how
+        the agent proves its work, and how you review what comes back. That protocol is what a client is actually buying
+        when they buy "AI-assisted delivery" — anyone can prompt an agent; an FDE runs a pipeline.</p>
       </section>
 
       <section class="step" data-diagram="0" data-step="1">
@@ -398,13 +398,13 @@
     </ul>
     <p class="goals-foot">This is the Week 5 milestone: <b>Scope → Sequence → Build → Ship → Measure</b>, run once, end
     to end, against a real implementing agent — and it started with reading the handover closely enough to notice the
-    ask was wrong. Note what you did <em>not</em> do: ship the calendar fix. Next week we study the executors
-    themselves, and the spec package you just wrote becomes something you implement.</p>
+    ask was wrong. Note what you did <em>not</em> do: ship the calendar fix. Next week the inherited RAG, agent,
+    Chroma, and Neo4j artifacts become an event-driven pipeline; this spec package becomes the change contract.</p>
   </div>
 </div>
 
 <script>
-window.FDE_NEXT = { label: "Week 6 · Day 1 — Coding-agents landscape →", href: "../w06/w06d1.html" };
+window.FDE_NEXT = { label: "Week 6 · Day 1 — Kafka foundations →", href: "../w06/w06d1.html" };
 window.DIAGRAM = {
   title: "Spec → implementation · the handoff pipeline",
   width: 500, height: 690,
