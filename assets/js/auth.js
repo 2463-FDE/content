@@ -8,6 +8,9 @@
   const KEY = "fde_identity";
   const TOKEN_KEY = "fde_session";
   const RUN = (window.FDE_RUN_URL || "").replace(/\/$/, "");
+  const AUTH_BASE = document.currentScript && document.currentScript.src
+    ? new URL(".", document.currentScript.src).href
+    : "assets/js/";
   function get() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } }
   function set(idt, token) {
     localStorage.setItem(KEY, JSON.stringify(idt));
@@ -63,9 +66,13 @@
     if (!bar) return;
     let b = bar.querySelector(".id-badge");
     if (!b) { b = document.createElement("span"); b.className = "id-badge"; bar.appendChild(b); }
-    const rolePill = (idt.role === "trainer") ? '<span class="role">trainer</span>' : '';
-    b.innerHTML = `<span class="dot"></span><span>${idt.name}</span>${rolePill} <a href="#" class="logout">log out</a>`;
-    b.querySelector(".logout").addEventListener("click", e => { e.preventDefault(); clear(); location.reload(); });
+    const dot = document.createElement("span"); dot.className = "dot";
+    const name = document.createElement("span"); name.textContent = String(idt.name || "Learner");
+    const logout = document.createElement("a"); logout.href = "#"; logout.className = "logout"; logout.textContent = "log out";
+    b.replaceChildren(dot, name);
+    if (idt.role === "trainer") { const role = document.createElement("span"); role.className = "role"; role.textContent = "trainer"; b.appendChild(role); }
+    b.append(" ", logout);
+    logout.addEventListener("click", e => { e.preventDefault(); clear(); location.reload(); });
   }
   function overlay() {
     const o = document.createElement("div");
@@ -108,9 +115,50 @@
     return m.token;
   }
 
+  function loadScriptOnce(src, ready) {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      if (ready()) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        existing.addEventListener("load", resolve, { once: true });
+        existing.addEventListener("error", reject, { once: true });
+      });
+    }
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.addEventListener("load", resolve, { once: true });
+      script.addEventListener("error", reject, { once: true });
+      document.head.appendChild(script);
+    });
+  }
+
+  async function initBatchContext() {
+    const bar = document.querySelector(".topbar-right") || document.querySelector(".topbar");
+    if (bar && !bar.querySelector("[data-batch-context]")) {
+      const host = document.createElement("div");
+      host.className = "batch-context batch-context--compact";
+      host.setAttribute("data-batch-context", "");
+      host.textContent = "Loading batch…";
+      bar.insertBefore(host, bar.firstChild);
+    }
+    try {
+      await loadScriptOnce(AUTH_BASE + "curriculum-config.js", () => !!window.FDE_CURRICULUM_CONFIG);
+      await loadScriptOnce(AUTH_BASE + "batch-context.js", () => !!window.FDEBatchContext);
+      window.FDEBatchContext.init(document, window.FDE_CURRICULUM_CONFIG, window.localStorage);
+    } catch (error) {
+      document.querySelectorAll("[data-batch-context]").forEach(host => {
+        host.textContent = "Batch context unavailable";
+        host.setAttribute("role", "status");
+        host.classList.add("batch-context-error");
+      });
+    }
+  }
+
   window.FDE_getIdentity = get;
   window.FDE_ensureSession = ensureSession;
   document.addEventListener("DOMContentLoaded", () => {
+    initBatchContext();
     const idt = get();
     if (idt) { window.FDE_IDENTITY = idt; if (idt.role === "trainer") document.body.classList.add("is-trainer"); trainerNav(idt); badge(idt); }
     else overlay();

@@ -1351,6 +1351,77 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
 .rc-daylink { display: block; font-size: 12px; color: var(--accent); text-decoration: none; padding: 3px 0; }
 .rc-daylink:hover { text-decoration: underline; }
 
+/* ===================== Curriculum hub context + W9–10 transfer ===================== */
+.batch-context { display:flex; align-items:center; gap:7px; min-width:0; font-size:12px; }
+.batch-context label { color:var(--ink-soft); font-weight:700; }
+.batch-context input {
+  width:72px; min-height:44px; padding:5px 8px; border:1px solid var(--line); border-radius:7px;
+  color:var(--ink); background:var(--surface); font:inherit; font-weight:700;
+}
+.batch-context button {
+  min-height:44px; padding:5px 9px; border:1px solid var(--line); border-radius:7px;
+  color:var(--ink); background:var(--surface); font:inherit; font-weight:700; cursor:pointer;
+}
+.batch-context button:hover { border-color:var(--accent); color:var(--accent-ink); }
+.batch-context-status { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+.batch-context-error { color:var(--bad-ink); font-weight:700; }
+
+.curriculum-hub-intro {
+  display:grid; grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr); gap:clamp(24px,4vw,56px);
+  margin:28px 0 24px; padding:clamp(24px,4vw,46px); border:1px solid var(--line); border-radius:18px;
+  background:linear-gradient(135deg,var(--surface) 0%,var(--surface) 68%,var(--accent-soft) 100%); box-shadow:0 16px 44px var(--shadow);
+}
+.curriculum-hub-intro h1 { margin:0 0 8px; font-size:clamp(34px,5vw,58px); line-height:1; letter-spacing:-.035em; }
+.curriculum-hub-intro p { max-width:720px; margin:12px 0; color:var(--ink-soft); }
+.hub-status-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+.hub-status { padding:5px 9px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--ink-soft); font-size:12px; font-weight:750; }
+.hub-status.is-ready { border-color:var(--good-line); color:var(--good-ink); background:var(--good-soft); }
+.hub-status.is-pending { border-color:var(--warn-line); color:var(--warn-ink); background:var(--warn-soft); }
+.hub-launcher { align-self:start; padding:20px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+.hub-launcher h2 { margin:0 0 12px; font-size:19px; }
+.hub-launcher-controls { display:grid; gap:11px; }
+.hub-launcher label { display:grid; gap:4px; color:var(--ink-soft); font-size:12px; font-weight:750; }
+.hub-launcher select { width:100%; min-height:44px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; color:var(--ink); background:var(--surface); font:inherit; }
+.hub-launcher .btn { min-height:44px; border:0; border-radius:8px; color:#fff; background:#9f3b08; font:inherit; font-weight:800; cursor:pointer; }
+.hub-launcher .btn:disabled { opacity:.5; cursor:not-allowed; }
+.hub-launch-status { min-height:1.5em; font-size:12px; }
+.hub-demo-links { display:grid; gap:6px; padding-top:11px; border-top:1px solid var(--line); font-size:13px; }
+.hub-demo-links a { color:var(--accent-ink); font-weight:700; }
+
+.capstone-kicker { margin-bottom:7px; color:var(--accent-ink); font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+.capstone-lesson .step { min-height:34vh; }
+.capstone-lesson .capstone-optional { max-width:var(--maxprose); margin:16px 0 32px; }
+.capstone-drill { margin:20px 0 6px; padding:18px; border:1px solid var(--accent-line); border-radius:12px; background:var(--accent-soft); }
+.capstone-drill fieldset { margin:8px 0 0; padding:0; border:0; }
+.capstone-drill legend { margin-bottom:10px; font-weight:750; line-height:1.45; }
+.capstone-drill label { display:flex; align-items:flex-start; gap:9px; min-height:44px; margin:7px 0; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--surface); cursor:pointer; }
+.capstone-drill label:hover { border-color:var(--accent); }
+.capstone-drill input { margin-top:5px; accent-color:var(--accent); }
+.capstone-drill-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:12px; }
+.capstone-drill .ix-btn { border-color:var(--accent-ink); color:var(--accent-ink); }
+.capstone-drill .secondary { border-color:var(--line); color:var(--ink-soft); }
+.capstone-drill-status { min-height:1.7em; margin:12px 0 0; color:var(--bad-ink); font-weight:650; }
+.capstone-drill-status.is-correct { color:var(--good-ink); }
+.lesson-loading, .lesson-load-error { max-width:720px; margin:72px auto; padding:28px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+
+@media (max-width:1180px) {
+  .batch-context--compact label { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  .batch-context--compact input { width:64px; }
+}
+@media (max-width:900px) {
+  .curriculum-hub-intro { grid-template-columns:1fr; }
+  .topbar { flex-wrap:wrap; }
+  .topbar-center { order:3; width:100%; justify-content:center; overflow-x:auto; }
+  .progressbar { display:none; }
+}
+@media (max-width:560px) {
+  .batch-context--compact button { min-width:44px; padding-inline:6px; font-size:0; }
+  .batch-context--compact button::after { content:"Set"; font-size:12px; }
+  .curriculum-hub-intro { margin-inline:-12px; padding:20px; border-radius:12px; }
+  .capstone-drill { padding:14px; }
+  .capstone-lesson .step { min-height:0; }
+}
+
 /* ===================== Reading print layout ===================== */
 @media print {
   @page { margin: 16mm; }

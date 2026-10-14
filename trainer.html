@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trainer · Logins | 2463-FDE</title>
-<link rel="stylesheet" href="assets/css/style.css?v=20260805-rc3">
+<title>Trainer Dashboard | 2463-FDE</title>
+<link rel="stylesheet" href="assets/css/style.css?v=20261014-hub">
 <script src="assets/js/theme.js"></script>
 <style>
   /* ---- trainer page (reuses site design language) ---- */
@@ -16,6 +16,12 @@
 
   .tr-card { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:24px 26px; box-shadow:0 6px 24px var(--shadow); margin:18px 0; }
   .tr-card h2 { font-size:18px; margin:0 0 16px; }
+  .tr-curriculum { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 20px; border-color:var(--accent-line); background:var(--accent-soft); }
+  .tr-curriculum h2 { margin:0 0 3px; }
+  .tr-curriculum p { margin:0; color:var(--ink-soft); font-size:14px; }
+  .tr-curriculum-actions { display:flex; flex-wrap:wrap; gap:8px; flex:0 0 auto; }
+  .tr-curriculum-actions a { min-height:44px; display:inline-flex; align-items:center; padding:8px 13px; border:1px solid var(--accent); border-radius:9px; color:var(--accent-ink); background:var(--surface); font-size:13px; font-weight:750; text-decoration:none; }
+  @media (max-width:700px) { .tr-curriculum { align-items:flex-start; flex-direction:column; } }
 
   .tr-form { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
   .tr-field { display:flex; flex-direction:column; gap:5px; }
@@ -81,7 +87,7 @@
 <div class="topbar">
   <div class="topbar-left">
     <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
-    <a class="topnav" href="index.html">Home</a>
+    <a class="topnav" href="index.html">Curriculum Hub</a>
   </div>
   <nav class="topbar-center">
     <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
@@ -143,6 +149,10 @@
           '<h1>Trainer · <b>Dashboard</b></h1>' +
           '<p>Cohort progress and weekly reports, plus login management — all in one place.</p>' +
         '</div>' +
+        '<section class="tr-card tr-curriculum" aria-labelledby="tr-run-title">' +
+          '<div><h2 id="tr-run-title">Run the curriculum</h2><p><span data-client-name>Client curriculum</span> · Batch <b data-batch-value>loading</b> · ten weeks routed</p></div>' +
+          '<div class="tr-curriculum-actions"><a href="index.html#trainer-start">Open launchpad</a><a href="weeks/w09/w09d1.html">Demo hardening</a><a href="weeks/w10/w10d5.html">Demo showcase</a></div>' +
+        '</section>' +
         '<div class="tr-tabs" role="tablist">' +
           '<button class="tr-tab on" data-tab="reports" type="button">📊 Reports</button>' +
           '<button class="tr-tab" data-tab="logins" type="button">🔑 Logins</button>' +
