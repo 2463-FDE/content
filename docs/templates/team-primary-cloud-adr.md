@@ -7,7 +7,7 @@
 ## Context
 
 - Inherited from Project 1: the ADRs, eval baselines, knowledge graph, and services each member brings. List the inherited decisions this ADR depends on.
-- The client constraints in the Project 2 request cards that bear on cloud choice (stated constraints vs negotiable preferences).
+- The client constraints in the Project 2 request cards (the client's written Project 2 asks — requested feature, constraints, and acceptance criteria) that bear on cloud choice (stated constraints vs negotiable preferences).
 - What each member's Project 1 build ran on, and what porting it would cost.
 
 ## Options considered
