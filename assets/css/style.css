@@ -1352,7 +1352,7 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
 .rc-daylink:hover { text-decoration: underline; }
 
 /* ===================== Curriculum hub context + W9–10 transfer ===================== */
-.batch-context { display:flex; align-items:center; gap:7px; min-width:0; font-size:12px; }
+.batch-context { display:flex; flex:0 0 auto; align-items:center; gap:7px; font-size:12px; }
 .batch-context label { color:var(--ink-soft); font-weight:700; }
 .batch-context input {
   width:72px; min-height:44px; padding:5px 8px; border:1px solid var(--line); border-radius:7px;
@@ -1407,11 +1407,11 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
 @media (max-width:1180px) {
   .batch-context--compact label { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
   .batch-context--compact input { width:64px; }
+  .topbar { flex-wrap:wrap; }
+  .topbar-center { order:3; width:100%; justify-content:center; overflow-x:auto; }
 }
 @media (max-width:900px) {
   .curriculum-hub-intro { grid-template-columns:1fr; }
-  .topbar { flex-wrap:wrap; }
-  .topbar-center { order:3; width:100%; justify-content:center; overflow-x:auto; }
   .progressbar { display:none; }
 }
 @media (max-width:560px) {
