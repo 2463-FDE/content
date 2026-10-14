@@ -61,12 +61,27 @@
       captions: lesson.sections.map(function (section) { return "<b>" + esc(section[0]) + "</b> — " + esc(section[1].split(". ")[0]) + "."; })
     };
   }
-  function interactionHtml(lesson, id) {
+  function drillOrder(count, random) {
+    var rand = typeof random === "function" ? random : Math.random;
+    var order = [];
+    for (var i = 0; i < count; i++) order.push(i);
+    for (var j = count - 1; j > 0; j--) {
+      var k = Math.min(j, Math.floor(rand() * (j + 1)));
+      var swap = order[j]; order[j] = order[k]; order[k] = swap;
+    }
+    return order;
+  }
+  function assessDrill(lesson, value) {
+    var correct = Number(value) === lesson.drill.answer;
+    return { correct: correct, message: (correct ? "Defensible decision. " : "Reconsider the enforcement boundary. ") + lesson.drill.feedback };
+  }
+  function interactionHtml(lesson, id, order) {
+    var sequence = order || lesson.drill.options.map(function (option, index) { return index; });
     return '<div class="capstone-drill" data-capstone-drill>' +
       '<div class="ix-k">Practice · decision drill</div>' +
       '<fieldset><legend>' + esc(lesson.drill.prompt) + '</legend>' +
-      lesson.drill.options.map(function (option, index) {
-        return '<label><input type="radio" name="' + esc(id) + '-decision" value="' + index + '"> <span>' + esc(option) + '</span></label>';
+      sequence.map(function (index) {
+        return '<label><input type="radio" name="' + esc(id) + '-decision" value="' + index + '"> <span>' + esc(lesson.drill.options[index]) + '</span></label>';
       }).join("") + '</fieldset>' +
       '<div class="capstone-drill-actions"><button class="ix-btn" type="button" data-drill-check>Check decision</button><button class="ix-btn secondary" type="button" data-drill-reset>Reset</button></div>' +
       '<p class="capstone-drill-status" role="status" aria-live="polite"></p></div>';
@@ -80,9 +95,9 @@
     check.addEventListener("click", function () {
       var selected = host.querySelector("input:checked");
       if (!selected) { status.textContent = "Choose one response before checking."; return; }
-      var correct = Number(selected.value) === lesson.drill.answer;
-      status.textContent = (correct ? "Defensible decision. " : "Reconsider the enforcement boundary. ") + lesson.drill.feedback;
-      status.classList.toggle("is-correct", correct);
+      var result = assessDrill(lesson, selected.value);
+      status.textContent = result.message;
+      status.classList.toggle("is-correct", result.correct);
       host.querySelectorAll("input").forEach(function (input) { input.disabled = true; });
       check.disabled = true;
     });
@@ -99,7 +114,7 @@
     if (!meta) { meta = doc.createElement("meta"); meta.name = name; doc.head.appendChild(meta); }
     meta.content = content;
   }
-  function render(doc) {
+  function render(doc, options) {
     var id = doc.body && doc.body.getAttribute("data-lesson");
     var lessons = (typeof globalThis !== "undefined" && globalThis.FDE_CAPSTONE_LESSONS) || {};
     var lesson = lessons[id];
@@ -115,12 +130,13 @@
     var requiredMinutes = pacing.requiredMinutes;
     var dayId = "w" + String(lesson.week).padStart(2, "0") + "d" + lesson.day;
     var next = route(dayId);
+    var order = drillOrder(lesson.drill.options.length, options && options.random);
     doc.title = "W" + lesson.week + "·D" + lesson.day + " — " + lesson.title + " | 2463-FDE";
     setMeta(doc, "fde-day", dayId);
     setMeta(doc, "fde-concepts", lesson.concepts.join(","));
 
     var sections = lesson.sections.map(function (section, index) {
-      var practice = index === 3 ? interactionHtml(lesson, dayId) : "";
+      var practice = index === 3 ? interactionHtml(lesson, dayId, order) : "";
       return '<section class="step" data-diagram="0" data-step="' + index + '"><div class="tag">' + (index + 1) + ' · Required</div><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + practice + '</section>';
     }).join("");
     var sourceList = lesson.sources.map(function (source) {
@@ -152,5 +168,5 @@
     return true;
   }
 
-  return { esc: esc, wordCount: wordCount, requiredWords: requiredWords, pacingFor: pacingFor, diagramFor: diagramFor, render: render };
+  return { esc: esc, wordCount: wordCount, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, requiredWords: requiredWords, pacingFor: pacingFor, diagramFor: diagramFor, render: render };
 });

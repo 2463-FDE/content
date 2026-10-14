@@ -116,6 +116,51 @@ class CurriculumHubTransferTests(unittest.TestCase):
                     self.assertNotIn(distractor, seen, f"reused from: {seen.get(distractor)}")
                     seen[distractor] = question["stem"]
 
+    DRILL_OPTION = re.compile(
+        r'<input type="radio" name="(w\d\dd\d)-decision" value="(\d+)"> <span>([^<]*)</span>'
+    )
+
+    def test_decision_drill_shuffles_once_per_render_and_keeps_answer_mapping(self) -> None:
+        result = node_json(
+            "const d=require('./assets/js/curriculum-lessons-w09-w10.js');"
+            "const r=require('./assets/js/capstone-lesson.js');"
+            "function seq(vals){let i=0;return()=>vals[i++%vals.length];}"
+            "const seeds=[[0,0],[0.99,0.99],[0.5,0.2],[0.1,0.9],[0.7,0.4],[0.34,0.6]];"
+            "function renderRoute(id,random){const root={innerHTML:''},overlays={innerHTML:''};"
+            "const doc={title:'',body:{getAttribute:()=>id},head:{appendChild(){}},createElement:()=>({}),"
+            "querySelector:()=>null,getElementById:k=>k==='lesson-root'?root:k==='lesson-overlays'?overlays:null};"
+            "globalThis.window={};r.render(doc,{random});return root.innerHTML;}"
+            "console.log(JSON.stringify(Object.fromEntries(Object.entries(d).map(([id,v])=>[id,{"
+            "authored:v.drill.options,answer:v.drill.answer,"
+            "renders:seeds.map(s=>{const o=r.drillOrder(v.drill.options.length,seq(s));return {"
+            "order:o,repeat:r.drillOrder(v.drill.options.length,seq(s)),html:r.interactionHtml(v,id,o),"
+            "routed:renderRoute(id,seq(s)),"
+            "assessed:v.drill.options.map((_,i)=>r.assessDrill(v,String(i)))};})"
+            "}]))));"
+        )
+        for lesson_id, lesson in result.items():
+            authored = lesson["authored"]
+            answer_positions = set()
+            for render in lesson["renders"]:
+                with self.subTest(lesson_id=lesson_id, order=render["order"]):
+                    self.assertEqual(render["order"], render["repeat"])
+                    self.assertEqual(sorted(render["order"]), list(range(len(authored))))
+                    options = self.DRILL_OPTION.findall(render["html"])
+                    self.assertEqual(self.DRILL_OPTION.findall(render["routed"]), options)
+                    self.assertEqual([int(value) for _, value, _ in options], render["order"])
+                    self.assertEqual({name for name, _, _ in options}, {lesson_id})
+                    self.assertCountEqual([text for _, _, text in options], authored)
+                    for position, (_, value, text) in enumerate(options):
+                        self.assertEqual(text, authored[int(value)])
+                        verdict = render["assessed"][int(value)]
+                        self.assertEqual(verdict["correct"], int(value) == lesson["answer"])
+                        self.assertTrue(verdict["message"].startswith(
+                            "Defensible decision. " if verdict["correct"] else "Reconsider"
+                        ))
+                        if int(value) == lesson["answer"]:
+                            answer_positions.add(position)
+            self.assertEqual(answer_positions, set(range(len(authored))), lesson_id)
+
     def test_browser_renders_a_representative_route_and_essential_diagram(self) -> None:
         chrome = find_chrome()
         if not chrome:
