@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import unittest
@@ -52,6 +53,12 @@ class CertPageStaticContract(unittest.TestCase):
         for a in self.root.find_all("a"):
             if a.attrs.get("target") == "_blank":
                 self.assertEqual(a.attrs.get("rel"), "noopener")
+
+    def test_static_lesson_list_matches_the_provider_pages(self) -> None:
+        listed = [a.attrs["href"] for a in self.by_id("provider-pages").find_all("a")]
+        script = "process.stdout.write(JSON.stringify(Object.keys(require('./assets/js/cloud-map.js').providerPages)))"
+        pages = json.loads(subprocess.run(["node", "-e", script], cwd=ROOT, capture_output=True, text=True, check=True).stdout)
+        self.assertEqual(listed, [f"weeks/{page}.html" for page in pages], "no-JS lesson list must match cloud-map providerPages")
 
     def test_picker_mount_and_access_date(self) -> None:
         self.by_id("cloud-path-mount")
