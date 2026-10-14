@@ -94,7 +94,7 @@ class Week5Neo4jWave1Tests(unittest.TestCase):
         cls.config = node_json(
             "const w=require('./assets/js/curriculum-week5.js');"
             "console.log(JSON.stringify(Object.fromEntries(Object.entries(w.lessons).map(([id,x])=>[id,{"
-            "checks:x.checks,lab:x.lab,captionCount:x.diagram.captions.length,nodeCount:x.diagram.nodes.length," 
+            "checks:x.checks,lab:x.lab,captionCount:x.diagram.captions.length,nodeCount:x.diagram.nodes.length,"
             "assessment:['relationship','defer','vector-cypher','hybrid','block'].map(v=>w.assess(id,v))"
             "}]))));"
         )
