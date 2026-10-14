@@ -1,4 +1,4 @@
-"""Behavior and page-contract tests for Week 6 permission-rule practice."""
+"""Behavior tests for the archived Week 6 permission-rule support asset."""
 
 from __future__ import annotations
 
@@ -9,17 +9,11 @@ import shutil
 import subprocess
 import textwrap
 import unittest
-from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "assets" / "js" / "interactive-w6-permissions.js"
-SCRIPT_URL = "../../assets/js/interactive-w6-permissions.js?v=20260924"
-PAGES = {
-    "w06d2.html": ("all", 2),
-    "w06d4.html": ("legacy", 2),
-    "w06d5.html": ("delivery", 2),
-}
+PAGES = ("w06d2.html", "w06d4.html", "w06d5.html")
 EXPECTED = {
     "docs-guide": ("allow", "F-02"),
     "source-read": ("allow", "F-03"),
@@ -33,27 +27,6 @@ EXPECTED = {
     "outside-source": ("deny", "D-01"),
     "case-variant": ("deny", "D-01"),
 }
-
-
-class PageContractParser(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.widgets: list[dict[str, str | None]] = []
-        self.future_count = 0
-        self.scripts: list[str] = []
-        self.links: list[str] = []
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        values = dict(attrs)
-        classes = set((values.get("class") or "").split())
-        if "ix-permission" in classes:
-            self.widgets.append(values)
-        if "ix-future" in classes:
-            self.future_count += 1
-        if tag == "script" and values.get("src"):
-            self.scripts.append(values["src"] or "")
-        if tag == "a" and values.get("href"):
-            self.links.append(values["href"] or "")
 
 
 def find_chrome() -> str | None:
@@ -210,19 +183,24 @@ class Week6PermissionEvaluatorTests(unittest.TestCase):
         self.assertEqual({"index": 0, "prediction": None, "checked": False, "total": 2}, result["reset"])
         self.assertNotIn("verdict", result["current"])
 
-    def test_pages_replace_placeholders_and_load_exact_script_url(self) -> None:
-        for filename, (case_set, future_count) in PAGES.items():
+    def test_asset_is_preserved_for_supporting_reuse_but_not_loaded_by_kafka_routes(self) -> None:
+        contract = run_node("const p=require('./assets/js/interactive-w6-permissions.js');process.stdout.write(JSON.stringify({fixtures:p.fixtures().length,keys:Object.keys(p)}))")
+        self.assertEqual(len(EXPECTED), contract["fixtures"])
+        self.assertIn("evaluateCall", contract["keys"])
+
+        if not CHROME:
+            self.skipTest("Chrome/Chromium is required for route isolation assertions")
+        for filename in PAGES:
             with self.subTest(page=filename):
-                parser = PageContractParser()
-                parser.feed((ROOT / "weeks" / "w06" / filename).read_text(encoding="utf-8"))
-                self.assertEqual(1, len(parser.widgets))
-                self.assertEqual(case_set, parser.widgets[0].get("data-case-set"))
-                self.assertEqual(future_count, parser.future_count)
-                self.assertEqual(1, parser.scripts.count(SCRIPT_URL))
-        primary = PageContractParser()
-        primary.feed((ROOT / "weeks" / "w06" / "w06d2.html").read_text(encoding="utf-8"))
-        self.assertIn("w06d4.html#permission-evaluator-legacy", primary.links)
-        self.assertIn("w06d5.html#permission-evaluator-delivery", primary.links)
+                result = subprocess.run(
+                    [CHROME, "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
+                     "--allow-file-access-from-files", "--virtual-time-budget=3000", "--dump-dom",
+                     (ROOT / "weeks" / "w06" / filename).as_uri()],
+                    text=True, capture_output=True, timeout=40,
+                )
+                self.assertEqual(0, result.returncode, result.stderr[-1000:])
+                self.assertNotIn("ix-permission", result.stdout)
+                self.assertNotIn("interactive-w6-permissions.js", result.stdout)
 
     def test_module_executes_without_network_storage_credentials_or_broad_browser_api(self) -> None:
         subprocess.run(["node", "--check", str(MODULE)], cwd=ROOT, check=True, capture_output=True, text=True)
@@ -332,39 +310,6 @@ class Week6PermissionEvaluatorTests(unittest.TestCase):
         self.assertEqual("anywhere", rules[".perm-call"]["overflow-wrap"])
         self.assertEqual("100%", rules[".perm-case-select"]["width"])
 
-
-    @unittest.skipUnless(CHROME, "Chrome/Chromium not found; set CHROME_BIN to run real-browser regressions")
-    def test_real_browser_390px_overflow_keyboard_and_live_region_in_both_themes(self) -> None:
-        result = subprocess.run(
-            ["node", "-e", BROWSER_TEST_SCRIPT, CHROME, str(ROOT)],
-            cwd=ROOT, text=True, capture_output=True, timeout=180,
-        )
-        self.assertEqual(0, result.returncode, result.stderr)
-        runs = json.loads(result.stdout)
-        self.assertEqual(len(PAGES) * 2 * 2, len(runs))
-        for run in runs:
-            label = f"{run['page']} {run['theme']} {run['width']}px"
-            with self.subTest(run=label):
-                self.assertEqual(run["theme"], run["appliedTheme"])
-                self.assertEqual(run["width"], run["viewport"])
-                self.assertEqual([], run["overflow"])
-                self.assertLessEqual(run["widgetScrollWidth"], run["widgetClientWidth"])
-                self.assertGreaterEqual(run["checkContrast"], 4.5)
-                self.assertEqual("", run["preSubmitStatus"])
-                self.assertEqual("SELECT", run["tabOrder"][0])
-                self.assertEqual("INPUT:radio", run["tabOrder"][1])
-                self.assertEqual("BUTTON:Check prediction", run["tabOrder"][2])
-                self.assertEqual("deny", run["arrowPrediction"])
-                self.assertEqual("allow", run["spacePrediction"])
-                self.assertIn("Choose allow or deny", run["missingStatus"])
-                self.assertRegex(run["enterStatus"], r"^(Correct|Not yet): (ALLOW|DENY) — deciding rule [A-Z]-\d{2}\.$")
-                self.assertEqual("polite", run["liveAttr"])
-                self.assertEqual(1, run["liveRegionCount"])
-                self.assertTrue(run["announced"])
-                self.assertEqual("Prediction changed—check again.", run["changedStatus"])
-                self.assertEqual("SELECT", run["focusAfterReset"])
-                self.assertEqual([], run["pageErrors"])
-                self.assertEqual([], run["externalRequests"])
 
 
 DOM_TEST_SCRIPT = textwrap.dedent(r"""
