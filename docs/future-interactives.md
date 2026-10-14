@@ -40,7 +40,7 @@ before they become functional `ix-run` blocks. Tracked here per the fan-out plan
 
 ## W3–W8 current inventory
 
-**Status: deferred, not live.** The shipped pages contain 53 `.ix-future` placeholders across W4–W8. W3 has no placeholders because its client-side agent widgets are already implemented; source-corrected W6 has five required local decision interactions and no deferred placeholders. The entries below inventory the placeholder copy already present in the reading pages; they do not promise a backend, launch date, or live provider connection.
+**Status: deferred, not live.** The shipped pages contain 45 `.ix-future` placeholders across W4–W8. W3 has no placeholders because its client-side agent widgets are already implemented. W5's obsolete spec-week placeholders were removed in the Neo4j Wave 1 replacement; each W5 route now has one local client-side decision lab instead. Source-corrected W6 has five required local decision interactions and no deferred placeholders. The entries below inventory the remaining placeholder copy already present in the reading pages; they do not promise a backend, launch date, or live provider connection.
 
 ### Week 4
 
@@ -77,37 +77,29 @@ _Week 4 subtotal: 14 deferred placeholders._
 
 ### Week 5
 
-#### w05d1 — Spec Before Code: Architecture Before Implementation (3)
+The source-authoritative Neo4j replacement ships one local, accessible decision lab per day. It needs no backend and is not represented as deferred work here.
 
-- **Phase gates: Specify → Plan → Tasks → Implement** — Planned: walk one real feature request through all four Spec Kit gates live — draft the spec, watch the plan and the task list get generated from it, reject one artifact at a gate, and see the correction ripple forward instead of surfacing as broken code three phases later. Needs backend standup.
-- **Current state → target state (and the parity trap)** — Planned: a target-state worksheet — feed in a legacy module's real behavior, mark each feature keep / drop / redesign with a one-line justification, and watch the generated spec shrink as you cut the unused half. Needs backend standup.
-- **The rigor spectrum: when SDD is overkill** — Planned: a triage drill — ten real work items (typo fix, schema migration, payment flow, demo script…) sorted onto the spec-first / spec-anchored / spec-as-source / no-spec spectrum, with instant feedback arguing the placements you got wrong. Needs backend standup.
+#### w05d1 — Model the Client Domain as a Property Graph (0)
 
-#### w05d2 — Requirements Synthesis: Reframe, Then Specify (3)
+No deferred `.ix-future` placeholder.
 
-- **Dig where the evidence is, on a coverage checklist** — Planned: a live interview-practice widget — you play the FDE against an AI stakeholder holding this week's hidden problem; it scores your coverage of the four NN/g areas, flags closed-ended questions, and tells you whether you reached the reframe before the call ended. Needs backend standup.
-- **EARS: five sentence shapes that remove interpretation** — Planned: an EARS rewriting drill — you're dealt vague stakeholder quotes ("it should handle errors gracefully"), pick the right EARS pattern, and rewrite; an AI grader checks clause order, singularity, and verifiability against 29148. Needs backend standup.
-- **Acceptance criteria: the rule, instantiated as examples** — Planned: a reframe-to-spec sandbox — feed in this week's client ask plus its handover artifacts and watch an agent propose a reframe, draft EARS requirements with `[NEEDS CLARIFICATION]` markers, and regenerate the Gherkin as you answer its questions. Needs backend standup.
+#### w05d2 — Design a Governed Graph Schema and Import (0)
 
-#### w05d3 — The Spec-Driven Tooling Landscape (3)
+No deferred `.ix-future` placeholder.
 
-- **Spec-kit: a fixed artifact pipeline of slash commands** — Planned: a live spec-kit sandbox — type a one-line feature ask, watch the specify → plan → tasks commands generate the three artifacts side by side, then edit the spec and see the downstream artifacts regenerate. Needs backend standup.
-- **Kiro specs: three files, approval gates, EARS** — Planned: an EARS rewriting drill — you get five mushy client requirements ("it should be fast", "handle bad input sensibly") and rewrite each as WHEN/SHALL; an LLM grader scores testability and traceability against a rubric. Needs backend standup.
-- **ADRs: lock the decision, keep the receipt** — Planned: an ADR writing exercise — given a scenario (team must choose between Postgres and DynamoDB under stated constraints), draft a Nygard-format ADR in the browser and get LLM review against the format: is Context neutral? are negative Consequences present? is exactly one decision captured? Needs backend standup.
+#### w05d3 — Construct a Knowledge Graph and Choose a Retriever (0)
 
-#### w05d4 — Decomposition: From Spec to Phased Plans (3)
+No deferred `.ix-future` placeholder.
 
-- **Every task ends in a check that passes or fails** — Planned: a decomposition workbench — paste a short spec, draft the phase breakdown and per-task checks yourself, then have the harness run each task statement through a "pass/fail-able?" linter and the Phase −1 gates, flagging any task whose completion is a matter of opinion. Needs backend standup.
-- **Performance targets must be SLO-shaped** — Planned: an SLO target workbench — pick SLIs for a sample multi-tenant API, set target values per phase, then replay a simulated week of traffic and watch which phases' gates would have passed or blown their error budget. Needs backend standup.
-- **Security NFRs: pick an ASVS level, cite requirement IDs** — Planned: an ASVS level picker — describe a fictional client system (data sensitivity, exposure, compliance context), choose L1/L2/L3 and defend it, then get a generated security-NFR section with real chapter-level ASVS citations to compare against your reasoning. Needs backend standup.
+#### w05d4 — Engineer Production Context with Graph and Vector Retrieval (0)
 
-#### w05d5 — Spec-to-Implementation Handoff, End to End (3)
+No deferred `.ix-future` placeholder.
 
-- **Analyze: the last defense before code exists** — Planned: a seeded spec/plan/tasks bundle with three planted inconsistencies (a dropped requirement, a plan that contradicts the spec, an orphan task). You hunt them by hand, then run the checklist + analyze gates and compare your findings against the tool's. Needs backend standup.
-- **Give the implementer a check it can run** — Planned: two agent transcripts for the same task — one asserting "done, everything works," one showing the failing check, the fix, and the passing rerun. You mark which one you'd trust and why, then write the one-line verification step you'd add to the spec. Needs backend standup.
-- **A fresh context reviews the diff — gaps, not style** — Planned: paste a diff plus its plan; a fresh-context reviewer agent returns findings, and you triage each one — real gap vs. over-engineering bait — against the "correctness or stated requirements" bar. Needs backend standup.
+#### w05d5 — Review the Graph Model and Defend the GraphRAG Service (0)
 
-_Week 5 subtotal: 15 deferred placeholders._
+No deferred `.ix-future` placeholder.
+
+_Week 5 subtotal: 0 deferred placeholders._
 
 ### Week 6
 
@@ -189,7 +181,7 @@ _Week 7 subtotal: 11 deferred placeholders._
 
 _Week 8 subtotal: 13 deferred placeholders._
 
-**Inventory total: 53 deferred placeholders.**
+**Inventory total: 45 deferred placeholders.**
 
 ### Setup, expected output, and troubleshooting metadata gap
 

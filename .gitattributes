@@ -1,2 +1,5 @@
+# The pinned Archify sanitizer preserves indentation-only XML text nodes in these inline SVGs.
+weeks/w05/w05d3.html whitespace=-blank-at-eol
+weeks/w05/w05d4.html whitespace=-blank-at-eol
 # Sanitized Archify SVG bytes are preserved verbatim inside these generated public artifacts.
 weeks/w06/w06d[1-5].html whitespace=-blank-at-eol

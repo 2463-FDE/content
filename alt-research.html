@@ -256,26 +256,25 @@ window.ALT = {
   },
 
   5: {
-    title: "Spec-Driven Dev & Problem Scoping",
-    space: "Content space: rigorous spec + acceptance criteria before code. Alternatives across spec/ADR tooling and knowledge-/context-modeling — generative spec tools vs durable decision records.",
+    title: "Neo4j Knowledge Graphs & Context Engineering",
+    space: "Content space: property-graph modeling, GraphRAG construction, hybrid retrieval, and bounded evidence for agents. Compare retrieval shapes from the client question—not from product preference.",
     alts: [
-      { name: "GitHub Spec Kit (specify CLI + /speckit workflow)",
-        body: "Open-source and very high momentum (~116k stars, active through Jun 2026). It makes the spec <i>executable</i>: constitution → specify → plan → tasks → implement, agent-agnostic across 30+ AI coding agents (incl. the trainee's Claude Code/Copilot). Zero cost and low lock-in (markdown + a CLI), but it's 'fast-moving pre-1.0' — the slash-command surface churns release to release, so a regulated client should pin a release tag rather than track <code>main</code>. The written 'constitution' is a natural home for HIPAA/audit constraints." },
-      { name: "MADR-in-repo (MADR + adr-tools / Log4brains)",
-        body: "The vendor-neutral path: <code>MADR 4.0.0</code> is a mature, stable markdown template; Log4brains renders the ADRs into a searchable static site (note <code>adr-tools</code> is effectively unmaintained since 2020 — steer to MADR + Log4brains). Zero cost, near-nil lock-in (plain files in the client's git history), and 'boringly stable' — a virtue for a multi-year engagement. Decisions live in the repo next to the code, survive tooling changes, and need no SaaS to hold sensitive rationale." },
-      { name: "Contract-first — OpenAPI (+ Gherkin acceptance criteria)",
-        body: "Pin the <i>interface</i> as a machine-readable contract — OpenAPI for the service boundary, Gherkin/acceptance criteria for behavior. Zero cost, explicitly designed to avoid lock-in, and highest maturity (industry standard, multi-vendor tooling, generates clients/tests/mocks). More upfront rigor for a $20/40hr trainee, but a loan-servicing or patient-records API contract becomes the single source of truth that frontend, backend, and auditors all read." },
-      { name: "Confluence / wiki (the enterprise incumbent)",
-        body: "The option already on the client's desk: Confluence (now with Rovo AI for drafting + AI search) is where most enterprises already keep PRDs, specs, and decisions — so the honest FDE tension is <b>build on what they have vs introduce something new</b>. Zero adoption friction (the team is already there), rich collaboration and templates, and non-engineers can read it. The costs are real, though: it's a per-seat SaaS (a recurring license, not free like in-repo markdown), the rationale lives in a silo <i>away</i> from the code where it drifts out of sync and rots, and exporting/migrating later is painful — meaningful lock-in. For a regulated client there's also a data-residency question about what spec detail lives in a vendor cloud. For a $20-Pro trainee it's usually overkill; name it as the realistic incumbent you must argue with, not against." }
+      { name: "VectorRetriever — semantic candidate path",
+        body: "Use the narrow vector path when embedding similarity can retrieve the entities or chunks the bounded question needs. It has the smallest query surface, but similarity does not prove a business relationship or current rule. Require source IDs, a top-k assumption, no-evidence fixtures, and retrieval evaluation." },
+      { name: "VectorCypherRetriever — semantic entry + explicit expansion",
+        body: "Use vector search to find a candidate, then run developer-supplied, parameterized Cypher to add a known owner, version, exception, or provenance path. This combines flexible language matching with a reviewable traversal. The tradeoff is additional graph latency and a schema/query contract the team must own." },
+      { name: "Text2CypherRetriever — generated query surface",
+        body: "Use only when varied natural-language questions truly require query generation. Supply concise schema context and examples, enforce read-only scope plus query/result limits, and evaluate safety and result semantics. Valid Cypher can still answer the wrong business question; the model must not authorize its own database access." },
+      { name: "Application-owned hybrid — Chroma + fixed Neo4j reads",
+        body: "Keep semantic candidates in Chroma and call a small catalog of application-owned Neo4j queries for connected evidence. This can be less flexible than Text2Cypher but easier to test, cost, and authorize. The integration burden is stable identity across stores, deduplication, freshness, and explicit behavior when the stores disagree." }
     ],
-    task: "Evaluate GitHub Spec Kit vs MADR-in-repo (adr-tools/Log4brains) as the spec-and-decision backbone for your pair project and recommend one, with a one-paragraph rationale that names how each lets a regulated client reconstruct WHY a decision was made 18 months later.",
-    trainer: "The split to surface: <b>generative</b> spec tooling (Spec Kit drives the agent forward, but its artifacts and commands churn and the spec rots the moment the agent stops obeying it) vs <b>durable</b> decision records (MADR captures nothing automatically but never rots and needs no vendor). The best FDEs name these as complements — Spec Kit/OpenAPI for the forward 'what to build,' MADR for the retrospective 'why we chose it' — and flag the longevity asymmetry: a client who outlives three AI-tool generations needs the rationale in plain git, not a tool's proprietary format.",
+    task: "Build one shared decision matrix for the Week 5 client questions. For each option, score question fit, graph-path need, authorization surface, evaluation burden, latency/fan-out, provenance, abstention behavior, and the evidence that would make you switch. Recommend the least-complex defensible path for one healthcare and one payments question.",
+    trainer: "The senior signal is restraint: GraphRAG is not 'vector RAG plus more data.' Ask what relationship changes the answer, which component owns correction, and where authorization is enforced. Strong teams may choose different retrievers per question and keep Text2Cypher behind read-only validation rather than treating it as the default.",
     sources: [
-      { label: "GitHub Spec Kit — repo (executable spec workflow, 30+ agents)", url: "https://github.com/github/spec-kit", date: "2026-06-28" },
-      { label: "MADR — 4.0.0 (Markdown ADR template + lint)", url: "https://adr.github.io/madr/", date: "2026-06-28" },
-      { label: "Log4brains — ADR knowledge-base (adr-tools status)", url: "https://github.com/thomvaill/log4brains", date: "2026-06-28" },
-      { label: "OpenAPI Initiative — HTTP API contract standard", url: "https://www.openapis.org/", date: "2026-06-28" },
-      { label: "Atlassian Confluence — product page (knowledge/docs + Rovo AI)", url: "https://www.atlassian.com/software/confluence", date: "2026-06-28" }
+      { label: "Neo4j GraphRAG — retrieval user guide", url: "https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_rag.html", date: "2026-10-14" },
+      { label: "Neo4j GraphRAG — Knowledge Graph Builder", url: "https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_kg_builder.html", date: "2026-10-14" },
+      { label: "Neo4j Cypher — planning and tuning", url: "https://neo4j.com/docs/cypher-manual/current/planning-and-tuning/", date: "2026-10-14" },
+      { label: "Chroma — overview", url: "https://docs.trychroma.com/docs/overview/introduction", date: "2026-10-14" }
     ]
   },
 

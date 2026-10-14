@@ -126,7 +126,7 @@ related/current tech that looks missing. **Correct me where my read is wrong.**
 | W2 | RAG & Knowledge Retrieval | Pinecone/Chroma/pgvector stay — good teaching choices. Optional: rerankers (Cohere rerank / cross-encoders) + a nod to GraphRAG (ties to W4). |
 | W3 | Single-Agent Design & Memory | **LangChain v1.0** currency risk is highest here. **Add MCP (Model Context Protocol)** to the LangChain v1 material — it's the current standard tool/context interface. Prefer provider-native tool use over old LC tool wrappers. |
 | W4 | Multi-Agent & Knowledge Graphs | LangGraph persistence/checkpointers. Neo4j is the standard KG database to teach. |
-| W5 | Spec-Driven Dev & Problem Scoping | Aligns with our own GSD/spec workflow. Light gap — maybe name a spec framework (spec-kit). |
+| W5 | Neo4j Knowledge Graphs & Context Engineering | Source-authoritative hands-on graph week: property graphs/Cypher → governed schema/import → GraphRAG construction → hybrid production context → model review and readout. `SimpleKGPipeline` stays visibly experimental. |
 | W6 | Kafka & Event-Driven AI Pipelines | **Source-corrected 2026-10-14.** Kafka foundations → delivery/schema/economics → event-driven agents/stores → operation/failure → measured defense. Reviewed AI-SDLC work survives only as supporting delivery discipline. |
 | W7 | Observability, SRE & Guardrails | **LangSmith stays core.** Langfuse/Phoenix go to Alt research (see below), not duplicate core. Optional: OpenTelemetry GenAI conventions. |
 | W8 | Security, Governance & Responsible AI | Anchor on **OWASP LLM Top 10** as the framework. Guardrails frameworks (NeMo Guardrails / Guardrails AI) alongside LLM Guard/Presidio. |
@@ -312,14 +312,14 @@ summary per task. Everything else stays in the sub-agents.
 ## W3-8 day topics (LOCKED 2026-07-01)
 
 5 reading-days each (Mon–Fri). **Wed (d3) = alt-research day** for W3/W4/W6/W7/W8 (W5 d3 stays
-core — spec tooling). d5 = ★ milestone. Feeds the workflow `args.days = [{d,topic,sub}, …]` per
+core — GraphRAG construction and retriever choice). d5 = ★ milestone. Feeds the workflow `args.days = [{d,topic,sub}, …]` per
 week, one sequential run per week.
 
 | Wk | Theme (core tech) | d1 | d2 | d3 (Wed) | d4 | d5 ★ |
 |----|----|----|----|----|----|----|
 | W3 | Single-Agent + Memory (LangChain v1.0 +MCP) | Agent architectures + ReAct loop | Tools & MCP (tool/context interface) | *alt:* LC v1 vs CrewAI/AutoGen/OpenAI Agents SDK | Agent memory: working vs long-term | Production single agent E2E |
 | W4 | Multi-Agent + KG (LangGraph + Neo4j) | Orchestration patterns (supervisor/swarm/handoffs) | LangGraph state/persistence/checkpointers | *alt:* CrewAI/AutoGen vs LangGraph | Neo4j KG modeling + Cypher for GraphRAG | GraphRAG E2E |
-| W5 | Spec-Driven Dev & Scoping | Spec-driven fundamentals (GSD/spec-kit) | Requirements synthesis: discovery → spec | Spec frameworks & tooling (core) | Decomposition: spec → phased plans | Spec→impl handoff exercise |
+| W5 | Neo4j KG + Context Engineering | Property graph, Cypher, local Neo4j | Traversal, integrity, import, rules, ADR lock/defer | GraphRAG construction + three retrievers | Hybrid context, grounding, performance, MCP/topology | Graph model review + two-audience GraphRAG readout |
 | W6 | Kafka & Event-Driven AI Pipelines | EDA judgement + Kafka foundations + local CLI | Delivery semantics + schemas + Python + managed economics | MSK judgement + event-driven agents + backpressure + Chroma/Neo4j | E2E pipeline + failure/rebalance + OTel + runbooks + static egress | Architecture defense + throughput/lag/egress readout |
 | W7 | Observability/SRE/Guardrails (LangSmith) | Observability — traces/spans, LangSmith | Evals in production (online/offline) | *alt:* Langfuse/Phoenix/Helicone vs LangSmith | SRE: latency/cost/reliability, OTel GenAI | Guardrails + observability E2E |
 | W8 | Security/Governance/Responsible AI (OWASP LLM Top 10) | OWASP LLM Top 10 framework | Prompt injection & jailbreaks | *alt:* guardrails frameworks (NeMo/Guardrails AI/LLM Guard/Presidio) | Governance, PII, privacy, responsible AI | Red-team + secure agent deploy E2E |
@@ -390,8 +390,9 @@ Rules for authoring W7+:
 4. Reserve "your own project (or a past one)" only for landscape/comparison days where the client
    system genuinely isn't the subject (e.g. a tool-matrix day).
 
-**Retrofit status:** W5 and W6 done (2026-07-30). **W2, W3, W4 still use the old "your project /
-notes repo" framing** — tracked retrofit, not yet scheduled. Rationale for the ordering: the cohort
-was mid-W5 when this landed, so W5/W6 were the weeks still in front of them.
+**Retrofit status:** W6 done (2026-07-30). W5 was subsequently replaced by the source-authoritative
+Neo4j/context-engineering curriculum. **W2, W3, W4 still use the old "your project / notes repo"
+framing** — tracked retrofit, not yet scheduled.
 
-Origin: `content/docs/w05-fde-alignment-review.md` (Gap 2 — two parallel week-5s that never touch).
+The superseded Week 5 review is retained as a short historical pointer in
+`docs/w05-fde-alignment-review.md`.

@@ -45,14 +45,14 @@
             <button class="btn" id="hub-open" type="button">Open lesson</button>
           </div>
           <p id="hub-launch-status" class="hub-launch-status" role="status" aria-live="polite">Choose any available day.</p>
-          <div class="hub-demo-links"><a href="weeks/w09/w09d1.html">Start Week 9 hardening</a><a href="weeks/w10/w10d5.html">Open capstone showcase</a><a href="client-delivery.html?w=10">Open trainer delivery packet</a></div>
+          <div class="hub-demo-links"><a href="weeks/w05/w05d1.html">Start Week 5 Neo4j</a><a href="weeks/w09/w09d1.html">Start Week 9 hardening</a><a href="weeks/w10/w10d5.html">Open capstone showcase</a><a href="client-delivery.html?w=5">Open Week 5 delivery packet</a></div>
         </div>
       </section>
 
       <div class="legend"></div>
 
       <p class="core30-key"><b>Core 30</b> — a marked day's required path (reading · essential diagram · one interaction · comprehension check)
-      is budgeted to 30 minutes; <code>Deeper</code> blocks are optional extra depth outside the cap. Week 8 Day 2 and all Week 9–10 transfer pages publish the pacing label.</p>
+      is budgeted to 30 minutes; <code>Deeper</code> blocks are optional extra depth outside the cap. All Week 5 and Week 9–10 routes, plus Week 8 Day 2, publish the pacing label.</p>
 
       <div class="cal" id="cal"></div>
 
@@ -114,12 +114,12 @@ window.WEEKS = [
     { t:"Multi-agent framework landscape", s:"alt: CrewAI · Agent Framework vs LangGraph", href:"weeks/w04/w04d3.html" },
     { t:"Neo4j knowledge graphs", s:"property graphs · Cypher · graph retrieval", href:"weeks/w04/w04d4.html" },
     { t:"GraphRAG end-to-end", s:"KG construction · local vs global search · milestone", star:true, href:"weeks/w04/w04d5.html" } ]},
-  { w:5, phase:"sdlc", title:"Spec-Driven Dev & Problem Scoping", days:[
-    { t:"Spec-driven development", s:"spec before impl · phase gates · current state → target state", href:"weeks/w05/w05d1.html" },
-    { t:"Requirements synthesis", s:"XY reframe · ambiguity · EARS · Gherkin", href:"weeks/w05/w05d2.html" },
-    { t:"Spec frameworks & tooling", s:"spec-kit · Kiro · ADRs · lock vs defer", href:"weeks/w05/w05d3.html" },
-    { t:"Decomposition + NFRs", s:"phased plans · the system graph · perf/scale/security", href:"weeks/w05/w05d4.html" },
-    { t:"Spec→impl handoff E2E", s:"handoff · loop design · outcome gate · milestone", star:true, href:"weeks/w05/w05d5.html" } ]},
+  { w:5, phase:"agent", title:"Neo4j Knowledge Graphs & Context Engineering", days:[
+    { t:"Property-graph domain model", s:"Cypher · Docker · entities · decision surfaces", href:"weeks/w05/w05d1.html" },
+    { t:"Governed graph schema", s:"traversal · integrity · import · ADR lock/defer", href:"weeks/w05/w05d2.html" },
+    { t:"GraphRAG construction", s:"experimental pipeline · extraction · retriever choice", href:"weeks/w05/w05d3.html" },
+    { t:"Production context engineering", s:"Chroma + Neo4j · LangGraph · evaluation · NFRs", href:"weeks/w05/w05d4.html" },
+    { t:"GraphRAG model review", s:"executive + technical readout · Text2Cypher quality", star:true, href:"weeks/w05/w05d5.html" } ]},
   { w:6, phase:"prod", title:"Kafka & Event-Driven AI Pipelines", days:[
     { t:"Kafka foundations & event judgement", s:"topics · partitions · offsets · KRaft · local CLI", href:"weeks/w06/w06d1.html" },
     { t:"Delivery semantics, schemas & economics", s:"lag · retries/DLQ · transactions · Python · managed Kafka", href:"weeks/w06/w06d2.html" },

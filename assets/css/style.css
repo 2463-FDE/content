@@ -1404,17 +1404,30 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
 .capstone-kicker { margin-bottom:7px; color:var(--accent-ink); font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
 .capstone-lesson .step { min-height:34vh; }
 .capstone-lesson .capstone-optional { max-width:var(--maxprose); margin:16px 0 32px; }
-.capstone-drill { margin:20px 0 6px; padding:18px; border:1px solid var(--accent-line); border-radius:12px; background:var(--accent-soft); }
-.capstone-drill fieldset { margin:8px 0 0; padding:0; border:0; }
-.capstone-drill legend { margin-bottom:10px; font-weight:750; line-height:1.45; }
-.capstone-drill label { display:flex; align-items:flex-start; gap:9px; min-height:44px; margin:7px 0; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--surface); cursor:pointer; }
-.capstone-drill label:hover { border-color:var(--accent); }
-.capstone-drill input { margin-top:5px; accent-color:var(--accent); }
-.capstone-drill-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:12px; }
-.capstone-drill .ix-btn { border-color:var(--accent-ink); color:var(--accent-ink); }
-.capstone-drill .secondary { border-color:var(--line); color:var(--ink-soft); }
-.capstone-drill-status { min-height:1.7em; margin:12px 0 0; color:var(--bad-ink); font-weight:650; }
-.capstone-drill-status.is-correct { color:var(--good-ink); }
+.capstone-drill, .w5-lab { margin:20px 0 6px; padding:18px; border:1px solid var(--accent-line); border-radius:12px; background:var(--accent-soft); }
+.capstone-drill fieldset, .w5-lab fieldset { margin:8px 0 0; padding:0; border:0; }
+.capstone-drill legend, .w5-lab legend { margin-bottom:10px; font-weight:750; line-height:1.45; }
+.capstone-drill label, .w5-lab label { display:flex; align-items:flex-start; gap:9px; min-height:44px; margin:7px 0; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--surface); cursor:pointer; }
+.capstone-drill label:hover, .w5-lab label:hover { border-color:var(--accent); }
+.capstone-drill input, .w5-lab input { margin-top:5px; accent-color:var(--accent); }
+.capstone-drill-actions, .w5-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:12px; }
+.capstone-drill .ix-btn, .w5-lab .ix-btn { border-color:var(--accent-ink); color:var(--accent-ink); }
+.capstone-drill .secondary, .w5-lab .secondary { border-color:var(--line); color:var(--ink-soft); }
+.capstone-drill-status, .w5-status { min-height:1.7em; margin:12px 0 0; color:var(--bad-ink); font-weight:650; }
+.capstone-drill-status.is-correct, .w5-status.is-correct { color:var(--good-ink); }
+.w5-noscript, .diagram-fallback { padding:10px 12px; border:1px dashed var(--line); border-radius:8px; background:var(--surface-2); color:var(--ink-soft); font-size:13px; line-height:1.5; }
+.diagram-fallback { margin-top:10px; }
+.fde-diagram { margin:28px 0 36px; padding:14px; border:1px solid var(--line); border-radius:14px; background:var(--surface); box-shadow:0 6px 24px var(--shadow); }
+.archify-kicker { margin:0 2px 10px; color:var(--accent-ink); font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+.fde-diagram-viewport { max-width:100%; overflow-x:auto; overscroll-behavior-inline:contain; border:1px solid var(--line); border-radius:9px; background:#fff; }
+.fde-diagram-viewport .fde-archify { display:block; width:100%; min-width:720px; }
+/* The pinned sanitizer keeps Archify's grid path but intentionally replaces the
+   generated stylesheet; this local, static override prevents SVG default fill. */
+.fde-diagram .fde-archify .c-grid { fill:none; }
+.fde-diagram .fde-archify .t-backend { fill:#0369a1; }
+.fde-diagram .fde-archify .t-messagebus { fill:#047857; }
+.fde-diagram figcaption { margin:11px 2px 0; color:var(--ink-soft); font-size:14px; line-height:1.55; }
+.fde-diagram figcaption b { color:var(--ink); }
 .lesson-loading, .lesson-load-error { max-width:720px; margin:72px auto; padding:28px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
 
 @media (max-width:1180px) {
@@ -1431,7 +1444,9 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
   .batch-context--compact button { min-width:44px; padding-inline:6px; font-size:0; }
   .batch-context--compact button::after { content:"Set"; font-size:12px; }
   .curriculum-hub-intro { margin-inline:-12px; padding:20px; border-radius:12px; }
-  .capstone-drill { padding:14px; }
+  .capstone-drill, .w5-lab { padding:14px; }
+  .fde-diagram { margin-inline:-8px; padding:10px; }
+  .fde-diagram-viewport::after { content:"Scroll diagram horizontally →"; display:block; position:sticky; left:10px; width:max-content; margin:6px 10px 8px; color:#475569; font-size:11px; font-weight:700; }
   .capstone-lesson .step { min-height:0; }
   .kafka-page-head { margin:28px 12px 0; }
   .kafka-page-head .lede h1 { font-size:34px; }
@@ -1494,6 +1509,10 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
     display: block; width: 100% !important; height: auto !important;
     min-height: 0 !important; max-height: 180mm;
   }
+  .fde-diagram { break-inside:avoid; box-shadow:none; }
+  .fde-diagram-viewport { overflow:visible; border-color:#999; }
+  .fde-diagram-viewport .fde-archify { width:100% !important; min-width:0 !important; }
+  .fde-diagram-viewport::after { display:none !important; }
   .d-el { opacity: 1 !important; }
 
   pre, code, .cv-body, .ix-snippet { white-space: pre-wrap !important; overflow-wrap: anywhere; }
