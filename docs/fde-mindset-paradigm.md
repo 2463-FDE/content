@@ -399,8 +399,8 @@ Whatever the report says, answer these in your own words before you close it.
   development, "precision is not a feature").
 - Galent, *Loop Engineering: Why the Next Leap in AI Development Isn't a Better Prompt*
   (trigger plus verifiable stopping condition, cost control, the token-furnace line).
-- Week 5 alignment review, `content/docs/w05-fde-alignment-review.md`, for how this same
-  paradigm was applied to the curriculum itself.
+- The superseded Week 5 alignment review, `docs/w05-fde-alignment-review.md`, retained as
+  a historical pointer rather than a description of the live curriculum.
 
 Galent is a sister company, not this cohort's client. It is used here as a consistency
 reference so that an engineer moving between orgs hears one vocabulary rather than two.

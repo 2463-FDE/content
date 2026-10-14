@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-10-14",
+  "source": {
+    "repository": "https://github.com/tt-a1i/archify",
+    "version": "v3.0.1",
+    "tagObject": "679f195584e4216fd582c073d8964b3a9f59107e",
+    "commit": "2ab3cae7ac2c2a55d7386ca789d03c4fcd31816c",
+    "tree": "b33243ebe2bd6878a9ae58417ff8597c94d31e12",
+    "archifySubtree": "7dcd73a73672d5da4f85d4c612017b478547303b",
+    "releaseArchiveSha256": "b0b23bd28db314f04ca8ab9620fe20f8c1ac6474a3546bd8fe4679508aa1b7f5"
+  },
+  "tooling": {
+    "node": "v24.2.0",
+    "platform": "macOS 26.7.1 arm64",
+    "sanitizerSha256": "266e2da15149921f0a95aa52e4a1837240ca9d171be8bd041553642fb1ba925c",
+    "sandboxProfileSha256": "e6b9d08ea46a3c44373f6360ae1f15f4077e2b1ff1ce5a9fc0a5123d607290d8"
+  },
+  "diagrams": {
+    "w05d3": {
+      "type": "architecture",
+      "inputSha256": "8b3394ef0982d1bde3b8c82dafe86e16ac5520f868e6a7bcc845874395e334f8",
+      "rawSha256": "47e9898004133a2273dfd220944f5e97ee6807ef1bc00722f687f547dd6107e0",
+      "rawBytes": 746383,
+      "sanitizedSha256": "8d0c09b1c72f2d9dfbe27276a0ac91831b6613f0ad8fdf0e22c81f244cf4cbca",
+      "sanitizedBytes": 8358,
+      "title": "GraphRAG construction from reviewed sources to bounded retrieval"
+    },
+    "w05d4": {
+      "type": "architecture",
+      "inputSha256": "b0aafd237a697edc9f722dadd75fbcfc6e45221dec3b85adfccb9cccf77af4b1",
+      "rawSha256": "d3bac9b8bd2155df6a46a39eb696e68794ff48d8c26a4ea681573c9fc7cb5e56",
+      "rawBytes": 749183,
+      "sanitizedSha256": "d9cc7f14e79ad7cff0f16327c055e93f083b8392873881ca969e237e94c1e332",
+      "sanitizedBytes": 10070,
+      "title": "Hybrid graph and vector context assembly with grounding gate"
+    }
+  }
+}

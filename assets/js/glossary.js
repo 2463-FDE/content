@@ -114,7 +114,7 @@
     { term: "entity", def: "A distinct thing in a knowledge graph — a person, place, product, or concept.", aka: ["entities"] },
     { term: "community summarization", def: "Summarizing clusters of closely-linked graph nodes to answer big-picture questions." },
 
-    // — spec-driven dev & coding agents (W5–W6) —
+    // — delivery methods & coding agents —
     { term: "spec-driven development", def: "Writing a precise spec first and treating it as the source of truth for the code.", aka: ["spec-driven", "SDD", "spec driven development"] },
     { term: "vibe coding", def: "Prompting an agent to code with no spec — fast at first, brittle as it grows.", aka: ["vibe-coding"] },
     { term: "XY problem", def: "The client asks for their guessed fix (Y) instead of the problem they actually have (X).", aka: ["XY"] },

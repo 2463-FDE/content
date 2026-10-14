@@ -41,11 +41,11 @@ await ctx.route("**/fde-backend.jestercharles.workers.dev/**", async (route) => 
   const body = route.request().postDataJSON() || {};
   const send = (obj) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(obj) });
   if (url.endsWith("/reading/start")) {
-    return send({ ok: true, sessionId: "sess-1", opening: "I've got today's reading open — The Spec-Driven Tooling Landscape. Ask me anything in it.",
-      reading: { id: "w05d3", title: "The Spec-Driven Tooling Landscape", week: "w05", weekTitle: "Spec-Driven Dev & Problem Scoping" }, messagesLeft: 39, budgetLeft: 87, budgetTotal: 100 });
+    return send({ ok: true, sessionId: "sess-1", opening: "I've got today's reading open — Construct a Knowledge Graph and Choose a Retriever. Ask me anything in it.",
+      reading: { id: "w05d3", title: "Construct a Knowledge Graph and Choose a Retriever", week: "w05", weekTitle: "Neo4j Knowledge Graphs & Context Engineering" }, messagesLeft: 39, budgetLeft: 87, budgetTotal: 100 });
   }
   if (url.endsWith("/reading/message")) {
-    return send({ ok: true, reply: "Week 2 called it chunking. Same idea: `split(text)` then embed. Here's the shape:\n```py\nchunks = split(doc, size=800, overlap=120)\n```\nThe constitution plays the same role for decisions.",
+    return send({ ok: true, reply: "Week 2 called it chunking. Same idea: `split(text)` then embed. Here's the shape:\n```py\nchunks = split(doc, size=800, overlap=120)\n```\nThe graph schema adds governed entities and relationships around those chunks.",
       loaded: ["w02d1"], openReadings: ["w02d1"], messagesLeft: 37, budgetLeft: 86, budgetTotal: 100 });
   }
   if (url.endsWith("/reading/prompt")) return send({ ok: true, prompt: GEN_PROMPT, kind: "generic", cached: false });
@@ -82,8 +82,8 @@ await page.waitForFunction(() => !/Loading|Writing/.test(document.getElementById
 ok("prompt tab opens from the CTA", await page.locator('.rc-pane.rc-prompt.on').count() === 1);
 const offline = await page.locator("#rcPromptBox").textContent();
 ok("offline template used when the Worker is down", offline.includes("Orient yourself in this repo first"), offline.slice(0, 80));
-ok("template names today's reading", offline.includes("The Spec-Driven Tooling Landscape"));
-ok("template carries the day's concepts", offline.includes("speckit constitution"));
+ok("template names today's reading", offline.includes("Construct a Knowledge Graph and Choose a Retriever"));
+ok("template carries the day's concepts", offline.includes("simplekgpipeline"));
 ok("template lists the day's sections", offline.includes("Sections:"));
 ok("kind labelled offline", (await page.locator("#rcKind").textContent()).includes("offline"));
 ok("degradation explained", (await page.locator("#rcPNote").textContent()).length > 10);
