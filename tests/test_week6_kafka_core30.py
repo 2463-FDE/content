@@ -49,7 +49,7 @@ class Week6KafkaCore30Tests(unittest.TestCase):
             "week:v.week,day:v.day,phase:v.phase,title:v.title,summary:v.summary,"
             "sections:v.sections.length,checks:v.checks.length,words:r.pacingFor(v).words,"
             "minutes:r.pacingFor(v).readMinutes,requiredMinutes:r.pacingFor(v).requiredMinutes,"
-            "fullRequiredWords:r.wordCount(JSON.stringify({summary:v.summary,sections:v.sections,drill:v.drill,checks:v.checks,goals:v.goals,deliverable:v.deliverable})),optional:v.optional.length,concepts:v.concepts.length,nodes:r.diagramFor(v).nodes.length,"
+            "fullRequiredWords:r.wordCount(JSON.stringify({summary:v.summary,sections:v.sections,drill:v.drill,checks:v.checks,goals:v.goals,deliverable:v.deliverable})),optional:v.optional.length,concepts:v.concepts.length,"
             "sources:v.sources,answerPositions:v.checks.map(q=>q.answer),drillAnswer:v.drill.answer,"
             "goals:v.goals.length,deliverable:v.deliverable}]))));"
         )
@@ -81,7 +81,6 @@ class Week6KafkaCore30Tests(unittest.TestCase):
         for lesson_id, lesson in self.lessons.items():
             with self.subTest(lesson_id=lesson_id):
                 self.assertEqual(lesson["sections"], 7)
-                self.assertEqual(lesson["nodes"], 7)
                 self.assertEqual(lesson["checks"], 6)
                 self.assertGreaterEqual(lesson["optional"], 2)
                 self.assertGreaterEqual(lesson["concepts"], 5)
@@ -98,7 +97,7 @@ class Week6KafkaCore30Tests(unittest.TestCase):
         self.assertIn("~' + pacing.readMinutes + ' min read", renderer)
         self.assertIn("1 interaction · 6-Q check", renderer)
         self.assertIn("data-kafka-drill", renderer)
-        self.assertIn('role="img"', renderer)
+        self.assertIn("data-archify-visual", renderer)
 
     def test_daily_scope_covers_the_authoritative_week_map(self) -> None:
         data = DATA.read_text(encoding="utf-8")
@@ -232,7 +231,9 @@ class Week6KafkaCore30Tests(unittest.TestCase):
                 self.assertIn("Core 30", dom)
                 self.assertIn('data-core="optional"', dom)
                 self.assertIn('data-kafka-drill=""', dom)
-                self.assertRegex(dom, r'class="[^"]*d-node')
+                self.assertIn('data-archify-visual=""', dom)
+                self.assertIn('class="fde-archify"', dom)
+                self.assertIn('<figcaption>', dom)
                 self.assertNotIn("Lesson unavailable", dom)
                 self.assertNotIn("data-answer", dom)
 

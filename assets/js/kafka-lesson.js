@@ -34,33 +34,6 @@
   function nextLabel(lesson) {
     return lesson.day < 5 ? "Next: Day " + (lesson.day + 1) + " ▸" : "Next: Week 7 ▸";
   }
-  function diagramLabel(text) {
-    var words = String(text).split(/\s+/), lines = [""];
-    words.forEach(function (word) {
-      var line = lines[lines.length - 1];
-      if (line && (line + " " + word).length > 22 && lines.length < 3) lines.push(word);
-      else lines[lines.length - 1] = line ? line + " " + word : word;
-    });
-    return lines.join("\n");
-  }
-  function diagramFor(lesson) {
-    var nodes = lesson.sections.map(function (section, index) {
-      return { id: "n" + index, step: index, x: index % 2 ? 250 : 20, y: 18 + index * 68, w: 210, h: 54, label: diagramLabel(section[0]), detail: section[1] };
-    });
-    var edges = nodes.slice(1).map(function (node, index) {
-      return { id: "e" + index, step: index + 1, from: nodes[index].id, to: node.id, bend: index % 2 ? 10 : -10 };
-    });
-    return {
-      title: "Event-pipeline decision path · W6D" + lesson.day,
-      width: 480,
-      height: 500,
-      nodes: nodes,
-      edges: edges,
-      captions: lesson.sections.map(function (section) {
-        return "<b>" + esc(section[0]) + "</b> — " + esc(section[1].split(". ")[0]) + ".";
-      })
-    };
-  }
   function drillOrder(count, random) {
     var rand = typeof random === "function" ? random : Math.random;
     var order = [];
@@ -126,6 +99,8 @@
     var lesson = lessons[id];
     var lessonRoot = doc.getElementById("lesson-root");
     if (!lessonRoot) return false;
+    var authoredVisual = doc.querySelector("[data-archify-visual]");
+    var visualHtml = authoredVisual ? authoredVisual.outerHTML : '<div class="lesson-load-error" role="alert">Essential pipeline visual unavailable. Ask the trainer for the static export.</div>';
     if (!lesson) {
       lessonRoot.innerHTML = '<section class="lesson-load-error" role="alert"><h1>Lesson unavailable</h1><p>This Week 6 route has no transferred curriculum record. Return to the curriculum hub and notify the trainer.</p><a class="btn" href="../../index.html">Back to hub</a></section>';
       return false;
@@ -148,14 +123,15 @@
       return '<li><a href="' + esc(source.href) + '"' + external + '>' + esc(source.label) + '</a></li>';
     }).join("");
 
-    lessonRoot.innerHTML = '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav>' +
-      '<article class="reading-col"><div class="lede"><h1>' + esc(lesson.title) + '</h1>' +
+    lessonRoot.innerHTML = '<header class="kafka-page-head"><div class="lede"><h1>' + esc(lesson.title) + '</h1>' +
       '<div class="meta"><span><b>Week 6</b> · Day ' + lesson.day + (lesson.day === 5 ? ' · milestone' : '') + '</span><span>' + esc(lesson.phase) + '</span>' +
       '<span class="core30-meta" title="Required reading time is calculated at 150 words per minute. Essential diagram dwell, one practice, and the six-question check are included in the Core 30 estimate."><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div>' +
-      '<p class="summary">' + esc(lesson.summary) + '</p><div class="ix-legend"></div></div>' + sections + optionalHtml(lesson) +
+      '<p class="summary">' + esc(lesson.summary) + '</p><div class="ix-legend"></div></div></header>' +
+      '<section class="kafka-visual-breakout" aria-label="Essential event-flow boundary"><div class="stage-title">Essential event-flow boundary</div>' + visualHtml + '</section>' +
+      '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav>' +
+      '<article class="reading-col">' + sections + optionalHtml(lesson) +
       '<section class="reading-sources" data-core="optional" aria-label="Sources and evidence"><h2>Sources &amp; evidence trail</h2><p>Optional reference material outside the required daily path. Research records carry retrieval dates and source-custody notes.</p><ul>' + sourceList + '</ul></section></article>' +
-      '<aside class="side"><div class="side-diagram"><div class="stage-title">Essential pipeline diagram</div><svg id="diagram" role="img" aria-label="Seven-step event-pipeline decision path for Week 6 Day ' + lesson.day + '"></svg><div class="stage-caption" aria-live="polite"></div></div>' +
-      '<div class="side-cards"><button class="activity-card" type="button" data-modal="trainer-demo-modal"><div class="ac-k">Trainer demo cue</div><div class="ac-t">Facilitate the static pipeline exercise</div><div class="ac-meta">local and simulated only</div></button>' +
+      '<aside class="side kafka-side"><div class="side-cards"><button class="activity-card" type="button" data-modal="trainer-demo-modal"><div class="ac-k">Trainer demo cue</div><div class="ac-t">Facilitate the static pipeline exercise</div><div class="ac-meta">local and simulated only</div></button>' +
       '<button class="activity-card accent" type="button" data-modal="quiz-modal"><div class="ac-k">Comprehension check</div><div class="ac-t"><span class="quiz-count">6</span> questions on event-pipeline decisions</div><div class="ac-meta">~5 min · practice</div></button></div>' +
       '<div class="side-nav"><a class="snav-btn" href="../../index.html#curriculum">◂ Curriculum hub</a><button class="snav-btn goals" type="button" data-modal="goals-modal">Daily goals</button><a class="snav-btn snav-next"></a></div></aside></div>';
 
@@ -166,12 +142,11 @@
 
     lessonRoot.className = "lesson2 capstone-lesson kafka-lesson";
     var browserRoot = typeof window !== "undefined" ? window : globalThis;
-    browserRoot.DIAGRAM = diagramFor(lesson);
     browserRoot.QUIZ = { id: dayId + "-check", title: "Check your understanding", questions: lesson.checks };
     browserRoot.FDE_NEXT = { label: nextLabel(lesson), href: next };
     mountInteraction(doc, lesson);
     return true;
   }
 
-  return { esc: esc, wordCount: wordCount, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, requiredWords: requiredWords, pacingFor: pacingFor, diagramFor: diagramFor, route: route, render: render };
+  return { esc: esc, wordCount: wordCount, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, requiredWords: requiredWords, pacingFor: pacingFor, route: route, render: render };
 });

@@ -638,6 +638,19 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .side-diagram .stage-title { font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--dim); font-weight:700; margin-bottom:4px; }
 .side-diagram .stage-caption { font-size:13.5px; color:var(--ink-soft); border-top:1px dashed var(--line); padding-top:9px; min-height:38px; }
 .side-diagram .stage-caption b { color:var(--ink); }
+.kafka-page-head { max-width:1380px; margin:48px auto 0; }
+.kafka-page-head .lede { max-width:860px; }
+.kafka-page-head .lede h1 { font-size:46px; line-height:1.1; margin:0 0 10px; letter-spacing:-.5px; }
+.kafka-page-head .lede .meta { display:flex; gap:18px; flex-wrap:wrap; color:var(--ink-soft); font-size:15px; }
+.kafka-page-head .lede .meta b { color:var(--ink); }
+.kafka-page-head .lede .summary { font-size:23px; line-height:1.6; color:var(--ink-soft); margin-top:16px; }
+.kafka-visual-breakout { max-width:1380px; margin:26px auto 0; padding:16px 18px 12px; border:1px solid var(--line); border-radius:14px; background:var(--surface); box-shadow:0 6px 24px rgba(40,30,10,.06); }
+.kafka-visual-breakout .stage-title { margin-bottom:8px; }
+.kafka-visual-breakout .fde-diagram { margin:0; }
+.diagram-scroll-hint { display:none; }
+.kafka-visual-breakout .fde-diagram svg { display:block; width:100%; }
+.kafka-visual-breakout .fde-diagram figcaption { margin-top:8px; padding-top:9px; border-top:1px dashed var(--line); color:var(--ink-soft); font-size:13px; line-height:1.45; }
+.kafka-lesson .kafka-side { height:auto; }
 
 .side-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .activity-card { text-align:left; cursor:pointer; border:1.5px solid var(--line); border-radius:12px; background:var(--surface); padding:13px 14px; font:inherit; color:var(--ink); transition:border-color .12s, transform .12s, box-shadow .12s; }
@@ -1435,6 +1448,15 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
   .fde-diagram { margin-inline:-8px; padding:10px; }
   .fde-diagram-viewport::after { content:"Scroll diagram horizontally →"; display:block; position:sticky; left:10px; width:max-content; margin:6px 10px 8px; color:#475569; font-size:11px; font-weight:700; }
   .capstone-lesson .step { min-height:0; }
+  .kafka-page-head { margin:28px 12px 0; }
+  .kafka-page-head .lede h1 { font-size:34px; }
+  .kafka-page-head .lede .summary { font-size:19px; line-height:1.55; }
+  .kafka-visual-breakout { margin-inline:12px; padding:12px; overflow:hidden; }
+  .kafka-visual-breakout .fde-diagram { overflow-x:auto; overscroll-behavior-inline:contain; }
+  .diagram-scroll-hint { display:block; position:sticky; left:0; margin:0 0 8px; color:var(--accent-ink); font-size:12px; font-weight:700; }
+  .kafka-visual-breakout .fde-diagram svg { min-width:900px; }
+  .lesson-loading .fde-diagram { overflow-x:auto; }
+  .lesson-loading .fde-diagram svg { min-width:900px; }
 }
 
 /* ===================== Reading print layout ===================== */
@@ -1458,9 +1480,9 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
   .lesson2, .wrap, .closing { max-width: none; padding: 0 !important; margin: 0 !important; }
   .reading2col, .reading { display: block !important; margin: 0 !important; }
   .reading-col, .prose { max-width: none !important; padding: 0 !important; }
-  .reading-col .lede { max-width: none; margin: 0 0 8mm; }
-  .reading-col .lede h1 { font-size: 24pt; }
-  .reading-col .lede .summary { font-size: 11pt; color: #333 !important; }
+  .reading-col .lede, .kafka-page-head .lede { max-width: none; margin: 0 0 8mm; }
+  .reading-col .lede h1, .kafka-page-head .lede h1 { font-size: 24pt; }
+  .reading-col .lede .summary, .kafka-page-head .lede .summary { font-size: 11pt; color: #333 !important; }
 
   .reading-main-target:focus { outline: none !important; }
   .learning-objectives { break-inside: avoid; margin: 5mm 0; }
