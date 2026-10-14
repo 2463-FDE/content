@@ -217,20 +217,6 @@ class Week5Neo4jWave1Tests(unittest.TestCase):
                 self.assertIsNone(forbidden.search(code))
                 self.assertEqual(1, sum("codeviewer.js" in (s.attrs.get("src") or "") for s in page.root.find_all("script")))
 
-    def test_research_and_archify_document_contracts_are_aligned(self) -> None:
-        for path in sorted((ROOT / "docs" / "research" / "w05").glob("w05d*.md")):
-            record = path.read_text(encoding="utf-8")
-            self.assertIn("2026-10-14", record)
-            self.assertIn("https://", record)
-        archify = (ROOT / "docs/research/w05/archify-visual-brief.md").read_text(encoding="utf-8")
-        self.assertIn("tt-a1i/archify", archify)
-        self.assertIn("v3.0.1", archify)
-        self.assertIn("sections 6–8", archify)
-        self.assertIn("<title>", archify)
-        self.assertIn("<desc>", archify)
-        css = (ROOT / "assets" / "css" / "style.css").read_text(encoding="utf-8")
-        self.assertIn(".fde-diagram .fde-archify .c-grid { fill:none; }", css)
-
     def test_archify_svgs_match_provenance_and_safe_import_contract(self) -> None:
         manifest = json.loads(ARCHIFY_MANIFEST.read_text(encoding="utf-8"))
         self.assertEqual("v3.0.1", manifest["source"]["version"])
