@@ -7,28 +7,33 @@ Reading content + live diagrams + comprehension checks for the **2463-FDE Forwar
 ## What's here
 
 ```
-index.html              10-week navigation grid
-weeks/w01/d1.html       daily reading page (scrollytelling + diagram + quiz)
-atlas/                  FDE Mindset Atlas (ported, de-Karsun'd) [coming]
+index.html              trainer-facing ten-week curriculum hub
+trainer.html            cohort/report dashboard + curriculum launch routes
+weeks/                   daily reading pages (scrollytelling + diagram + quiz)
+atlas/                   FDE Mindset Atlas
 assets/
-  css/style.css         single stylesheet
-  js/diagram.js         declarative SVG diagram engine — hand-drawn (Excalidraw-style)
-                        wobble + per-step draw-in animation
-  js/scrolly.js         IntersectionObserver: scroll position -> diagram step
-  js/quiz.js            end-of-reading comprehension check, on-page result,
-                        per-trainee tracking (localStorage + central POST seam)
+  css/style.css          incumbent design system
+  js/diagram.js          declarative SVG diagram engine
+  js/scrolly.js          scroll position -> diagram step
+  js/quiz.js             comprehension checks + tracking seam
+  js/curriculum-config.js single-source client, batch, and cloud-lane config
+  js/batch-context.js    reusable viewer-local batch selector
+  js/curriculum-lessons-w09-w10.js authoritative Week 9–10 transfer data
+  js/capstone-lesson.js  shared Week 9–10 route renderer
 ```
 
 Zero build step, zero dependencies. Edit HTML/CSS/JS, commit, Pages redeploys.
 
 ## Authoring a reading page
 
-Each page defines two globals then includes the three scripts:
+Legacy pages define two globals and include the shared scripts. Week 9–10 routes instead consume the single shared transfer data file and renderer:
 
 - `window.DIAGRAM = { width, height, nodes:[{id,step,x,y,w,h,label}], edges:[{id,step,from,to,label?,bend?}], captions:[...] }`
   Steps reveal in order as the reader scrolls; the matching `.step` section drives `Diagram.goTo(n)`.
-- `window.QUIZ = { id, title, pass, questions:[{stem, options:[...], answer:<idx>, explain}] }`
-  2–5 questions, answered on-page, ≥`pass` to clear. Results store to `localStorage` and POST to `window.FDE_TRACK_URL` if set.
+- `window.QUIZ = { id, title, questions:[{stem, options:[...], answer:<idx>, explain}] }`
+  Questions grade as they are answered. Results store to `localStorage` and POST to `window.FDE_TRACK_URL` if set.
+
+Core-30 pages calculate required reading time as `round(words / 150)`, publish the pacing label, and keep optional depth in `details.deep[data-core="optional"]`.
 
 Prose lives in `<section class="step" data-step="N">` blocks inside `.prose`; the diagram sits in the sticky `.stage` panel.
 

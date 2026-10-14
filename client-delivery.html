@@ -57,7 +57,7 @@
   .cd-deliv { background:var(--surface-2); border:1px solid var(--good-line); border-radius:12px; padding:14px 16px; font-size:15.5px; line-height:1.55; }
   .cd-quota.callout { margin:14px 0 0; }
 
-  /* ---- LTM cohort direction (static, design-stage) ---- */
+  /* ---- Client cohort direction ---- */
   .cd-concept { margin-top:46px; padding-top:34px; border-top:1px solid var(--line); }
   .cd-concept .cc-stage { display:inline-block; margin:0 0 12px; font-size:12.5px; font-weight:700; letter-spacing:.04em; color:var(--accent-ink); background:var(--accent-soft); border:1px dashed var(--accent-line); border-radius:8px; padding:5px 11px; }
   .cd-concept h2 { font-size:28px; margin:0 0 8px; letter-spacing:-.3px; }
@@ -109,14 +109,13 @@
   <div class="cd-weeks" id="weeks"></div>
   <div class="cd-panel" id="panel"></div>
 
-  <!-- ============== LTM cohort direction — static concept, design stage ============== -->
+  <!-- ============== Client cohort direction ============== -->
   <section class="cd-concept" aria-labelledby="ltm-concept-h">
-    <p class="cc-stage">Design-stage direction — nothing in this section is built yet</p>
-    <h2 id="ltm-concept-h">Where the next cohort's client work is heading</h2>
-    <p class="cc-lede">The healthcare and finance packets above are the proven pattern. For the LTM cohort, the same
-    pattern becomes a two-project arc with one shared storyline: you modernize a legacy system solo, then a team
-    inherits that system as a platform engagement. Client domains are drawn from LTM's own published US client
-    evidence.</p>
+    <p class="cc-stage">Current ten-week cohort direction · trainer preview</p>
+    <h2 id="ltm-concept-h">How the client-work arc runs</h2>
+    <p class="cc-lede">The healthcare and finance packets above are the proven pattern. For <span data-client-name>the current client</span>, the same
+    pattern becomes a two-project arc with one shared storyline: learners modernize a legacy system solo, then a team
+    inherits that system as a platform engagement. Domain choices remain trainer-owned and evidence-gated.</p>
 
     <div class="cc-grid">
       <div class="cc-proj">
@@ -453,55 +452,50 @@ window.CLIENT = {
         deliverable: "A responsible-AI design package: a Safe-Harbor de-identification scrub (18 identifiers, unit-tested redactor) used before any LLM/analytics path + a data-flow + BAA/vendor-governance memo (what leaves the PHI boundary, under what agreement) + a recommendation gate."
       },
       9: {
-        title: "Client Delivery — Handover &amp; Continuity",
-        tie: "Generic client-delivery craft: handover, estimation against actuals, escalation, two stakeholders. No new technical ground.",
-        ask: "I want to talk about what happens after you're gone. If one of my staff has a problem in three months, who do they ask? And where are we against what you told me a month ago — I'm not chasing you, I just need to know what to expect.",
+        title: "AI Security, Governance &amp; System Hardening",
+        tie: "Apply the Week 8 security foundation to the inherited healthcare system: threat model, least privilege, governance evidence, audit, remediation, and readout.",
+        ask: "Before we discuss rollout, show me the highest-consequence AI path, what power it has, what you changed, and how my team can verify the control.",
         handover: [
-          "Nothing new is handed over. The material is what you have already built and what you still owe.",
-          "Your own blocker cards from W7 and W8, with the estimates written on them.",
-          "Your debt register and roadmap, read as a client would read them rather than as engineering hygiene.",
+          "The complete Weeks 1–8 system, decision trail, and responsible-AI package — this is the audit boundary, not a greenfield example.",
+          "A provider-neutral control matrix with prevent, contain, detect, and recover evidence. AWS/GCP product and certification cells remain explicitly pending.",
+          "Synthetic red-team fixtures and local test paths only; no real credentials, production targets, or external sends."
         ],
         dig: [
-          "If you left on Friday, what would stop working, and who would not know why?",
-          "Which of your estimates moved, and can you say why without it sounding like an excuse?",
-          "Every Path B item you carry: is the conversion date still true, or has it been true twice running without moving?",
-          "Two people here want different things from the same word. Which word, and what do you do about it?",
+          "Which client asset and consequence make this the first path to harden?",
+          "Where does untrusted content meet private data, privilege, or an external sink?",
+          "Which boundary is enforced by application or downstream policy rather than model judgement?",
+          "Can another engineer reproduce the finding, denial, remediation, and residual risk from the package?"
         ],
-        stated: [
-          "Wants confidence the work survives the engagement.",
-          "Wants to know what is left, and when.",
-        ],
+        stated: ["Wants a defensible security and governance position before rollout.", "Wants evidence the team can operate after handoff."],
         hidden: [
-          "<b>Work only you can run is not delivered</b> — an undocumented dependency is a defect the client finds after you have gone.",
-          "<b>An estimate never compared to an actual never improves</b> — this is the week the calibration loop closes.",
+          "<b>A risk list is not a hardened system</b> — one enforceable control and its negative test are required.",
+          "<b>Provider or compliance labels without dated evidence overclaim readiness</b> — unknowns stay visible."
         ],
-        facilitator: "No new technical scope. Burn-down and estimate calibration. CODE FREEZE FRIDAY. If W7/W8 slip into here the freeze slips and W10 is compromised — protect it.",
-        deliverable: "Every outstanding item merged, or carrying a blocker card with a moved estimate and a named owner. Plus one page: what someone inheriting this repo on Monday needs to know."
+        facilitator: "Start from the delivered system. Run one threat path, one least-privilege decision, one safe peer red-team, and the executive/technical readout. Certification objectives belong to the parallel evidence lane.",
+        deliverable: "A reproducible audit package: system boundary, threat path, control-evidence map, one remediated control with positive and negative tests, residual-risk disposition, and two-audience readout."
       },
 10: {
-        title: "Final Delivery &amp; Team Onboarding",
-        tie: "The showcase and the handover package. Integrate the arc; prove value in client language; leave something the next engineer can run.",
-        ask: "Home stretch. Show me what we've got in a way I can take to the board — and leave my team something they can actually run without you.",
+        title: "Production Rollout, Showcase &amp; Client Handoff",
+        tie: "Turn the engagement into a reversible release decision, operating package, executive showcase, technical defense, and knowledge transfer.",
+        ask: "Show me the outcome and the evidence, then leave Riverbend a release and handoff package another engineer can run. Be explicit about what is simulated and what remains pending.",
         handover: [
-          "No new material. This week is delivery.",
-          "Code freeze held from Friday of Week 9 — nothing merges except a demo-blocking bug.",
+          "The frozen candidate, full regression evidence, Week 9 audit disposition, decision index, and open-risk register.",
+          "A reversible rollout plan with entry, pause, success, rollback, and ownership conditions — planning and local rehearsal only.",
+          "A two-cloud placement memo schema. Provider-specific facts and certification objectives remain pending the verified AWS/GCP lane."
         ],
         dig: [
-          "Which single screen, against which data, proves the thing you were actually hired to fix?",
-          "What is the before number and the after number, and can you say both in the first two minutes?",
-          "When the demo breaks — and it will — what is the sentence you already wrote for that moment?",
-          "Can a new engineer clone this repo and have it running from the README alone, without asking you?",
+          "Which observable condition pauses or reverses the rollout, and has the recovery path been rehearsed locally?",
+          "Can a new operator find the candidate, smoke test, runbook, owner, and decision history without asking the author?",
+          "Which representative interaction and essential diagram prove the client outcome?",
+          "Which workload-placement assumptions are evidence, which are unknown, and what would flip the recommendation?"
         ],
-        stated: [
-          "Wants proof of value in language the board understands.",
-          "Wants to keep using it after the engagement ends.",
-        ],
+        stated: ["Wants an executive-ready proof of value.", "Wants a technically defensible package the client team can operate."],
         hidden: [
-          "<b>A demo is not a delivery</b> — the handover package is what the client still has in six months.",
-          "<b>Every claim must trace to a commit on main</b> — one untraceable slide fails the deck.",
+          "<b>A showcase is not a handoff</b> — the receiving operator must run the path.",
+          "<b>A provider conclusion with pending evidence is not defensible</b> — method, assumptions, and flip conditions can be shown without inventing facts."
         ],
-        facilitator: "No new code. Rehearse, package, hand over, show. Score the whole arc: the number, the roadmap, the recovery when something breaks. Failures are not rescued.",
-        deliverable: "A rehearsed demo against main with a written script and a planned failure; a before/after number said aloud; a handover package (README that is true, runbook that runs, ADR trail where every citation resolves); and a dated roadmap with owners."
+        facilitator: "Hold the freeze, rehearse the executive and technical cuts, include a safe planned failure, and require explicit residual risks. Do not imply deployment, infrastructure, publication, or external sends occurred.",
+        deliverable: "A frozen local demo candidate; cutover/rollback rehearsal; README, runbook, ADR and evidence indexes; owner and risk registers; workload-placement memo with visible evidence gaps; client showcase script; and knowledge-transfer record."
       },
 }
   },
@@ -745,55 +739,44 @@ window.CLIENT = {
         deliverable: "A responsible-AI / fair-lending governance package: a reason-code → specific-consumer-reason mapping (tested against the model's real drivers), a model card, and a fair-lending monitoring spec (denial-reason accuracy + disparity check). Governance artifacts; not a model rebuild."
       },
       9: {
-        title: "Client Delivery — Handover &amp; Continuity",
-        tie: "Generic client-delivery craft: handover, estimation against actuals, escalation, two stakeholders. No new technical ground.",
-        ask: "Before we wrap, I need to know this doesn't fall over when you leave. And Sam wants the numbers you promised versus what landed — he's not being difficult, that's his job.",
+        title: "AI Security, Governance &amp; System Hardening",
+        tie: "Apply the Week 8 security foundation to the inherited financial-services system: threat model, least privilege, governance evidence, audit, remediation, and readout.",
+        ask: "Before we discuss rollout, show me the highest-consequence AI path, what power it has, what you changed, and how my team can verify the control.",
         handover: [
-          "Nothing new is handed over. The material is what you have already built and what you still owe.",
-          "Your own blocker cards from W7 and W8, with the estimates written on them.",
-          "Your debt register and roadmap, read as a client would read them rather than as engineering hygiene.",
+          "The complete Weeks 1–8 system, decision trail, and responsible-AI package — this is the audit boundary, not a greenfield example.",
+          "A provider-neutral control matrix with prevent, contain, detect, and recover evidence. AWS/GCP product and certification cells remain explicitly pending.",
+          "Synthetic red-team fixtures and local test paths only; no real credentials, production targets, or external sends."
         ],
         dig: [
-          "If you left on Friday, what would stop working, and who would not know why?",
-          "Which of your estimates moved, and can you say why without it sounding like an excuse?",
-          "Every Path B item you carry: is the conversion date still true, or has it been true twice running without moving?",
-          "Two people here want different things from the same word. Which word, and what do you do about it?",
+          "Which client asset and consequence make this the first path to harden?",
+          "Where does untrusted content meet private data, privilege, or an external sink?",
+          "Which boundary is enforced by application or downstream policy rather than model judgement?",
+          "Can another engineer reproduce the finding, denial, remediation, and residual risk from the package?"
         ],
-        stated: [
-          "Wants confidence the work survives the engagement.",
-          "Wants to know what is left, and when.",
-        ],
-        hidden: [
-          "<b>Work only you can run is not delivered</b> — an undocumented dependency is a defect the client finds after you have gone.",
-          "<b>An estimate never compared to an actual never improves</b> — this is the week the calibration loop closes.",
-        ],
-        facilitator: "No new technical scope. Burn-down and estimate calibration. CODE FREEZE FRIDAY. If W7/W8 slip into here the freeze slips and W10 is compromised — protect it.",
-        deliverable: "Every outstanding item merged, or carrying a blocker card with a moved estimate and a named owner. Plus one page: what someone inheriting this repo on Monday needs to know."
+        stated: ["Wants a defensible security and governance position before rollout.", "Wants evidence the team can operate after handoff."],
+        hidden: ["<b>A risk list is not a hardened system</b> — one enforceable control and its negative test are required.", "<b>Provider or compliance labels without dated evidence overclaim readiness</b> — unknowns stay visible."],
+        facilitator: "Start from the delivered system. Run one threat path, one least-privilege decision, one safe peer red-team, and the executive/technical readout. Certification objectives belong to the parallel evidence lane.",
+        deliverable: "A reproducible audit package: system boundary, threat path, control-evidence map, one remediated control with positive and negative tests, residual-risk disposition, and two-audience readout."
       },
 10: {
-        title: "Final Delivery &amp; Team Onboarding",
-        tie: "The showcase and the handover package. Integrate the arc; prove value in client language; leave something the next engineer can run.",
-        ask: "Let's put it all together. I want something I can show the board, and Sam wants something his team can pick up on Monday.",
+        title: "Production Rollout, Showcase &amp; Client Handoff",
+        tie: "Turn the engagement into a reversible release decision, operating package, executive showcase, technical defense, and knowledge transfer.",
+        ask: "Show me the outcome and the evidence, then leave Meridian a release and handoff package another engineer can run. Be explicit about what is simulated and what remains pending.",
         handover: [
-          "No new material. This week is delivery.",
-          "Code freeze held from Friday of Week 9 — nothing merges except a demo-blocking bug.",
+          "The frozen candidate, full regression evidence, Week 9 audit disposition, decision index, and open-risk register.",
+          "A reversible rollout plan with entry, pause, success, rollback, and ownership conditions — planning and local rehearsal only.",
+          "A two-cloud placement memo schema. Provider-specific facts and certification objectives remain pending the verified AWS/GCP lane."
         ],
         dig: [
-          "Which single screen, against which data, proves the thing you were actually hired to fix?",
-          "What is the before number and the after number, and can you say both in the first two minutes?",
-          "When the demo breaks — and it will — what is the sentence you already wrote for that moment?",
-          "Can a new engineer clone this repo and have it running from the README alone, without asking you?",
+          "Which observable condition pauses or reverses the rollout, and has the recovery path been rehearsed locally?",
+          "Can a new operator find the candidate, smoke test, runbook, owner, and decision history without asking the author?",
+          "Which representative interaction and essential diagram prove the client outcome?",
+          "Which workload-placement assumptions are evidence, which are unknown, and what would flip the recommendation?"
         ],
-        stated: [
-          "Wants proof of value in language the board understands.",
-          "Wants to keep using it after the engagement ends.",
-        ],
-        hidden: [
-          "<b>A demo is not a delivery</b> — the handover package is what the client still has in six months.",
-          "<b>Every claim must trace to a commit on main</b> — one untraceable slide fails the deck.",
-        ],
-        facilitator: "No new code. Rehearse, package, hand over, show. Score the whole arc: the number, the roadmap, the recovery when something breaks. Failures are not rescued.",
-        deliverable: "A rehearsed demo against main with a written script and a planned failure; a before/after number said aloud; a handover package (README that is true, runbook that runs, ADR trail where every citation resolves); and a dated roadmap with owners."
+        stated: ["Wants an executive-ready proof of value.", "Wants a technically defensible package the client team can operate."],
+        hidden: ["<b>A showcase is not a handoff</b> — the receiving operator must run the path.", "<b>A provider conclusion with pending evidence is not defensible</b> — method, assumptions, and flip conditions can be shown without inventing facts."],
+        facilitator: "Hold the freeze, rehearse the executive and technical cuts, include a safe planned failure, and require explicit residual risks. Do not imply deployment, infrastructure, publication, or external sends occurred.",
+        deliverable: "A frozen local demo candidate; cutover/rollback rehearsal; README, runbook, ADR and evidence indexes; owner and risk registers; workload-placement memo with visible evidence gaps; client showcase script; and knowledge-transfer record."
       },
 }
   }

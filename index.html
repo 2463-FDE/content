@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>2463-FDE · Forward Deployed Engineer Program</title>
-<link rel="stylesheet" href="assets/css/style.css?v=20260805-rc3">
+<link rel="stylesheet" href="assets/css/style.css?v=20261014-hub">
 <script src="assets/js/theme.js"></script>
 <script src="assets/js/progress.js?v=20260630-2"></script>
 </head>
@@ -26,11 +26,33 @@
 <div class="cal-wrap">
   <div class="cal-body">
     <div class="cal-main">
+      <section class="curriculum-hub-intro" id="trainer-start" aria-labelledby="hub-title">
+        <div class="hub-copy">
+          <div class="capstone-kicker">Trainer-facing source of truth · ten-week program</div>
+          <h1 id="hub-title">Curriculum hub</h1>
+          <p>Run the complete program for <strong data-client-name>the client</strong> from one calendar. Current viewer context: <strong>Batch <span data-batch-value>loading</span></strong>. Change the batch in the top bar; the choice follows you across the hub and lesson routes.</p>
+          <div class="hub-status-row" aria-label="Curriculum status">
+            <span class="hub-status is-ready">Weeks 1–10 routed</span>
+            <span class="hub-status">Core 30 marked</span>
+            <span class="hub-status is-pending" data-cloud-path-status>AWS/GCP evidence seam pending</span>
+          </div>
+        </div>
+        <div class="hub-launcher" aria-labelledby="launcher-title">
+          <h2 id="launcher-title">Trainer launchpad</h2>
+          <div class="hub-launcher-controls">
+            <label>Week<select id="hub-week" aria-describedby="hub-launch-status"></select></label>
+            <label>Day<select id="hub-day" aria-describedby="hub-launch-status"></select></label>
+            <button class="btn" id="hub-open" type="button">Open lesson</button>
+          </div>
+          <p id="hub-launch-status" class="hub-launch-status" role="status" aria-live="polite">Choose any available day.</p>
+          <div class="hub-demo-links"><a href="weeks/w09/w09d1.html">Start Week 9 hardening</a><a href="weeks/w10/w10d5.html">Open capstone showcase</a><a href="client-delivery.html?w=10">Open trainer delivery packet</a></div>
+        </div>
+      </section>
+
       <div class="legend"></div>
 
-      <p class="core30-key"><b>Core 30</b> — each day's required path (reading · one interaction · comprehension check)
-      is budgeted to 30 minutes; collapsed "Deeper" blocks are optional extra depth outside the cap. The format is
-      rolling out page by page — first on <a href="weeks/w08/w08d2.html">Week 8 · Day 2</a>.</p>
+      <p class="core30-key"><b>Core 30</b> — a marked day's required path (reading · essential diagram · one interaction · comprehension check)
+      is budgeted to 30 minutes; <code>Deeper</code> blocks are optional extra depth outside the cap. Week 8 Day 2 and all Week 9–10 transfer pages publish the pacing label.</p>
 
       <div class="cal" id="cal"></div>
 
@@ -55,7 +77,7 @@
   </div>
 </div>
 
-<footer class="foot">2463-FDE · Forward Deployed Engineer Program</footer>
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · <span data-client-name>Client curriculum</span> · Batch <span data-batch-value>loading</span></footer>
 
 <script>
 window.PHASES = {
@@ -115,18 +137,18 @@ window.WEEKS = [
     { t:"Alt research: guardrail frameworks", s:"NeMo · Guardrails AI · LLM Guard · Presidio", href:"weeks/w08/w08d3.html" },
     { t:"Governance, PII & responsible AI", s:"the PHI/PII boundary · saying no with an alternative", href:"weeks/w08/w08d4.html" },
     { t:"Red-team + secure agent deploy E2E", s:"triage by client consequence, not CVSS", href:"weeks/w08/w08d5.html", star:true } ]},
-  { w:9, phase:"cap", build:"November", title:"Client Delivery — Handover & Continuity", days:[
-    { t:"Client steering + burn-down opens", s:"present · receive · no new scope this week" },
-    { t:"Close what is open", s:"every Path B item converts or gets a dated card" },
-    { t:"Estimate vs actual", s:"report the gap and say why it moved" },
-    { t:"Handover draft", s:"what someone inheriting this repo needs Monday" },
-    { t:"CODE FREEZE", s:"nothing merges after today except a demo-blocking bug", star:true } ]},
-  { w:10, phase:"cap", build:"November", title:"Final Delivery & Team Onboarding", days:[
-    { t:"Demo script + rehearsal", s:"which screens · what data · what you say when it breaks" },
-    { t:"Handover package", s:"README that is true · runbook that runs · citations resolve" },
-    { t:"Traceability pass", s:"every claim ties to a commit on main" },
-    { t:"Dry run, unrescued", s:"hostile questions · the number said aloud" },
-    { t:"Client showcase", s:"final delivery · architecture defense · assessment", star:true } ]}
+  { w:9, phase:"sec", title:"AI Security, Governance & System Hardening", days:[
+    { t:"Threat-model the delivered system", s:"prompt injection · leakage · poisoning · tool misuse", href:"weeks/w09/w09d1.html" },
+    { t:"Least privilege across agents & MCP", s:"RBAC · auth boundaries · PII · secrets", href:"weeks/w09/w09d2.html" },
+    { t:"Obligations → control evidence", s:"audit trails · explainability · human oversight", href:"weeks/w09/w09d3.html" },
+    { t:"Security audit + peer red team", s:"CI checks · safe fixtures · remediation evidence", href:"weeks/w09/w09d4.html" },
+    { t:"Hardening readout", s:"audit package · remediation · two-audience defense", href:"weeks/w09/w09d5.html", star:true } ]},
+  { w:10, phase:"cap", title:"Production Rollout, Showcase & Client Handoff", days:[
+    { t:"Plan a reversible rollout", s:"NFR evidence · risk · estimation · placement memo", href:"weeks/w10/w10d1.html" },
+    { t:"Execute the release rehearsal", s:"regression · performance · integration · sign-off", href:"weeks/w10/w10d2.html" },
+    { t:"Verify rollback + build handoff", s:"smoke tests · failure drill · docs · runbooks", href:"weeks/w10/w10d3.html" },
+    { t:"Freeze + rehearse the full story", s:"readiness review · narrative · peer dry run", href:"weeks/w10/w10d4.html" },
+    { t:"Client showcase + final handoff", s:"executive readout · architecture defense · sign-off", href:"weeks/w10/w10d5.html", star:true } ]}
 ];
 (function () {
   function render() {
@@ -213,6 +235,7 @@ window.WEEKS = [
   window.addEventListener("fde-progress-sync", render);
 })();
 </script>
+<script src="assets/js/curriculum-hub.js?v=20261014"></script>
 <script src="assets/js/roster.js?v=20260706"></script>
 <script src="assets/js/auth.js"></script>
 <script src="assets/js/codex-usage.js?v=20260812"></script>

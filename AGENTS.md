@@ -5,6 +5,7 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Curriculum authoring is research-first; follow `docs/week-fanout-plan.md` and update the matching `docs/research/wWW/` artifact before changing a current technical claim in week HTML.
 - Run static curriculum regressions with `python3 -m unittest discover -s tests -v`. `tests/test_curriculum_currency.py` validates the public HTML/embedded-JS contract for the Week 3–4 currency slice.
 - Read-only lesson code popups use `assets/js/codeviewer.js`, shared modal behavior in `assets/js/modals.js`, and the `.code-cta` / `.code-modal` styles in `assets/css/style.css`.
+- Week 9–10 routes are thin shells over `assets/js/curriculum-lessons-w09-w10.js` and `assets/js/capstone-lesson.js`; batch/client/cloud-lane presentation config is single-source in `assets/js/curriculum-config.js`.
 
 ## Maintaining this file
 

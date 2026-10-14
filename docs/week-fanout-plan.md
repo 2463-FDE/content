@@ -130,7 +130,7 @@ related/current tech that looks missing. **Correct me where my read is wrong.**
 | W6 | AI-Augmented SDLC | **Add coding agents — focus on Claude Code**, mention/relate Cursor/Aider. Core FDE tooling. Brownfield/LEGMOD is good. |
 | W7 | Observability, SRE & Guardrails | **LangSmith stays core.** Langfuse/Phoenix go to Alt research (see below), not duplicate core. Optional: OpenTelemetry GenAI conventions. |
 | W8 | Security, Governance & Responsible AI | Anchor on **OWASP LLM Top 10** as the framework. Guardrails frameworks (NeMo Guardrails / Guardrails AI) alongside LLM Guard/Presidio. |
-| W9-10 | Client Specialization / Showcase | **Placeholders.** No client yet; assume healthcare + finance persist. Expect to know the real client by ~W6-7, then run this same fan-out with domain-updated topics. Possible client-specific brownfield project for W9-10 — handle when/if it comes up. |
+| W9-10 | AI Security, Governance & System Hardening / Production Rollout, Showcase & Client Handoff | **Authored** as shared transfer data in `assets/js/curriculum-lessons-w09-w10.js`, evidence in `docs/research/w09/` and `docs/research/w10/`. AWS/GCP certification objectives and provider facts stay evidence-gated until the parallel research lane lands. |
 
 ### Alt-research day topics (Wed of W1-8)
 
