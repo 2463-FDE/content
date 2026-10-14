@@ -122,7 +122,7 @@
       status.className = "curriculum-model-empty";
       status.setAttribute("role", "status");
       status.setAttribute("aria-live", "polite");
-      var insertion = doc.querySelector(".hub-launcher") || doc.querySelector(".tr-curriculum") || doc.getElementById("cal") || doc.querySelector("main");
+      var insertion = doc.querySelector(".hub-launcher") || doc.querySelector(".tr-curriculum") || doc.getElementById("cal") || doc.querySelector("main") || doc.querySelector("[data-curriculum-surface]");
       if (insertion && insertion.parentNode) insertion.parentNode.insertBefore(status, insertion);
       else status.hidden = true;
     }

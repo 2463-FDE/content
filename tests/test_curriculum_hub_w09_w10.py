@@ -346,6 +346,70 @@ document.body.appendChild(frame);
         self.assertTrue(states["unrelatedDeepLink"]["mainHidden"])
         self.assertEqual(states["unrelatedDeepLink"]["h1"], "Kafka foundations and event-driven judgement")
 
+    def test_unsupported_batch_cannot_render_2567_client_delivery_packets(self) -> None:
+        chrome = find_chrome()
+        if not chrome:
+            self.skipTest("Chrome/Chromium is unavailable")
+        delivery = (ROOT / "client-delivery.html").as_uri() + "?w=5&p=healthcare"
+        script = """
+const base = %s, out = {};
+const cases = [['unsupported', '2463'], ['supported', '2567']];
+function run(i) {
+  if (i >= cases.length) { document.body.setAttribute('data-result', JSON.stringify(out)); return; }
+  const frame = document.createElement('iframe');
+  frame.style.cssText = 'width:1280px;height:800px;border:0';
+  frame.onload = () => setTimeout(() => {
+    const doc = frame.contentDocument;
+    const status = doc.getElementById('curriculum-model-status');
+    out[cases[i][0]] = {
+      model: doc.body.dataset.curriculumModel || null,
+      text: doc.body.innerText,
+      status: status && !status.hidden ? status.textContent : '',
+    };
+    frame.remove(); run(i + 1);
+  }, 600);
+  frame.src = base + '&batch=' + cases[i][1];
+  document.body.appendChild(frame);
+}
+run(0);
+""" % json.dumps(delivery)
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp) / "delivery-harness.html"
+            harness.write_text(
+                f"<!doctype html><html><body><script>{script}</script></body></html>"
+            )
+            result = subprocess.run(
+                [
+                    chrome,
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-first-run",
+                    "--no-default-browser-check",
+                    f"--user-data-dir={Path(tmp) / 'profile'}",
+                    "--allow-file-access-from-files",
+                    "--window-size=1400,900",
+                    "--virtual-time-budget=10000",
+                    "--dump-dom",
+                    harness.as_uri(),
+                ],
+                text=True,
+                capture_output=True,
+                timeout=60,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr[-1000:])
+        match = re.search(r'data-result="([^"]*)"', result.stdout)
+        self.assertIsNotNone(match, "client-delivery harness did not report state")
+        states = json.loads(html.unescape(match.group(1)))
+
+        self.assertEqual(states["supported"]["model"], "ltm-2567")
+        self.assertIn("Neo4j Knowledge Graphs", states["supported"]["text"])
+        self.assertEqual(states["supported"]["status"], "")
+
+        self.assertEqual(states["unsupported"]["model"], "unavailable")
+        self.assertNotIn("Neo4j", states["unsupported"]["text"])
+        self.assertNotIn("How the client-work arc runs", states["unsupported"]["text"])
+        self.assertIn("No curriculum is configured for Batch 2463", states["unsupported"]["status"])
+
     def test_no_javascript_preserves_the_static_hub_fallback(self) -> None:
         chrome = find_chrome()
         if not chrome:
