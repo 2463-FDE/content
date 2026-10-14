@@ -145,13 +145,25 @@
     try {
       await loadScriptOnce(AUTH_BASE + "curriculum-config.js", () => !!window.FDE_CURRICULUM_CONFIG);
       await loadScriptOnce(AUTH_BASE + "batch-context.js", () => !!window.FDEBatchContext);
-      window.FDEBatchContext.init(document, window.FDE_CURRICULUM_CONFIG, window.localStorage);
+      if (!window.FDEBatchContext.init(document, window.FDE_CURRICULUM_CONFIG, window.localStorage)) {
+        throw new Error("Batch context failed to mount");
+      }
     } catch (error) {
       document.querySelectorAll("[data-batch-context]").forEach(host => {
         host.textContent = "Batch context unavailable";
         host.setAttribute("role", "status");
         host.classList.add("batch-context-error");
       });
+      if (!document.body.hasAttribute("data-curriculum-model") && !document.getElementById("curriculum-model-status")) {
+        const status = document.createElement("section");
+        status.id = "curriculum-model-status";
+        status.className = "curriculum-model-empty";
+        status.setAttribute("role", "alert");
+        status.textContent = "Curriculum context failed to load. Reload the page to try again.";
+        const insertion = document.querySelector(".hub-launcher") || document.querySelector(".tr-curriculum") || document.getElementById("cal") || document.querySelector("main") || document.querySelector("[data-curriculum-surface]");
+        if (insertion && insertion.parentNode) insertion.parentNode.insertBefore(status, insertion);
+        else document.body.appendChild(status);
+      }
     }
   }
 
