@@ -6,7 +6,7 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Run static curriculum regressions with `python3 -m unittest discover -s tests -v`. `tests/test_curriculum_currency.py` validates the public HTML/embedded-JS contract for the Week 3–4 currency slice.
 - Read-only lesson code popups use `assets/js/codeviewer.js`, shared modal behavior in `assets/js/modals.js`, and the `.code-cta` / `.code-modal` styles in `assets/css/style.css`.
 - Week 6 and Week 9–10 routes are thin shells over their shared lesson data/renderers (`assets/js/curriculum-lessons-w06.js` + `assets/js/kafka-lesson.js`, then `assets/js/curriculum-lessons-w09-w10.js` + `assets/js/capstone-lesson.js`); batch/client/cloud-lane presentation config is single-source in `assets/js/curriculum-config.js`.
-- Week 6 Archify candidates and the no-runtime-dependency acceptance gate live in `docs/research/w06/archify-visual-plan.md`; do not execute Archify without the dedicated pinned-source verification report.
+- Week 6 Archify source/tool/output provenance and drift rules live in `docs/research/w06/archify-visual-plan.md` and `archify-provenance.json`; keep authoring inputs, raw viewers, caches, source checkouts, and all Archify runtime files disposable.
 
 ## Maintaining this file
 

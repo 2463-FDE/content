@@ -15,7 +15,182 @@
   <nav class="topbar-center" aria-label="Program"><a class="topnav" href="../../atlas/">FDE Mindset Atlas</a><a class="topnav" href="../../client-delivery.html">Client Delivery</a><a class="topnav" href="../../gauntlet.html">AI Interview</a></nav>
   <div class="topbar-right"><span class="progressbar" aria-hidden="true"><i></i></span></div>
 </div>
-<main id="lesson-root" class="lesson2"><section class="lesson-loading" role="status"><h1>Loading Week 6 lesson…</h1><p>Preparing the Kafka and event-driven pipeline curriculum record.</p></section></main>
+<main id="lesson-root" class="lesson2"><section class="lesson-loading" role="status"><h1>Delivery semantics, schemas, and managed Kafka economics</h1><p>Preparing the Core-30 lesson. Its essential static event-flow visual is available below.</p>
+<figure class="fde-diagram" data-archify-visual data-provenance="w06d2">
+<style>.fde-diagram .c-grid{fill:none}</style>
+<p class="diagram-scroll-hint">Scroll horizontally to inspect the full boundary →</p>
+<svg viewBox="0 0 1060 500" role="img" lang="en" aria-labelledby="fde-65c75d1d3283-title fde-65c75d1d3283-desc" xmlns="http://www.w3.org/2000/svg" class="fde-archify" tabindex="0" focusable="true">
+        <title id="fde-65c75d1d3283-title">Delivery recovery and idempotent side-effect boundary</title><desc id="fde-65c75d1d3283-desc">A synthetic ingest producer sends schema-versioned records through a retained Kafka topic to a validator. Valid work records partial progress before an external side effect; invalid work moves to a dead-letter topic whose owner corrects and replays it. Kafka does not claim control over the external side effect.</desc><style type="text/css">svg.fde-archify{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:#fff;color:#18324a;max-width:100%;height:auto}svg.fde-archify:focus{outline:3px solid #075985;outline-offset:3px}.c-grid{stroke:#dbe5ec}.c-region{fill:#f8fafc;stroke:#64748b;stroke-dasharray:6 4}.c-mask{fill:#fff;stroke:none}.c-backend{fill:#e0f2fe;stroke:#0369a1}.c-messagebus{fill:#ecfdf5;stroke:#047857}.a-default{fill:none;stroke:#334155}.a-emphasis{fill:none;stroke:#0369a1}.m-default{fill:#334155}.m-emphasis{fill:#0369a1}.t-primary{fill:#0f172a}.t-muted{fill:#475569}.t-cloud{fill:#334155}.t-edge-default{fill:#334155}.t-edge-emphasis{fill:#075985}.semantic-sigil{fill:none;stroke:currentColor;stroke-width:1.5}.semantic-sigil .sigil-fill{fill:currentColor;stroke:none}g[tabindex]:focus&gt;rect:not(.c-mask){stroke:#b45309;stroke-width:3}</style><defs>
+          <marker id="fde-65c75d1d3283-005-arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-default" />
+          </marker>
+          <marker id="fde-65c75d1d3283-007-arrowhead-emphasis" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-emphasis" />
+          </marker>
+          <marker id="fde-65c75d1d3283-009-arrowhead-security" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-security" />
+          </marker>
+          <marker id="fde-65c75d1d3283-011-arrowhead-dashed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-dashed" />
+          </marker>
+          <pattern id="fde-65c75d1d3283-013-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" class="c-grid" stroke-width="0.5" />
+          </pattern>
+        </defs>
+
+        
+        <rect width="100%" height="100%" fill="url(#fde-65c75d1d3283-013-grid)" />
+
+        
+        <rect x="200" y="120" width="570" height="282" rx="12" class="c-region" stroke-width="1" />
+
+        
+        <path d="M 170 181 L 230 181" class="a-emphasis" stroke-width="1.8" marker-end="url(#fde-65c75d1d3283-007-arrowhead-emphasis)" />
+        <path d="M 360 181 L 420 181" class="a-emphasis" stroke-width="1.8" marker-end="url(#fde-65c75d1d3283-007-arrowhead-emphasis)" />
+        <path d="M 550 181 L 610 181" class="a-emphasis" stroke-width="1.8" marker-end="url(#fde-65c75d1d3283-007-arrowhead-emphasis)" />
+        <path d="M 740 181 L 890 181" class="a-emphasis" stroke-width="1.8" marker-end="url(#fde-65c75d1d3283-007-arrowhead-emphasis)" />
+        <path d="M 550 181 L 610 351" class="a-default" stroke-width="1.5" marker-end="url(#fde-65c75d1d3283-005-arrowhead)" />
+        <path d="M 740 351 L 890 351" class="a-default" stroke-width="1.5" marker-end="url(#fde-65c75d1d3283-005-arrowhead)" />
+
+        
+        <g id="fde-65c75d1d3283-023-node-producer" tabindex="0" role="group" aria-label="Ingest producer, schema v2, Architecture component">
+          <title>Ingest producer · schema v2 · Architecture component · stable event ID</title>
+          <rect x="40" y="150" width="130" height="62" rx="6" class="c-mask" />
+          <rect x="40" y="150" width="130" height="62" rx="6" class="c-backend" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-backend" transform="translate(46 156) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5" />
+          </g>
+          <text x="105" y="179" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Ingest producer</text>
+        <text x="105" y="195" class="t-muted" font-size="9" text-anchor="middle">schema v2</text>
+        <text x="105" y="204" class="t-backend" font-size="7" text-anchor="middle">stable event ID</text>
+        </g>
+
+        <g id="fde-65c75d1d3283-032-node-topic" tabindex="0" role="group" aria-label="documents.v2, retained records, Kafka delivery and recovery boundary">
+          <title>documents.v2 · retained records · Kafka delivery and recovery boundary · at-least-once</title>
+          <rect x="230" y="150" width="130" height="62" rx="6" class="c-mask" />
+          <rect x="230" y="150" width="130" height="62" rx="6" class="c-messagebus" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-messagebus" transform="translate(236 156) scale(0.6875)">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" />
+            <circle cx="5" cy="4.5" r="1" class="sigil-fill" />
+            <circle cx="10.5" cy="8" r="1" class="sigil-fill" />
+            <circle cx="7" cy="11.5" r="1" class="sigil-fill" />
+          </g>
+          <text x="295" y="179" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">documents.v2</text>
+        <text x="295" y="195" class="t-muted" font-size="9" text-anchor="middle">retained records</text>
+        <text x="295" y="204" class="t-messagebus" font-size="7" text-anchor="middle">at-least-once</text>
+        </g>
+
+        <g id="fde-65c75d1d3283-044-node-validator" tabindex="0" role="group" aria-label="Validator, compatibility gate, Kafka delivery and recovery boundary">
+          <title>Validator · compatibility gate · Kafka delivery and recovery boundary · bounded retry</title>
+          <rect x="420" y="150" width="130" height="62" rx="6" class="c-mask" />
+          <rect x="420" y="150" width="130" height="62" rx="6" class="c-backend" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-backend" transform="translate(426 156) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5" />
+          </g>
+          <text x="485" y="179" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Validator</text>
+        <text x="485" y="195" class="t-muted" font-size="9" text-anchor="middle">compatibility gate</text>
+        <text x="485" y="204" class="t-backend" font-size="7" text-anchor="middle">bounded retry</text>
+        </g>
+
+        <g id="fde-65c75d1d3283-053-node-marker" tabindex="0" role="group" aria-label="Outcome marker, partial progress, Kafka delivery and recovery boundary">
+          <title>Outcome marker · partial progress · Kafka delivery and recovery boundary · idempotency key</title>
+          <rect x="610" y="150" width="130" height="62" rx="6" class="c-mask" />
+          <rect x="610" y="150" width="130" height="62" rx="6" class="c-backend" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-backend" transform="translate(616 156) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5" />
+          </g>
+          <text x="675" y="179" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Outcome marker</text>
+        <text x="675" y="195" class="t-muted" font-size="9" text-anchor="middle">partial progress</text>
+        <text x="675" y="204" class="t-backend" font-size="7" text-anchor="middle">idempotency key</text>
+        </g>
+
+        <g id="fde-65c75d1d3283-062-node-effect" tabindex="0" role="group" aria-label="External effect, upsert or API, Architecture component">
+          <title>External effect · upsert or API · Architecture component · outside Kafka tx</title>
+          <rect x="890" y="150" width="130" height="62" rx="6" class="c-mask" />
+          <rect x="890" y="150" width="130" height="62" rx="6" class="c-backend" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-backend" transform="translate(896 156) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5" />
+          </g>
+          <text x="955" y="179" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">External effect</text>
+        <text x="955" y="195" class="t-muted" font-size="9" text-anchor="middle">upsert or API</text>
+        <text x="955" y="204" class="t-backend" font-size="7" text-anchor="middle">outside Kafka tx</text>
+        </g>
+
+        <g id="fde-65c75d1d3283-071-node-dlq" tabindex="0" role="group" aria-label="documents.dlq, failure evidence, Kafka delivery and recovery boundary">
+          <title>documents.dlq · failure evidence · Kafka delivery and recovery boundary · quarantine</title>
+          <rect x="610" y="320" width="130" height="62" rx="6" class="c-mask" />
+          <rect x="610" y="320" width="130" height="62" rx="6" class="c-messagebus" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-messagebus" transform="translate(616 326) scale(0.6875)">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" />
+            <circle cx="5" cy="4.5" r="1" class="sigil-fill" />
+            <circle cx="10.5" cy="8" r="1" class="sigil-fill" />
+            <circle cx="7" cy="11.5" r="1" class="sigil-fill" />
+          </g>
+          <text x="675" y="349" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">documents.dlq</text>
+        <text x="675" y="365" class="t-muted" font-size="9" text-anchor="middle">failure evidence</text>
+        <text x="675" y="374" class="t-messagebus" font-size="7" text-anchor="middle">quarantine</text>
+        </g>
+
+        <g id="fde-65c75d1d3283-083-node-replay" tabindex="0" role="group" aria-label="Replay owner, correct + resume, Architecture component">
+          <title>Replay owner · correct + resume · Architecture component · audited</title>
+          <rect x="890" y="320" width="130" height="62" rx="6" class="c-mask" />
+          <rect x="890" y="320" width="130" height="62" rx="6" class="c-backend" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-backend" transform="translate(896 326) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5" />
+          </g>
+          <text x="955" y="349" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Replay owner</text>
+        <text x="955" y="365" class="t-muted" font-size="9" text-anchor="middle">correct + resume</text>
+        <text x="955" y="374" class="t-backend" font-size="7" text-anchor="middle">audited</text>
+        </g>
+
+        
+        <g>
+          <rect x="166.2" y="120" width="67.6" height="14" rx="3" class="c-mask" />
+          <text x="200" y="130" class="t-edge-emphasis" font-size="8" text-anchor="middle">schema event</text>
+        </g>
+        <g>
+          <rect x="346.6" y="220" width="86.8" height="14" rx="3" class="c-mask" />
+          <text x="390" y="230" class="t-edge-emphasis" font-size="8" text-anchor="middle">delivered record</text>
+        </g>
+        <g>
+          <rect x="543.8" y="120" width="72.4" height="14" rx="3" class="c-mask" />
+          <text x="580" y="130" class="t-edge-emphasis" font-size="8" text-anchor="middle">valid outcome</text>
+        </g>
+        <g>
+          <rect x="781.2" y="220" width="67.6" height="14" rx="3" class="c-mask" />
+          <text x="815" y="230" class="t-edge-emphasis" font-size="8" text-anchor="middle">missing work</text>
+        </g>
+        <g>
+          <rect x="518.8" y="270" width="72.4" height="14" rx="3" class="c-mask" />
+          <text x="555" y="280" class="t-edge-default" font-size="8" text-anchor="middle">invalid event</text>
+        </g>
+        <g>
+          <rect x="774" y="400" width="82" height="14" rx="3" class="c-mask" />
+          <text x="815" y="410" class="t-edge-default" font-size="8" text-anchor="middle">approved replay</text>
+        </g>
+
+        
+        <g>
+          <rect x="204" y="130" width="204.4" height="16" rx="3" class="c-mask" />
+          <text x="208" y="143" class="t-cloud" font-size="9" font-weight="600">Kafka delivery and recovery boundary</text>
+        </g>
+
+        
+        <g>
+          <text x="40" y="464" class="t-primary" font-size="12" font-weight="650">Legend</text>
+          <g>
+            <rect x="40" y="475" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1" />
+            <text x="62" y="484" class="t-muted" font-size="10" font-weight="500">Backend</text>
+          </g>
+          <g>
+            <rect x="140" y="475" width="16" height="10" rx="2.5" class="c-messagebus" stroke-width="1" />
+            <text x="162" y="484" class="t-muted" font-size="10" font-weight="500">Message bus</text>
+          </g>
+        </g>
+      </svg>
+<figcaption>Schema validation separates valid work from quarantine. A stable outcome marker makes replay selective; Kafka does not claim control over the external side effect.</figcaption>
+</figure>
+</section></main>
 <noscript><main class="lesson2"><section class="lesson-load-error"><h1>Delivery semantics, schemas, and managed Kafka economics</h1><p>This Core-30 lesson needs JavaScript for its essential diagram, decision practice, and comprehension check. No data leaves the browser. Ask the trainer for the accessible static export, or return to the <a href="../../index.html">curriculum hub</a>.</p></section></main></noscript>
 <footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 6 Day 2 · <span data-client-name>Client curriculum</span> · Batch <span data-batch-value>loading</span></footer>
 <div id="lesson-overlays"></div>
@@ -25,7 +200,6 @@
 <script src="../../assets/js/progress.js?v=20260630"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>
 <script src="../../assets/js/auth.js?v=20261014"></script>
-<script src="../../assets/js/diagram.js"></script>
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20261014"></script>
 <script src="../../assets/js/quiz.js?v=20260630-1"></script>
