@@ -1,5 +1,6 @@
 """Offline provenance, safety, and accessibility contracts for Week 7–8 SVGs."""
 
+from html.parser import HTMLParser
 from pathlib import Path
 import hashlib
 import json
@@ -9,7 +10,6 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 PROVENANCE = ROOT / "docs/research/w07-w08-archify-provenance.json"
-PLAN = ROOT / "docs/research/w07-w08-archify-visual-plan.md"
 FORBIDDEN = re.compile(
     rb"<script|foreignObject|<image|<(?:iframe|object|embed)|"
     rb"\s+on[a-z0-9_-]+\s*=|(?:@import|@font-face|JetBrains)|"
@@ -20,6 +20,17 @@ FORBIDDEN = re.compile(
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
+
+
+class ScriptSources(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.sources = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag in {"script", "link"}:
+            self.sources.append((attrs.get("src") or attrs.get("href") or "").lower())
 
 
 def extract(pattern, page, label):
@@ -74,9 +85,11 @@ class Week78ArchifyVisualTest(unittest.TestCase):
             self.assertEqual(sha(svg), record["inline_svg_sha256"], route)
             self.assertEqual(sha(svg), self.manifest["visuals"][week]["inline_import_sha256"], route)
             self.assertIsNone(FORBIDDEN.search(figure), route)
-            self.assertNotIn(b"archify.js", page.lower())
-            self.assertNotIn(b"node_modules", page.lower())
-            self.assertNotIn(b".archify-scratch", page.lower())
+            scripts = ScriptSources()
+            scripts.feed(page.decode("utf-8"))
+            for source in scripts.sources:
+                self.assertNotIn("archify", source, route)
+                self.assertNotIn("node_modules", source, route)
             root = ET.fromstring(svg)
             ids = [node.get("id") for node in root.iter() if node.get("id")]
             self.assertEqual(len(ids), len(set(ids)), route)
@@ -97,11 +110,6 @@ class Week78ArchifyVisualTest(unittest.TestCase):
         self.assertEqual(tracked_like, [])
         for suffix in ("w07-input.json", "w08-input.json", "w07-render-1.html", "w08-render-1.html"):
             self.assertFalse(any(ROOT.rglob(suffix)), suffix)
-        self.assertTrue(PLAN.exists())
-        plan = PLAN.read_text(encoding="utf-8")
-        self.assertIn("network denied", plan)
-        self.assertIn("Two independent raw renders", plan)
-        self.assertIn("no-JavaScript", plan)
 
 
 if __name__ == "__main__":

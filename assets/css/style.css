@@ -1423,9 +1423,28 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
 .fde-diagram-viewport .fde-archify { display:block; width:100%; min-width:720px; }
 /* The pinned sanitizer keeps Archify's grid path but intentionally replaces the
    generated stylesheet; this local, static override prevents SVG default fill. */
+.fde-diagram .fde-archify { --mask:#fff; }
 .fde-diagram .fde-archify .c-grid { fill:none; }
+.fde-diagram .fde-archify .c-security-group { fill:#fffbeb; stroke:#b45309; stroke-dasharray:6 4; }
+.fde-diagram .fde-archify .c-cloud { fill:#f8fafc; stroke:#334155; stroke-dasharray:6 4; }
+.fde-diagram .fde-archify .c-security { fill:#fef3c7; stroke:#b45309; }
+.fde-diagram .fde-archify .c-database { fill:#ede9fe; stroke:#6d28d9; }
+.fde-diagram .fde-archify .c-external { fill:#f1f5f9; stroke:#475569; }
+.fde-diagram .fde-archify .a-security { fill:none; stroke:#b45309; }
+.fde-diagram .fde-archify .a-dashed { fill:none; stroke:#475569; stroke-dasharray:6 4; }
+.fde-diagram .fde-archify .m-security { fill:#b45309; }
+.fde-diagram .fde-archify .m-dashed { fill:#475569; }
 .fde-diagram .fde-archify .t-backend { fill:#0369a1; }
 .fde-diagram .fde-archify .t-messagebus { fill:#047857; }
+.fde-diagram .fde-archify .t-security, .fde-diagram .fde-archify .t-edge-security { fill:#92400e; }
+.fde-diagram .fde-archify .t-database { fill:#5b21b6; }
+.fde-diagram .fde-archify .t-external, .fde-diagram .fde-archify .t-edge-dashed { fill:#334155; }
+.fde-diagram .fde-archify .s-backend { color:#0369a1; }
+.fde-diagram .fde-archify .s-messagebus { color:#047857; }
+.fde-diagram .fde-archify .s-security { color:#b45309; }
+.fde-diagram .fde-archify .s-database { color:#6d28d9; }
+.fde-diagram .fde-archify .s-external { color:#475569; }
+.fde-diagram .fde-archify .s-cloud { color:#334155; }
 .fde-diagram figcaption { margin:11px 2px 0; color:var(--ink-soft); font-size:14px; line-height:1.55; }
 .fde-diagram figcaption b { color:var(--ink); }
 .lesson-loading, .lesson-load-error { max-width:720px; margin:72px auto; padding:28px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }

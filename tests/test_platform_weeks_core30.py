@@ -23,6 +23,117 @@ def node_json(source):
     return json.loads(result.stdout)
 
 
+def find_chrome():
+    candidates = [
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    ]
+    candidates.extend(filter(None, (shutil.which(name) for name in ("google-chrome", "chromium"))))
+    return next((item for item in candidates if Path(item).exists()), None)
+
+
+def run_iframe_harness(chrome, pages, probe, budget=9000):
+    script = r"""
+const pages = %s, out = {};
+const probe = %s;
+function load(entries, i) {
+  if (i >= entries.length) { document.body.dataset.result = JSON.stringify(out); return; }
+  const [key, url] = entries[i], frame = document.createElement('iframe');
+  frame.style.width = '1440px'; frame.style.height = '1000px';
+  frame.onload = () => setTimeout(() => {
+    try { out[key] = probe(frame.contentDocument, frame.contentWindow); }
+    catch (error) { out[key] = {error: String(error)}; }
+    frame.remove(); load(entries, i + 1);
+  }, 300);
+  frame.src = url; document.body.appendChild(frame);
+}
+load(Object.entries(pages), 0);
+""" % (json.dumps(pages), probe)
+    with tempfile.TemporaryDirectory() as tmp:
+        harness = Path(tmp) / "harness.html"
+        harness.write_text(
+            f"<!doctype html><html><body><script>{script}</script></body></html>",
+            encoding="utf-8",
+        )
+        result = subprocess.run(
+            [chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+             "--no-default-browser-check", "--allow-file-access-from-files",
+             f"--user-data-dir={Path(tmp) / 'profile'}", f"--virtual-time-budget={budget}",
+             "--dump-dom", harness.as_uri()],
+            text=True, capture_output=True, timeout=60,
+        )
+    if result.returncode != 0:
+        raise AssertionError(result.stderr[-1000:])
+    match = re.search(r'data-result="([^"]*)"', result.stdout)
+    if not match:
+        raise AssertionError("iframe harness did not report")
+    return json.loads(html.unescape(match.group(1)))
+
+
+RENDERED_ROUTE_PROBE = r"""
+(doc, win) => {
+  const BLACK = 'rgb(0, 0, 0)';
+  const meta = doc.querySelector('#lesson-root .core30-meta');
+  const drill = doc.querySelectorAll('#lesson-root [data-platform-drill]');
+  const svgs = doc.querySelectorAll('#lesson-root svg.fde-archify');
+  const paint = [];
+  const svg = svgs[0];
+  if (svg) {
+    svg.querySelectorAll('[class]').forEach(el => {
+      const style = win.getComputedStyle(el);
+      for (const name of el.classList) {
+        const kind = name.slice(0, 2);
+        if (!['c-', 'a-', 'm-', 't-'].includes(kind)) continue;
+        if (name === 'c-grid') {
+          if (style.fill !== 'none') paint.push([name, 'fill', style.fill]);
+        } else if (name === 'c-mask') {
+          continue;
+        } else if (kind === 'a-') {
+          if (style.stroke === 'none') paint.push([name, 'stroke', style.stroke]);
+          if (style.fill !== 'none') paint.push([name, 'fill', style.fill]);
+        } else {
+          if (style.fill === 'none' || style.fill === BLACK) paint.push([name, 'fill', style.fill]);
+          if (kind === 'c-' && style.stroke === 'none') paint.push([name, 'stroke', style.stroke]);
+        }
+      }
+    });
+    svg.querySelectorAll('[stroke="var(--mask)"]').forEach(el => {
+      const stroke = win.getComputedStyle(el).stroke;
+      if (stroke !== 'rgb(255, 255, 255)') paint.push(['mask-halo', 'stroke', stroke]);
+    });
+  }
+  doc.documentElement.dataset.theme = 'dark';
+  const darkCanvas = svg ? win.getComputedStyle(svg).backgroundColor : null;
+  const lessons = win.FDE_PLATFORM_LESSONS || {};
+  const lesson = lessons[doc.body.getAttribute('data-lesson')];
+  const result = {};
+  if (drill[0] && lesson) {
+    const host = drill[0];
+    const status = host.querySelector('.capstone-drill-status');
+    const pick = value => host.querySelector('input[value="' + value + '"]').click();
+    const wrong = [0, 1, 2].find(value => value !== lesson.drill.answer);
+    pick(wrong); host.querySelector('[data-drill-check]').click();
+    result.wrong = status.classList.contains('is-correct');
+    host.querySelector('[data-drill-reset]').click();
+    pick(lesson.drill.answer); host.querySelector('[data-drill-check]').click();
+    result.right = status.classList.contains('is-correct');
+  }
+  return {
+    meta: meta ? meta.innerText.replace(/\s+/g, ' ').trim() : '',
+    drills: drill.length,
+    options: drill[0] ? drill[0].querySelectorAll('input[type=radio]').length : 0,
+    future: doc.querySelectorAll('.ix-future').length,
+    svgs: svgs.length,
+    shapes: svg ? svg.querySelectorAll('[class^="c-"]').length : 0,
+    paint: paint,
+    darkCanvas: darkCanvas,
+    drillResult: result,
+    unavailable: !!doc.querySelector('#lesson-root .lesson-load-error')
+  };
+}
+"""
+
+
 class PageParser(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
@@ -31,9 +142,12 @@ class PageParser(HTMLParser):
         self.noscript_depth = 0
         self.noscript_text = []
         self.meta = {}
+        self.archify_visuals = 0
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
+        if "data-archify-visual" in attrs:
+            self.archify_visuals += 1
         if tag == "script" and attrs.get("src"):
             self.scripts.append(attrs["src"].split("?", 1)[0])
         if tag == "a" and attrs.get("href"):
@@ -104,19 +218,42 @@ class PlatformCore30Test(unittest.TestCase):
     def test_route_shells_load_shared_assets_and_no_retired_runtime(self):
         for day_id, lesson in self.lessons.items():
             page = ROOT / "weeks" / f"w{lesson['week']:02}" / f"{day_id}.html"
-            text = page.read_text(encoding="utf-8")
             parser = PageParser()
-            parser.feed(text)
+            parser.feed(page.read_text(encoding="utf-8"))
             self.assertEqual(parser.meta["fde-day"], day_id)
             self.assertIn("../../assets/js/curriculum-lessons-w07-w08.js", parser.scripts)
             self.assertIn("../../assets/js/platform-lesson.js", parser.scripts)
             self.assertNotIn("../../assets/js/interactive-w7-trace.js", parser.scripts)
             self.assertNotIn("../../assets/js/interactive-security.js", parser.scripts)
-            self.assertIn("Core 30", text)
-            self.assertIn("1 interaction", text)
-            self.assertIn("6-Q check", text)
-            self.assertNotIn("ix-future", text)
-            self.assertEqual(text.count("data-archify-visual"), 1)
+            self.assertEqual(parser.archify_visuals, 1, day_id)
+
+    def test_rendered_routes_expose_pacing_drill_and_readable_visual(self):
+        chrome = find_chrome()
+        if not chrome:
+            self.skipTest("Chrome/Chromium is unavailable")
+        pages = {
+            day_id: (ROOT / "weeks" / f"w{lesson['week']:02}" / f"{day_id}.html").as_uri()
+            for day_id, lesson in self.lessons.items()
+        }
+        rendered = run_iframe_harness(chrome, pages, RENDERED_ROUTE_PROBE, budget=15000)
+        self.assertEqual(set(rendered), set(DAY_IDS))
+        for day_id, page in rendered.items():
+            with self.subTest(day=day_id):
+                self.assertNotIn("error", page)
+                self.assertFalse(page["unavailable"])
+                lesson = self.lessons[day_id]
+                self.assertIn("Core 30", page["meta"])
+                self.assertIn("1 interaction", page["meta"])
+                self.assertIn("6-Q check", page["meta"])
+                self.assertIn(f"~{lesson['_pacing']['requiredMinutes']} min required", page["meta"])
+                self.assertEqual(page["drills"], 1)
+                self.assertEqual(page["options"], 3)
+                self.assertEqual(page["drillResult"], {"wrong": False, "right": True})
+                self.assertEqual(page["future"], 0)
+                self.assertEqual(page["svgs"], 1)
+                self.assertGreater(page["shapes"], 0)
+                self.assertEqual(page["paint"], [])
+                self.assertEqual(page["darkCanvas"], "rgb(255, 255, 255)")
 
     def test_no_javascript_path_contains_every_required_section_and_check(self):
         for day_id, lesson in self.lessons.items():
@@ -160,12 +297,7 @@ class PlatformCore30Test(unittest.TestCase):
         self.assertFalse(result["bad"]["correct"])
 
     def test_browser_renders_desktop_mobile_dark_reduced_and_no_javascript(self):
-        candidates = [
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            "/Applications/Chromium.app/Contents/MacOS/Chromium",
-        ]
-        candidates.extend(filter(None, (shutil.which(name) for name in ("google-chrome", "chromium"))))
-        chrome = next((item for item in candidates if Path(item).exists()), None)
+        chrome = find_chrome()
         if not chrome:
             self.skipTest("Chrome/Chromium is unavailable")
         cases = [
@@ -207,12 +339,7 @@ class PlatformCore30Test(unittest.TestCase):
         self.assertIn("Comprehension check", result.stdout)
 
     def test_learner_trainer_client_and_week9_continuity_surfaces(self):
-        candidates = [
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            "/Applications/Chromium.app/Contents/MacOS/Chromium",
-        ]
-        candidates.extend(filter(None, (shutil.which(name) for name in ("google-chrome", "chromium"))))
-        chrome = next((item for item in candidates if Path(item).exists()), None)
+        chrome = find_chrome()
         if not chrome:
             self.skipTest("Chrome/Chromium is unavailable")
         pages = {
