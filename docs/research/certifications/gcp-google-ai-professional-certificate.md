@@ -72,8 +72,10 @@ The certificate is a no-experience-required workplace AI-fluency credential buil
 Google's AI apps. This program is a mid-to-senior engineering curriculum that builds
 and operates AI systems. Overlap is thematic — prompting, planning, research
 summaries, stakeholder communication, and AI-assisted app building — and the program
-covers those themes at build-it depth through its shared lessons. Two courses (AI for
-Content Creation; AI for Data Analysis in Sheets) have no lesson in the program, and
+covers those themes at build-it depth through its shared lessons. Three courses (AI for
+Content Creation; AI for Data Analysis in Sheets; AI for App Deployment) have no lesson
+in the program (re-checked 2026-10-14 after Weeks 5–6 were replaced by the Neo4j and
+Kafka curriculum), and
 the GCP provider blocks (Gemini Enterprise Agent Platform engineering) go beyond the
 certificate's app-level tools. `certifications.html` shows each course's lesson
 anchors and gaps.

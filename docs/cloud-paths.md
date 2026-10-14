@@ -88,8 +88,9 @@ in the Week 6 ADR, and the second provider is the comparison substrate. Terrafor
 
 - **GCP certificate fit.** The Google AI Professional Certificate is a
   no-experience-required, app-level AI-fluency credential; this program teaches the
-  overlapping themes at engineering depth. Two of its courses (content creation; data
-  analysis in Sheets) have no lesson, and its page disagrees with itself on course
+  overlapping themes at engineering depth. Three of its courses (content creation; data
+  analysis in Sheets; app deployment) have no lesson since Weeks 5–6 became the Neo4j
+  and Kafka curriculum, and its page disagrees with itself on course
   count (eight listed, "seven" stated). Per-course syllabi were not fetched
   (`docs/research/certifications/gcp-google-ai-professional-certificate.md`).
 - **Held PR overlap.** Lessons rewritten by held PR #15 (W1 D1/D2a/D4a/D5, W2 D4/D5)

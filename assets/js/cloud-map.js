@@ -38,12 +38,12 @@
     // LTM ten-week mapping for the live weeks these anchors sit in.
     ltmWeekOf: {
       w01: "W1", w02: "W2", w03: "W3", w04: "W4 (D4–D5 = LTM W5 Neo4j)",
-      w05: "distributed (spec discipline)", w06: "distributed (AI SDLC)",
+      w05: "W5 Neo4j", w06: "W6 Kafka",
       w07: "W8 Observability", w08: "W9 Security"
     },
     objectives: {
       "aip-c01": {
-        "1.1": [L("w01/d3b"), L("w05/w05d2")],
+        "1.1": [L("w01/d3b")],
         "1.2": [L("w01/d2a"), L("w01/d1"), P("w02/w02d2")],
         "1.3": [L("w02/w02d1")],
         "1.4": [L("w02/w02d2"), L("w02/w02d5"), P("w02/w02d2")],
@@ -51,9 +51,9 @@
         "1.6": [L("w01/d3a"), L("w01/d4a")],
         "2.1": [L("w03/w03d1"), L("w03/w03d2"), L("w03/w03d5"), P("w03/w03d2"), P("w03/w03d3"), P("w03/w03d4"), P("w04/w04d3")],
         "2.2": [L("w01/d2a"), P("w01/d2b"), P("w04/w04d3")],
-        "2.3": [L("w03/w03d2"), L("w06/w06d4"), P("w03/w03d2"), P("w04/w04d4")],
+        "2.3": [L("w03/w03d2"), L("w06/w06d1"), L("w06/w06d4"), P("w03/w03d2"), P("w04/w04d4")],
         "2.4": [L("w01/d2b"), P("w01/d2b"), L("w01/d5")],
-        "2.5": [L("w06/w06d1"), L("w06/w06d2"), P("w03/w03d3")],
+        "2.5": [L("w01/d1"), P("w03/w03d3")],
         "3.1": [L("w01/d4b"), P("w01/d4b"), L("w08/w08d2")],
         "3.2": [L("w08/w08d4"), P("w03/w03d4"), P("w04/w04d4")],
         "3.3": [L("w08/w08d4")],
@@ -69,13 +69,13 @@
       // teach the course's theme at engineering depth; empty = not taught.
       "gaipc": {
         "1": [L("w01/d1"), L("w01/d3a")],
-        "2": [L("w05/w05d4"), L("w06/w06d2")],
+        "2": [L("w01/d3b")],
         "3": [L("w02/w02d1"), L("w04/w04d3")],
-        "4": [L("w01/d3b"), L("w05/w05d2")],
+        "4": [L("w01/d3b"), L("w06/w06d5")],
         "5": [],
         "6": [],
-        "7": [L("w06/w06d1"), L("w06/w06d2")],
-        "8": [L("w06/w06d5")]
+        "7": [L("w01/d1")],
+        "8": []
       }
     }
   });

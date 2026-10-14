@@ -34,7 +34,7 @@ test("objectives carry resolvable lesson anchors and an honest coverage count", 
   assert.ok(cert.domains.every((d) => d.objectives.length === 1 && d.objectives[0].domainLevel), "courses map at course level");
   assert.ok(cert.coverage.covered < cert.coverage.total, "courses with no lesson are reported, not hidden");
   const gaps = cert.domains.filter((d) => !d.objectives[0].anchors.length).map((d) => d.title);
-  assert.deepEqual(gaps, ["AI for Content Creation", "AI for Data Analysis"]);
+  assert.deepEqual(gaps, ["AI for Content Creation", "AI for Data Analysis", "AI for App Deployment"]);
 });
 
 test("provider pages link to both paths", () => {
