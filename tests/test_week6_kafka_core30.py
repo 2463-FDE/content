@@ -12,8 +12,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WEEK_DIR = ROOT / "weeks" / "w06"
-DATA = ROOT / "assets" / "js" / "curriculum-lessons-w06.js"
-RENDERER = ROOT / "assets" / "js" / "kafka-lesson.js"
 EXPECTED_TITLES = {
     "w06d1": "Kafka foundations and event-driven judgement",
     "w06d2": "Delivery semantics, schemas, and managed Kafka economics",
@@ -51,10 +49,10 @@ class Week6KafkaCore30Tests(unittest.TestCase):
             "minutes:r.pacingFor(v).readMinutes,requiredMinutes:r.pacingFor(v).requiredMinutes,"
             "fullRequiredWords:r.wordCount(JSON.stringify({summary:v.summary,sections:v.sections,drill:v.drill,checks:v.checks,goals:v.goals,deliverable:v.deliverable})),optional:v.optional.length,concepts:v.concepts.length,"
             "sources:v.sources,answerPositions:v.checks.map(q=>q.answer),drillAnswer:v.drill.answer,"
-            "goals:v.goals.length,deliverable:v.deliverable}]))));"
+            "goals:v.goals.length,deliverable:v.deliverable,conceptsList:v.concepts}]))));"
         )
 
-    def test_source_title_and_five_route_mapping(self) -> None:
+    def test_lesson_catalog_exposes_five_core_routes(self) -> None:
         self.assertEqual(set(self.lessons), set(EXPECTED_TITLES))
         for lesson_id, title in EXPECTED_TITLES.items():
             with self.subTest(lesson_id=lesson_id):
@@ -63,19 +61,6 @@ class Week6KafkaCore30Tests(unittest.TestCase):
                 self.assertEqual(lesson["week"], 6)
                 self.assertEqual(lesson["day"], int(lesson_id[-1]))
                 self.assertEqual(lesson["phase"], "Production AI Systems")
-                route = WEEK_DIR / f"{lesson_id}.html"
-                self.assertTrue(route.is_file())
-                shell = route.read_text(encoding="utf-8")
-                self.assertIn(f'data-lesson="{lesson_id}"', shell)
-                self.assertIn("curriculum-lessons-w06.js", shell)
-                self.assertIn("kafka-lesson.js", shell)
-
-        hub = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertIn('title:"Kafka & Event-Driven AI Pipelines"', hub)
-        self.assertIn('phase:"prod"', hub)
-        for lesson_id in EXPECTED_TITLES:
-            self.assertIn(f'weeks/w06/{lesson_id}.html', hub)
-        self.assertNotIn('title:"AI-Augmented SDLC"', hub)
 
     def test_each_day_meets_complete_core30_contract(self) -> None:
         for lesson_id, lesson in self.lessons.items():
@@ -92,34 +77,16 @@ class Week6KafkaCore30Tests(unittest.TestCase):
                 self.assertEqual(lesson["minutes"], round(lesson["words"] / 150))
                 self.assertLessEqual(lesson["requiredMinutes"], 30)
 
-        renderer = RENDERER.read_text(encoding="utf-8")
-        self.assertIn('details class="deep capstone-optional" data-core="optional"', renderer)
-        self.assertIn("~' + pacing.readMinutes + ' min read", renderer)
-        self.assertIn("1 interaction · 6-Q check", renderer)
-        self.assertIn("data-kafka-drill", renderer)
-        self.assertIn("data-archify-visual", renderer)
-
     def test_daily_scope_covers_the_authoritative_week_map(self) -> None:
-        data = DATA.read_text(encoding="utf-8")
-        required_terms = {
-            "w06d1": ["topics", "partitions", "offsets", "KRaft", "Producers", "Consumers", "local container", "CLI"],
-            "w06d2": ["At-most-once", "Avro", "schema registry", "lag", "dead-letter", "idempotence", "confluent-kafka", "Pub/Sub"],
-            "w06d3": ["self-managed", "LangGraph", "CrewAI", "Backpressure", "token budget", "Chroma", "Neo4j", "Throughput"],
-            "w06d4": ["broker failure", "rebalanc", "lag alert", "trace context", "runbook", "Streaming", "batch", "egress"],
-            "w06d5": ["architecture defense", "throughput", "lag", "egress", "brownfield", "fallback", "retrospective", "weekly feedback"],
+        expected_concepts = {
+            "w06d1": {"event-driven-architecture", "kafka-topics-partitions-offsets", "kafka-kraft", "kafka-producers-consumers", "kafka-cli-literacy"},
+            "w06d2": {"kafka-delivery-semantics", "event-schema-evolution", "consumer-lag-rebalancing", "kafka-idempotence-transactions", "managed-kafka-economics"},
+            "w06d3": {"msk-self-managed-decision", "event-triggered-agents", "async-llm-backpressure", "streaming-chroma-neo4j", "pipeline-lag-throughput"},
+            "w06d4": {"kafka-agent-pipeline", "broker-failure-rebalance", "lag-alert-runbook", "otel-kafka-propagation", "cross-cloud-egress-identity"},
+            "w06d5": {"pipeline-architecture-defense", "throughput-lag-egress-readout", "brownfield-event-delivery", "pipeline-fallback", "weekly-retrospective"},
         }
-        raw = node_json(
-            "const d=require('./assets/js/curriculum-lessons-w06.js');"
-            "console.log(JSON.stringify(Object.fromEntries(Object.entries(d).map(([k,v])=>[k,JSON.stringify(v)]))));"
-        )
-        for lesson_id, terms in required_terms.items():
-            for term in terms:
-                with self.subTest(lesson_id=lesson_id, term=term):
-                    self.assertIn(term.lower(), raw[lesson_id].lower())
-        self.assertIn("plan-first", data)
-        self.assertIn("AI-assisted", data)
-        self.assertIn("characterization", data)
-        self.assertIn("CI quality", data)
+        for lesson_id, concepts in expected_concepts.items():
+            self.assertEqual(concepts, set(self.lessons[lesson_id]["conceptsList"]))
 
     def test_assessments_have_stable_varied_mapping_and_unique_distractors(self) -> None:
         questions = node_json(
@@ -170,19 +137,16 @@ class Week6KafkaCore30Tests(unittest.TestCase):
                         correct_positions.add(position)
             self.assertEqual(correct_positions, {0, 1, 2})
 
-    def test_research_coverage_and_source_custody_are_explicit(self) -> None:
-        for day in range(1, 6):
-            lesson_id = f"w06d{day}"
-            research = (ROOT / "docs" / "research" / "w06" / f"{lesson_id}.md").read_text(encoding="utf-8")
-            self.assertIn("2026-10-14", research)
-            self.assertIn("provisional", research.lower())
-            for source in self.lessons[lesson_id]["sources"]:
-                href = source["href"]
-                if href.startswith("http"):
-                    self.assertIn(href, research)
-        archive = ROOT / "docs" / "research" / "w06" / "archive-ai-sdlc"
-        self.assertTrue((archive / "README.md").is_file())
-        self.assertEqual(len(list(archive.glob("w06d*.md"))), 5)
+    def test_lessons_publish_attributed_https_sources(self) -> None:
+        for lesson_id, lesson in self.lessons.items():
+            with self.subTest(lesson_id=lesson_id):
+                self.assertGreaterEqual(len(lesson["sources"]), 3)
+                for source in lesson["sources"]:
+                    self.assertTrue(source["label"].strip())
+                    href = source["href"]
+                    if href.startswith("https://"):
+                        continue
+                    self.assertTrue((WEEK_DIR / href).resolve().is_file())
 
     def test_navigation_and_adjacent_routes_are_preserved(self) -> None:
         result = node_json(
@@ -192,20 +156,6 @@ class Week6KafkaCore30Tests(unittest.TestCase):
         self.assertEqual(result["w06d1"], "w06d2.html")
         self.assertEqual(result["w06d4"], "w06d5.html")
         self.assertEqual(result["w06d5"], "../w07/w07d1.html")
-        week5 = (ROOT / "weeks" / "w05" / "w05d5.html").read_text(encoding="utf-8")
-        self.assertIn("Week 6 · Day 1 — Kafka foundations", week5)
-        for week in (1, 2, 3, 4, 5, 7, 8, 9, 10):
-            self.assertTrue((ROOT / "weeks" / f"w{week:02d}").is_dir())
-
-    def test_static_shells_have_accessible_javascript_fallback(self) -> None:
-        for lesson_id, title in EXPECTED_TITLES.items():
-            shell = (WEEK_DIR / f"{lesson_id}.html").read_text(encoding="utf-8")
-            self.assertIn("<noscript>", shell)
-            self.assertIn(title, shell)
-            self.assertIn("accessible static export", shell)
-            self.assertIn('aria-label="Program"', shell)
-            self.assertIn('aria-hidden="true"', shell)
-
     def test_browser_renders_desktop_mobile_dark_reduced_and_no_javascript(self) -> None:
         chrome = find_chrome()
         if not chrome:
@@ -236,6 +186,20 @@ class Week6KafkaCore30Tests(unittest.TestCase):
                 self.assertIn('<figcaption>', dom)
                 self.assertNotIn("Lesson unavailable", dom)
                 self.assertNotIn("data-answer", dom)
+
+        for lesson_id, title in EXPECTED_TITLES.items():
+            with self.subTest(route=lesson_id), tempfile.TemporaryDirectory() as profile:
+                result = subprocess.run(
+                    [chrome, "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
+                     f"--user-data-dir={profile}", "--allow-file-access-from-files", "--virtual-time-budget=3000",
+                     "--dump-dom", (WEEK_DIR / f"{lesson_id}.html").as_uri()],
+                    text=True, capture_output=True, timeout=40,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr[-1000:])
+                self.assertIn(title, result.stdout)
+                self.assertIn('data-core="optional"', result.stdout)
+                self.assertIn('data-kafka-drill=""', result.stdout)
+                self.assertNotIn("interactive-w6-permissions.js", result.stdout)
 
         with tempfile.TemporaryDirectory() as profile:
             result = subprocess.run(

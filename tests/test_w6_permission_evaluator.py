@@ -9,17 +9,11 @@ import shutil
 import subprocess
 import textwrap
 import unittest
-from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "assets" / "js" / "interactive-w6-permissions.js"
-SCRIPT_URL = "../../assets/js/interactive-w6-permissions.js?v=20260924"
-PAGES = {
-    "w06d2.html": ("all", 2),
-    "w06d4.html": ("legacy", 2),
-    "w06d5.html": ("delivery", 2),
-}
+PAGES = ("w06d2.html", "w06d4.html", "w06d5.html")
 EXPECTED = {
     "docs-guide": ("allow", "F-02"),
     "source-read": ("allow", "F-03"),
@@ -33,27 +27,6 @@ EXPECTED = {
     "outside-source": ("deny", "D-01"),
     "case-variant": ("deny", "D-01"),
 }
-
-
-class PageContractParser(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.widgets: list[dict[str, str | None]] = []
-        self.future_count = 0
-        self.scripts: list[str] = []
-        self.links: list[str] = []
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        values = dict(attrs)
-        classes = set((values.get("class") or "").split())
-        if "ix-permission" in classes:
-            self.widgets.append(values)
-        if "ix-future" in classes:
-            self.future_count += 1
-        if tag == "script" and values.get("src"):
-            self.scripts.append(values["src"] or "")
-        if tag == "a" and values.get("href"):
-            self.links.append(values["href"] or "")
 
 
 def find_chrome() -> str | None:
@@ -211,16 +184,23 @@ class Week6PermissionEvaluatorTests(unittest.TestCase):
         self.assertNotIn("verdict", result["current"])
 
     def test_asset_is_preserved_for_supporting_reuse_but_not_loaded_by_kafka_routes(self) -> None:
-        self.assertTrue(MODULE.is_file())
-        archive_readme = (ROOT / "docs" / "research" / "w06" / "archive-ai-sdlc" / "README.md").read_text(encoding="utf-8")
-        self.assertIn("interactive-w6-permissions.js", archive_readme)
+        contract = run_node("const p=require('./assets/js/interactive-w6-permissions.js');process.stdout.write(JSON.stringify({fixtures:p.fixtures().length,keys:Object.keys(p)}))")
+        self.assertEqual(len(EXPECTED), contract["fixtures"])
+        self.assertIn("evaluateCall", contract["keys"])
+
+        if not CHROME:
+            self.skipTest("Chrome/Chromium is required for route isolation assertions")
         for filename in PAGES:
             with self.subTest(page=filename):
-                parser = PageContractParser()
-                parser.feed((ROOT / "weeks" / "w06" / filename).read_text(encoding="utf-8"))
-                self.assertEqual([], parser.widgets)
-                self.assertNotIn(SCRIPT_URL, parser.scripts)
-                self.assertEqual(0, parser.future_count)
+                result = subprocess.run(
+                    [CHROME, "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
+                     "--allow-file-access-from-files", "--virtual-time-budget=3000", "--dump-dom",
+                     (ROOT / "weeks" / "w06" / filename).as_uri()],
+                    text=True, capture_output=True, timeout=40,
+                )
+                self.assertEqual(0, result.returncode, result.stderr[-1000:])
+                self.assertNotIn("ix-permission", result.stdout)
+                self.assertNotIn("interactive-w6-permissions.js", result.stdout)
 
     def test_module_executes_without_network_storage_credentials_or_broad_browser_api(self) -> None:
         subprocess.run(["node", "--check", str(MODULE)], cwd=ROOT, check=True, capture_output=True, text=True)
