@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import html
 import re
 import shutil
 import subprocess
@@ -206,19 +207,7 @@ class Week5Neo4jWave1Tests(unittest.TestCase):
                 self.assertIsNone(forbidden.search(code))
                 self.assertEqual(1, sum("codeviewer.js" in (s.attrs.get("src") or "") for s in page.root.find_all("script")))
 
-    def test_hub_packets_research_and_archify_gate_are_aligned(self) -> None:
-        hub = (ROOT / "index.html").read_text(encoding="utf-8")
-        trainer = (ROOT / "trainer.html").read_text(encoding="utf-8")
-        packets = (ROOT / "client-delivery.html").read_text(encoding="utf-8")
-        alt = (ROOT / "alt-research.html").read_text(encoding="utf-8")
-        self.assertIn('title:"Neo4j Knowledge Graphs & Context Engineering"', hub)
-        self.assertNotIn('title:"Spec-Driven Dev & Problem Scoping"', hub)
-        self.assertIn("Demo Neo4j", trainer)
-        self.assertEqual(2, packets.count('title: "Neo4j Knowledge Graphs & Context Engineering"'))
-        self.assertNotIn('title: "Spec-Driven Dev & Problem Scoping"', packets)
-        self.assertIn('title: "Neo4j Knowledge Graphs & Context Engineering"', alt)
-        self.assertNotIn('title: "Spec-Driven Dev & Problem Scoping"', alt)
-
+    def test_research_and_archify_document_contracts_are_aligned(self) -> None:
         for path in sorted((ROOT / "docs" / "research" / "w05").glob("w05d*.md")):
             record = path.read_text(encoding="utf-8")
             self.assertIn("2026-10-14", record)
@@ -229,6 +218,86 @@ class Week5Neo4jWave1Tests(unittest.TestCase):
         self.assertIn("do not install or execute", archify)
         self.assertIn("<title>", archify)
         self.assertIn("<desc>", archify)
+
+    def test_browser_renders_week5_across_hub_trainer_and_delivery_surfaces(self) -> None:
+        chrome = find_chrome()
+        if not chrome:
+            self.skipTest("Chrome/Chromium is unavailable")
+        pages = {
+            "hub": (ROOT / "index.html").as_uri(),
+            "trainer": (ROOT / "trainer.html").as_uri(),
+            "healthcare": (ROOT / "client-delivery.html").as_uri() + "?w=5&p=healthcare",
+            "finance": (ROOT / "client-delivery.html").as_uri() + "?w=5&p=finance",
+            "research": (ROOT / "alt-research.html").as_uri() + "?w=5",
+        }
+        harness_script = r"""
+const pages = %s, out = {};
+localStorage.setItem('fde_identity', JSON.stringify({code:'T', name:'Trainer Test', role:'trainer'}));
+function load(keys, i) {
+  if (i >= keys.length) { document.body.dataset.result = JSON.stringify(out); return; }
+  const key = keys[i], frame = document.createElement('iframe');
+  frame.onload = () => setTimeout(() => {
+    const d = frame.contentDocument;
+    if (key === 'hub') {
+      const week = [...d.querySelectorAll('.cal-week')].find(el => el.querySelector('.ww')?.textContent.trim() === 'Week 5');
+      const days = [];
+      let cell = week && week.nextElementSibling;
+      for (let n = 0; cell && n < 5; n++, cell = cell.nextElementSibling) {
+        days.push({title: cell.querySelector('.ct-link')?.textContent.trim() || '', href: cell.querySelector('.ct-link')?.getAttribute('href') || ''});
+      }
+      out[key] = {title: week?.querySelector('.wt')?.textContent.trim() || '', days};
+    } else if (key === 'trainer') {
+      const link = [...d.querySelectorAll('.tr-curriculum-actions a')].find(el => el.textContent.trim() === 'Demo Neo4j');
+      out[key] = {text: d.querySelector('.tr-curriculum')?.textContent.replace(/\s+/g, ' ').trim() || '', href: link?.getAttribute('href') || ''};
+    } else {
+      out[key] = {title: d.querySelector('#panel h2')?.textContent.trim() || ''};
+    }
+    frame.remove(); load(keys, i + 1);
+  }, 350);
+  frame.src = pages[key]; document.body.appendChild(frame);
+}
+load(Object.keys(pages), 0);
+""" % json.dumps(pages)
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp) / "w5-surface-harness.html"
+            harness.write_text(
+                f"<!doctype html><html><body><script>{harness_script}</script></body></html>",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    "--no-default-browser-check", "--allow-file-access-from-files",
+                    f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=9000",
+                    "--dump-dom", harness.as_uri(),
+                ],
+                text=True, capture_output=True, timeout=40,
+            )
+        self.assertEqual(0, result.returncode, result.stderr[-1000:])
+        match = re.search(r'data-result="([^"]*)"', result.stdout)
+        self.assertIsNotNone(match, "surface harness did not report")
+        rendered = json.loads(html.unescape(match.group(1)))
+        title = "Neo4j Knowledge Graphs & Context Engineering"
+        self.assertEqual(title, rendered["hub"]["title"])
+        self.assertEqual(
+            [
+                "Property-graph domain model",
+                "Governed graph schema",
+                "GraphRAG construction",
+                "Production context engineering",
+                "GraphRAG model review",
+            ],
+            [day["title"] for day in rendered["hub"]["days"]],
+        )
+        self.assertEqual(
+            [f"weeks/w05/w05d{day}.html" for day in range(1, 6)],
+            [day["href"] for day in rendered["hub"]["days"]],
+        )
+        self.assertIn("Week 5 Neo4j/context engineering live", rendered["trainer"]["text"])
+        self.assertEqual("weeks/w05/w05d1.html", rendered["trainer"]["href"])
+        self.assertEqual(title, rendered["healthcare"]["title"])
+        self.assertEqual(title, rendered["finance"]["title"])
+        self.assertEqual(title, rendered["research"]["title"])
 
     def test_browser_renders_diagram_and_meaningful_no_js_fallback(self) -> None:
         chrome = find_chrome()
