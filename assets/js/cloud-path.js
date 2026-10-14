@@ -279,6 +279,14 @@
     return match ? match[1] : "";
   }
 
+  /* Cache-busting query (?v=…) carried by our own script tag, if any. */
+  function assetVersion(doc) {
+    var script = doc.querySelector ? doc.querySelector("script[src*='cloud-path.js']") : null;
+    var src = script ? script.getAttribute("src") : "";
+    var match = /cloud-path\.js\?(?:[^#]*&)?v=([^&#]+)/.exec(src || "");
+    return match ? match[1] : "";
+  }
+
   function ensureStyles(doc) {
     if (!doc.querySelector || doc.querySelector("link[data-cloud-path-css]")) return;
     var existing = doc.querySelector("link[href*='cloud-path.css']");
@@ -288,7 +296,8 @@
     var link = doc.createElement("link");
     link.rel = "stylesheet";
     link.setAttribute("data-cloud-path-css", "");
-    link.href = siteRoot(doc) + "assets/css/cloud-path.css";
+    var version = assetVersion(doc);
+    link.href = siteRoot(doc) + "assets/css/cloud-path.css" + (version ? "?v=" + encodeURIComponent(version) : "");
     doc.head.appendChild(link);
   }
 
@@ -313,6 +322,7 @@
     fromSearch: fromSearch,
     resolve: resolve,
     siteRoot: siteRoot,
+    assetVersion: assetVersion,
     effective: effective,
     describe: describe,
     roleOf: roleOf,

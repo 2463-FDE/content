@@ -217,7 +217,22 @@ test("init on a lesson: the selected path opens, the substrate collapses, labels
   assert.equal(doc.documentElement.getAttribute("data-cloud-view"), "gcp");
   assert.ok(doc.querySelector(".cloud-chip .cloud-picker"), "a compact picker is mounted on the lesson");
   assert.ok(doc.querySelector("link[data-cloud-path-css]"), "path styles are attached");
-  assert.equal(doc.querySelector("link[data-cloud-path-css]").getAttribute("href") || doc.querySelector("link[data-cloud-path-css]").href, "../../assets/css/cloud-path.css");
+  assert.equal(doc.querySelector("link[data-cloud-path-css]").getAttribute("href") || doc.querySelector("link[data-cloud-path-css]").href, "../../assets/css/cloud-path.css?v=1");
+});
+
+test("injected path styles carry the script's cache-busting version, or none without one", () => {
+  for (const [src, href] of [
+    ["assets/js/cloud-path.js?v=20261014-c2", "assets/css/cloud-path.css?v=20261014-c2"],
+    ["../assets/js/cloud-path.js?x=1&v=7", "../assets/css/cloud-path.css?v=7"],
+    ["../../assets/js/cloud-path.js", "../../assets/css/cloud-path.css"],
+  ]) {
+    const cp = fresh();
+    const { doc } = lessonDoc();
+    doc.querySelector("script[src*='cloud-path.js']").setAttribute("src", src);
+    withWindow("", memoryStore(), memoryStore(), () => cp.init(doc));
+    const link = doc.querySelector("link[data-cloud-path-css]");
+    assert.equal(link.getAttribute("href") || link.href, href);
+  }
 });
 
 test("a deep link does not overwrite the saved choice, but an explicit pick does", () => {
