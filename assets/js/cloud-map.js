@@ -33,11 +33,11 @@
       "w03/w03d4": { ltm: "W3 · WED", title: "Agent memory" },
       "w03/w03d5": { ltm: "W3 · THU/FRI", title: "Production single agent and tracing" },
       "w04/w04d3": { ltm: "W4 · WED/FRI", title: "Multi-agent framework landscape" },
-      "w04/w04d4": { ltm: "W5 · MON–THU (Neo4j)", title: "Knowledge graphs & Cypher" }
+      "w04/w04d4": { ltm: "W4 · THU (bridges to W5 Neo4j)", title: "Knowledge graphs & Cypher" }
     },
     // LTM ten-week mapping for the live weeks these anchors sit in.
     ltmWeekOf: {
-      w01: "W1", w02: "W2", w03: "W3", w04: "W4 (D4–D5 = LTM W5 Neo4j)",
+      w01: "W1", w02: "W2", w03: "W3", w04: "W4",
       w05: "W5 Neo4j", w06: "W6 Kafka",
       w07: "W8 Observability", w08: "W9 Security"
     },
