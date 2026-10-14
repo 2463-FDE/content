@@ -6,6 +6,7 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Run static curriculum regressions with `python3 -m unittest discover -s tests -v`. `tests/test_curriculum_currency.py` validates the public HTML/embedded-JS contract for the Week 3–4 currency slice.
 - Read-only lesson code popups use `assets/js/codeviewer.js`, shared modal behavior in `assets/js/modals.js`, and the `.code-cta` / `.code-modal` styles in `assets/css/style.css`.
 - Week 9–10 routes are thin shells over `assets/js/curriculum-lessons-w09-w10.js` and `assets/js/capstone-lesson.js`; batch/client/cloud-lane presentation config is single-source in `assets/js/curriculum-config.js`.
+- Captain approved Archify `tt-a1i/archify` v3.0.1 for useful architecture/data-flow visuals, but do not install or execute it until the dedicated source-verification report confirms the pinned safe path. Required outputs must be inline, accessible, runtime-independent SVGs with recorded provenance.
 
 ## Maintaining this file
 

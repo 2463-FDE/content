@@ -1391,17 +1391,19 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
 .capstone-kicker { margin-bottom:7px; color:var(--accent-ink); font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
 .capstone-lesson .step { min-height:34vh; }
 .capstone-lesson .capstone-optional { max-width:var(--maxprose); margin:16px 0 32px; }
-.capstone-drill { margin:20px 0 6px; padding:18px; border:1px solid var(--accent-line); border-radius:12px; background:var(--accent-soft); }
-.capstone-drill fieldset { margin:8px 0 0; padding:0; border:0; }
-.capstone-drill legend { margin-bottom:10px; font-weight:750; line-height:1.45; }
-.capstone-drill label { display:flex; align-items:flex-start; gap:9px; min-height:44px; margin:7px 0; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--surface); cursor:pointer; }
-.capstone-drill label:hover { border-color:var(--accent); }
-.capstone-drill input { margin-top:5px; accent-color:var(--accent); }
-.capstone-drill-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:12px; }
-.capstone-drill .ix-btn { border-color:var(--accent-ink); color:var(--accent-ink); }
-.capstone-drill .secondary { border-color:var(--line); color:var(--ink-soft); }
-.capstone-drill-status { min-height:1.7em; margin:12px 0 0; color:var(--bad-ink); font-weight:650; }
-.capstone-drill-status.is-correct { color:var(--good-ink); }
+.capstone-drill, .w5-lab { margin:20px 0 6px; padding:18px; border:1px solid var(--accent-line); border-radius:12px; background:var(--accent-soft); }
+.capstone-drill fieldset, .w5-lab fieldset { margin:8px 0 0; padding:0; border:0; }
+.capstone-drill legend, .w5-lab legend { margin-bottom:10px; font-weight:750; line-height:1.45; }
+.capstone-drill label, .w5-lab label { display:flex; align-items:flex-start; gap:9px; min-height:44px; margin:7px 0; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--surface); cursor:pointer; }
+.capstone-drill label:hover, .w5-lab label:hover { border-color:var(--accent); }
+.capstone-drill input, .w5-lab input { margin-top:5px; accent-color:var(--accent); }
+.capstone-drill-actions, .w5-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:12px; }
+.capstone-drill .ix-btn, .w5-lab .ix-btn { border-color:var(--accent-ink); color:var(--accent-ink); }
+.capstone-drill .secondary, .w5-lab .secondary { border-color:var(--line); color:var(--ink-soft); }
+.capstone-drill-status, .w5-status { min-height:1.7em; margin:12px 0 0; color:var(--bad-ink); font-weight:650; }
+.capstone-drill-status.is-correct, .w5-status.is-correct { color:var(--good-ink); }
+.w5-noscript, .diagram-fallback { padding:10px 12px; border:1px dashed var(--line); border-radius:8px; background:var(--surface-2); color:var(--ink-soft); font-size:13px; line-height:1.5; }
+.diagram-fallback { margin-top:10px; }
 .lesson-loading, .lesson-load-error { max-width:720px; margin:72px auto; padding:28px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
 
 @media (max-width:1180px) {
@@ -1418,7 +1420,7 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
   .batch-context--compact button { min-width:44px; padding-inline:6px; font-size:0; }
   .batch-context--compact button::after { content:"Set"; font-size:12px; }
   .curriculum-hub-intro { margin-inline:-12px; padding:20px; border-radius:12px; }
-  .capstone-drill { padding:14px; }
+  .capstone-drill, .w5-lab { padding:14px; }
   .capstone-lesson .step { min-height:0; }
 }
 

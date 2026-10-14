@@ -336,33 +336,33 @@ window.CLIENT = {
         deliverable: "A knowledge-graph schema (patient→encounter→provider→record) + a small multi-agent retrieval prototype that assembles the patient view with an ownership/authorization check at the graph boundary + an IDOR finding writeup (repro from the HAR) and an N+1 note. Keep the KG to a seeded sample; the security finding is the headline."
       },
       5: {
-        title: "Spec-Driven Dev & Problem Scoping",
-        tie: "Writing a rigorous spec + acceptance criteria before coding; scoping a fuzzy ask into a precise problem.",
-        ask: "Our scheduling keeps double-booking the same slot and it's getting embarrassing — two patients show up for one appointment. The team's pretty sure it's a glitch in the calendar widget, so could you just fix the calendar so it stops doing that? I pulled some example rows and the booking code for you. It seems to happen more when the system's busy.",
+        title: "Neo4j Knowledge Graphs & Context Engineering",
+        tie: "Modeling the client domain in Neo4j; graph-grounded retrieval; evidence-backed decisions and action surfaces.",
+        ask: "When a scheduling incident lands, reviewers hunt through tickets, booking code, logs, schema notes, and policy docs to understand what happened. Build a small GraphRAG evidence service over this handover so a reviewer can ask why a slot was double-booked, see the connected evidence, and know which remediation decision is locked or still deferred. Keep it local and synthetic.",
         handover: [
-          "<code>appointments.csv</code>: two rows, both <code>slot_id=88231</code>, both <code>status=confirmed</code>, created_at <code>09:31:04.120</code> and <code>09:31:04.519</code> (~400ms apart), different patient IDs.",
-          "Billing Jira ticket RIV-175: \"A couple patients say they got two appointment confirmations for one booking, and two people showed up for the same slot once. Probably a calendar glitch.\"",
+          "<code>appointments.csv</code>: two synthetic rows with <code>slot_id=88231</code>, both <code>status=confirmed</code>, created ~400ms apart for different patient IDs.",
+          "Jira-style ticket RIV-175 calls the incident a calendar glitch; treat that wording as a claim to test, not graph truth.",
           "Booking handler <code>scheduling-service/book.py</code>: <code>if not slot_taken(slot_id): insert_appointment(...)</code> — read-check-then-insert, no transaction, no <code>UNIQUE</code> on <code>slot_id</code>.",
-          "Server log: a <code>POST /appointments</code> for slot 88231 took 2.11s; a second <code>POST /appointments</code> for the same slot landed ~400ms later (a different patient) — both returned 201.",
-          "Frontend network tab: the booking request carries no idempotency key / request-id header.",
-          "DDL for <code>appointments</code>: <code>slot_id INTEGER</code> — no <code>UNIQUE</code> and no composite constraint on the slot."
+          "Synthetic server trace: two near-simultaneous <code>POST /appointments</code> requests for slot 88231 both returned 201.",
+          "Frontend trace: the booking request carries no idempotency key or request-id header.",
+          "DDL excerpt: <code>slot_id INTEGER</code> with no uniqueness rule; provenance and effective-time fields are absent from the proposed graph model."
         ],
         dig: [
-          "Are the two confirmed rows really a UI glitch, or two successful inserts? What created the second one?",
-          "Walk read-check-then-insert under two near-simultaneous requests — what stops both from passing the check?",
-          "If the client retries a slow booking POST, what guarantees the server treats it as the same booking?",
-          "Where could a DB constraint or transaction make a double-book impossible, regardless of the UI?"
+          "Which entities and relationships connect incident, request, appointment, slot, code path, schema rule, and remediation decision?",
+          "Which source supports each edge, and how will stale or conflicting claims remain visible?",
+          "Which question needs vector candidates, a bounded graph traversal, or both?",
+          "Which identity/constraint decisions can be locked now, and which must be deferred with an owner and flip condition?"
         ],
         stated: [
-          "Scheduling double-books the same slot.",
-          "Client believes it's a calendar-UI bug — 'just fix the calendar.'"
+          "Give reviewers one GraphRAG path through scheduling-incident evidence.",
+          "Show the active remediation decision without presenting the ticket's UI diagnosis as fact."
         ],
         hidden: [
-          "<b>No idempotency + no slot-concurrency control (D5, #8)</b> — 'double-booking' is a correctness defect (retry = duplicate; race on Slot), not a calendar-UI bug.",
-          "'Fixing the calendar' without idempotency just reshuffles the race."
+          "<b>No idempotency + no slot-concurrency control (D5, #8)</b> — the evidence points to duplicate successful writes and a race, not merely a calendar rendering issue.",
+          "A graph can expose the path and decision history; the transactional database/application must enforce booking correctness."
         ],
-        facilitator: "Reframe the ask: lead them from 'calendar bug' to 'retry produced a duplicate.' Why it matters: double-books clinician time, double-bills patients, erodes trust.",
-        deliverable: "A spec package: problem-scoping doc (reframe 'calendar bug' → idempotency + concurrency), acceptance criteria, an idempotency-key + DB-constraint/transaction design for booking, and test vectors for retry + concurrent-booking. Spec only — implementation is scoped, not built."
+        facilitator: "Make them defend the graph from the decision question backward. Challenge any edge without a source, any generated query without a bound, and any confident answer without a trace. Preserve the reframe as evidence, not as a spec-week headline.",
+        deliverable: "A Neo4j domain-model slice + synthetic import plan + ADR lock/defer register + GraphRAG retrieval design/service stub over the incident packet; grounding fixtures for supported, stale, conflicting, and no-evidence questions; executive readout + simulated technical-team trace. Repository-local only — no merge, deploy, provision, publish, or external send."
       },
       6: {
         title: "AI-Augmented SDLC (Legacy Comprehension)",
@@ -621,32 +621,32 @@ window.CLIENT = {
         deliverable: "A knowledge-graph schema (borrower→application→decision→offer→disclosure) + a multi-agent disclosure-assembly prototype that pulls from the KG + a TILA-tolerance finding (the float-vs-Decimal example) + an ADR: Decimal/minor-units + externalized rule config + TILA test vectors. Full rules engine → roadmap."
       },
       5: {
-        title: "Spec-Driven Dev & Problem Scoping",
-        tie: "Rigorous spec + acceptance criteria before coding; scoping a fuzzy ask precisely.",
-        ask: "Customers want to pay online — card and ACH. Let's just add a payment form so they can self-serve. We've had a few 'I was charged twice' complaints, but I think people are just confused. I attached the prototype handler the last vendor started. Keep it simple.",
+        title: "Neo4j Knowledge Graphs & Context Engineering",
+        tie: "Modeling payment evidence in Neo4j; graph-grounded retrieval; bounded context for a high-consequence client decision.",
+        ask: "Support, engineering, and risk teams cannot reconstruct a duplicate-charge incident without opening tickets, request logs, service code, schema notes, and control guidance separately. Build a small local GraphRAG evidence service that connects one synthetic payment incident to its requests, records, code path, data-handling finding, and remediation decisions—with sources and honest gaps.",
         handover: [
-          "Three support tickets: \"I was charged twice.\" Payment logs show one retried POST produced two <code>payments</code> rows for the same charge.",
-          "Payment log: <code>POST /payments</code> took 2.4s (slow), the client retried, a second <code>POST /payments</code> landed 410ms later — both inserted.",
-          "<code>services/payment-service/app/payments.py</code>: stores the full <code>pan</code> in the <code>payments</code> table and logs the <code>cvv</code> at INFO.",
-          "The payment request carries no idempotency key / client-supplied request id — and the new payment-service captures the charge, then calls servicing to apply it, so a retry double-charges across two services.",
-          "<code>payments</code> DDL: <code>pan TEXT</code> — no tokenization and no unique constraint on the charge reference."
+          "Three synthetic support tickets say \"I was charged twice\"; a retried POST maps to two <code>payments</code> rows for one intended charge.",
+          "Synthetic trace: the first <code>POST /payments</code> took 2.4s; a retry landed 410ms later and both inserted.",
+          "<code>services/payment-service/app/payments.py</code> stores a full card number and logs a security-code-shaped field; use redacted synthetic placeholders only.",
+          "The payment request has no idempotency key; the service captures, then calls servicing, so a retry crosses two service boundaries.",
+          "DDL excerpt has no token reference model and no uniqueness rule on the charge reference; applicability and remediation ownership are not yet recorded."
         ],
         dig: [
-          "Look at a 'charged twice' case — is it user confusion, or two successful inserts from one retry?",
-          "What makes a retried payment safe to send twice — what would the server need to dedupe it?",
-          "What cardholder data does the prototype store and log, and which of those is flatly prohibited?",
-          "How could the right design *shrink* PCI scope instead of growing it (tokenize, never store SAD)?"
+          "Which stable identities connect intended payment, request attempts, captures, servicing entries, tickets, code paths, and control evidence?",
+          "Which sensitive fields must never enter graph properties, model context, traces, or the readout?",
+          "Where does semantic retrieval find the ticket/control passage, and which explicit path reconstructs the duplicate charge?",
+          "Which remediation and data-handling decisions are locked, and which remain owned evidence gaps?"
         ],
         stated: [
-          "Let customers pay online (card + ACH).",
-          "Client believes it's 'just add a payment form.'"
+          "Give reviewers one traceable context path through the duplicate-charge incident.",
+          "Support card and ACH questions without putting sensitive authentication data into the knowledge graph."
         ],
         hidden: [
-          "<b>No idempotency on payment POST (D2, #4)</b> — double-charges are a money-correctness + trust failure.",
-          "<b>PCI scope explosion: storing PAN, logging CVV/SAD (#7)</b> — a direct PCI-DSS violation; the right design reduces scope (tokenize, never store SAD)."
+          "<b>No idempotency on payment POST (D2, #4)</b> — the synthetic evidence shows a money-correctness and trust risk across service boundaries.",
+          "<b>Sensitive-data scope expansion (#7)</b> — storage/logging behavior requires an owned control decision; the lesson must use redacted synthetic data and must not improvise a compliance conclusion."
         ],
-        facilitator: "Reframe 'add a payment form' → idempotency + PCI tokenization + no-SAD storage. The double-charge tickets are the entry point. Spec week — don't let them start building.",
-        deliverable: "A spec package (spec, not build): reframe 'add a payment form' → idempotency-key design + PCI-tokenization + no-SAD storage; acceptance criteria; test vectors for retry + concurrent-payment + tokenization cases. Implementation scoped, not shipped."
+        facilitator: "Push on identity, provenance, sensitive-data minimization, and abstention. The old problem reframe and acceptance cases survive as graph decisions and grounding fixtures, not as a spec-driven week.",
+        deliverable: "A Neo4j domain-model slice + synthetic/redacted import contract + ADR lock/defer register + bounded GraphRAG retrieval design/service stub; evaluation cases for duplicate-charge reconstruction, sensitive-data exclusion, conflicting evidence, and abstention; executive readout + simulated technical-team trace. Repository-local only — no merge, deploy, provision, publish, or external send."
       },
       6: {
         title: "AI-Augmented SDLC (Legacy Comprehension)",
