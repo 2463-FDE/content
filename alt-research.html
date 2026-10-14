@@ -279,28 +279,27 @@ window.ALT = {
   },
 
   6: {
-    title: "AI-Augmented SDLC",
-    space: "Content space: AI across the full SDLC + legacy comprehension on brownfield. Alternatives across AI coding agents and legacy-comprehension/code-review tooling — generation speed vs verifiable, governable change.",
+    title: "Kafka & Event-Driven AI Pipelines",
+    space: "Content space: Kafka architecture, managed-service economics, and event-driven AI pipelines. Compare compatible Kafka operating models separately from non-Kafka messaging alternatives; judge from requirements, ownership, migration, and dated pricing dimensions.",
     alts: [
-      { name: "$20-tier coding agents — Claude Code vs Cursor vs GitHub Copilot",
-        body: "<b>Claude Code</b> is included in Anthropic Pro ($17 annual / $20 monthly) with the deepest agentic depth, but Pro usage limits throttle long brownfield sessions (power use pushes toward Max). <b>Cursor</b> Pro is $20/mo but is a full IDE switch and bills usage in arrears once quota is consumed — a budget-blowout risk at 40 hrs/wk. <b>GitHub Copilot</b> is the cheapest entry — Free, and Pro at just $10/mo with unlimited completions plus credits, and it can drive Claude Code/Codex as third-party agents — the strongest pure $20-budget fit and lowest lock-in (it lives in the client's existing GitHub/IDE)." },
-      { name: "Open / alternative agents — Aider, Windsurf",
-        body: "<b>Aider</b> is the low-lock-in escape hatch — free OSS terminal pair-programmer, BYO-API-key, works with almost any LLM incl. local models (the best answer when a client forbids sending PHI/PII to a hosted vendor); the catch is it needs <i>API</i> credentials, so token cost is pay-per-use and can exceed $20 on heavy days. <b>Windsurf</b> (now under Cognition/Devin) has a $20/mo Pro tier but is mid-consolidation after acquisition — a roadmap/stability risk to name for a long-horizon client." },
-      { name: "Legacy comprehension — SonarQube, CodeScene, Sourcegraph",
-        body: "Tools to <i>understand and govern</i> inherited brownfield code (the core W6 problem), complementing the coding agent. <b>SonarQube</b> is the quality/security gate ('verification layer for AI code') and ships a self-hosted/air-gapped Server edition — the right answer for PHI/loan data that can't leave the perimeter. <b>CodeScene</b> is the differentiated brownfield lens: behavioral analysis (Code Health, hotspots, knowledge-distribution/bus-factor) plus AI refactoring, with a free IDE extension. <b>Sourcegraph</b> indexes the entire multi-repo codebase and feeds full context to agents (enterprise, sales-led, no $20 self-serve tier). Affordable trainee pairing: SonarQube (community/self-host) + CodeScene's free extension; client stack: Sourcegraph + SonarQube Server." },
-      { name: "AI code review — CodeRabbit vs Copilot/Codex review",
-        body: "Continuous AI review on every PR, a distinct decision from the coding agent and the static-analysis gate. <b>CodeRabbit</b> gives AI PR summaries + line-level review (free tier for summaries, Pro ~$24/seat/mo, self-hosting only at Enterprise) — strong for catching issues before a human reviewer, but the per-seat cost sits just above the $20 trainee budget and self-host is gated. The cheaper path is the <b>review built into the agent you already pay for</b> — GitHub Copilot's PR review and Claude Code/Codex review run inside the $10-20 tier with no extra seat. The honest tradeoff: a dedicated reviewer like CodeRabbit is more thorough and consistent, but for a regulated client the deciding question is again residency — does the diff (and its embedded business logic) leave the perimeter to be reviewed, and is there a self-hosted option in budget?" }
+      { name: "Amazon MSK provisioned or serverless",
+        body: "Managed Apache Kafka on AWS. Provisioned clusters expose broker-instance, storage, networking, and operations choices; serverless changes the capacity and pricing model. The research question is not 'managed or not' in the abstract: map supported configurations, scaling control, connectivity, availability, observability, and who owns topics, schemas, consumers, lag, replay, and side effects." },
+      { name: "Self-managed Apache Kafka",
+        body: "Maximum control over Kafka version, broker/controller topology, configuration, upgrades, and recovery, with the team owning all of that work. It can fit unusual platform constraints or an experienced Kafka operations team. It is not a free baseline: price the people, on-call, upgrades, storage, network, failure drills, and capacity headroom alongside infrastructure." },
+      { name: "Google Cloud Managed Service for Apache Kafka",
+        body: "A Kafka-compatible managed service whose capacity and storage use Google-native pricing dimensions, including DCUs. Preserve those units rather than pretending one DCU equals one MSK broker. Compare client compatibility, network boundary, identity, zones, retention, commitments, operations, and egress from a dated workload worksheet." },
+      { name: "Google Cloud Pub/Sub — non-Kafka alternative",
+        body: "A managed messaging service with a different API and operating model. It may fit a workload, but it is not a Kafka-compatible endpoint or a provider swap. Any recommendation must price the application, connector, ordering, replay, and migration changes created by the API break." }
     ],
-    task: "Evaluate GitHub Copilot Pro ($10) + CodeRabbit AI review vs Claude Code Pro ($20) + SonarQube for modernizing the brownfield service in your pair project, and recommend one stack with a one-paragraph rationale that addresses (a) staying within the $20 budget and (b) producing the audit/quality evidence your client's reviewers will demand.",
-    trainer: "The non-obvious tradeoff: <b>generation speed and comprehension/governance are different budgets and different risks</b> — cheap, fast agents produce code faster than a brownfield team can verify it, which is exactly the 'AI slop' gap SonarQube/CodeScene/Sourcegraph exist to close. The best answer is rarely the most powerful single agent; it's the cheapest agent the budget allows plus a verification layer the client can self-host. Two more senior signals: data residency beats raw capability for healthcare/finance (Aider-with-local-models or SonarQube Server inside the perimeter can be correct even when a hosted agent is 'better'), and lock-in is a contract-length question (Copilot/Sonar Server live in the client's own infra and survive tool churn; Cursor/Windsurf overages + proprietary IDEs create switching exposure).",
+    task: "Using the trainer's static workload card, compare MSK, self-managed Kafka, Google Cloud Managed Service for Apache Kafka, and Pub/Sub. Produce one shared matrix covering compatibility, ownership, scaling unit, storage, network/egress, identity, replay/ordering, migration, and flip conditions. Do not provision anything or invent prices; leave rate cells pending unless a dated source is supplied.",
+    trainer: "The senior tell is disciplined classification: three Kafka operating choices can preserve Kafka clients; Pub/Sub is a non-Kafka alternative and requires an explicit application migration. Strong teams separate broker operations from application semantics, preserve provider-native pricing units, and state what workload or ownership fact would reverse their recommendation.",
     sources: [
-      { label: "Claude Code — agent + Pro/$17-20, Max tiers, usage limits", url: "https://www.anthropic.com/claude-code", date: "2026-06-28" },
-      { label: "Cursor — pricing (Pro $20, on-demand usage billing)", url: "https://cursor.com/pricing", date: "2026-06-28" },
-      { label: "GitHub Copilot — plans (Free / Pro $10, 3rd-party agents)", url: "https://github.com/features/copilot/plans", date: "2026-06-28" },
-      { label: "Aider — open-source, BYO-key, any/local LLM", url: "https://aider.chat/", date: "2026-06-28" },
-      { label: "SonarQube — AI-code verification, Cloud + self-hosted Server", url: "https://www.sonarsource.com/products/sonarqube/", date: "2026-06-28" },
-      { label: "CodeScene — Code Health + behavioral brownfield analysis", url: "https://codescene.com/product", date: "2026-06-28" },
-      { label: "CodeRabbit — pricing (Free / Pro ~$24 AI PR review, self-host Enterprise)", url: "https://www.coderabbit.ai/pricing", date: "2026-06-28" }
+      { label: "Apache Kafka documentation", url: "https://kafka.apache.org/documentation/", date: "2026-10-14" },
+      { label: "Amazon MSK overview", url: "https://docs.aws.amazon.com/msk/latest/developerguide/what-is-msk.html", date: "2026-10-14" },
+      { label: "Amazon MSK pricing", url: "https://aws.amazon.com/msk/pricing/", date: "2026-10-14" },
+      { label: "Google Managed Service for Apache Kafka overview", url: "https://cloud.google.com/managed-service-for-apache-kafka/docs/overview", date: "2026-10-14" },
+      { label: "Google Managed Service for Apache Kafka pricing", url: "https://cloud.google.com/managed-service-for-apache-kafka/pricing", date: "2026-10-14" },
+      { label: "Google Cloud Pub/Sub overview", url: "https://cloud.google.com/pubsub/docs/overview", date: "2026-10-14" }
     ]
   },
 

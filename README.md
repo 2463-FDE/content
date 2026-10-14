@@ -18,6 +18,8 @@ assets/
   js/quiz.js             comprehension checks + tracking seam
   js/curriculum-config.js single-source client, batch, and cloud-lane config
   js/batch-context.js    reusable viewer-local batch selector
+  js/curriculum-lessons-w06.js authoritative Week 6 Kafka lesson data
+  js/kafka-lesson.js     shared Week 6 route renderer + decision practice
   js/curriculum-lessons-w09-w10.js authoritative Week 9–10 transfer data
   js/capstone-lesson.js  shared Week 9–10 route renderer
 ```
@@ -26,7 +28,7 @@ Zero build step, zero dependencies. Edit HTML/CSS/JS, commit, Pages redeploys.
 
 ## Authoring a reading page
 
-Legacy pages define two globals and include the shared scripts. Week 9–10 routes instead consume the single shared transfer data file and renderer:
+Legacy pages define two globals and include the shared scripts. Week 6 and Week 9–10 routes instead consume their shared lesson-data files and renderers:
 
 - `window.DIAGRAM = { width, height, nodes:[{id,step,x,y,w,h,label}], edges:[{id,step,from,to,label?,bend?}], captions:[...] }`
   Steps reveal in order as the reader scrolls; the matching `.step` section drives `Diagram.goTo(n)`.

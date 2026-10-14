@@ -1,4 +1,4 @@
-"""Behavior and page-contract tests for Week 6 permission-rule practice."""
+"""Behavior tests for the archived Week 6 permission-rule support asset."""
 
 from __future__ import annotations
 
@@ -210,19 +210,17 @@ class Week6PermissionEvaluatorTests(unittest.TestCase):
         self.assertEqual({"index": 0, "prediction": None, "checked": False, "total": 2}, result["reset"])
         self.assertNotIn("verdict", result["current"])
 
-    def test_pages_replace_placeholders_and_load_exact_script_url(self) -> None:
-        for filename, (case_set, future_count) in PAGES.items():
+    def test_asset_is_preserved_for_supporting_reuse_but_not_loaded_by_kafka_routes(self) -> None:
+        self.assertTrue(MODULE.is_file())
+        archive_readme = (ROOT / "docs" / "research" / "w06" / "archive-ai-sdlc" / "README.md").read_text(encoding="utf-8")
+        self.assertIn("interactive-w6-permissions.js", archive_readme)
+        for filename in PAGES:
             with self.subTest(page=filename):
                 parser = PageContractParser()
                 parser.feed((ROOT / "weeks" / "w06" / filename).read_text(encoding="utf-8"))
-                self.assertEqual(1, len(parser.widgets))
-                self.assertEqual(case_set, parser.widgets[0].get("data-case-set"))
-                self.assertEqual(future_count, parser.future_count)
-                self.assertEqual(1, parser.scripts.count(SCRIPT_URL))
-        primary = PageContractParser()
-        primary.feed((ROOT / "weeks" / "w06" / "w06d2.html").read_text(encoding="utf-8"))
-        self.assertIn("w06d4.html#permission-evaluator-legacy", primary.links)
-        self.assertIn("w06d5.html#permission-evaluator-delivery", primary.links)
+                self.assertEqual([], parser.widgets)
+                self.assertNotIn(SCRIPT_URL, parser.scripts)
+                self.assertEqual(0, parser.future_count)
 
     def test_module_executes_without_network_storage_credentials_or_broad_browser_api(self) -> None:
         subprocess.run(["node", "--check", str(MODULE)], cwd=ROOT, check=True, capture_output=True, text=True)
@@ -332,39 +330,6 @@ class Week6PermissionEvaluatorTests(unittest.TestCase):
         self.assertEqual("anywhere", rules[".perm-call"]["overflow-wrap"])
         self.assertEqual("100%", rules[".perm-case-select"]["width"])
 
-
-    @unittest.skipUnless(CHROME, "Chrome/Chromium not found; set CHROME_BIN to run real-browser regressions")
-    def test_real_browser_390px_overflow_keyboard_and_live_region_in_both_themes(self) -> None:
-        result = subprocess.run(
-            ["node", "-e", BROWSER_TEST_SCRIPT, CHROME, str(ROOT)],
-            cwd=ROOT, text=True, capture_output=True, timeout=180,
-        )
-        self.assertEqual(0, result.returncode, result.stderr)
-        runs = json.loads(result.stdout)
-        self.assertEqual(len(PAGES) * 2 * 2, len(runs))
-        for run in runs:
-            label = f"{run['page']} {run['theme']} {run['width']}px"
-            with self.subTest(run=label):
-                self.assertEqual(run["theme"], run["appliedTheme"])
-                self.assertEqual(run["width"], run["viewport"])
-                self.assertEqual([], run["overflow"])
-                self.assertLessEqual(run["widgetScrollWidth"], run["widgetClientWidth"])
-                self.assertGreaterEqual(run["checkContrast"], 4.5)
-                self.assertEqual("", run["preSubmitStatus"])
-                self.assertEqual("SELECT", run["tabOrder"][0])
-                self.assertEqual("INPUT:radio", run["tabOrder"][1])
-                self.assertEqual("BUTTON:Check prediction", run["tabOrder"][2])
-                self.assertEqual("deny", run["arrowPrediction"])
-                self.assertEqual("allow", run["spacePrediction"])
-                self.assertIn("Choose allow or deny", run["missingStatus"])
-                self.assertRegex(run["enterStatus"], r"^(Correct|Not yet): (ALLOW|DENY) — deciding rule [A-Z]-\d{2}\.$")
-                self.assertEqual("polite", run["liveAttr"])
-                self.assertEqual(1, run["liveRegionCount"])
-                self.assertTrue(run["announced"])
-                self.assertEqual("Prediction changed—check again.", run["changedStatus"])
-                self.assertEqual("SELECT", run["focusAfterReset"])
-                self.assertEqual([], run["pageErrors"])
-                self.assertEqual([], run["externalRequests"])
 
 
 DOM_TEST_SCRIPT = textwrap.dedent(r"""

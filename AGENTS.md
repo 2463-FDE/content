@@ -5,8 +5,8 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Curriculum authoring is research-first; follow `docs/week-fanout-plan.md` and update the matching `docs/research/wWW/` artifact before changing a current technical claim in week HTML.
 - Run static curriculum regressions with `python3 -m unittest discover -s tests -v`. `tests/test_curriculum_currency.py` validates the public HTML/embedded-JS contract for the Week 3–4 currency slice.
 - Read-only lesson code popups use `assets/js/codeviewer.js`, shared modal behavior in `assets/js/modals.js`, and the `.code-cta` / `.code-modal` styles in `assets/css/style.css`.
-- Week 9–10 routes are thin shells over `assets/js/curriculum-lessons-w09-w10.js` and `assets/js/capstone-lesson.js`; batch/client/cloud-lane presentation config is single-source in `assets/js/curriculum-config.js`.
-- Archify use is governed by the pinned offline procedure in the captain workspace's `data/fde-archify-v3-source-verification/report.md`; committed Week 5 SVGs and drift metadata live beside `docs/research/w05/archify-visual-brief.md`. Never commit viewer HTML, authoring inputs, or an Archify runtime.
+- Week 6 and Week 9–10 routes are thin shells over their shared lesson data/renderers (`assets/js/curriculum-lessons-w06.js` + `assets/js/kafka-lesson.js`, then `assets/js/curriculum-lessons-w09-w10.js` + `assets/js/capstone-lesson.js`); batch/client/cloud-lane presentation config is single-source in `assets/js/curriculum-config.js`.
+- Archify use is governed by the pinned offline procedure in the captain workspace's `data/fde-archify-v3-source-verification/report.md`; committed Week 5 SVGs and drift metadata live beside `docs/research/w05/archify-visual-brief.md`. Week 6 candidates and its no-runtime-dependency acceptance gate live in `docs/research/w06/archify-visual-plan.md`. Never commit viewer HTML, authoring inputs, or an Archify runtime.
 
 ## Maintaining this file
 

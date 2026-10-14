@@ -40,7 +40,7 @@ before they become functional `ix-run` blocks. Tracked here per the fan-out plan
 
 ## W3–W8 current inventory
 
-**Status: deferred, not live.** The shipped pages contain 50 `.ix-future` placeholders across W4–W8. W3 has no placeholders because its client-side agent widgets are already implemented. W5's obsolete spec-week placeholders were removed in the Neo4j Wave 1 replacement; each W5 route now has one local client-side decision lab instead. The entries below inventory the remaining placeholder copy already present in the reading pages; they do not promise a backend, launch date, or live provider connection.
+**Status: deferred, not live.** The shipped pages contain 45 `.ix-future` placeholders across W4–W8. W3 has no placeholders because its client-side agent widgets are already implemented. W5's obsolete spec-week placeholders were removed in the Neo4j Wave 1 replacement; each W5 route now has one local client-side decision lab instead. Source-corrected W6 has five required local decision interactions and no deferred placeholders. The entries below inventory the remaining placeholder copy already present in the reading pages; they do not promise a backend, launch date, or live provider connection.
 
 ### Week 4
 
@@ -103,34 +103,21 @@ _Week 5 subtotal: 0 deferred placeholders._
 
 ### Week 6
 
-#### w06d1 — Coding Agents: the Landscape, and Claude Code Up Close (3)
+The former 12 AI-SDLC placeholders were retired when the source-authoritative Kafka week replaced those routes on 2026-10-14. Their reviewed source remains in `docs/research/w06/archive-ai-sdlc/` for supporting reuse.
 
-- **The CLI is Unix-composable — and CI-ready** — Planned: a sandboxed terminal that runs `claude -p` against a tiny demo repo — pipe a log file in, watch a headless answer come back, then chain two calls in a script. Needs backend standup.
-- **Deny → ask → allow, first match wins** — Planned: a permission-rule evaluator — paste a deny/ask/allow ruleset plus a candidate command, and step through which rule matches first and why the broad deny beats the narrow allow. Needs backend standup.
-- **Hooks: deterministic code at lifecycle events** — Planned: a hook playground — attach a PreToolUse hook to a sample tool call, toggle its exit code between 0, 1, and 2, and watch the call pass, warn, or block with stderr fed back to the model. Needs backend standup.
+Each Kafka day now has one required, deterministic decision interaction in `assets/js/kafka-lesson.js`: partitioning, poison-event recovery, token-budget backpressure, partial-side-effect replay, and delivery fallback. These are shipped interactions, not deferred placeholders.
 
-#### w06d2 — The Agentic SDLC: Plan, TDD & Review Loops (2)
+#### w06d1 — Kafka foundations and event-driven judgement (0)
 
-- **Explore → Plan → Implement → Commit** — Planned: a plan-mode sandbox — the same seeded ticket run twice against a demo repo, once straight-to-code and once through Explore → Plan → Implement, with the two diffs side by side so you can see the wrong-problem failure happen live. Needs backend standup.
-- **Give the agent a check it can run — or you become the check** — Planned: a verification-ladder simulator — the same flaky task run at each rung (prompt-only, /goal, Stop hook, verification subagent), showing where "looks done" slips through and where the loop mechanically closes. Needs backend standup.
+#### w06d2 — Delivery semantics, schemas, and managed Kafka economics (0)
 
-#### w06d3 — Alt Research: Cursor, Aider & Copilot vs Claude Code (3)
+#### w06d3 — Event-driven agents, backpressure, and streaming stores (0)
 
-- **Aider: the terminal OG and the repo-map idea** — Planned: a repo-context strategy lab — point it at a sample repo and see the three strategies side by side: the graph-ranked ~1k-token repo map aider would build, the chunks an embedding index would retrieve for a query, and the grep/read trail an agentic search takes — with token cost and freshness annotated for each. Needs backend standup.
-- **Copilot: from autocomplete brand to agent platform** — Planned: a delegation drill — write the issue description you'd hand to a cloud agent for a small real task, then an LLM grader reviews it against a delegation rubric (acceptance criteria present? scope bounded? test expectations stated?) and shows the draft PR a vague version would likely have produced. Needs backend standup.
-- **Benchmarks: what SWE-bench and the polyglot board actually measure** — Planned: a benchmark-claims workbench — paste a vendor's "X% on SWE-bench" quote and it extracts variant, scaffold, and date, flags what's missing, and shows how the same model's score moves across variants and harnesses. Needs backend standup.
+#### w06d4 — Build and operate the Kafka-to-agent pipeline (0)
 
-#### w06d4 — Brownfield: Modernizing Legacy Systems with Agents (2)
+#### w06d5 — Pipeline defense, measured readout, and fallback (0)
 
-- **Characterization tests: the code is its own spec** — Planned: a characterization workbench — a mystery legacy function behind an API; you probe it with inputs, record actual outputs into a pin-suite, then an agent "refactors" it and your suite either catches the behavior drift or doesn't. Needs backend standup.
-- **Data strangles last: ETL, CDC, and the rollback window** — Planned: a cutover simulator — drive a strangler migration's routing table and DB phases yourself (ETL load, CDC lag, consistency checks), inject a failure mid-cutover, and see what rollback costs before vs. after the legacy tables are dropped. Needs backend standup.
-
-#### w06d5 — AI-Augmented Feature Delivery, End to End (2)
-
-- **"Looks done" is not a gate — build one** — Planned: a stop-gate sandbox — run the same seeded feature task twice, once with "looks done" as the stop signal and once with a Stop hook wired to the test suite, and diff what each session ships. Needs backend standup.
-- **Blocking on AI findings is a decision you build** — Planned: a severity-gate builder — paste a check run's `bughunter-severity:` JSON, choose your blocking policy (block on `normal`? on nit volume? fail closed on missing runs?), and watch the merge button allow or refuse a set of sample PRs. Needs backend standup.
-
-_Week 6 subtotal: 12 deferred placeholders._
+_Week 6 subtotal: 0 deferred placeholders._
 
 ### Week 7
 
@@ -194,7 +181,7 @@ _Week 7 subtotal: 11 deferred placeholders._
 
 _Week 8 subtotal: 13 deferred placeholders._
 
-**Inventory total: 50 deferred placeholders.**
+**Inventory total: 45 deferred placeholders.**
 
 ### Setup, expected output, and troubleshooting metadata gap
 

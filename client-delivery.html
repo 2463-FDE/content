@@ -365,32 +365,32 @@ window.CLIENT = {
         deliverable: "A Neo4j domain-model slice + synthetic import plan + ADR lock/defer register + GraphRAG retrieval design/service stub over the incident packet; grounding fixtures for supported, stale, conflicting, and no-evidence questions; executive readout + simulated technical-team trace. Repository-local only — no merge, deploy, provision, publish, or external send."
       },
       6: {
-        title: "AI-Augmented SDLC (Legacy Comprehension)",
-        tie: "Using AI to comprehend inherited/legacy code; characterization tests; safe-change workflow on brownfield.",
-        ask: "We're finally wiring up the feed from the hospital's system — it sends us those HL7 messages. The integration 'works' in that data shows up, but before we lean on it for care I want to actually trust it. Can you go through the parser and make sure it's solid? I've attached the parser code and a few sample messages our integration guy saved. It's been quietly running for months with zero errors, which is reassuring.",
+        title: "Kafka & Event-Driven AI Pipelines",
+        tie: "Turn the inherited HL7 ingestion seam into a replayable, observable Kafka → agent → Chroma/Neo4j pipeline without hiding the parser's existing data-loss defect.",
+        ask: "The hospital feed is growing and multiple teams need its updates. I need one event path that can enrich records for the AI workflow and update search and the patient graph without the portal waiting on all of it. Show me it can recover from a worker failure, and tell me what falls behind before a clinician does.",
         handover: [
-          "<code>interop-service/hl7_parser.py</code>: <code>fields = line.split('|')</code> with hard-coded indices from a <code>SEGMENT_MAP</code> (PID <code>fields[5]</code>=name, <code>fields[7]</code>=dob), the parse loop wrapped in <code>try: ... except Exception: pass</code>.",
-          "Sample inbound message <code>adt_sample.hl7</code> contains <code>AL1|1|DA|penicillin</code> (allergy) and <code>RXA|...|amoxicillin</code> (med) segments.",
-          "The internal record the mapper produces from that exact message: <code>allergies: []</code>, <code>medications: []</code>.",
-          "The parser's index map only covers <code>PID</code> and <code>PV1</code> segments; <code>AL1</code> and <code>RXA</code> aren't in it.",
-          "Ops note (offered as a sign of health): \"HL7 ingest has thrown zero errors in 3 months.\"",
-          "No schema validation and no count of dropped/unmapped segments anywhere in the pipeline."
+          "Synthetic <code>adt_sample.hl7</code> fixtures and the inherited parser characterization tests; AL1/RXA remain the known brownfield defect, not a reason to use real PHI.",
+          "A proposed <code>clinical-record.changed</code> envelope with event ID, patient-scoped synthetic key, schema version, source timestamp, and trace headers.",
+          "The existing local agent, Chroma, and Neo4j seams from Weeks 2–5; neither store shares a transaction with Kafka or the model workflow.",
+          "A static workload card: arrival/completion rates, partition skew, deterministic model latency/token estimates, and serialized byte counts.",
+          "A broker-failure/rebalance scenario, lag SLO, DLQ fixture, and blank egress formula. No cloud account, endpoint, credentials, provisioning, paid model, or real patient data."
         ],
         dig: [
-          "Pick one inbound message and diff it field-by-field against the internal record — is anything missing?",
-          "What does <code>except: pass</code> do when the parser meets a segment it doesn't recognize?",
-          "Is \"zero errors in 3 months\" evidence it works, or evidence it can't tell you when it fails?",
-          "If allergies/meds silently drop, who is the first person harmed, and when do they find out?"
+          "Which events must stay ordered together, and what key creates that boundary without exposing PHI?",
+          "If Chroma succeeds and Neo4j fails, what state lets replay finish only the missing side effect?",
+          "Which lag and age evidence warns that clinical enrichment is stale, and who follows the runbook?",
+          "When does continuous streaming beat a bounded batch for this workload, and what cost or failure condition flips the answer?"
         ],
         stated: [
-          "The hospital feed integration needs to be 'solid.'",
-          "It 'works' today — client just wants to trust it."
+          "Multiple services need the same feed updates without blocking the portal.",
+          "The client wants recovery and freshness evidence, not a happy-path demo."
         ],
         hidden: [
-          "<b>Brittle HL7v2→internal mapping silently drops allergy/med fields (D6, #11)</b> — 'the integration works' because it doesn't error; it just loses clinical data."
+          "<b>At-least-once delivery meets non-transactional AI/vector/graph side effects</b> — event identity, partial-progress state, and idempotent writes are required.",
+          "<b>Average lag can hide one hot patient-key partition</b> — report partition lag plus oldest-event age and arrival/completion rates."
         ],
-        facilitator: "Have them diff an inbound message against the produced internal record to find the dropped segments. Why it matters: a clinician sees an empty allergy list and prescribes against it — a patient-safety integrity risk (164.312(c)), invisible until harm occurs.",
-        deliverable: "An AI-augmented legacy-comprehension report on the parser (what it maps, what it drops, by segment) + characterization tests that pin current behavior + a failing test demonstrating the dropped AL1/RXA + an ADR for a schema-validated mapping. Not a full rewrite."
+        facilitator: "Preserve brownfield characterization, but keep Kafka as the learning arc. Run only local/static synthetic drills; make learners defend ordering, replay, backpressure, side effects, lag, and fallback.",
+        deliverable: "A local/static Kafka pipeline package: event/schema and partition decision, agent/Chroma/Neo4j side-effect state machine, retry/DLQ path, broker-failure worksheet, lag alert, OTel header map, runbook, throughput/lag report, synthetic egress formula, and two-audience readout."
       },
       7: {
         title: "Observability / SRE / Guardrails",
@@ -649,34 +649,32 @@ window.CLIENT = {
         deliverable: "A Neo4j domain-model slice + synthetic/redacted import contract + ADR lock/defer register + bounded GraphRAG retrieval design/service stub; evaluation cases for duplicate-charge reconstruction, sensitive-data exclusion, conflicting evidence, and abstention; executive readout + simulated technical-team trace. Repository-local only — no merge, deploy, provision, publish, or external send."
       },
       6: {
-        title: "AI-Augmented SDLC (Legacy Comprehension)",
-        tie: "Using AI to comprehend inherited code; characterization tests; safe brownfield change.",
-        ask: "I need a servicing dashboard so our reps can actually manage accounts — adjust balances, waive fees, fix the occasional mistake. Right now it's clunky and they hate it. I attached the servicing service. Our reps are trusted folks, so don't over-engineer the permissions; just make it usable.",
+        title: "Kafka & Event-Driven AI Pipelines",
+        tie: "Industrialize the inherited payment and decision seams as a replayable event pipeline while protecting money side effects from duplicate delivery.",
+        ask: "Payments, decisions, disclosures, and servicing all need the same account changes, but the request path is brittle. Give us an event pipeline that can feed the AI exception workflow and update search and the account graph without double-applying money. Show me its lag, recovery, and cross-cloud cost assumptions before we commit.",
         handover: [
-          "<code>services/servicing-service/app/main.py</code>: <code>POST /accounts/{id}/adjust-balance</code> and <code>/waive-fee</code> accept any authenticated user — no role check, no second-approver step.",
-          "Balance code: a single <code>balance</code> column is <code>UPDATE</code>d in place; there is no ledger or transaction log.",
-          "Reproduced bug: a payment and a concurrent fee-waiver both read <code>balance=500</code>, both write → the final balance is wrong (a lost update).",
-          "A controller's question: \"Show me every change to account 7781's balance and who made it\" — not answerable today.",
-          "No maker-checker and no segregation of duties on any money-affecting endpoint.",
-          "The gateway authenticates the session and forwards <code>X-User-Role</code>, but <code>servicing-service</code> ignores it — the role is on the wire, nothing reads it.",
-          "A new role-differentiated frontend (<code>frontend/components/AppBar.tsx</code>) shapes only what each role <i>sees</i> — it hides the Servicing nav from borrowers and varies views by role — but enforces nothing server-side: every route is reachable by URL and the money-moving endpoints still accept any authenticated caller (security-by-UI-obscurity; the weak-authz debt D8 is preserved intact)."
+          "Synthetic payment and decision fixtures plus the Week 5 idempotency contract; no PAN, CVV, SSN, credential, real borrower, or real provider call.",
+          "A proposed <code>account-activity.recorded</code> envelope with event ID, tokenized account key, schema version, source timestamp, amount in minor units, and trace headers.",
+          "Inherited local agent, Chroma, Neo4j, and servicing seams; Kafka transactions cannot atomically include every store or money side effect.",
+          "A static workload card with rates, partition skew, deterministic token estimates, retention, retry/DLQ fixtures, and serialized byte counts.",
+          "A broker-failure/rebalance drill and blank managed-Kafka/egress worksheet. No cloud account, IAM, billing, provisioning, deployment, or paid model."
         ],
         dig: [
-          "Who exactly can move money or waive a fee today — is there any second approver in the path?",
-          "Run the payment + waiver concurrently against one balance — what's the final number, and is it correct?",
-          "Can you reconstruct the full history of a single account's balance? What would you need to?",
-          "Which actions here are 'money-affecting' and should require maker-checker plus an immutable ledger?"
+          "Which key preserves order for one account without creating a single hot global partition?",
+          "Where is duplicate delivery stopped before a balance or fee is applied twice?",
+          "How do lag, oldest-event age, completion rate, and reconciliation evidence distinguish backlog from money loss?",
+          "Which managed-Kafka, streaming-versus-batch, and cross-cloud assumptions require trainer confirmation?"
         ],
         stated: [
-          "Wants a servicing dashboard for reps to adjust balances + waive fees.",
-          "Reps are 'trusted' — keep permissions light."
+          "Several systems need the same account events without extending the synchronous request path.",
+          "The client wants measurable recovery and cost assumptions before any infrastructure decision."
         ],
         hidden: [
-          "<b>Weak authz / no segregation of duties (D8, #6)</b> — any rep (or compromised account) can silently move money: insider-fraud + SOX §404 control failure.",
-          "<b>Mutable balance with no ledger (D12)</b> — an overwritten balance has no provenance an auditor can trust."
+          "<b>At-least-once delivery can replay a money-affecting event</b> — stable event identity and a downstream idempotency/ledger boundary are mandatory.",
+          "<b>One healthy topic average can hide a hot account partition</b> — preserve per-partition and oldest-event evidence."
         ],
-        facilitator: "<b>Pull Controller Sam into the room.</b> Demonstrate the lost update with the concurrent payment + waiver. Why it matters: insider-fraud + SOX §404; the dashboard ask amplifies the authz gap.",
-        deliverable: "An AI-augmented legacy-comprehension report on the servicing module (who can do what; how balance mutates) + characterization tests pinning current behavior + a failing test showing the lost update + an ADR: RBAC + maker-checker on money-affecting actions + append-only ledger (balance = projection). Not the dashboard build."
+        facilitator: "Keep the Week 5 money-correctness contract as inherited truth, not a replacement topic. All work is local/static and synthetic; ask learners to defend semantics, side effects, lag, egress, fallback, and readout evidence.",
+        deliverable: "A local/static Kafka pipeline package: event/schema and partition decision, duplicate-safe side-effect state, retry/DLQ path, broker-failure worksheet, lag/reconciliation alert, OTel header map, runbook, throughput/lag report, synthetic egress formula, fallback, and two-audience readout."
       },
       7: {
         title: "Observability / SRE / Guardrails",

@@ -136,7 +136,7 @@ that file somewhere you will find it again: it is what you bring to your week 10
 
 | Run | Do it at the end of | That week covers | What to look hardest at |
 |---|---|---|---|
-| **1** baseline | **Week 6** · AI-Augmented SDLC | The SDLC loop itself | **Section D, the loop check.** You will have just built loops. Do yours have a stopping condition, or do they stop when the agent says so? |
+| **1** baseline | **Week 6** · Kafka & Event-Driven AI Pipelines | The event-pipeline delivery system | **Section D, the pipeline check.** Can every delivery, replay, lag, side-effect, and cost claim be traced to measured evidence and a stopping condition? |
 | **2** | **Week 7** · Observability, SRE & Guardrails | Measuring running systems | **The Measure stage.** Observability is Measure wearing an engineering hat. If your spread is still empty there the week did not transfer. |
 | **3** | **Week 8** · Security, Governance & Responsible AI | Hardening, phase 3 | **Trait 2, calibration.** Watch for `excessive_changes` appearing as you learn to harden. "Precision is the entry fee" is not the same as gold-plating. |
 | **4** | **Week 9** · AI Security, Governance & System Hardening | Hardening the delivered system | **The Ship stage, and traits 3 and 6.** Hardening is where you push back on an unsafe ask and explain the risk to whoever owns it. Did you, or did the control quietly slip? |
