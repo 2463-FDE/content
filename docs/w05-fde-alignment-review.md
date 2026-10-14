@@ -9,11 +9,11 @@
 | # | Gap | Fix shipped |
 |---|---|---|
 | 1 | Problem scoping absent | `w05d2` re-authored: new spine is client ask → XY reframe → dig the artifacts → name it in the client's currency → *then* ambiguity/EARS/RFC 2119/Gherkin. New diagram (the reframe ladder), new quiz Q1 + open question, new deep dive worked on the real ask. |
-| 2 | Readings decoupled from the client packet | All 10 W5+W6 deliverables retargeted to the brownfield repo and deep-linked to `client-delivery.html?w=N`. W5's five days now chain into the one spec package the packet asks for. Convention recorded in `week-fanout-plan.md` for W7+; W2–W4 tracked as an unscheduled retrofit. |
+| 2 | Readings decoupled from the client packet | W5's five days chain into the one spec package the packet asks for. The source-corrected Week 6 replaced the five routes reviewed here with Kafka pipeline deliverables while preserving the Week 6 handover boundary. Convention recorded in `week-fanout-plan.md` for W7+; W2–W4 tracked as an unscheduled retrofit. |
 | 3 | Greenfield spine, brownfield job | `w05d1` step 4 replaced with **current state → target state** (spec as the third beat of a four-beat method; spec ships to the client as a proposal) and the **feature-parity trap** pulled forward from W6. New open question replaces the EARS one (d2 owns EARS now). |
 | 4 | Graph layer dropped between W4 and W5 | `w05d4`'s closing step rewritten as **decompose against the system graph** (knowledge graph + context graph; "bad decomposition is usually a missing-graph problem"). New ⑤ deliverable item: a five-line system-graph sketch and the phase boundary it changed. |
-| 5 | Spec-as-document, not spec-as-loop | `w05d5`'s converge step now names the shape: observe → decide → act → verify → repeat, requiring a trigger and a machine-verifiable stopping condition. Hands off to `w06d2`'s existing `LOOP.md`. |
-| 6 | Week ends at merge, not outcome | Outcome gate added to the `w05d5` milestone rubric, the `w05d1`/`w05d2` deliverables, and `w06d5`. |
+| 5 | Spec-as-document, not spec-as-loop | `w05d5`'s converge step now names the shape: observe → decide → act → verify → repeat, requiring a trigger and a machine-verifiable stopping condition. Week 6 carries that discipline into measured Kafka pipeline work. |
+| 6 | Week ends at merge, not outcome | Outcome gate added to the `w05d5` milestone rubric and the `w05d1`/`w05d2` deliverables; Week 6 now reinforces it through its measured pipeline readout. |
 
 Also fixed in passing: `w05d5`'s `FDE_NEXT` pointed at the program index instead of `w06d1`.
 
@@ -153,9 +153,9 @@ W5 does step 3's mechanics beautifully and skips 1, 2, and 4. Consequences:
   day and D4 is the planning day.
 - The spec is never framed as a **client-facing proposal** iterated with feature add/omit. It's an
   internal agent-input document throughout.
-- `legacy`, `SME`, `strangler`, `characterization test` → **0 hits**. W6d4 owns strangler-fig and
-  characterization tests, which is defensible sequencing — but W5 is where the spec that governs a
-  brownfield change gets written, and it never mentions that its subject might already exist.
+- `legacy`, `SME`, `strangler`, `characterization test` → **0 hits**. The source-corrected Week 6
+  no longer owns strangler-fig and characterization tests, so W5 is the owner for the specification
+  discipline that governs a brownfield change.
 - The **feature-parity trap** (Atlas: ~50% of legacy features unused; defining "as-is" is the
   biggest cost) is exactly a *spec-scoping* failure and belongs in W5, not W6.
 
@@ -198,8 +198,8 @@ W5 already has the raw material and doesn't assemble it:
 - D5 correctly insists on "verification evidence (test output, not assertions)" → that is Galent's
   "agents shouldn't decide it's finished simply because it says so," one sentence from being named.
 
-Naming it costs one node in D5 and converts W5's checks from paperwork into the input to W6's
-agentic loops.
+Naming it costs one node in D5 and converts W5's checks from paperwork into reusable delivery
+discipline. Week 6 applies it to bounded event-processing and replay decisions.
 
 ---
 
@@ -255,7 +255,8 @@ changes for the user, and how will we know?* No adoption or measurement gate any
    wrong decomposition. Connects W4 → W5 and is the most Galent-specific fix available.
 
 5. **Reframe convergence as loop design in D5.** Trigger + machine-verifiable stopping condition +
-   external verification + cost ceiling. Ties D4's pass/fail checks to W6's agentic loops.
+   external verification + cost ceiling. This remains the owner for agentic loop design; Week 6
+   reuses the discipline for event-pipeline gates rather than reteaching it.
 
 6. **Add an outcome gate to the D5 milestone.** One line before the merge decision: the user-visible
    outcome this spec buys, and how it will be measured. Closes Galent's Measure and the Atlas's
