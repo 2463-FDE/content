@@ -308,7 +308,9 @@
   }
 
   // ---- scan the reading, wrap first occurrence of each term ------------------
-  var SKIP = { CODE: 1, PRE: 1, A: 1, BUTTON: 1, H1: 1, H2: 1, H3: 1, SCRIPT: 1, STYLE: 1, SVG: 1 };
+  // SUMMARY/LABEL/LEGEND are interactive or labelling contexts: a focusable term there
+  // would nest one control inside another.
+  var SKIP = { CODE: 1, PRE: 1, A: 1, BUTTON: 1, H1: 1, H2: 1, H3: 1, SCRIPT: 1, STYLE: 1, SVG: 1, SUMMARY: 1, LABEL: 1, LEGEND: 1 };
   function skipNode(node) {
     for (var p = node.parentNode; p && p.nodeType === 1; p = p.parentNode) {
       if (SKIP[p.tagName]) return true;

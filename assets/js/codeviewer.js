@@ -75,11 +75,12 @@
       file: raw.dataset.file || el.dataset.file || ("file" + (i + 1)),
       lang: raw.dataset.lang || el.dataset.lang || "python",
       code: raw.textContent.replace(/^\n/, "").replace(/\s+$/, ""),
+      cloud: raw.dataset.cloud || "",
     }));
     const tabs = files.length === 1
       ? `<span class="cv-tab on cv-file-label" style="cursor:default">${esc(files[0].file)}</span>`
       : files.map((f, i) =>
-        `<button type="button" class="cv-tab${i === 0 ? " on" : ""}" data-i="${i}">${esc(f.file)}</button>`).join("");
+        `<button type="button" class="cv-tab${i === 0 ? " on" : ""}" data-i="${i}"${f.cloud ? ` data-cloud="${esc(f.cloud)}"` : ""}>${esc(f.file)}</button>`).join("");
     el.innerHTML =
       `<div class="cv-bar"><span class="cv-dots"><i class="d-r"></i><i class="d-y"></i><i class="d-g"></i></span>` +
       `<span class="cv-tabs">${tabs}</span></div>` +
@@ -87,11 +88,23 @@
     if (files.length > 1) {
       const bodyEl = el.querySelector(".cv-body");
       const tabEls = Array.from(el.querySelectorAll(".cv-tab"));
-      tabEls.forEach(t => t.addEventListener("click", () => {
+      const show = t => {
         const f = files[+t.dataset.i];
         tabEls.forEach(x => x.classList.toggle("on", x === t));
         bodyEl.innerHTML = paint(f.code, f.lang);
-      }));
+      };
+      tabEls.forEach(t => t.addEventListener("click", () => show(t)));
+      // Provider tabs (data-cloud on .cv-raw): open the selected path's tab.
+      if (files.some(f => f.cloud)) {
+        const follow = () => {
+          const view = window.FDECloudPath ? window.FDECloudPath.current() : "both";
+          tabEls.forEach(t => { t.hidden = view !== "both" && !!t.dataset.cloud && t.dataset.cloud !== view; });
+          const active = tabEls.find(t => t.classList.contains("on"));
+          if (active && active.hidden) show(tabEls.find(t => !t.hidden) || tabEls[0]);
+        };
+        follow();
+        window.addEventListener("fde-cloud-path-change", follow);
+      }
     }
   }
 

@@ -250,12 +250,22 @@
   document.addEventListener("DOMContentLoaded", () => {
     const host = document.getElementById("quiz");
     if (host && window.QUIZ) {
-      render(host, window.QUIZ);
-      // keep the quiz launcher card's question count in sync with the spec
-      const n = window.QUIZ.questions.length;
-      document.querySelectorAll(".quiz-count").forEach(e => e.textContent = n);
-      const card = document.querySelector('.activity-card[data-modal="quiz-modal"] .ac-t');
-      if (card && /\d/.test(card.textContent)) card.textContent = card.textContent.replace(/\d+/, n);
+      // Questions tagged with a cloud ({cloud:"aws"|"gcp"}) only appear on that
+      // provider's path (cloud-path.js); untagged questions are shared.
+      const spec = () => window.FDECloudPath
+        ? window.FDECloudPath.filterQuestions(window.QUIZ, window.FDECloudPath.explicit())
+        : window.QUIZ;
+      const show = () => {
+        const Q = spec();
+        render(host, Q);
+        // keep the quiz launcher card's question count in sync with the spec
+        const n = Q.questions.length;
+        document.querySelectorAll(".quiz-count").forEach(e => e.textContent = n);
+        const card = document.querySelector('.activity-card[data-modal="quiz-modal"] .ac-t');
+        if (card && /\d/.test(card.textContent)) card.textContent = card.textContent.replace(/\d+/, n);
+      };
+      show();
+      if (window.QUIZ.questions.some(q => q && q.cloud)) window.addEventListener("fde-cloud-path-change", show);
     }
   });
 })();
