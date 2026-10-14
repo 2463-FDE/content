@@ -94,7 +94,8 @@
         substrate: other,
         label: NAMES[selection] + " path",
         summary: NAMES[selection] + " is your primary implementation plane; " + NAMES[other] +
-          " appears as the comparison substrate in optional depth. Each day's required path stays inside Core 30."
+          " appears as the comparison substrate in optional depth. Each day's required path stays inside Core 30." +
+          " From the Week 6 handover, team work follows your team's recorded primary cloud."
       };
     }
     return {

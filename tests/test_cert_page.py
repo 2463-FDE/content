@@ -63,6 +63,17 @@ class CertPageStaticContract(unittest.TestCase):
         pages = json.loads(subprocess.run(["node", "-e", script], cwd=ROOT, capture_output=True, text=True, check=True).stdout)
         self.assertEqual(listed, [f"weeks/{page}.html" for page in pages], "no-JS lesson list must match cloud-map providerPages")
 
+    def test_week6_team_primary_exercise_is_published(self) -> None:
+        section = self.by_id("team-primary-cloud")
+        steps = [e for e in section.find_all("li")]
+        self.assertGreaterEqual(len(steps), 5, "the negotiation exercise lists its steps")
+        hrefs = [a.attrs.get("href", "") for a in section.find_all("a")]
+        self.assertIn("docs/templates/team-primary-cloud-adr.md", hrefs)
+        self.assertTrue((ROOT / "docs" / "templates" / "team-primary-cloud-adr.md").is_file())
+        for lesson in ("weeks/w05/w05d3.html", "weeks/w05/w05d2.html"):
+            self.assertIn(lesson, hrefs, "the exercise ties back to curriculum lessons")
+            self.assertTrue((ROOT / lesson).is_file())
+
     def test_picker_mount_and_access_date(self) -> None:
         self.by_id("cloud-path-mount")
         times = [t for t in self.root.find_all("time") if t.attrs.get("datetime") == "2026-10-14"]

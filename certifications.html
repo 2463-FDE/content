@@ -69,11 +69,11 @@
           </tr>
           <tr>
             <th scope="row">Weeks 6–10 · teams of 2–3<br><span class="cert-sub">inherits the solo project's decisions and artifacts</span></th>
-            <td>AWS is the primary implementation plane for the team's services. GCP is the comparison substrate for the
-            cross-cloud work — the event hop and egress measurement, and the second provider in the infrastructure
-            design.</td>
-            <td>GCP is the primary implementation plane for the team's services. AWS is the comparison substrate for the
-            cross-cloud work. GCP learners do not inherit an AWS-primary topology.</td>
+            <td colspan="2">Each team records <strong>one team-primary cloud</strong> in an ADR at the Week 6 handover.
+            The team implementation, the shared repository, deployment examples, and the required Core-30 work follow
+            that cloud; the other provider is the comparison substrate and optional depth. Members keep their personal AWS,
+            GCP, or Both view for reading — views do not need to match, and a team never splits its primary
+            architecture across clouds. A GCP-primary team does not inherit an AWS-primary topology.</td>
           </tr>
           <tr>
             <th scope="row">Cross-cloud judgement days</th>
@@ -84,6 +84,30 @@
       </table>
     </div>
     <p class="cert-note">Infrastructure as code stays in its later week; nothing here moves it earlier.</p>
+  </section>
+
+  <section class="cert-sec" id="team-primary-cloud" aria-labelledby="team-title">
+    <h2 id="team-title">Week 6 handover: negotiate the team-primary cloud</h2>
+    <p class="cert-lede">A required team exercise at the Project 2 kickoff. It practises the same skills the curriculum
+    assesses: an architecture decision recorded with lock-vs-defer reasoning, requirements read from the client's
+    request cards, and a position defended with evidence rather than preference.</p>
+    <ol class="cert-points">
+      <li><strong>Bring your evidence.</strong> Each member states their personal view and what their Project 1 build ran
+      on, with one number — an eval score, a latency, or a cost note from their own work.</li>
+      <li><strong>Read the client constraints.</strong> Separate hard constraints in the request cards from negotiable
+      preferences; a stated client constraint outranks anyone's familiarity.</li>
+      <li><strong>Compare both options.</strong> Fill the options table for AWS and GCP as the team primary, including the
+      cost of re-platforming each member's Project 1 work.</li>
+      <li><strong>Decide one primary.</strong> One cloud for the team implementation, shared repository, deployment
+      examples, and required Core-30 work. No split primary architecture; the other provider stays as comparison.</li>
+      <li><strong>Record it.</strong> Commit a concise ADR using the
+      <a href="docs/templates/team-primary-cloud-adr.md">team-primary cloud ADR template</a>,
+      including the negotiation record, and cite it in the team's first readout.</li>
+    </ol>
+    <p class="cert-note">Curriculum ties: ADRs and lock-vs-defer decisions
+    (<a href="weeks/w05/w05d3.html">Week 5 · Day 3</a>), requirements synthesis
+    (<a href="weeks/w05/w05d2.html">Week 5 · Day 2</a>), and the Project 2 handover that inherits Project 1's decisions.
+    Individual learners keep their own curriculum view; only the team's build follows the recorded cloud.</p>
   </section>
 
   <section class="cert-sec" aria-labelledby="lessons-title">

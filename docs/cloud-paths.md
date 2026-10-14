@@ -9,6 +9,7 @@ mechanics, examples, and decision checks are written twice.
 | Key | Status | Effect |
 |---|---|---|
 | `gcp-path-primary-plane` | **Decided 2026-10-14: mirror** | The learner-selected cloud is the primary implementation plane; the other provider is the comparison substrate. GCP learners do not inherit the source curriculum's fixed AWS-primary topology. `Both` presents both paths; one-cloud focus remains the Core-30 route. |
+| `project2-team-primary-cloud` | **Decided 2026-10-14: Option A** | At the Week 6 handover each Project 2 team records one team-primary cloud in a concise ADR (`docs/templates/team-primary-cloud-adr.md`), chosen through a curriculum-tied negotiation exercise (`certifications.html#team-primary-cloud`). Individuals keep their personal AWS/GCP/Both view; the team implementation, shared repository, deployment examples, and required Core-30 work follow the team-primary cloud; the other provider is comparison or optional depth. Identical individual selections are not required, and a team never splits its primary architecture. |
 | `gcp-cert-alignment-target` | **Decided 2026-10-14 (corrected): Google AI Professional Certificate** | The GCP path aligns to Google's AI Professional Certificate (https://grow.google/enroll-certificates/ai-professional-certificate-mid/), mapped course by course; the AWS path aligns to AWS Certified Generative AI Developer – Professional (AIP-C01). The correction supersedes an earlier Professional Agentic Architect decision: no alignment is claimed to the Professional Agentic Architect or the Professional Machine Learning Engineer. |
 
 Neither decision authorizes cloud accounts, provisioning, billing, IAM, deployment,
@@ -64,13 +65,13 @@ See the Core-30 section of `docs/week-fanout-plan.md`; the reference page is
 | Phase | AWS path | GCP path |
 |---|---|---|
 | Weeks 1–5, solo, local-first | Bedrock is the model plane; Gemini Enterprise Agent Platform is the comparison | Gemini Enterprise Agent Platform is the model plane; Bedrock is the comparison |
-| Weeks 6–10, teams of 2–3, inheriting Project 1 | AWS is the primary implementation plane; GCP is the comparison substrate for the cross-cloud deliveries | GCP is the primary implementation plane; AWS is the comparison substrate |
+| Weeks 6–10, teams of 2–3, inheriting Project 1 | The team-primary cloud recorded in the Week 6 ADR is the primary implementation plane for the team's implementation, shared repository, deployment examples, and required Core-30 work; the other provider is the comparison substrate. Members keep their own reading view. | (same rule — a GCP-primary team does not inherit an AWS-primary topology) |
 | Cross-cloud judgement (event hop and egress measurement, the two-provider infrastructure design, identity federation, the workload-placement memo) | Shared and required on both paths | Shared and required on both paths |
 
 Weeks 6–7 in the LTM structure (Kafka; Terraform + Ansible) have no live lesson
 pages yet; the curriculum-hub lane owns their transfer. When they are authored,
-the "primary plane" in each delivery narrative is the learner's selected cloud and
-the second provider is the comparison substrate. Terraform stays in its later week.
+the "primary plane" in each delivery narrative is the team-primary cloud recorded
+in the Week 6 ADR, and the second provider is the comparison substrate. Terraform stays in its later week.
 
 ## Seams with the curriculum-hub lane
 
@@ -85,9 +86,6 @@ the second provider is the comparison substrate. Terraform stays in its later we
 
 ## Open items
 
-- **Mixed-path teams (Weeks 6–10).** The mirror decision makes the selected cloud
-  the primary plane; how a team of 2–3 whose members picked different clouds
-  chooses its plane is not yet decided.
 - **GCP certificate fit.** The Google AI Professional Certificate is a
   no-experience-required, app-level AI-fluency credential; this program teaches the
   overlapping themes at engineering depth. Two of its courses (content creation; data
