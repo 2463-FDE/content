@@ -416,7 +416,7 @@ load(Object.keys(pages), 0);
             route = urlparse(rendered_day["href"])
             self.assertTrue(route.path.endswith(f"/weeks/w05/w05d{day}.html"), route.path)
             self.assertEqual(parse_qs(route.query).get("batch"), ["2567"])
-        self.assertIn("Week 5 Neo4j and Week 6 Kafka live", rendered["trainer"]["text"])
+        self.assertIn("Week 5 Neo4j/context engineering live", rendered["trainer"]["text"])
         trainer_route = urlparse(rendered["trainer"]["href"])
         self.assertTrue(trainer_route.path.endswith("/weeks/w05/w05d1.html"))
         self.assertEqual(parse_qs(trainer_route.query).get("batch"), ["2567"])
