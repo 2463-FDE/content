@@ -12,7 +12,7 @@ mechanics, examples, and decision checks are written twice.
 | `project2-team-primary-cloud` | **Decided 2026-10-14: Option A** | At the Week 6 handover each Project 2 team records one team-primary cloud in a concise ADR (`docs/templates/team-primary-cloud-adr.md`), chosen through a curriculum-tied negotiation exercise (`certifications.html#team-primary-cloud`). Individuals keep their personal AWS/GCP/Both view; the team implementation, shared repository, deployment examples, and required Core-30 work follow the team-primary cloud; the other provider is comparison or optional depth. Identical individual selections are not required, and a team never splits its primary architecture. |
 | `gcp-cert-alignment-target` | **Decided 2026-10-14 (corrected): Google AI Professional Certificate** | The GCP path aligns to Google's AI Professional Certificate (https://grow.google/enroll-certificates/ai-professional-certificate-mid/), mapped course by course; the AWS path aligns to AWS Certified Generative AI Developer – Professional (AIP-C01). The correction supersedes an earlier Professional Agentic Architect decision: no alignment is claimed to the Professional Agentic Architect or the Professional Machine Learning Engineer. |
 
-Neither decision authorizes cloud accounts, provisioning, billing, IAM, deployment,
+None of these decisions authorizes cloud accounts, provisioning, billing, IAM, deployment,
 or paid provider calls. Provider "labs" are in-page simulations and read-only code.
 
 ## Learner experience
