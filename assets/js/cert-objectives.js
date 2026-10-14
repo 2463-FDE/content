@@ -1,8 +1,10 @@
 /* cert-objectives.js — first-party certification facts for the AWS/GCP paths.
    Every value here traces to docs/research/certifications/ (accessed 2026-10-14).
-   The GCP path's alignment target is a pending captain decision
-   (gcp-cert-alignment-target): both Google candidates are listed as evidence and
-   `paths.gcp.target` stays null until that decision is recorded. */
+   Alignment targets (captain decision gcp-cert-alignment-target, corrected
+   2026-10-14): AWS → AIP-C01; GCP → Google AI Professional Certificate.
+   No alignment is claimed to Google's Professional Agentic Architect or
+   Professional Machine Learning Engineer (superseded candidates; their dated
+   evidence stays in docs/research/certifications/ for the record). */
 (function (root, factory) {
   var data = factory();
   if (typeof module === "object" && module.exports) module.exports = data;
@@ -23,7 +25,7 @@
     research: "docs/research/certifications/README.md",
     paths: {
       aws: { target: "aip-c01" },
-      gcp: { target: null, pendingDecision: "gcp-cert-alignment-target", candidates: ["paa", "pmle"] }
+      gcp: { target: "gaipc", decision: "gcp-cert-alignment-target", decided: "2026-10-14" }
     },
     certs: {
       "aip-c01": {
@@ -32,7 +34,7 @@
         code: "AIP-C01",
         level: "Professional",
         status: "ga",
-        weightsExact: true,
+        weightsPublished: true,
         page: "https://aws.amazon.com/certification/certified-generative-ai-developer-professional/",
         guide: "https://docs.aws.amazon.com/aws-certification/latest/ai-professional-01/ai-professional-01.html",
         learningPath: "https://skillbuilder.aws/category/exam-prep/generative-ai-developer-professional-AIP-C01",
@@ -70,61 +72,27 @@
           ] }
         ]
       },
-      "paa": {
+      "gaipc": {
         provider: "gcp",
-        name: "Google Cloud Professional Agentic Architect",
-        code: "PAA",
-        level: "Professional",
-        status: "beta",
-        statusNote: "Beta on 2026-10-14; GA registration opens Nov 2; GA exam launches mid-November 2026. Re-verify the guide at GA.",
-        weightsExact: false,
-        page: "https://cloud.google.com/learn/certification/agentic-architect/",
-        guide: "https://services.google.com/fh/files/misc/professional_agentic_architect_exam_guide_english.pdf",
-        learningPath: "https://www.skills.google/paths/4525",
-        format: "Beta: 3 h · ~80 multiple-choice · then hands-on labs in Google Skills",
+        name: "Google AI Professional Certificate",
+        code: null,
+        level: "Career Certificate · no previous experience required",
+        status: "available",
+        statusNote: "Open for enrollment on 2026-10-14. Google publishes its courses, not exam domains or weights.",
+        weightsPublished: false,
+        page: "https://grow.google/enroll-certificates/ai-professional-certificate-mid/",
+        guide: null,
+        learningPath: null,
+        format: "20+ hands-on activities and graded assessments · self-paced, about an hour per module · US$49/month subscription in the U.S. and Canada · on Coursera, Google Skills, and Udemy",
         domains: [
-          { id: "1", title: "Building agents using low-code tools", weight: 13, objectives: [
-            { id: "1.1", title: "Configuring agentic workflows and behavior using low-code tools" },
-            { id: "1.2", title: "Connecting enterprise data to Gemini Enterprise" }
-          ] },
-          { id: "2", title: "Using coding agents for application development", weight: 17, objectives: [
-            { id: "2.1", title: "Using coding agents effectively" },
-            { id: "2.2", title: "Customizing coding agents for enterprise workflows" }
-          ] },
-          { id: "3", title: "Developing custom agents", weight: 33, objectives: [
-            { id: "3.1", title: "Designing and building agentic workflows in code" },
-            { id: "3.2", title: "Integrating enterprise domain knowledge" },
-            { id: "3.3", title: "Orchestrating and coordinating agentic workflows" }
-          ] },
-          { id: "4", title: "Evaluating and deploying agentic workflows", weight: 22, objectives: [
-            { id: "4.1", title: "Evaluating agents in development and in production" },
-            { id: "4.2", title: "Deploying and scaling production workloads" }
-          ] },
-          { id: "5", title: "Securing and governing agentic workflows", weight: 15, objectives: [
-            { id: "5.1", title: "Configuring agent security and governance" },
-            { id: "5.2", title: "Implementing secure agent behavior and execution" }
-          ] }
-        ]
-      },
-      "pmle": {
-        provider: "gcp",
-        name: "Google Cloud Professional Machine Learning Engineer",
-        code: "PMLE",
-        level: "Professional",
-        status: "ga",
-        statusNote: "Updated for the transition from Vertex AI to Gemini Enterprise Agent Platform.",
-        weightsExact: false,
-        page: "https://cloud.google.com/learn/certification/machine-learning-engineer",
-        guide: "https://services.google.com/fh/files/misc/professional_machine_learning_engineer_exam_guide_english_new.pdf",
-        learningPath: "https://www.skills.google/paths/17",
-        format: "2 h · 50–60 multiple choice / multiple select · $200",
-        domains: [
-          { id: "1", title: "Architecting low-code AI solutions", weight: 13, objectives: [] },
-          { id: "2", title: "Collaborating within and across teams to manage data and models", weight: 16, objectives: [] },
-          { id: "3", title: "Scaling prototypes into ML models", weight: 21, objectives: [] },
-          { id: "4", title: "Serving and scaling models", weight: 20, objectives: [] },
-          { id: "5", title: "Automating and orchestrating ML pipelines", weight: 18, objectives: [] },
-          { id: "6", title: "Monitoring AI solutions", weight: 13, objectives: [] }
+          { id: "1", title: "AI Fundamentals", weight: null, objectives: [] },
+          { id: "2", title: "AI for Brainstorming and Planning", weight: null, objectives: [] },
+          { id: "3", title: "AI for Research and Insights", weight: null, objectives: [] },
+          { id: "4", title: "AI for Writing and Communicating", weight: null, objectives: [] },
+          { id: "5", title: "AI for Content Creation", weight: null, objectives: [] },
+          { id: "6", title: "AI for Data Analysis", weight: null, objectives: [] },
+          { id: "7", title: "AI for App Building", weight: null, objectives: [] },
+          { id: "8", title: "AI for App Deployment", weight: null, objectives: [] }
         ]
       }
     },

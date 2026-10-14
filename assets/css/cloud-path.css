@@ -84,7 +84,7 @@ details.cloud-block[data-cloud-role="substrate"] > summary { color: var(--ink-so
 .cert-sec { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px 26px; margin: 0 0 20px; box-shadow: 0 6px 24px var(--shadow); min-width: 0; }
 .cert-sec h2 { font-size: 24px; margin: 0 0 10px; line-height: 1.2; }
 .cert-lede { font-size: 15.5px; line-height: 1.6; color: var(--ink-soft); margin: 0 0 14px; max-width: 820px; }
-.cert-pending { border-left: 4px solid var(--warn-line); background: var(--warn-soft); padding: 10px 14px; border-radius: 8px; color: var(--ink); }
+.cert-fit { border-left: 4px solid var(--info-line); background: var(--info-soft); padding: 10px 14px; border-radius: 8px; color: var(--ink); max-width: 820px; }
 .cert-points { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 15.5px; line-height: 1.6; }
 .cert-points code, .cert-sec code { font-family: var(--mono); font-size: .85em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
 .cert-table-wrap { overflow-x: auto; }
@@ -104,7 +104,7 @@ details.cloud-block[data-cloud-role="substrate"] > summary { color: var(--ink-so
 .cert-badges { display: flex; flex-wrap: wrap; gap: 6px; }
 .cert-badge { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--info-soft); color: var(--info); border: 1px solid var(--info-line); }
 .cert-badge.is-beta { background: var(--warn-soft); color: var(--warn-ink); border-color: var(--warn-line); }
-.cert-badge.is-ga { background: var(--good-soft); color: var(--good-ink); border-color: var(--good-line); }
+.cert-badge.is-ga, .cert-badge.is-available { background: var(--good-soft); color: var(--good-ink); border-color: var(--good-line); }
 .cert-format, .cert-links, .cert-coverage { font-size: 14.5px; line-height: 1.55; margin: 8px 0 0; }
 .cert-coverage { color: var(--ink-soft); }
 .cert-domain { margin-top: 16px; }

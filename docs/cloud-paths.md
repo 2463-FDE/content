@@ -9,7 +9,7 @@ mechanics, examples, and decision checks are written twice.
 | Key | Status | Effect |
 |---|---|---|
 | `gcp-path-primary-plane` | **Decided 2026-10-14: mirror** | The learner-selected cloud is the primary implementation plane; the other provider is the comparison substrate. GCP learners do not inherit the source curriculum's fixed AWS-primary topology. `Both` presents both paths; one-cloud focus remains the Core-30 route. |
-| `gcp-cert-alignment-target` | **Pending** | `assets/js/cert-objectives.js` keeps `paths.gcp.target = null`; `certifications.html` lists both Google Professional candidates as evidence and claims neither. The AWS path's target (AIP-C01) is not decision-dependent. |
+| `gcp-cert-alignment-target` | **Decided 2026-10-14 (corrected): Google AI Professional Certificate** | The GCP path aligns to Google's AI Professional Certificate (https://grow.google/enroll-certificates/ai-professional-certificate-mid/), mapped course by course; the AWS path aligns to AWS Certified Generative AI Developer – Professional (AIP-C01). The correction supersedes an earlier Professional Agentic Architect decision: no alignment is claimed to the Professional Agentic Architect or the Professional Machine Learning Engineer. |
 
 Neither decision authorizes cloud accounts, provisioning, billing, IAM, deployment,
 or paid provider calls. Provider "labs" are in-page simulations and read-only code.
@@ -88,8 +88,11 @@ the second provider is the comparison substrate. Terraform stays in its later we
 - **Mixed-path teams (Weeks 6–10).** The mirror decision makes the selected cloud
   the primary plane; how a team of 2–3 whose members picked different clouds
   chooses its plane is not yet decided.
-- **GCP certification target.** Pending `gcp-cert-alignment-target`. The
-  Professional Agentic Architect is in beta until mid-November 2026; re-verify its
-  guide at GA (`docs/research/certifications/`).
+- **GCP certificate fit.** The Google AI Professional Certificate is a
+  no-experience-required, app-level AI-fluency credential; this program teaches the
+  overlapping themes at engineering depth. Two of its courses (content creation; data
+  analysis in Sheets) have no lesson, and its page disagrees with itself on course
+  count (eight listed, "seven" stated). Per-course syllabi were not fetched
+  (`docs/research/certifications/gcp-google-ai-professional-certificate.md`).
 - **Held PR overlap.** Lessons rewritten by held PR #15 (W1 D1/D2a/D4a/D5, W2 D4/D5)
   have no provider blocks yet, to avoid conflicting with that PR.

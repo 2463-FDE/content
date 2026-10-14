@@ -12,22 +12,13 @@ test("lesson labels read like the curriculum calendar", () => {
   assert.equal(page.lessonLabel("w10/w10d5"), "Week 10 · Day 5");
 });
 
-test("the AWS path names its target; the GCP path stays pending with both candidates", () => {
+test("each path renders exactly its alignment target", () => {
   const model = page.buildModel(data, map);
   assert.equal(model.aws.target, "aip-c01");
   assert.equal(model.aws.cert.code, "AIP-C01");
-  assert.equal(model.gcp.target, null);
-  assert.equal(model.gcp.pendingDecision, "gcp-cert-alignment-target");
-  assert.deepEqual(model.gcp.candidates.map((c) => c.id), ["paa", "pmle"]);
-});
-
-test("a recorded GCP decision would narrow the GCP section to that one credential", () => {
-  const decided = JSON.parse(JSON.stringify(data));
-  decided.paths.gcp = { target: "pmle" };
-  const model = page.buildModel(decided, map);
-  assert.equal(model.gcp.target, "pmle");
-  assert.equal(model.gcp.pendingDecision, null);
-  assert.deepEqual(model.gcp.candidates.map((c) => c.id), ["pmle"]);
+  assert.equal(model.gcp.target, "gaipc");
+  assert.equal(model.gcp.cert.name, "Google AI Professional Certificate");
+  assert.equal(model.gcp.cert.weightsPublished, false);
 });
 
 test("objectives carry resolvable lesson anchors and an honest coverage count", () => {
@@ -38,9 +29,12 @@ test("objectives carry resolvable lesson anchors and an honest coverage count", 
   const safety = aip.domains[2].objectives[0];
   assert.equal(safety.id, "3.1");
   assert.ok(safety.anchors.some((a) => a.href === "weeks/w01/d4b.html" && a.via === "provider"));
-  const pmle = model.gcp.candidates.find((c) => c.id === "pmle");
-  assert.ok(pmle.domains.every((d) => d.objectives.length === 1 && d.objectives[0].domainLevel), "PMLE maps at section level");
-  assert.ok(pmle.coverage.covered < pmle.coverage.total, "uncovered sections are reported, not hidden");
+  const cert = model.gcp.cert;
+  assert.equal(cert.coverage.total, 8, "one entry per listed course");
+  assert.ok(cert.domains.every((d) => d.objectives.length === 1 && d.objectives[0].domainLevel), "courses map at course level");
+  assert.ok(cert.coverage.covered < cert.coverage.total, "courses with no lesson are reported, not hidden");
+  const gaps = cert.domains.filter((d) => !d.objectives[0].anchors.length).map((d) => d.title);
+  assert.deepEqual(gaps, ["AI for Content Creation", "AI for Data Analysis"]);
 });
 
 test("provider pages link to both paths", () => {

@@ -36,18 +36,21 @@ class CertPageStaticContract(unittest.TestCase):
         order = ["assets/js/cert-objectives.js", "assets/js/cloud-map.js", "assets/js/cloud-path.js", "assets/js/cert-page.js"]
         self.assertEqual([s for s in srcs if s in order], order)
 
-    def test_gcp_section_claims_no_target_until_decided(self) -> None:
+    def test_gcp_section_shows_only_its_target(self) -> None:
         gcp = self.by_id("cert-gcp")
-        self.assertEqual(gcp.attrs.get("data-target"), "pending")
+        self.assertEqual(gcp.attrs.get("data-target"), "gaipc")
         cards = [e.attrs.get("data-cert") for e in gcp.find_all("article")]
-        self.assertEqual(cards, ["paa", "pmle"], "static fallback lists both candidates")
+        self.assertEqual(cards, ["gaipc"])
+        text = core30.text_of(self.root)
+        for superseded in ("Agentic Architect", "Professional Machine Learning Engineer"):
+            self.assertNotIn(superseded, text)
+        self.assertIn("lists eight courses but also says seven", text, "Google's own course-count discrepancy stays disclosed")
 
     def test_static_fallback_links_official_guides(self) -> None:
         hrefs = [a.attrs.get("href", "") for a in self.root.find_all("a")]
         for guide in (
             "https://docs.aws.amazon.com/aws-certification/latest/ai-professional-01/ai-professional-01.html",
-            "https://services.google.com/fh/files/misc/professional_agentic_architect_exam_guide_english.pdf",
-            "https://services.google.com/fh/files/misc/professional_machine_learning_engineer_exam_guide_english_new.pdf",
+            "https://grow.google/enroll-certificates/ai-professional-certificate-mid/",
         ):
             self.assertIn(guide, hrefs)
         for a in self.root.find_all("a"):

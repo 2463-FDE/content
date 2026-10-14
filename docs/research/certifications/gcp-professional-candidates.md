@@ -1,18 +1,19 @@
-# Google Cloud Professional AI credentials — candidate alignment targets
+# Google Cloud Professional credentials — superseded candidates (record only)
 
 Accessed 2026-10-14.
 
-> **Selection pending.** Which credential the GCP path claims alignment to is a
-> captain decision (`gcp-cert-alignment-target`). Until it is recorded, the site
-> presents both candidates as verified evidence and makes **no** alignment-target
-> claim for the GCP path.
+> **Not an alignment target.** The captain's corrected decision
+> (`gcp-cert-alignment-target`, 2026-10-14) aligns the GCP path to the **Google AI
+> Professional Certificate** — see `gcp-google-ai-professional-certificate.md`. No
+> curriculum alignment is claimed to either credential below. This file keeps the
+> dated evidence gathered while they were candidates.
 
 Catalog (https://cloud.google.com/learn/certification): "Our exams are being updated
 to reflect product updates announced at Google Cloud Next '26, including Gemini
 platform and Google Cloud's data and analytics stack." Professional roles listed
 include **Agentic Architect (Beta)** and **Machine Learning Engineer**.
 
-## Professional Agentic Architect (beta)
+## Professional Agentic Architect (beta) — superseded candidate
 
 - Page: https://cloud.google.com/learn/certification/agentic-architect/
 - Guide: https://services.google.com/fh/files/misc/professional_agentic_architect_exam_guide_english.pdf
@@ -29,7 +30,7 @@ include **Agentic Architect (Beta)** and **Machine Learning Engineer**.
 
 Named tools (guide, verbatim names): Agent Development Kit (ADK); Agent evaluation; Agent Gateway; Agent Identity; Agent Registry; Agent Retrieval and Vector Search 1.0; Agent Runtime (formerly Agent Engine); Agent Search (formerly Vertex AI Search); Agent2Agent (A2A), MCP; Agents CLI in Agent Platform; Antigravity (CLI, SDK, App); Auth Manager (OAuth 2.0); BigQuery; Cloud Run; Cloud SQL; Cloud Storage; Firestore; Gemini Enterprise; Gemini LLMs; Google Cloud Observability (Cloud Logging and Cloud Trace); GKE; Memorystore for Redis; Model Armor; MCP servers; Model Garden; RAG Engine; Sensitive Data Protection; Skill Registry. Section 2.1 names "Antigravity and Claude Code on Google Cloud".
 
-## Professional Machine Learning Engineer
+## Professional Machine Learning Engineer — superseded candidate
 
 - Page: https://cloud.google.com/learn/certification/machine-learning-engineer
 - Guide: https://services.google.com/fh/files/misc/professional_machine_learning_engineer_exam_guide_english_new.pdf

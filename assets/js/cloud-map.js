@@ -64,22 +64,18 @@
         "5.1": [L("w02/w02d4"), L("w07/w07d2")],
         "5.2": [L("w02/w02d4"), L("w07/w07d1")]
       },
-      "paa": {
-        "1.1": [],
-        "1.2": [],
-        "2.1": [L("w06/w06d1"), L("w06/w06d2")],
-        "2.2": [L("w06/w06d1")],
-        "3.1": [L("w03/w03d1"), L("w03/w03d3"), L("w03/w03d4"), P("w03/w03d3"), P("w03/w03d4"), P("w04/w04d3")],
-        "3.2": [L("w02/w02d2"), L("w02/w02d3"), L("w03/w03d2"), P("w03/w03d2"), P("w02/w02d2"), P("w02/w02d3"), P("w04/w04d4")],
-        "3.3": [L("w04/w04d1"), P("w03/w03d3"), P("w04/w04d3")],
-        "4.1": [L("w02/w02d4"), L("w07/w07d2"), P("w03/w03d5")],
-        "4.2": [L("w03/w03d5"), L("w07/w07d4"), P("w01/d2b"), P("w03/w03d2"), P("w03/w03d3"), P("w03/w03d5"), P("w04/w04d3")],
-        "5.1": [L("w08/w08d1"), L("w08/w08d5"), P("w01/d4b"), P("w03/w03d2")],
-        "5.2": [L("w08/w08d2"), L("w03/w03d2")]
-      },
-      "pmle": {
-        "1": [], "2": [], "3": [], "4": [], "5": [],
-        "6": [L("w07/w07d1"), L("w07/w07d4")]
+      // Google AI Professional Certificate: the eight listed courses (no exam
+      // objectives or weights are published). Anchors are shared lessons that
+      // teach the course's theme at engineering depth; empty = not taught.
+      "gaipc": {
+        "1": [L("w01/d1"), L("w01/d3a")],
+        "2": [L("w05/w05d4"), L("w06/w06d2")],
+        "3": [L("w02/w02d1"), L("w04/w04d3")],
+        "4": [L("w01/d3b"), L("w05/w05d2")],
+        "5": [],
+        "6": [],
+        "7": [L("w06/w06d1"), L("w06/w06d2")],
+        "8": [L("w06/w06d5")]
       }
     }
   });

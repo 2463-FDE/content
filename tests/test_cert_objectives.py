@@ -1,9 +1,10 @@
 """Certification facts and the objective → lesson map, loaded through their public JS modules.
 
 Contract: every certification fact traces to a first-party source with an access date;
-the AWS path names its alignment target; the GCP path names none until the captain's
-gcp-cert-alignment-target decision is recorded; every mapped anchor is a real lesson,
-and provider anchors only point at pages that actually carry provider blocks.
+the AWS path aligns to AIP-C01 and the GCP path to the Google AI Professional
+Certificate (captain decision gcp-cert-alignment-target, corrected 2026-10-14) — with no
+alignment claimed to the superseded Google candidates; every mapped anchor is a real
+lesson, and provider anchors only point at pages that actually carry provider blocks.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ ROOT = core30.ROOT
 FIRST_PARTY = {
     "aws.amazon.com", "docs.aws.amazon.com", "skillbuilder.aws",
     "cloud.google.com", "docs.cloud.google.com", "services.google.com", "www.skills.google",
+    "grow.google",
 }
 
 
@@ -43,22 +45,33 @@ class CertificationFacts(unittest.TestCase):
         cert = self.data["certs"][target]
         self.assertEqual((cert["provider"], cert["level"], cert["status"]), ("aws", "Professional", "ga"))
 
-    def test_gcp_target_stays_pending_until_the_captain_decides(self) -> None:
+    def test_gcp_path_targets_the_google_ai_professional_certificate(self) -> None:
         gcp = self.data["paths"]["gcp"]
-        self.assertIsNone(gcp["target"])
-        self.assertEqual(gcp["pendingDecision"], "gcp-cert-alignment-target")
-        for cid in gcp["candidates"]:
-            self.assertEqual(self.data["certs"][cid]["provider"], "gcp")
-        self.assertEqual(self.data["certs"]["paa"]["status"], "beta", "re-verify the PAA guide at GA before changing")
+        self.assertEqual(gcp["target"], "gaipc")
+        self.assertEqual(gcp["decision"], "gcp-cert-alignment-target")
+        cert = self.data["certs"]["gaipc"]
+        self.assertEqual(cert["name"], "Google AI Professional Certificate")
+        self.assertEqual(cert["page"], "https://grow.google/enroll-certificates/ai-professional-certificate-mid/")
+        self.assertFalse(cert["weightsPublished"], "a career certificate publishes courses, not exam weights")
+        self.assertEqual([d["title"] for d in cert["domains"]], [
+            "AI Fundamentals", "AI for Brainstorming and Planning", "AI for Research and Insights",
+            "AI for Writing and Communicating", "AI for Content Creation", "AI for Data Analysis",
+            "AI for App Building", "AI for App Deployment",
+        ])
+
+    def test_superseded_google_candidates_are_not_claimed(self) -> None:
+        names = [c["name"] for c in self.data["certs"].values()] + [a["name"] for a in self.data["adjacent"]]
+        for superseded in ("Professional Agentic Architect", "Professional Machine Learning Engineer"):
+            self.assertFalse(any(superseded in n for n in names), superseded)
+        self.assertEqual(set(self.map["objectives"]), {"aip-c01", "gaipc"})
 
     def test_weights_match_the_official_outline(self) -> None:
         for cid, cert in self.data["certs"].items():
-            total = sum(d["weight"] for d in cert["domains"])
             with self.subTest(cert=cid):
-                if cert["weightsExact"]:
-                    self.assertEqual(total, 100)
-                else:  # Google publishes approximate (~) weights
-                    self.assertLessEqual(abs(total - 100), 1)
+                if cert["weightsPublished"]:
+                    self.assertEqual(sum(d["weight"] for d in cert["domains"]), 100)
+                else:
+                    self.assertTrue(all(d["weight"] is None for d in cert["domains"]), "no invented weights")
         aip = [d["weight"] for d in self.data["certs"]["aip-c01"]["domains"]]
         self.assertEqual(aip, [31, 26, 20, 12, 11])
         self.assertEqual(sum(len(d["objectives"]) for d in self.data["certs"]["aip-c01"]["domains"]), 20)
@@ -66,7 +79,7 @@ class CertificationFacts(unittest.TestCase):
     def test_every_link_is_first_party_https(self) -> None:
         urls = []
         for cert in self.data["certs"].values():
-            urls += [cert["page"], cert["guide"], cert["learningPath"]]
+            urls += [u for u in (cert["page"], cert["guide"], cert["learningPath"]) if u]
         urls += [a["url"] for a in self.data["adjacent"]]
         for url in urls:
             with self.subTest(url=url):
