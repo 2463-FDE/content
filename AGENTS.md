@@ -2,6 +2,7 @@
 
 This file is the project's committed home for project-intrinsic agent knowledge: build, test, release, architecture, and sharp-edge notes that should travel with the code.
 
+- AWS/GCP path work follows `docs/cloud-paths.md`: provider blocks hold Core 30 per selected provider (`tests/core30.py`, `tests/test_cloud_core30.py`), provider claims trace to `docs/research/<week>/<page>-provider-paths.md`, and certification facts live in `assets/js/cert-objectives.js` + `docs/research/certifications/`.
 - Curriculum authoring is research-first; follow `docs/week-fanout-plan.md` and update the matching `docs/research/wWW/` artifact before changing a current technical claim in week HTML.
 - Run static curriculum regressions with `python3 -m unittest discover -s tests -v`. `tests/test_curriculum_currency.py` validates the public HTML/embedded-JS contract for the Week 3–4 currency slice.
 - Read-only lesson code popups use `assets/js/codeviewer.js`, shared modal behavior in `assets/js/modals.js`, and the `.code-cta` / `.code-modal` styles in `assets/css/style.css`.

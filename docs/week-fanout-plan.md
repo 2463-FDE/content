@@ -179,6 +179,16 @@ check—must fit within 30 minutes.
 - Preserve advanced material outside the required path in
   **`details.deep[data-core="optional"]`**. This optional depth is not included in
   the required-path word count or the 30-minute required experience.
+- **AWS / GCP provider pages hold Core 30 per selected provider.** Shared concepts
+  are authored once; provider-specific material sits in
+  `details.cloud-block[data-cloud="aws"|"gcp"][open]`. For each provider, the
+  shared required words plus that provider's block must fit 1,800 words, and the
+  page shows one label per path — `Core 30 · AWS · ~N min read · N interaction ·
+  N-Q check` and the `GCP` equivalent — each measured on that path. The other
+  cloud's block is optional comparison depth; "Both" is outside the guarantee.
+  Required interactions carry `data-core-interaction`; quiz questions tagged
+  `cloud: "aws"|"gcp"` count only on their path. Validator: `tests/core30.py`
+  and `tests/test_cloud_core30.py`; design: `docs/cloud-paths.md`.
 - `tests/test_w08d2_core30.py` is the frozen validator demonstrated by the
   accepted W8D2 slice. That validator arrives in PR 22, so PR 22 must land first
   and this documentation change must land second for the pointer to be valid on
@@ -283,7 +293,7 @@ attempted — it does not stall the rest of the fan-out.
 | Gate | Critic | Checks | On fail |
 |------|--------|--------|---------|
 | **A** | Research | every claim has a 200 source URL; library version stamped + current (no deprecated APIs, e.g. LangChain pre-1.0); web-research actually run; pull saved to second-brain | repass: re-research the gap |
-| **B** | Core-30 metrics + citation | complete required experience fits within 30 minutes; required path ≤1,800 words with reading minutes computed as `round(words / 150)`; visible label reports actual reading, interaction, and check counts; optional depth uses `details.deep[data-core="optional"]` and is excluded from the required-path budget; 7-9 steps; **exactly one Bedrock-only code popup** (code-cta + `.code-modal` + codeviewer.js loaded; no `openai`/`gpt` in the snippet; code HTML-escaped); every claim traces to the research artifact (no invented facts); Sources block present, all URLs 200 | repass: trim/expand, re-cite |
+| **B** | Core-30 metrics + citation | complete required experience fits within 30 minutes; required path ≤1,800 words with reading minutes computed as `round(words / 150)`; visible label reports actual reading, interaction, and check counts; optional depth uses `details.deep[data-core="optional"]` and is excluded from the required-path budget; 7-9 steps; **exactly one code popup** (code-cta + `.code-modal` + codeviewer.js loaded; Bedrock code, or on an AWS/GCP provider page one `pre.cv-raw[data-cloud]` tab per provider; no `openai`/`gpt` in the snippet; code HTML-escaped); on a provider page every rule holds **per selected provider**; every claim traces to the research artifact (no invented facts); Sources block present, all URLs 200 | repass: trim/expand, re-cite |
 | **C** | Design / live-diagram | pull W1 readings as the reference design set; scrolly steps each bound to a *meaningful* diagram step (diagram drives the concept, not decoration); consistent components/classes; comparable interaction density; **browser screenshot-diff vs a W1 exemplar** for layout/hierarchy/AI-slop | repass: rework diagram/layout to match exemplar |
 | **D** | Question | **≥4 questions per technical concept-id** (feeds WEAK_TARGET=4 without repeats); tagged to correct concept-ids; grounded in research (no deprecated-API questions); difficulty spread; new concept-ids added to backend CONCEPTS taxonomy | repass: author more / re-tag |
 | **E** | Integration | `?day=wWWdN` scopes right; cards uniform; progress backfills; all new links 200 | fix wiring (serial) |

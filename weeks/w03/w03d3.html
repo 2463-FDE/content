@@ -7,6 +7,7 @@
 <meta name="fde-concepts" content="agent-orchestration-framework,langchain-langgraph-v1,openai-agents-sdk-handoffs,crewai-crews-vs-flows,microsoft-agent-framework,agent-framework-selection-tradeoffs">
 <title>W3·D3 — The Agent Framework Landscape: LangChain, OpenAI, CrewAI &amp; Microsoft | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
+<link rel="stylesheet" href="../../assets/css/cloud-path.css?v=20261014-c2">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -36,7 +37,8 @@
         <div class="meta">
           <span><b>Week 3</b> · Day 3</span>
           <span>Foundation AI Engineering</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~11 min read · 2 interactions · 6-Q check</span>
+          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 6-Q check</span>
         </div>
         <p class="summary">Once you decide to build an agent, the next question a client asks is
         <em>"which framework?"</em> — and in 2026 there are four serious answers, all of which changed shape in the last
@@ -60,6 +62,8 @@
         calls it asks for or return the final answer, and repeat until the task is done. What differs is everything built
         <em>around</em> that loop — how you define agents, how they hand work to each other, how state persists, and how
         much explicit control the framework hands you versus hides.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the two stale-memory traps, and the four names on the board</summary>
         <p>Here is the trap you must not fall into. If your mental model of this space predates 2026 — or if you let a
         model trained before 2026 seed your answer — you will describe it wrong in two specific ways. First, you'll talk
         about <strong>AutoGen</strong> and <strong>Semantic Kernel</strong> as two separate, live Microsoft frameworks.
@@ -74,6 +78,7 @@
         and enterprise features you get. Your job is not to have a favorite; it's to map the client's constraints onto
         the framework whose bets match. We'll take them one at a time, then turn the differences into a decision
         procedure you can run at a whiteboard.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="1">
@@ -92,22 +97,28 @@
         before it runs, or automatic context-summarization to keep the window under control. And <strong>standard
         content blocks</strong> give you consistent content types — reasoning traces, citations, tool calls — across
         providers, so you can swap the underlying model without rewriting the code that parses its output.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: dropping down to the LangGraph durable runtime</summary>
         <p>The low layer is the <strong>LangGraph durable runtime</strong>, and this is the piece clients under-rate.
         LangChain agents are <em>built on</em> LangGraph, so when the high-level API stops being enough you drop into an
         explicit graph with built-in persistence, resumable state, and human-in-the-loop control. The practical FDE
         reading: reach for <code>create_agent</code> to move fast on the common case, and descend to LangGraph when the
         task needs a long-running, checkpointed, resumable process rather than a single loop. Same stack, two altitudes
         — you don't migrate frameworks to get durability, you just go one layer down.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
         <div class="tag">Framework 2</div>
         <h2>OpenAI Agents SDK: five primitives, and it isn't OpenAI-only</h2>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: from Swarm to a supported SDK</summary>
         <p>The <strong>OpenAI Agents SDK</strong> is a deliberately lightweight, production-ready framework, and OpenAI is
         explicit about its lineage: it's "a production-ready upgrade of our previous experimentation for agents,
         Swarm." If someone on the client team remembers Swarm as a fun experiment they couldn't ship, this is the
         answer to "what happened to it" — Swarm grew up into a supported SDK. The design philosophy is minimalism: a
         small set of primitives you compose, rather than a large framework you configure.</p>
+        </details>
         <p>There are five primitives, and they're worth holding as a set. <strong>Agents</strong> are LLMs equipped with
         instructions and tools. <strong>Handoffs</strong> let one agent delegate to another (the star of the next step).
         <strong>Guardrails</strong> validate inputs and outputs — the checkpoints that catch a bad request before it
@@ -115,12 +126,15 @@
         turns. And running underneath all of it is <strong>built-in tracing</strong> for visualizing and debugging what
         the agents actually did — which, on a multi-agent system, is the difference between a bug you can see and a bug
         you can only guess at.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the default is OpenAI, the ceiling is not</summary>
         <p>Now the fact that saves you from a real misconception. The SDK <em>defaults</em> to OpenAI's Responses API,
         which makes it look like an OpenAI-lock-in play — but it is <strong>not OpenAI-only</strong>. It ships extension
         points for other providers through <strong>LiteLLM</strong> and <strong>Any-LLM</strong> adapters, so you can
         point the same agents at non-OpenAI models. That distinction matters enormously on an engagement: "OpenAI's
         SDK" does not mean "you must run OpenAI models forever." When a client worries about being trapped on one
         vendor, this is the nuance you bring — the default is OpenAI, the ceiling is not.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -131,6 +145,9 @@
         <strong>tool exposed to the LLM</strong>. Concretely: a handoff to an agent named "Refund Agent" surfaces to the
         model as a tool named <code>transfer_to_refund_agent</code>. The model doesn't invoke some special orchestration
         machinery; it simply <em>calls a tool</em>, and that tool call routes the conversation to the other agent.</p>
+        <div class="ix-handoff" data-core-interaction></div>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: why routing collapses into tool selection</summary>
         <p>Sit with why that's elegant. Routing and delegation — the thing that sounds like the hard, magical part of
         "multi-agent AI" — collapses into the exact same mechanism you already learned for tool calling. The model
         looks at the conversation, decides "this is a refund question," and chooses the <code>transfer_to_refund_agent</code>
@@ -138,13 +155,16 @@
         engine deciding who handles what: the orchestrating LLM makes the routing decision as one more tool selection.
         Once you see it this way, a triage-plus-specialists system stops being intimidating — it's a handful of agents,
         each exposed to the others as a transfer tool.</p>
-        <div class="ix-handoff"></div>
+        </details>
         <button class="code-cta" type="button" data-modal="code-w03d3" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only code <span class="cc-meta">· handoff_router.py</span></button>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: handoffs as the baseline for every framework</summary>
         <p>This is also the mental bridge to the other frameworks. Every multi-agent system on today's board is, under
         the hood, answering the same question — <em>how does one agent decide to hand work to another?</em> — and the
         OpenAI SDK gives the cleanest answer: it's a tool call, so it's governed by everything you already know about
         tool calling, guardrails, and tracing. Hold that as your baseline as we look at how CrewAI and Microsoft frame
         the same problem differently.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -157,6 +177,8 @@
         control with precise state management and conditional branching. The README says it plainly — "the true power of
         CrewAI emerges when combining Crews and Flows." Crews for the parts where you want judgement; Flows for the parts
         where you want guarantees.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: how Flows work, and why CrewAI is standalone</summary>
         <p>The Flows machinery is concrete enough to picture. A Flow is built from decorated entry-point methods and
         listener methods that fire when a prior method produces output, with <code>or</code> and <code>and</code>
         operators to wait on multiple upstream steps, router-based conditional branching, and per-execution state that
@@ -170,6 +192,7 @@
         <code>&gt;=3.10,&lt;3.14</code>. That independence is a genuine architectural choice, not marketing — it means
         adopting CrewAI doesn't drag in the LangChain stack, and its dual Crews/Flows model is its own thing to learn on
         its own terms. When a team asks "is this just a LangChain wrapper?", the answer is a clean no.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
@@ -182,6 +205,8 @@
         single- and multi-agent abstractions and combines them with Semantic Kernel's enterprise features — session
         state, type safety, filters, telemetry — then adds graph-based <strong>Workflows</strong> for explicit
         multi-agent orchestration. Two frameworks became one.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: Agents vs Workflows inside the Microsoft Agent Framework</summary>
         <p>The internal split mirrors a distinction you're now seeing everywhere. Microsoft Agent Framework divides
         capabilities into <strong>Agents</strong> — an LLM plus tools plus MCP access, aimed at open-ended,
         conversational tasks — and <strong>Workflows</strong>, which are graph-based, type-safe routing with
@@ -190,6 +215,7 @@
         every client: <strong>"if you can write a function to handle the task, do that instead of using an AI
         agent."</strong> Even the vendor selling you the agent framework tells you not to reach for an agent when plain
         code will do.</p>
+        </details>
         <p>Now the fact you must not get wrong: <strong>AutoGen is legacy.</strong> Microsoft ships an official
         <em>AutoGen-to-Agent-Framework migration guide</em> (the page is dated 2026-04-01), which confirms AutoGen is
         now a migration <em>source</em>, not the recommended target for new work. So if a client says "we're building
@@ -216,17 +242,26 @@
         swap models without rewriting parsing; CrewAI is standalone and independent of any single stack. The nuance,
         which you now carry, is that "OpenAI's SDK" doesn't force OpenAI models forever — but the <em>default</em> path
         of least resistance still points at each vendor's own models, and defaults quietly decide architectures.</p>
+        <details class="deep" data-core="optional">
+          <summary>Practice (optional): AutoGen or Semantic Kernel?</summary>
         <div class="ix-predict"
           data-q="A client has an existing .NET and Semantic Kernel investment, needs type-safe, checkpointed, multi-step workflows with human-in-the-loop approvals, and is nervous about betting on anything 'experimental.' They ask you: AutoGen or Semantic Kernel — which do we build the new system on? What do you tell them?"
           data-a="<b>Neither, as separate frameworks — both have been unified into the Microsoft Agent Framework (GA 2026-04-03).</b> Their Semantic Kernel enterprise features (session state, type safety, filters, telemetry) and AutoGen's agent abstractions now live in one SDK, and their needs map straight onto its graph-based <b>Workflows</b> (type-safe routing, checkpointing, human-in-the-loop). Point them at the merged <code>agent-framework</code> package and Microsoft's official AutoGen migration guide; building net-new on standalone AutoGen in 2026 is building on a legacy/migration source.">
         </div>
+        </details>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the remaining axes on the scorecard</summary>
         <p>The remaining axes round out the scorecard. <strong>Enterprise / state features</strong>: does it give you
         durable persistence, checkpointing, session state, type safety, and telemetry out of the box (LangGraph's durable
         runtime, Microsoft's Semantic-Kernel-derived features) or do you bolt those on? <strong>Ecosystem
         maturity</strong>: LangChain/LangGraph's year-plus of production adoption before 1.0 versus newer entrants.
         Score the client against these axes, and the "which framework" argument stops being a taste debate and becomes a
         short, defensible mapping from their constraints to a choice.</p>
+        </details>
+        <details class="deep" data-core="optional">
+          <summary>Practice (optional): score a client against the frameworks</summary>
         <div class="ix-frameworks"></div>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -239,6 +274,8 @@
         knowable in advance. When the path <em>is</em> knowable, an agent is slower, costlier, and less predictable than
         the function you could have written. The first FDE instinct is not "which framework," it's <strong>"does this
         task even need an agent?"</strong></p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: no universal winner — the four bets side by side</summary>
         <p>When the answer is yes, the axes from the last step turn a religious debate into an engineering decision.
         There's no universal winner: LangChain/LangGraph gives you a fast loop over a battle-tested durable runtime; the
         OpenAI Agents SDK gives you five clean primitives and handoffs-as-tool-calls with tracing built in; CrewAI gives
@@ -246,7 +283,8 @@
         gives you the unified AutoGen-plus-Semantic-Kernel enterprise story with graph Workflows. Match the client's
         control model, lock-in tolerance, and enterprise needs to the framework whose bets fit — and be ready to justify
         the pick on those axes, not on which name you've heard most.</p>
-        <div class="callout mindset">
+        </details>
+        <div class="callout mindset" data-core="optional">
           <div class="k">FDE mindset</div>
           <p>When a client asks "which agent framework should we standardize on?", don't answer with a favorite. Answer
           with three questions: <strong>Does this task even need an agent, or would a function do? Do we want an
@@ -257,7 +295,80 @@
         </div>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">On your cloud · the provider SDK</div>
+        <h2>Your spine is create_agent — defend it next to the cloud's own SDK</h2>
+        <p>This program builds on LangChain v1 <code>create_agent</code>. Each cloud also ships its own open-source
+        agent SDK and a managed runtime to deploy agents into, and when a client has standardized on that SDK, it is the
+        comparison you must be able to defend. Score it on the same axes — control model, lock-in, enterprise
+        features — and check where each runtime lets your LangChain agent run. Open your path; the other cloud stays as
+        an optional comparison.</p>
+
+        <details class="cloud-block" data-cloud="aws" open>
+          <summary><span class="cloud-tag">AWS</span>Strands Agents on AgentCore Runtime<span class="cloud-role"></span></summary>
+          <p><strong>Strands Agents</strong> is an open-source SDK initially released by AWS, built
+          <strong>model-first</strong>: an agent is a model, tools, and a prompt, and the model drives the loop. Strands
+          invokes the model with the prompt, context, and tool descriptions; if the model selects a tool, Strands runs it
+          and feeds the result back; repeat until the task is done — the same loop <code>create_agent</code> runs. Any
+          Python function becomes a tool with the <code>@tool</code> decorator, MCP servers plug in as tools, and
+          multi-agent work uses built-in <strong>Swarm, Graph, and Workflow</strong> patterns. It isn't Bedrock-only:
+          models in Amazon Bedrock, Anthropic, Ollama, and others through LiteLLM. To deploy, <strong>Amazon Bedrock
+          AgentCore Runtime</strong> is framework-agnostic: you wrap the agent in a <code>BedrockAgentCoreApp</code>
+          with an <code>@app.entrypoint</code> handler, and AWS documents that pattern for Strands, LangGraph, Google ADK,
+          and the OpenAI Agents SDK, with each user session in its own isolated microVM. The defensible comparison:
+          Strands buys tight AWS-service integration, but a LangGraph-based agent — which is what
+          <code>create_agent</code> builds — gets the same runtime through the same entrypoint. Same loop; different
+          defaults.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="aws">
+            <div class="ix-k">✓ Practice · defend the spine</div>
+            <p class="ix-cloud-q">A client standardized on Strands asks whether your LangChain agent can run on their
+            AgentCore Runtime, or must be rewritten in Strands first. What is the accurate answer?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="AgentCore Runtime is documented as framework-agnostic, with examples for LangGraph, Google ADK and the OpenAI Agents SDK alongside Strands.">Rewrite it: AgentCore Runtime only hosts Strands agents</li>
+              <li data-correct data-why="AWS's 'use any agent framework' guide wraps a LangGraph agent in a BedrockAgentCoreApp entrypoint, exactly as it does for Strands.">It runs: wrap it in a BedrockAgentCoreApp entrypoint, as AWS documents for LangGraph</li>
+              <li data-why="AgentCore Runtime works with any large language model, including models outside Amazon Bedrock.">It runs only after you switch its model to one hosted on Amazon Bedrock</li>
+              <li data-why="Gateway turns APIs and services into tools for agents; it isn't how you host an agent.">It runs only as a tool behind AgentCore Gateway</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>It runs.</strong> AgentCore Runtime hosts LangGraph agents through the same entrypoint wrapper it
+              uses for Strands. Choose Strands for its AWS fit, not because the runtime demands it.</p>
+            </details>
+          </div>
+        </details>
+
+        <details class="cloud-block" data-cloud="gcp" open>
+          <summary><span class="cloud-tag">GCP</span>ADK on Agent Runtime<span class="cloud-role"></span></summary>
+          <p><strong>Agent Development Kit (ADK)</strong> is Google's open-source agent framework, available in Python,
+          TypeScript, Go, and Java. It covers both ends of the control-model axis: <strong>workflow agents</strong> for
+          predictable pipelines, or agent-coordinated <strong>dynamic routing</strong> for adaptive behavior, with native
+          multi-agent composition so specialist agents can collaborate and delegate, plus evaluation tools that test
+          execution trajectories. You deploy it to <strong>Agent Runtime (formerly Agent Engine)</strong> on Gemini
+          Enterprise Agent Platform — a fully managed runtime — or run it on Cloud Run or GKE. Agent Runtime grades its
+          framework support: ADK gets <strong>full integration</strong> (deploy with the <code>adk</code> CLI, or wrap the
+          agent in <code>AdkApp</code>); LangChain and LangGraph get <strong>managed templates</strong> in the Agent
+          Platform SDK, such as the <code>LangchainAgent</code> class; CrewAI and custom frameworks use a custom template
+          or any container that meets the runtime contract. The defensible comparison: ADK buys the deepest Agent
+          Platform integration, while your LangChain agent still has a documented, supported path onto the same runtime.
+          Same decision axes; different defaults.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="gcp">
+            <div class="ix-k">✓ Practice · defend the spine</div>
+            <p class="ix-cloud-q">A client standardized on ADK asks whether your LangChain agent can be deployed to Agent
+            Runtime, or must be rewritten in ADK first. What is the accurate answer?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="Agent Runtime supports agents in any language and framework that can be containerized and meet the runtime contract.">Rewrite it: Agent Runtime only runs ADK agents</li>
+              <li data-correct data-why="Agent Runtime lists LangChain and LangGraph under Agent Platform SDK integration, with managed templates such as LangchainAgent; ADK has full integration.">It deploys: LangChain has a managed template, while ADK has the deepest integration</li>
+              <li data-why="A2A is one supported protocol on Agent Runtime, not a prerequisite for LangChain agents.">It deploys only after you convert it to an Agent2Agent (A2A) agent</li>
+              <li data-why="ADK and other frameworks can run on Cloud Run, but LangChain also has a documented Agent Runtime path.">It can run on Cloud Run, but never on Agent Runtime</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>It deploys.</strong> LangChain has a managed template on Agent Runtime; ADK simply gets the
+              tightest fit. Choose ADK for that integration, not because the runtime demands it.</p>
+            </details>
+          </div>
+        </details>
+      </section>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://www.langchain.com/blog/langchain-langgraph-1dot0" target="_blank" rel="noopener">LangChain — LangChain and LangGraph reach v1.0</a> — the 2025-10-22 release, the <code>create_agent</code> loop, middleware hooks, standard content blocks, and the LangChain-on-LangGraph durable runtime layering.</li>
@@ -268,6 +379,14 @@
           <li><a href="https://pypi.org/project/crewai/" target="_blank" rel="noopener">crewai — PyPI</a> — version 1.15.1 (2026-06-27), "built entirely from scratch — completely independent of LangChain," Python <code>&gt;=3.10,&lt;3.14</code>.</li>
           <li><a href="https://learn.microsoft.com/en-us/agent-framework/overview/" target="_blank" rel="noopener">Microsoft Agent Framework — Overview</a> — the successor to both AutoGen and Semantic Kernel, the Agents vs graph-based Workflows split, and "if you can write a function to handle the task, do that instead of using an AI agent."</li>
           <li><a href="https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen/" target="_blank" rel="noopener">Microsoft — AutoGen to Agent Framework migration guide</a> — confirms AutoGen is now a legacy/migration source, not the recommended target for new work.</li>
+          <li><a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/agentic-ai-frameworks/strands-agents.html" target="_blank" rel="noopener">AWS — Strands Agents (AWS Prescriptive Guidance)</a> — open-source SDK initially released by AWS, model-first design, Swarm / Graph / Workflow patterns, native MCP support (accessed 2026-10-14).</li>
+          <li><a href="https://aws.amazon.com/blogs/opensource/introducing-strands-agents-an-open-source-ai-agents-sdk/" target="_blank" rel="noopener">AWS — Introducing Strands Agents, an Open Source AI Agents SDK</a> — model + tools + prompt, the agentic loop, the <code>@tool</code> decorator, and model providers (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/using-any-agent-framework.html" target="_blank" rel="noopener">AWS — Use any agent framework with AgentCore Runtime</a> — <code>BedrockAgentCoreApp</code> entrypoints for Strands, LangGraph, Google ADK, and the OpenAI Agents SDK (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html" target="_blank" rel="noopener">AWS — Host agent or tools with AgentCore Runtime</a> — framework-agnostic and model-flexible hosting with per-session microVM isolation (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk" target="_blank" rel="noopener">Google Cloud — Agent Development Kit</a> — open-source framework, workflow agents vs dynamic routing, multi-agent delegation, trajectory evaluation, languages, and where it runs (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/runtime" target="_blank" rel="noopener">Google Cloud — Agent Runtime overview</a> — the managed runtime and its framework support levels: ADK full integration, LangChain/LangGraph SDK templates, custom containers (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/runtime/create-a-langchain-agent" target="_blank" rel="noopener">Google Cloud — Develop a LangChain agent on Agent Runtime</a> — the <code>LangchainAgent</code> template in the Agent Platform SDK (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/release-notes" target="_blank" rel="noopener">Google Cloud — Gemini Enterprise Agent Platform release notes</a> — "Agent Engine is now Agent Runtime" (accessed 2026-10-14).</li>
         </ul>
       </section>
 
@@ -526,11 +645,13 @@ window.QUIZ = {
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20260924-w3"></script>
-<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/quiz.js?v=20261014-c1"></script>
 <script src="../../assets/js/interactive.js?v=20260714-w3f"></script>
 <script src="../../assets/js/interactive-agents.js?v=20260714-w3f"></script>
 <script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
-<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/cloud-path.js?v=20261014-c1"></script>
+<script src="../../assets/js/interactive-cloud.js?v=20261014-c1"></script>
+<script src="../../assets/js/glossary.js?v=20261014-c1"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
 <script src="../../assets/js/learning-chrome.js?v=20260925-s5"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>

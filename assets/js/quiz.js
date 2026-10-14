@@ -111,7 +111,11 @@
         `<button class="btn-link retry">Try again ↻</button>`;
       summary.classList.add("show");
       summary.querySelector(".retry").addEventListener("click", () => render(host, Q));
-      record({ id: Q.id, trainee, type: "quiz", got, total, items: state.map(s => s.correct), ts: new Date().toISOString(), page: location.pathname });
+      const rec = { id: Q.id, trainee, type: "quiz", got, total, items: state.map(s => s.correct), ts: new Date().toISOString(), page: location.pathname };
+      const source = window.QUIZ && Array.isArray(window.QUIZ.questions) ? window.QUIZ.questions : Q.questions;
+      rec.qidx = Q.questions.map(q => source.indexOf(q));
+      if (window.FDECloudPath && window.FDECloudPath.current) rec.cloud = window.FDECloudPath.current();
+      record(rec);
       setNextGate(true);
       if (!h.querySelector(".done-check")) h.appendChild(doneBadge());
       markLauncherDone();
@@ -250,12 +254,25 @@
   document.addEventListener("DOMContentLoaded", () => {
     const host = document.getElementById("quiz");
     if (host && window.QUIZ) {
-      render(host, window.QUIZ);
-      // keep the quiz launcher card's question count in sync with the spec
-      const n = window.QUIZ.questions.length;
-      document.querySelectorAll(".quiz-count").forEach(e => e.textContent = n);
-      const card = document.querySelector('.activity-card[data-modal="quiz-modal"] .ac-t');
-      if (card && /\d/.test(card.textContent)) card.textContent = card.textContent.replace(/\d+/, n);
+      // Questions tagged with a cloud ({cloud:"aws"|"gcp"}) only appear on that
+      // provider's path (cloud-path.js); untagged questions are shared.
+      const spec = () => window.FDECloudPath
+        ? window.FDECloudPath.filterQuestions(window.QUIZ, window.FDECloudPath.explicit())
+        : window.QUIZ;
+      let shown = null;
+      const show = () => {
+        const Q = spec();
+        if (shown && shown.length === Q.questions.length && shown.every((q, i) => q === Q.questions[i])) return;
+        shown = Q.questions.slice();
+        render(host, Q);
+        // keep the quiz launcher card's question count in sync with the spec
+        const n = Q.questions.length;
+        document.querySelectorAll(".quiz-count").forEach(e => e.textContent = n);
+        const card = document.querySelector('.activity-card[data-modal="quiz-modal"] .ac-t');
+        if (card && /\d/.test(card.textContent)) card.textContent = card.textContent.replace(/\d+/, n);
+      };
+      show();
+      if (window.QUIZ.questions.some(q => q && q.cloud)) window.addEventListener("fde-cloud-path-change", show);
     }
   });
 })();

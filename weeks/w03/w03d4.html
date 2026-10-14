@@ -7,6 +7,7 @@
 <meta name="fde-concepts" content="short-term-memory,long-term-memory,memory-store,memory-type-taxonomy,virtual-context-management">
 <title>W3·D4 — Agent Memory: Working vs Long-Term Stores | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
+<link rel="stylesheet" href="../../assets/css/cloud-path.css?v=20261014-c2">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -36,7 +37,8 @@
         <div class="meta">
           <span><b>Week 3</b> · Day 4</span>
           <span>Agents &amp; Orchestration</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~11 min read · 2 interactions · 6-Q check</span>
+          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~12 min read · 2 interactions · 6-Q check</span>
         </div>
         <p class="summary">An LLM forgets everything the instant a call returns. So the moment you ask it to <em>act</em>
         across many turns — an agent, not a one-shot answer — you have to build the memory yourself. There are exactly two
@@ -62,11 +64,14 @@
         a hard line between them. <strong>Short-term memory</strong> is the ongoing conversation — the working set the agent
         holds in hand right now, inside the window, for this one thread. <strong>Long-term memory</strong> is everything
         the agent has filed away for later — persistent, outside the window, recallable from any thread at any time.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: most memory bugs are category errors</summary>
         <p>Almost every real agent-memory bug is a category error between those two tiers: someone tried to make the window
         do long-term memory's job (and it overflowed), or expected the store to behave like the live conversation (and it
         felt stale). Get the taxonomy crisp first and the fixes become obvious. That's today. By the end you'll diagnose an
         agent's memory the way you learned to diagnose a window in Week 1 — by asking <em>which tier is this, and is the
         data where it needs to be?</em></p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="1">
@@ -78,6 +83,8 @@
         LangGraph's terms it is part of the agent's <strong>runtime state</strong>, and it is persisted across steps by a
         <strong>checkpointer</strong> — the mechanism that snapshots the graph's state so the agent can pause, resume, and
         continue the same thread without losing its place.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: thread scope, Sessions, and the hidden token cost</summary>
         <p>The key word is <em>thread</em>. Short-term memory belongs to one conversation. Start a new thread — a different
         user, a different session, a fresh support ticket — and this working set is gone, by design. It is the equivalent
         of what you're holding in your head during a single meeting: sharp, complete, and irrelevant the moment the meeting
@@ -89,6 +96,7 @@
         the growing transcript on every turn to keep the conversation feeling continuous. Convenient — and, as you'll see
         in the next slice, a ceiling you will slam into. Short-term memory is powerful precisely because it is always
         present in the window; it is also fragile for exactly the same reason.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -104,13 +112,16 @@
         <em>deliberate forgetting</em> — you choose what stale information to let go of to manage token usage and keep the
         agent fast. This is the same discipline you met in Week 1 as history eviction, but now you're the one doing it on
         purpose, with a strategy, rather than letting the front of the window silently drop off.</p>
-        <div class="ix-compress"></div>
+        <div class="ix-compress" data-core-interaction></div>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the FDE reflex when an agent loses the plot</summary>
         <p>The FDE reflex to build here: when an agent "loses the plot" partway through a long task, don't reach for a
         bigger model. Ask whether its working memory blew past the window and got crudely truncated. The fix is a
         <strong>memory-management strategy</strong> — trim, summarize, or offload — not more parameters. And notice the
         limitation this exposes: short-term memory can never be the place you keep something that must survive. Anything
         the agent truly needs to remember tomorrow, or in a different thread, has to live somewhere the window can't
         evict it. That somewhere is Tier 2.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -121,12 +132,15 @@
         It can be <em>recalled at any time and in any thread</em>, and — crucially — it is scoped to any custom namespace,
         <strong>not just within a single thread ID</strong>. Where short-term memory is the meeting you're in, long-term
         memory is the filing cabinet you walk back to between meetings.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: two properties, mirror images of Tier 1</summary>
         <p>Two properties define it, and both are the mirror image of Tier 1. First, it lives <strong>outside the context
         window</strong>: it is not always sitting in the prompt burning tokens. It is stored externally and pulled in only
         when relevant. Second, it is <strong>not thread-scoped</strong>: a fact the agent learned about a user in Monday's
         conversation is available in Friday's, in a different session, in a different workflow entirely. That cross-thread
         persistence is the whole point — it's what lets an assistant say "last quarter you told me your team standardized on
         Postgres" three weeks and ten conversations later.</p>
+        </details>
         <p>Because it isn't always present, long-term memory has to be <strong>retrieved on demand</strong> rather than
         assumed. The agent (or the framework) decides a stored memory is relevant, fetches it, and drops it into the window
         for this call — then it's gone from the window again when the call returns. This is why long-term memory pairs so
@@ -167,6 +181,8 @@
         <em>past events and experiences</em>: what happened in a prior session, how a previous task played out.
         <strong>Procedural memory</strong> is remembering the <em>rules used to perform tasks</em> — for an agent, "a
         combination of model weights, agent code, and the agent's prompt."</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: drawing the semantic / episodic line, and the taxonomy as a design lens</summary>
         <p>The clean way the docs draw the line: <strong>facts can be written to semantic memory, whereas experiences can be
         written to episodic memory.</strong> Semantic is the <em>what</em> — durable, atomic truths. Episodic is the
         <em>what happened</em> — narrative, time-stamped. And procedural is the <em>how</em>, which for an agent mostly
@@ -179,6 +195,7 @@
         ones later. A change in <em>how</em> the agent should behave? Procedural — that's a prompt or code change, not a row
         in the store. Matching the memory type to the storage strategy is what separates a coherent memory design from a
         junk drawer of stashed strings.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="6">
@@ -189,6 +206,8 @@
         management</strong> — "a technique drawing inspiration from hierarchical memory systems in traditional operating
         systems." An OS gives each program the illusion of vast memory by paging data between fast RAM and slow disk;
         MemGPT gives the LLM the illusion of unbounded memory by paging between the context window and an external store.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: MemGPT's anatomy, main context and external context</summary>
         <p>The analogy is precise. <strong>Main context</strong> is the LLM's prompt tokens — "anything in main context is
         considered in-context," analogous to RAM. <strong>External context</strong> is everything else — "out-of-context
         data must always be explicitly moved into main context," analogous to disk. Main context is subdivided into three
@@ -198,17 +217,26 @@
         <strong>archival storage</strong> (a read/write database of arbitrary-length text). Map that back onto today: main
         context is your short-term tier, external context is your long-term tier, and the sections are just the anatomy of
         each.</p>
+        </details>
+        <details class="deep" data-core="optional">
+          <summary>Practice (optional): page data between main and external context</summary>
         <div class="ix-paging"></div>
+        </details>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: self-directed paging, the root of memory-as-a-tool</summary>
         <p>The genius stroke is <em>who drives the paging</em>. In MemGPT, "memory edits and retrieval are entirely
         self-directed": the LLM autonomously issues the function calls to move data between main and external context. The
         model manages its own memory the way a program requests pages — except the program is doing the requesting via tool
         calls it decides to make. That self-directed paging is the conceptual foundation under every "LLM-managed long-term
         memory" system you'll meet, and it's why memory operations show up as <em>tools</em> in modern agent frameworks.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
-        <div class="tag">In practice</div>
-        <h2>Two tiers, two toolchains — and they're complementary</h2>
+        <div class="tag">On your cloud · managed memory</div>
+        <h2>Two tiers, two toolchains — and a managed store on your cloud</h2>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the framework toolchains — Agents SDK Sessions and Claude's memory tool</summary>
         <p>The taxonomy is abstract; the products make it concrete, and they line up cleanly on the two tiers. For
         <strong>short-term</strong> memory, the OpenAI Agents SDK's <strong>Sessions</strong> handle the working set with
         pluggable backends — SQLite (the default, file or in-memory), Redis, SQLAlchemy, MongoDB, Dapr, and OpenAI-hosted
@@ -223,6 +251,7 @@
         application executes them against storage you control. It's generally available — tool type
         <code>memory_20250818</code>, no beta header, on all Claude 4+ models. Your app owns the disk; the model just asks
         for pages. Straight out of the MemGPT playbook.</p>
+        </details>
         <p>The synthesis to carry out the door: these two tiers are <strong>complementary, not interchangeable</strong>.
         Anthropic pairs the memory tool with context editing and server-side compaction, and describes the division exactly
         — for long-running agents, "compaction keeps the active context small … and memory preserves the information that
@@ -231,15 +260,96 @@
         that mattered, your first question is now a taxonomy question: <em>was this supposed to be in working memory or
         long-term memory — and was it actually written to the right tier?</em> That single question resolves the vast
         majority of agent-memory tickets before you ever touch the model.</p>
+        <p>Both clouds now sell the two tiers as <strong>managed services</strong>, and they map straight onto today: a
+        session of events is your short-term tier; an extracted, scoped record store is your long-term tier. What neither
+        service decides is your <strong>memory policy</strong> — what is worth writing, under which namespace, and when the
+        agent reads it back. That design is yours; the managed service stores, extracts, and retrieves. Open your path; the
+        other cloud stays as an optional comparison.</p>
+
+        <details class="cloud-block" data-cloud="aws" open>
+          <summary><span class="cloud-tag">AWS</span>Amazon Bedrock AgentCore Memory<span class="cloud-role"></span></summary>
+          <p><strong>AgentCore Memory</strong> is one fully managed service with both tiers inside. Short-term memory is a
+          stream of <strong>events</strong>: you write each turn with <code>CreateEvent</code>, tagged with an
+          <code>actorId</code> and a <code>sessionId</code>, and reload the conversation with <code>ListEvents</code> —
+          immutable, timestamped raw interactions for one session. Long-term memory exists only if you attach
+          <strong>memory strategies</strong> to the memory resource; with none, no long-term records are extracted. The
+          built-in strategies — <strong>semantic</strong> (facts), <strong>user preference</strong>,
+          <strong>summary</strong> (per session) and <strong>episodic</strong> (episodes plus cross-episode reflections) —
+          run asynchronously in the background, <em>extracting</em> insights from events and <em>consolidating</em> them
+          with existing records. Records land under a <strong>namespace</strong> path such as
+          <code>/strategy/{memoryStrategyId}/actors/{actorId}/</code>, and <code>RetrieveMemoryRecords</code> runs a
+          semantic search over them. AWS also puts input validation on your side of the line: sanitize input with
+          guardrails before it reaches <code>CreateEvent</code>, because a poisoned conversation becomes a poisoned memory.
+          The service extracts and stores; which strategies run, how namespaces map to tenants, and when the agent recalls
+          stay your design.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="aws">
+            <div class="ix-k">✓ Practice · find the missing tier</div>
+            <p class="ix-cloud-q">Your agent writes every turn to AgentCore Memory with <code>CreateEvent</code>. A week
+            later, <code>RetrieveMemoryRecords</code> returns nothing about a returning user's stated preferences. What's
+            the most likely cause?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="Events can carry conversational exchanges — questions, answers, instructions — as well as structured data, so the user's words were captured.">CreateEvent only stores tool calls, not user messages</li>
+              <li data-correct data-why="Long-term records come only from strategies on the memory resource; with no strategy attached, nothing is extracted from the events.">No memory strategy is attached to the memory resource, so nothing was extracted</li>
+              <li data-why="RetrieveMemoryRecords performs a semantic search over memory records; an exact key isn't required.">RetrieveMemoryRecords needs the exact record key, not a query</li>
+              <li data-why="Long-term generation runs on raw conversation stored via CreateEvent or submitted through IngestData — either path feeds extraction.">Events can't feed long-term memory; only IngestData can</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>No strategy, no long-term memory.</strong> The events are your short-term tier; the long-term tier
+              is whatever the strategies you attach extract from them. Choosing them is the write half of your memory
+              policy.</p>
+            </details>
+          </div>
+        </details>
+
+        <details class="cloud-block" data-cloud="gcp" open>
+          <summary><span class="cloud-tag">GCP</span>Agent Platform Sessions and Memory Bank<span class="cloud-role"></span></summary>
+          <p>On Gemini Enterprise Agent Platform the two tiers are two services. <strong>Agent Platform Sessions</strong>
+          holds the working tier: a session is the chronological sequence of <strong>events</strong> — messages and actions
+          such as function calls — for one interaction, and every session must carry a user ID. You append events as the
+          conversation runs and list them to rebuild context; an ADK agent deployed to the platform gets session management
+          automatically. <strong>Memory Bank</strong> holds the long-term tier. <code>GenerateMemories</code>, triggered at
+          an interval you choose (end of a turn, end of a session), uses an LLM in the background to <em>extract</em> facts
+          that match your <strong>memory topics</strong> — by default user information, preferences, key conversation
+          details, and explicit remember/forget instructions — and <em>consolidate</em> them with existing memories.
+          <code>CreateMemory</code> lets the agent write a memory directly when it decides to (memory-as-a-tool). Each
+          memory carries an immutable <strong>scope</strong> such as <code>{"user_id": "123"}</code>, and
+          <code>RetrieveMemories</code> returns only memories with exactly that scope — all of them, or the most similar.
+          Google also flags memory poisoning: false information stored once is acted on in future sessions. Scopes, topics,
+          and when to retrieve stay your design.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="gcp">
+            <div class="ix-k">✓ Practice · read back the right scope</div>
+            <p class="ix-cloud-q">Memory Bank generated "prefers aisle seats" with scope
+            <code>{"user_id": "u-17", "app": "travel"}</code>. Today your agent calls <code>RetrieveMemories</code> with
+            scope <code>{"user_id": "u-17"}</code> and gets nothing back. Why?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="Memories persist across sessions by design; expiry happens only if you configure a time to live.">Memories expire when the session that created them ends</li>
+              <li data-why="RetrieveMemories can return all memories in a scope; similarity search is an option for large collections, not a requirement.">Only similarity search can return memories; simple retrieval needs a query</li>
+              <li data-correct data-why="Retrieval returns only memories whose scope exactly matches the request's; a partial scope matches nothing.">Retrieval matches the exact scope, and the request's scope differs from the memory's</li>
+              <li data-why="User preferences are one of the default managed topics, and the memory was generated — the write worked.">Preferences aren't a default memory topic, so nothing was stored</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>Exact-scope retrieval.</strong> The scope you write with is the address you must read with — the
+              same namespace discipline as Tier 2's store, and the same tenant-isolation boundary.</p>
+            </details>
+          </div>
+        </details>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://docs.langchain.com/oss/python/concepts/memory" target="_blank" rel="noopener">LangChain — Memory overview</a> — short-term vs long-term, the checkpointer/store split, namespaces &amp; keys, and the semantic/episodic/procedural taxonomy.</li>
           <li><a href="https://arxiv.org/abs/2310.08560" target="_blank" rel="noopener">MemGPT: Towards LLMs as Operating Systems (arXiv:2310.08560)</a> — the virtual-context-management pattern; the OS analogy for paging between window and store. <a href="https://ar5iv.labs.arxiv.org/html/2310.08560" target="_blank" rel="noopener">(full text on ar5iv)</a></li>
           <li><a href="https://openai.github.io/openai-agents-python/sessions/" target="_blank" rel="noopener">OpenAI Agents SDK — Sessions</a> — automatic short-term/conversational memory and its pluggable backends.</li>
           <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool" target="_blank" rel="noopener">Anthropic — Memory tool</a> — client-side long-term memory in a <code>/memories</code> directory; how it pairs with context editing and compaction.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory-types.html" target="_blank" rel="noopener">AWS — AgentCore Memory: Memory types</a> — short-term events (<code>CreateEvent</code>, <code>ListEvents</code>) and asynchronous long-term extraction and consolidation, retrieved with <code>RetrieveMemoryRecords</code> (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory-strategies.html" target="_blank" rel="noopener">AWS — AgentCore Memory: Memory strategies</a> — strategies decide what is extracted; no strategy, no long-term records (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/built-in-strategies.html" target="_blank" rel="noopener">AWS — AgentCore Memory: Built-in strategies</a> — semantic, user preference, summary and episodic strategies and their default namespaces (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/best-practices.html" target="_blank" rel="noopener">AWS — AgentCore Memory: Best practices</a> — memory poisoning and input validation before <code>CreateEvent</code> (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sessions" target="_blank" rel="noopener">Google Cloud — Agent Platform Sessions overview</a> — sessions, events, state, and memory on Gemini Enterprise Agent Platform (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank" target="_blank" rel="noopener">Google Cloud — Agent Platform Memory Bank</a> — generate, create and retrieve scoped long-term memories; memory-poisoning guidance (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/generate-memories" target="_blank" rel="noopener">Google Cloud — Generate memories</a> — extraction against memory topics, the default managed topics, and consolidation within a scope (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/fetch-memories" target="_blank" rel="noopener">Google Cloud — Fetch memories</a> — exact-scope retrieval, all memories or by similarity search (accessed 2026-10-14).</li>
         </ul>
       </section>
 
@@ -486,11 +596,13 @@ window.QUIZ = {
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20260924-w3"></script>
-<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/quiz.js?v=20261014-c1"></script>
 <script src="../../assets/js/interactive.js?v=20260714-w3f"></script>
 <script src="../../assets/js/interactive-agents.js?v=20260714-w3f"></script>
 <script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
-<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/cloud-path.js?v=20261014-c1"></script>
+<script src="../../assets/js/interactive-cloud.js?v=20261014-c1"></script>
+<script src="../../assets/js/glossary.js?v=20261014-c1"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
 <script src="../../assets/js/learning-chrome.js?v=20260925-s5"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>

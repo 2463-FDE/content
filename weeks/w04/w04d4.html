@@ -7,6 +7,7 @@
 <meta name="fde-concepts" content="property-graph-model,kg-schema-design,cypher-pattern-matching,neo4j-vector-index,knowledge-graph,text2cypher">
 <title>W4·D4 — Knowledge Graphs &amp; Cypher for GraphRAG | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
+<link rel="stylesheet" href="../../assets/css/cloud-path.css?v=20261014-c2">
 <link rel="stylesheet" href="../../assets/css/w4-major-refresh.css?v=20260925-2">
 <script src="../../assets/js/theme.js"></script>
 </head>
@@ -37,7 +38,8 @@
         <div class="meta">
           <span><b>Week 4</b> · Day 4</span>
           <span>Retrieval Beyond Vectors</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, one interaction, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~11 min read · 1 interaction · 6-Q check</span>
+          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, one interaction, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~11 min read · 1 interaction · 6-Q check</span>
         </div>
         <p class="summary">Vector search finds text that <em>sounds like</em> the question. But some questions aren't
         about similar text at all — they're about <strong>connections</strong>: who reports to whom, which contract covers
@@ -58,6 +60,8 @@
         retrieves the top-k passages that resemble the question — but a "what are the main themes" question resembles
         <em>everything</em> vaguely and <em>nothing</em> specifically. The answer lives in the connections between
         hundreds of documents, not inside any one of them.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: what the GraphRAG paper did, and what a knowledge graph is</summary>
         <p>This is exactly the gap the <strong>GraphRAG</strong> paper (Microsoft, arXiv:2404.16130) called out. Their
         move: have an LLM read the source documents and extract an <strong>entity knowledge graph</strong> — the people,
         systems, and events, and how they relate — then run community detection to group closely related entities and
@@ -71,6 +75,7 @@
         stack underneath that idea: the data model, the schema discipline, the query language, and how it plugs into the
         RAG pipelines you built earlier this week. Keep last week's window math in your head throughout — a graph doesn't
         replace retrieval, it changes <em>what</em> you retrieve into the window.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="1">
@@ -83,6 +88,8 @@
         pairs that can sit on both nodes <em>and</em> relationships: a person has a name, and the relationship that
         connects them to a film can itself carry the role they played. One line of Cypher shows all three at once:</p>
         <p style="margin-top:6px"><code>(:Person {name:"Keanu"})-[:ACTED_IN {role:"Neo"}]-&gt;(:Movie {title:"The Matrix"})</code></p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: first-class relationships, and the schema-flexibility trap</summary>
         <p>Two things make this model different from the tables you're used to. First, relationships are
         <strong>first-class data</strong>, not something you reconstruct at query time with JOINs — the connection is
         stored, typed, directed, and can hold its own attributes. Second, the model is <strong>schema-flexible</strong>:
@@ -94,6 +101,7 @@
         database won't impose discipline. The schema-design workflow in the next section is where the discipline comes
         from — and as you'll see by the end of the day, that discipline is what decides whether your GraphRAG retrieval
         works at all.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -104,12 +112,15 @@
         must answer — "which customers are affected by this outage?", "who approved this change?" Then model, then
         <em>test the model against every one of those questions</em>, then refactor. A graph schema isn't right in the
         abstract; it's right <em>for a set of questions</em>.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the naming conventions</summary>
         <p>The translation rules are pleasingly mechanical. <strong>The dominant nouns in your use case become node
         labels</strong>, written in CamelCase — customer, support ticket. The <strong>verbs become relationship
         types</strong>, written in capitals with underscores, as in <code>REPORTED</code> or <code>DEPENDS_ON</code>.
         The attributes become <strong>properties</strong>, in camelCase and not capitalized. Every relationship gets
         an explicit direction, and relationship properties are where you record <em>how</em> two nodes relate — the
         role in the film, the date of the approval.</p>
+        </details>
         <p>The rule that will pay your salary later: make relationship types <strong>as specific as possible</strong>,
         never generic. A graph full of edges that all say "related to" is a graph that can answer no precise question,
         because every traversal drags in every kind of connection at once. Acted-in versus directed versus produced is
@@ -140,6 +151,8 @@
         <strong>path</strong> is "an actual sequence of nodes and relationships in the graph that matches a pattern" —
         one concrete answer. Write <code>MATCH (p:Person)-[:ACTED_IN]-&gt;(m:Movie) RETURN p.name, m.title</code> and
         you've declared a shape; the engine finds every path in the graph that fits it.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: variable-length, shortest-path, and match modes</summary>
         <p>Patterns scale up in expressive power. Fixed-length patterns chain hops explicitly. <strong>Variable-length
         patterns</strong> say "follow this relationship one to five times," which is how you ask transitive questions
         such as "everything downstream of this service" without knowing the depth in advance. Shortest-path patterns
@@ -147,6 +160,7 @@
         over how a path may revisit the graph. You do not need to memorize the full grammar today. You need to be able
         to read a traversal query and, crucially, to recognise that <em>the query is only writable because the schema
         gave the relationships specific types and directions</em>. Vague schema, unwritable query.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -163,10 +177,13 @@
         written in the Cypher 5 era. So a student — or a client's engineer — on a fresh 2026 install is running Cypher 25
         by default while pasting Cypher 5–era advice. Usually it works; occasionally it doesn't, and the failure looks
         like mystery.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the version-check reflex</summary>
         <p>You've seen this movie before in this program: the model-version churn of Week 1, the framework churn of
         Week 3. The FDE reflex is always the same — <strong>check which version the environment is actually running
         before you trust any advice, including your own memory.</strong> One <code>CYPHER 25</code> prefix on a query is
         a cheap way to make the version explicit while you're diagnosing.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
@@ -177,10 +194,13 @@
         approximate-nearest-neighbor index — the same family of algorithm as the dedicated vector stores you met earlier
         this week — and in the manual's words, it lets you "retrieve a neighborhood of nodes or relationships based on
         the similarity between the embedding properties."</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: creating the vector index</summary>
         <p>You attach it to a property. Store an embedding on each node —
         <code>m.embedding</code> on your <code>Movie</code> nodes, say — then:</p>
         <p><code>CREATE VECTOR INDEX moviePlots FOR (m:Movie) ON m.embedding<br>
         OPTIONS { indexConfig: { 'vector.dimensions': 1536, 'vector.similarity_function': 'cosine' }}</code></p>
+        </details>
         <p>Dimensions can range from 1 to 4096, and the similarity function is <strong>cosine or euclidean</strong> —
         with the useful footnote that for l2-normalized vectors the two produce the same similarity ordering. On
         Neo4j 2026.01+, current Cypher 25 uses <strong><code>MATCH … SEARCH</code></strong> to return nearest nodes and
@@ -188,10 +208,13 @@
         property: the index keeps searching until it fills the requested limit with same-tenant results. An outer
         <code>WHERE</code> runs after global top-k and can silently lose valid tenant results. The older
         <code>db.index.vector.queryNodes()</code> procedure is deprecated as of Neo4j 2026.04.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: why a vector hit that is a node matters</summary>
         <p>Pause on why this matters architecturally. The result of a vector query here isn't a text chunk — it's a
         <strong>node in a graph</strong>, with typed relationships radiating out of it. One database now serves both
         retrieval modes: semantic "find me things like this" <em>and</em> structural "now walk the connections." That
         combination is the hinge the next section swings on.</p>
+        </details>
         <div class="ix-future">
           <div class="k">Interactive — future goal</div>
           <p>Planned: a live Cypher console against a small seeded movie graph — create a vector index with a filterable
@@ -209,6 +232,8 @@
         similar to the question, then traverse to the affected systems, the on-call engineer who resolved it, and the
         three earlier incidents linked to the same root cause. The retrieved context arrives in the window already
         <em>structured</em> — entities and their relations, not a bag of prose.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the neo4j-graphrag-python retrievers, and the two meanings of "GraphRAG"</summary>
         <p>You do not have to hand-roll this. <strong>neo4j-graphrag-python</strong> is Neo4j's first-party GraphRAG
         package — the long-term-support successor to an earlier GenAI package, wanting Python 3.10 to 3.14 and Neo4j
         5.18.1 or newer. Its retriever taxonomy is a menu of exactly the patterns you would want. A plain
@@ -224,6 +249,7 @@
         summaries over an LLM-extracted entity graph, map-reduced to answer "what are the main themes" sensemaking
         questions. Same name, different retrieval shapes, different questions they're good at. When a stakeholder says
         "we want GraphRAG," your first job is finding out which of the two they actually read about.</p>
+        </details>
         <button class="code-cta" type="button" data-modal="code-w04d4" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only worked example <span class="cc-meta">· incident_context.cypher</span></button>
       </section>
 
@@ -264,13 +290,78 @@
         community-summary shape. Most real engagements end up hybrid, which is precisely why Neo4j putting an HNSW index
         <em>inside</em> the graph store, and shipping retrievers that chain the two, is architecturally interesting: one
         backend, both questions.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the honest cost of a graph</summary>
         <p>But hold the cost honestly. A knowledge graph is not free retrieval quality — it's an upfront modeling
         investment (those use-case questions, that refactor loop) plus an ongoing curation obligation, and the GraphRAG
         paper's pipeline spends real LLM tokens extracting entities and pre-generating community summaries before a
         single query is served. The graph pays off when the client's questions are genuinely relational or global; it's
         overhead when a well-tuned vector index would have answered everything asked of it.</p>
+        </details>
 
-        <div class="callout mindset">
+        <p>Then decide <strong>where the graph runs</strong>. The Cypher and the modeling on this page don't change with
+        the cloud; placement does, and placement decides latency to your app and model, where the data sits, and who
+        gets paged when the database is down. Open your path; the other cloud stays as an optional comparison.</p>
+
+        <details class="cloud-block" data-cloud="aws" open>
+          <summary><span class="cloud-tag">AWS</span>Neo4j on AWS — and the Neptune question<span class="cloud-role"></span></summary>
+          <p>Three placements. <strong>Self-managed:</strong> you run Neo4j Enterprise or Community in your own account
+          — AWS's own docs describe Neo4j's all-in-one architecture, with loading, queries, storage, and management on
+          the same compute, such as EC2 instances — and you own patching, backups, and scaling.
+          <strong>Managed:</strong> Neo4j <strong>Aura</strong> is sold as SaaS through <strong>AWS Marketplace</strong>,
+          billed with your other AWS services, and Neo4j operates it. For a private path, Aura's Virtual Dedicated Cloud
+          tier supports <strong>AWS PrivateLink</strong>: a private endpoint inside your VPC, after which you can disable
+          public traffic. <strong>Alternative:</strong> <strong>Amazon Neptune</strong> is AWS's fully managed graph
+          database and supports openCypher — but AWS warns that Neo4j's Cypher has diverged from the openCypher
+          specification and that APOC procedures aren't in it, so this page's queries need a compatibility review, not a
+          paste. Placement changed; the schema discipline didn't.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="aws">
+            <div class="ix-k">✓ Practice · place the graph</div>
+            <p class="ix-cloud-q">An AWS client wants this page's Neo4j Cypher to run unchanged, on a graph Neo4j
+            operates, reachable only from their VPC. Which placement fits?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="Neptune speaks openCypher, and AWS notes Neo4j's Cypher has diverged from it — queries need review and possible rewrites.">Amazon Neptune with openCypher</li>
+              <li data-why="The queries run unchanged, but the client operates it — patching, backups, and scaling are theirs, not Neo4j's.">Self-managed Neo4j Enterprise on EC2 in their account</li>
+              <li data-correct data-why="Aura is the Neo4j-operated service; a PrivateLink endpoint in the client's VPC with public traffic disabled keeps the path private.">Neo4j Aura Virtual Dedicated Cloud behind an AWS PrivateLink endpoint, public traffic disabled</li>
+              <li data-why="With public traffic enabled, Aura traffic is allowed to traverse the public internet — a strong password doesn't make it private.">Neo4j Aura with public traffic on and a strong password</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>Aura Virtual Dedicated Cloud behind PrivateLink.</strong> Same Neo4j engine, so the Cypher holds;
+              Neo4j operates it; the endpoint lives in the client's VPC.</p>
+            </details>
+          </div>
+        </details>
+
+        <details class="cloud-block" data-cloud="gcp" open>
+          <summary><span class="cloud-tag">GCP</span>Neo4j on Google Cloud — and the Spanner Graph question<span class="cloud-role"></span></summary>
+          <p>Three placements. <strong>Self-managed:</strong> Neo4j Enterprise or Community from Neo4j's Google Cloud
+          Marketplace listings, deployed and run in your own project — you own patching, backups, and scaling.
+          <strong>Managed:</strong> Neo4j <strong>Aura</strong> is available through <strong>Google Cloud
+          Marketplace</strong>, billed with your other Google Cloud services (buying it needs the Billing Account
+          Administrator role), and Neo4j operates it. For a private path, Aura's Virtual Dedicated Cloud tier supports
+          <strong>Private Service Connect</strong>: an endpoint on an internal IP in your VPC, after which you can disable
+          public traffic. <strong>Alternative:</strong> <strong>Spanner Graph</strong> is Google Cloud's graph option
+          inside Spanner. It speaks an ISO GQL-compatible query language rather than Neo4j Cypher, maps existing tables
+          to property graphs, and integrates vector and full-text search — so moving this page's queries means
+          translating them, not pasting. Placement changed; the schema discipline didn't.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="gcp">
+            <div class="ix-k">✓ Practice · place the graph</div>
+            <p class="ix-cloud-q">A Google Cloud client wants this page's Neo4j Cypher to run unchanged, on a graph Neo4j
+            operates, reachable only from their VPC. Which placement fits?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="Spanner Graph's interface is ISO GQL-compatible, not Neo4j Cypher — the queries would need translating.">Spanner Graph</li>
+              <li data-why="The queries run unchanged, but the client operates it — patching, backups, and scaling are theirs, not Neo4j's.">Self-managed Neo4j Enterprise in their own project</li>
+              <li data-correct data-why="Aura is the Neo4j-operated service; a Private Service Connect endpoint in the client's VPC with public traffic disabled keeps the path private.">Neo4j Aura Virtual Dedicated Cloud behind a Private Service Connect endpoint, public traffic disabled</li>
+              <li data-why="With public traffic enabled, Aura traffic is allowed to traverse the public internet — a strong password doesn't make it private.">Neo4j Aura with public traffic on and a strong password</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>Aura Virtual Dedicated Cloud behind Private Service Connect.</strong> Same Neo4j engine, so the
+              Cypher holds; Neo4j operates it; the endpoint lives in the client's VPC.</p>
+            </details>
+          </div>
+        </details>
+
+        <div class="callout mindset" data-core="optional">
           <div class="k">FDE mindset</div>
           <p>When a client's retrieval "misses obvious things," ask what shape the miss is. If the answer existed in one
           chunk and search didn't find it, that's a vector problem. If the answer only exists <em>across
@@ -282,7 +373,7 @@
         </div>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://neo4j.com/docs/cypher-manual/current/introduction/cypher-overview/" target="_blank" rel="noopener">Neo4j — Cypher overview</a> — the declarative, ASCII-art pattern language and how it differs from SQL.</li>
@@ -294,6 +385,16 @@
           <li><a href="https://neo4j.com/docs/neo4j-graphrag-python/current/" target="_blank" rel="noopener">neo4j-graphrag-python — package home</a> — the first-party GraphRAG package, requirements and support policy.</li>
           <li><a href="https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_rag.html" target="_blank" rel="noopener">neo4j-graphrag-python — RAG user guide</a> — retriever filters, filterable vector-index properties, and the retriever taxonomy (rechecked 2026-09-25 UTC).</li>
           <li><a href="https://arxiv.org/abs/2404.16130" target="_blank" rel="noopener">Edge et al. — From Local to Global: A Graph RAG Approach to Query-Focused Summarization</a> — the GraphRAG paper: entity extraction, community summaries, and global sensemaking.</li>
+          <li><a href="https://docs.aws.amazon.com/neptune/latest/userguide/migration-compatibility.html" target="_blank" rel="noopener">AWS — Neptune compatibility with Neo4j</a> — Neo4j's all-in-one architecture on compute such as EC2 instances, and the Neo4j features (APOC and others) not in openCypher (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/neptune/latest/userguide/access-graph-opencypher.html" target="_blank" rel="noopener">AWS — Accessing the Neptune graph with openCypher</a> — openCypher support and the note that Neo4j's Cypher has diverged from the specification (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/neptune/latest/userguide/intro.html" target="_blank" rel="noopener">AWS — What is Amazon Neptune?</a> — the fully managed graph database and its query languages (accessed 2026-10-14).</li>
+          <li><a href="https://aws.amazon.com/marketplace/pp/prodview-xd42uzj2v7dae" target="_blank" rel="noopener">AWS Marketplace — Neo4j Aura (pay-as-you-go)</a> — Aura sold as SaaS, sold by Neo4j (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/vpc/latest/privatelink/what-is-privatelink.html" target="_blank" rel="noopener">AWS — What is AWS PrivateLink?</a> — private connectivity from your VPC to a service without an internet gateway (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/spanner/docs/graph/overview" target="_blank" rel="noopener">Google Cloud — Spanner Graph overview</a> — ISO GQL-compatible interface, tables mapped to property graphs, integrated vector and full-text search (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/vpc/docs/private-service-connect" target="_blank" rel="noopener">Google Cloud — Private Service Connect</a> — private access to managed services on internal IP addresses in your VPC (accessed 2026-10-14).</li>
+          <li><a href="https://neo4j.com/docs/aura/cloud-providers/" target="_blank" rel="noopener">Neo4j — Aura with cloud provider marketplaces</a> — subscribing to Aura through AWS and Google Cloud Marketplace, billed with your other cloud services (accessed 2026-10-14).</li>
+          <li><a href="https://neo4j.com/docs/aura/security/secure-connections/" target="_blank" rel="noopener">Neo4j — Aura secure connections</a> — private endpoints over AWS PrivateLink and GCP Private Service Connect for Virtual Dedicated Cloud, and disabling public traffic (accessed 2026-10-14).</li>
+          <li><a href="https://neo4j.com/docs/operations-manual/current/cloud-deployments/" target="_blank" rel="noopener">Neo4j — Cloud deployments</a> — Aura vs self-managed Enterprise or Community from the cloud marketplace listings (accessed 2026-10-14).</li>
         </ul>
       </section>
 
@@ -548,11 +649,13 @@ window.QUIZ = {
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20260924-w3"></script>
-<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/quiz.js?v=20261014-c1"></script>
 <script src="../../assets/js/interactive.js"></script>
-<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/glossary.js?v=20261014-c1"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
 <script src="../../assets/js/codeviewer.js?v=20260925-w4"></script>
+<script src="../../assets/js/cloud-path.js?v=20261014-c1"></script>
+<script src="../../assets/js/interactive-cloud.js?v=20261014-c1"></script>
 <script src="../../assets/js/learning-chrome.js?v=20260925-s5"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
 </body>

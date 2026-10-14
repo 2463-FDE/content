@@ -7,6 +7,7 @@
 <meta name="fde-concepts" content="create-agent-loop,agent-middleware-hooks,response-format-structured-output,builtin-production-middleware,mcp-multiserver-client">
 <title>W3·D5 — Building a Production Single Agent | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
+<link rel="stylesheet" href="../../assets/css/cloud-path.css?v=20261014-c2">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -36,7 +37,8 @@
         <div class="meta">
           <span><b>Week 3</b> · Day 5</span>
           <span>Agents in Production</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~11 min read · 2 interactions · 6-Q check</span>
+          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 6-Q check</span>
         </div>
         <p class="summary">All week you've built up to this: a single agent a client would actually let near their
         systems. Today we assemble one end to end with <strong>LangChain 1.0</strong> — <code>create_agent</code> for the
@@ -56,6 +58,8 @@
         looks again. It keeps going until it decides no more tool calls are needed, then returns a final answer. That loop
         — model, tool, result, model — is the entire mechanism. Everything else today is <em>governance</em> wrapped
         around it.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: create_agent, the 1.0 stability promise, and the LangGraph runtime</summary>
         <p>In LangChain 1.0, the high-level factory that builds this loop for you is <code>create_agent</code>. It went
         GA on <strong>October 22, 2025</strong>, and it shipped with a stability commitment the team stated plainly: no
         breaking changes until 2.0. That matters more than it sounds when you're an FDE. You're recommending a framework
@@ -63,6 +67,7 @@
         kind of assurance that turns a demo into a production decision. <code>create_agent</code> is built on the
         <strong>LangGraph runtime</strong> underneath, so you inherit durable execution, state, and streaming without
         hand-writing a graph.</p>
+        </details>
         <p>Hold the loop picture for the rest of the day. When we add middleware, we're hooking into <em>moments in this
         loop</em>. When we add structured output, we're shaping <em>what the loop returns</em>. When we add MCP, we're
         changing <em>where the tools come from</em>. The loop is the spine; you're about to learn its vertebrae.</p>
@@ -88,10 +93,13 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         <strong>system prompt</strong> takes a string or a message object. Then come three arguments that separate a
         toy from a product: <strong>middleware</strong>, <strong>response format</strong>, and the pair of
         persistence arguments. Those first three lines make a demo. The rest of today is the other three.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the FDE value in one factory call</summary>
         <p>This is the FDE value in one factory call. A junior engineer wires a raw model-plus-tools loop by hand and
         reinvents retries, limits, and logging badly. You reach for the factory that already has the extension points and
         spend your time on the client's actual policy — what's allowed, what needs a human, what must be redacted.</p>
-        <div class="ix-agent" data-id="w03d5-createagent" data-steer="1" data-steer-system="1"
+        </details>
+        <div class="ix-agent" data-core-interaction data-id="w03d5-createagent" data-steer="1" data-steer-system="1"
           data-tools="lookup_order · lookup_customer · calculator"
           data-system="You are a support agent. Use the tools to ground every fact — never guess an order, customer, or number you can look up. Answer in one or two short sentences."
           data-presets='[{"label":"create_agent, one message","goal":"A customer is asking about order A1002 — what did they buy and what tier of support are they entitled to?","tool_choice":"auto","system":"You are a support agent. Use the tools to ground every fact — never guess an order, customer, or number you can look up. Answer in one or two short sentences."}]'></div>
@@ -111,10 +119,13 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         <strong>fault tolerance</strong> (retries, fallbacks, call limits), <strong>guardrails</strong> (PII handling,
         input/output validation), and <strong>human steering</strong> (pausing for approval). Each of those is a concern a
         client will name in the first requirements meeting. Middleware gives you a place to put each answer.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: why one concern per piece pays off</summary>
         <p>The payoff for you is separation. When the client says "actually, also mask customer emails," you add one PII
         middleware — you don't reopen the tool code or the prompt. When they say "cap it at five tool calls so a runaway
         loop can't rack up a bill," that's another single piece. Concerns stay decoupled, they compose in a predictable
         order, and you can point at each one in a review and say what it does and why it's there.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="3" data-step="3">
@@ -130,6 +141,8 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
           <li><strong>wrap tool call</strong> — around each tool execution.</li>
           <li><strong>after agent</strong> — once, when the run ends.</li>
         </ul>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: why the powerful behaviours live in the wrappers — and when you write a hook yourself</summary>
         <p>The naming tells you the shape. The before and after hooks are one-way observation-and-edit points: read the
         state, tweak it, move on. The wrapping hooks are two-sided — they surround a call, so they can short-circuit
         it, retry it, or transform both what goes in and what comes out. That is why the powerful production
@@ -141,6 +154,7 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         ones already built. But knowing the six hook names means that when a client has a truly bespoke rule — "log every
         tool call to our SIEM with the tenant ID attached" — you know exactly which hook to reach for
         (<code>wrap_tool_call</code>) and that it'll compose cleanly with everything else on the stack.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="4" data-step="4">
@@ -158,17 +172,23 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         discovered as a production bug. <strong>PII middleware</strong> detects sensitive data and can
         <strong>mask, redact, or hash</strong> it across inputs, model outputs <em>and</em> tool outputs, so a
         customer's national ID number never lands in a log or a downstream call.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: fault tolerance, cost limits, and the rest of the shelf</summary>
         <p>Behind those sit the fault-tolerance and cost-control classes. Two limit middlewares cap how many times the model
         or the tools can be called — your runaway-bill insurance. A fallback middleware swaps to a backup model when
         the primary errors, and a retry middleware re-runs a flaky tool. There is more on the shelf: a to-do list
         manager, an LLM-driven tool selector, a context editor, a shell tool, and others. But the reflex to build is
         this: <strong>before you write custom middleware, check whether the concern already has a class.</strong> Most
         of the standard production worries do.</p>
+        </details>
         <button class="code-cta" type="button" data-modal="code-w03d5" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only code <span class="cc-meta">· approval_gate.py</span></button>
+        <details class="deep" data-core="optional">
+          <summary>Practice (optional): pick the middleware for a nervous Legal team</summary>
         <div class="ix-predict"
           data-q="A client wants to let their support agent process refunds, but Legal is terrified it'll refund $10,000 by mistake and email customers unprompted. Name the two built-in middleware you'd reach for first, and what each does."
           data-a="<b>HumanInTheLoopMiddleware</b> — pause before the high-stakes refund/email tool calls so a human can <b>approve, edit, or reject</b> them (small refunds can auto-pass; large ones wait for a click). And <b>ToolCallLimitMiddleware</b> (or ModelCallLimitMiddleware) — cap how many times the loop can fire so a runaway agent can't issue a hundred refunds or rack up a huge bill. Neither requires touching the tool code or the prompt: you snap them onto the middleware stack. That's the whole point of the primitive — governance as composable components.">
         </div>
+        </details>
       </section>
 
       <section class="step" data-diagram="5" data-step="5">
@@ -185,14 +205,20 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         framing is precise: integrating structured output this way reduces latency and cost by <strong>"eliminating
         extra LLM calls."</strong> You define the shape once, as a type, and the agent returns something that already
         matches it.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: structured output as the seam into real workflows</summary>
         <p>The FDE angle: structured output is the seam between the agent and the rest of the system. A support agent whose
         answer is a validated object can drive a real workflow — flip a ticket status, trigger a refund, update a CRM —
         with no brittle string-parsing in between. Free text impresses in a demo; a typed contract is what lets the agent
         become a step in an actual business process. Getting the structure for free inside the loop, rather than paying
         for a second call to bolt it on, is the kind of quiet efficiency a client notices on the invoice.</p>
+        </details>
+        <details class="deep" data-core="optional">
+          <summary>Practice (optional): run it with and without a typed result</summary>
         <div class="ix-agent" data-id="w03d5-structured"
           data-tools="lookup_order · lookup_customer · record_ticket"
           data-presets='[{"label":"With response_format (typed object)","goal":"Resolve this ticket: the customer is asking about the status of order A1002. Look up what you need, then record the resolved ticket.","tool_choice":"auto","system":"You are a support agent with a lookup_order tool and a record_ticket tool. First look up any facts you need. You MUST finish by emitting the resolved ticket as a structured record_ticket call — never a prose reply."},{"label":"Without (free text you must parse)","goal":"Resolve this ticket: the customer is asking about the status of order A1002. Look up what you need, then tell me the resolution.","tool_choice":"auto","system":"You are a support agent. Look up any facts you need, then reply in prose. Do not call record_ticket."}]'></div>
+        </details>
       </section>
 
       <section class="step" data-diagram="6" data-step="6">
@@ -213,6 +239,8 @@ agent = create_agent(model, tools)         # drop them straight in</p>
         Each tool invocation opens a <em>fresh</em> session, runs the call, and cleans up. That is simple and robust,
         but if you need a persistent connection that keeps state across several calls, you open a session explicitly.
         Knowing that default is how you answer "why does each tool call reconnect?" without guessing.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: tool errors — recover or halt?</summary>
         <p>There is also error handling worth pinning down before an incident rather than during one. By default, when one
         of these tools fails, the failure comes back to the model as a tool message marked with an error status — so
         the agent can <em>read the error and retry or adapt</em>, which is usually what you want. If you would rather
@@ -220,6 +248,7 @@ agent = create_agent(model, tools)         # drop them straight in</p>
         <code>handle_tool_errors</code> flag. That single setting is the difference between "the agent gracefully
         recovers from a flaky tool" and "the run halts loudly so a human sees it" — and which you want depends on the
         client's risk posture.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="7" data-step="7">
@@ -230,6 +259,8 @@ agent = create_agent(model, tools)         # drop them straight in</p>
         <strong>Streamable HTTP</strong> — the latter replacing deprecated HTTP+SSE from the 2024 spec. The
         2025-11-25 initialization-based revision remains a widely deployed baseline. In the client, the transport is
         just config.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: stdio vs. Streamable HTTP in detail, including the security homework</summary>
         <p><strong>stdio</strong> launches the MCP server as a <em>local subprocess</em> and talks JSON-RPC over its
         stdin/stdout (newline-delimited, no embedded newlines). You configure it like
         <code>{"transport": "stdio", "command": "python", "args": [...]}</code>. The spec says clients
@@ -244,24 +275,98 @@ agent = create_agent(model, tools)         # drop them straight in</p>
         stateful sessions. When a client asks "is exposing this tool server over HTTP safe?", <em>that</em> is your
         checklist — origin validation and binding scope, not vibes. Local subprocess tool means standard I/O; shared
         network service means streamable HTTP with the security requirements actually met.</p>
+        </details>
       </section>
 
       <section class="step extra" data-diagram="8" data-step="8">
-        <div class="tag">Putting it together</div>
-        <h2>What a production single agent actually is</h2>
+        <div class="tag">Putting it together · on your cloud</div>
+        <h2>What a production single agent actually is — and where its traces land</h2>
         <p>Now stack the whole thing and look at it. A production single agent is <code>create_agent</code> at the core —
         the model-and-tools loop on the LangGraph runtime — wrapped in a <strong>middleware stack</strong> that encodes the
         client's policy (human approval on high-stakes actions, PII redaction, summarization to survive long sessions,
         call limits and fallbacks for cost and resilience), returning a <strong>typed object</strong> via
         <code>response_format</code> so it can drive real workflows, with its tools supplied by <strong>MCP servers</strong>
         over the right transport. That's it. Four arguments to a factory and a shelf of composable pieces.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: every client worry gets a named home</summary>
         <p>Notice what this buys you as an engineer. Every worry a client raises has a <em>named home</em>. "Can it spend
         money without oversight?" → HITL middleware. "Will it leak customer data into logs?" → PII middleware. "What
         happens on a long conversation?" → summarization. "What if a tool flakes?" → retry and fallback. "How does it
         connect to our internal API?" → MCP client and the transport choice. You're no longer hand-waving; you're pointing
         at layers. That legibility — being able to walk a stakeholder through exactly what stands between a user message
         and an action — is a large part of what makes an agent <em>shippable</em> rather than just impressive.</p>
-        <div class="callout mindset">
+        </details>
+        <p>One layer is still missing: seeing the stack run. Instrument early, before the first client demo, with
+        <strong>OpenTelemetry</strong> — each run becomes a trace, each model call and tool call a span. The
+        <strong>GenAI semantic conventions</strong> name those spans and attributes the same way whichever backend reads
+        them, and LangChain can emit them through OpenTelemetry instrumentation libraries. That is the backend-neutral
+        contract. The provider choice is the <strong>exporter target</strong>: where the spans land and which console
+        reads them. Open your path; the other cloud stays as an optional comparison.</p>
+
+        <details class="cloud-block" data-cloud="aws" open>
+          <summary><span class="cloud-tag">AWS</span>ADOT to CloudWatch and X-Ray<span class="cloud-role"></span></summary>
+          <p>On AWS the exporter is the <strong>AWS Distro for OpenTelemetry (ADOT)</strong>: AWS's supported
+          distribution of the upstream OpenTelemetry SDKs, auto-instrumentation agents, and collectors, sending traces and
+          metrics to <strong>AWS X-Ray</strong> and <strong>Amazon CloudWatch</strong>. For agents the destination is
+          <strong>AgentCore Observability</strong>: AgentCore emits OpenTelemetry-compatible telemetry, stores its metrics,
+          spans, and logs in CloudWatch, and CloudWatch-powered dashboards track session count, latency, token usage, and
+          error rates. The setup is three moves. Turn on <strong>CloudWatch Transaction Search</strong>,
+          a one-time setup, so spans are ingested. Add <code>aws-opentelemetry-distro</code> to the agent and start it
+          with <code>opentelemetry-instrument python main.py</code>. And keep the framework emitting GenAI-convention
+          spans — for LangChain, through a supported library such as OpenInference or OpenLLMetry. An agent hosted
+          outside the AgentCore runtime works too, with one documented gotcha: the <strong>ADOT Collector isn't
+          supported</strong> for agent observability, so use the ADOT SDK or the Lambda layer. The spans are the
+          backend-neutral part; ADOT is what lands them in CloudWatch.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="aws">
+            <div class="ix-k">✓ Practice · fix the export path</div>
+            <p class="ix-cloud-q">Your LangChain agent runs on Amazon ECS, outside the AgentCore runtime. A teammate ships
+            its spans through an ADOT Collector sidecar, and the CloudWatch generative AI observability page stays empty.
+            Following AWS's documentation, what do you change?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="AgentCore and ADOT work in OpenTelemetry; there's no need to abandon OTel for a proprietary format.">Convert the spans to a proprietary X-Ray format, since CloudWatch can't read OpenTelemetry</li>
+              <li data-correct data-why="For agents outside the runtime, AWS documents the ADOT SDK (or the Lambda layer) and states the ADOT Collector isn't supported for agent observability.">Instrument in-process with the ADOT SDK and opentelemetry-instrument instead of the Collector</li>
+              <li data-why="Agents hosted outside the AgentCore runtime can be observed; they need a few extra setup steps.">Move the agent into the AgentCore runtime, because agents outside it can't be observed</li>
+              <li data-why="The GenAI semantic conventions are what the frameworks emit and what AgentCore supports; dropping them removes the agent detail.">Strip the GenAI semantic-convention attributes so the spans look like plain HTTP traces</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>Use the ADOT SDK, not the Collector.</strong> Same spans, same conventions — the documented
+              exporter path for agent observability is in-process, after Transaction Search is on.</p>
+            </details>
+          </div>
+        </details>
+
+        <details class="cloud-block" data-cloud="gcp" open>
+          <summary><span class="cloud-tag">GCP</span>OTLP to Cloud Trace<span class="cloud-role"></span></summary>
+          <p>On Google Cloud the spans land in <strong>Cloud Trace</strong>, part of Google Cloud Observability, and the
+          front door is the <strong>Telemetry (OTLP) API</strong> at <code>telemetry.googleapis.com</code> — an endpoint
+          that implements the OpenTelemetry Protocol itself. Google's recommended shape is an exporter that writes OTLP to
+          a Collector, which forwards to the Telemetry API; when you can't run a collector, an in-process OTLP exporter
+          sends directly. Google recommends that path over the older Cloud Trace exporters, which transform data into a
+          proprietary format and can lose some of it. The conventions pay off here: Cloud Trace automatically extracts
+          events from generative AI spans that conform to the GenAI semantic conventions. On <strong>Agent
+          Runtime</strong> (formerly Agent Engine), tracing is configuration: an ADK agent sets
+          <code>GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true</code> and opts in to the latest GenAI conventions; the
+          LangChain and LangGraph templates take <code>enable_tracing=True</code>. Prompt and response capture is a
+          separate opt-in, and Google recommends keeping that content in a Cloud Storage bucket rather than log entries.
+          The spans are the backend-neutral part; OTLP to Google's endpoint is what lands them in Cloud Trace.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="gcp">
+            <div class="ix-k">✓ Practice · fix the export path</div>
+            <p class="ix-cloud-q">Your LangGraph agent runs on GKE and sends spans through the older Cloud Trace exporter.
+            Some GenAI span attributes are missing in Cloud Trace. Following Google's documentation, what do you
+            change?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="That variable is an Agent Runtime deployment setting for ADK agents; it doesn't change a GKE workload's exporter.">Set GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true on the GKE pods</li>
+              <li data-why="Cloud Trace extracts GenAI events from spans that conform to the semantic conventions; renaming them away loses that.">Rename the spans into Cloud Trace's own schema instead of the GenAI conventions</li>
+              <li data-why="Google recommends storing prompts and responses in a Cloud Storage bucket; log entries have a size limit and can be truncated.">Write the prompts and responses into log entries so Trace can join them</li>
+              <li data-correct data-why="The older exporter transforms OTLP into a proprietary format and can drop data; exporting OTLP to the Telemetry API needs no transformation.">Export OTLP to the Telemetry API, ideally through a Collector</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>Export OTLP to the Telemetry API.</strong> Same spans, same conventions — only the exporter
+              target changes, and Google's documented target avoids the lossy transformation.</p>
+            </details>
+          </div>
+        </details>
+        <div class="callout mindset" data-core="optional">
           <div class="k">FDE mindset</div>
           <p>A client rarely rejects an agent because it isn't smart enough. They reject it because nobody can tell them
           what it will and won't do, or what happens when a tool fails, or where the customer's data goes. A production
@@ -270,7 +375,7 @@ agent = create_agent(model, tools)         # drop them straight in</p>
         </div>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://docs.langchain.com/oss/python/langchain/agents" target="_blank" rel="noopener">Agents — Docs by LangChain</a> — the <code>create_agent</code> definition, the agent-loop framing, and middleware as the customization primitive.</li>
@@ -282,6 +387,13 @@ agent = create_agent(model, tools)         # drop them straight in</p>
           <li><a href="https://github.com/langchain-ai/langchain-mcp-adapters" target="_blank" rel="noopener">langchain-mcp-adapters (GitHub)</a> — v0.3.0, the <code>create_agent</code> example, and tool-error handling.</li>
           <li><a href="https://modelcontextprotocol.io/specification/2026-07-28/basic/transports" target="_blank" rel="noopener">MCP Transports — Spec 2026-07-28</a> — latest published revision (verified 2026-09-24), stdio and Streamable HTTP, plus backward compatibility. The <a href="https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http" target="_blank" rel="noopener">Streamable HTTP page</a> carries the current Origin-validation and localhost-binding requirements.</li>
           <li><a href="https://platform.claude.com/docs/en/about-claude/models/overview" target="_blank" rel="noopener">Claude models overview</a> — Sonnet 5 and API alias <code>claude-sonnet-5</code> (verified 2026-09-24); Sonnet 4.5 remains a legacy model.</li>
+          <li><a href="https://docs.aws.amazon.com/xray/latest/devguide/xray-services-adot.html" target="_blank" rel="noopener">AWS — AWS Distro for OpenTelemetry and AWS X-Ray</a> — ADOT as AWS's supported OpenTelemetry distribution, sending traces and metrics to X-Ray and CloudWatch (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html" target="_blank" rel="noopener">AWS — AgentCore Observability</a> — OpenTelemetry-compatible agent telemetry stored in CloudWatch, with session, latency, token and error metrics (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability-configure.html" target="_blank" rel="noopener">AWS — Add observability to your AgentCore resources</a> — Transaction Search, the ADOT SDK with <code>opentelemetry-instrument</code>, GenAI-convention libraries, and the unsupported ADOT Collector (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/stackdriver/docs/reference/telemetry/overview" target="_blank" rel="noopener">Google Cloud — Telemetry (OTLP) API overview</a> — the OTLP endpoint at <code>telemetry.googleapis.com</code> and the collector-first recommendation (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/trace/docs/migrate-to-otlp-endpoints" target="_blank" rel="noopener">Google Cloud — Migrate from Trace exporter to OTLP</a> — why OTLP export avoids the lossy transformation of the older exporters (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/stackdriver/docs/instrumentation/ai-agent-overview" target="_blank" rel="noopener">Google Cloud — Instrument AI agents</a> — Cloud Trace extracting events from GenAI-convention spans; prompts and responses in Cloud Storage (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/tracing" target="_blank" rel="noopener">Google Cloud — Set up tracing (Agent Runtime)</a> — telemetry environment variables for ADK agents and <code>enable_tracing=True</code> for the LangChain and LangGraph templates (accessed 2026-10-14).</li>
         </ul>
       </section>
 
@@ -545,10 +657,12 @@ window.QUIZ = {
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20260924-w3"></script>
-<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/quiz.js?v=20261014-c1"></script>
 <script src="../../assets/js/interactive.js?v=20260714-w3f"></script>
 <script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
-<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/cloud-path.js?v=20261014-c1"></script>
+<script src="../../assets/js/interactive-cloud.js?v=20261014-c1"></script>
+<script src="../../assets/js/glossary.js?v=20261014-c1"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
 <script src="../../assets/js/learning-chrome.js?v=20260925-s5"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
