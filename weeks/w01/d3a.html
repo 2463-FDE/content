@@ -270,13 +270,13 @@ resp = model.call(prompt)"
         structured output you can often check correctness automatically (did the JSON parse? did <code>category</code>
         match the expected enum?). For fuzzier tasks you self-grade or use a second model as a judge (a technique you'll
         meet later). The point isn't sophistication; it's <strong>having a ground-truth you measure against instead of
-        vibes.</strong> Week 7 turns that habit into an observability and evaluation deliverable.</p>
+        vibes.</strong> Week 8 turns that habit into an observability and evaluation deliverable.</p>
         <p>The iteration loop, then, is tight and repeatable: write the smallest prompt that could work → run it against
         the eval set → look at the <em>failures specifically</em>, not the successes → make one targeted change → re-run →
         keep the change only if the score went up. Change one thing at a time so you actually learn what helped. Two failure
         modes to guard against: <strong>overfitting</strong> (tune relentlessly against the same fifteen examples and you
         memorize the test instead of improving the behavior — keep some in reserve), and <strong>grading drift</strong>
-        (when self-scoring fuzzy outputs, write down what "acceptable" means <em>before</em> you tune). By Week 7 you'll
+        (when self-scoring fuzzy outputs, write down what "acceptable" means <em>before</em> you tune). By Week 8 you'll
         use this evidence in formal evaluation work, and one built on a memorized or drifting set is false
         confidence with your name on it. <strong>Measure, change one thing, re-measure.</strong> That loop is the whole
         job.</p>
@@ -432,7 +432,7 @@ window.DIAGRAM = {
 
     // the eval loop, off to the right
     { id:"eval",   step:6, x:380, y:250, w:120, h:92, label:"⑥ eval set\nmeasure →\niterate",
-      detail:"A prompt is code; code without tests is a liability. Score the assembled prompt against a golden set of 10–20 real inputs (including ugly edge cases), look only at the failures, change ONE slice, re-run. Guard against overfitting and grading drift. Week 7 carries this evidence into formal evaluation work." }
+      detail:"A prompt is code; code without tests is a liability. Score the assembled prompt against a golden set of 10–20 real inputs (including ugly edge cases), look only at the failures, change ONE slice, re-run. Guard against overfitting and grading drift. Week 8 carries this evidence into formal evaluation work." }
   ],
   edges: [
     { id:"e_es", step:1, from:"ex",    to:"sys",    label:"the anatomy ↓", ly:-2 },

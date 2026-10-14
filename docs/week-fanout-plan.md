@@ -128,9 +128,9 @@ related/current tech that looks missing. **Correct me where my read is wrong.**
 | W4 | Multi-Agent & Knowledge Graphs | LangGraph persistence/checkpointers. Neo4j is the standard KG database to teach. |
 | W5 | Neo4j Knowledge Graphs & Context Engineering | Source-authoritative hands-on graph week: property graphs/Cypher → governed schema/import → GraphRAG construction → hybrid production context → model review and readout. `SimpleKGPipeline` stays visibly experimental. |
 | W6 | Kafka & Event-Driven AI Pipelines | **Source-corrected 2026-10-14.** Kafka foundations → delivery/schema/economics → event-driven agents/stores → operation/failure → measured defense. Reviewed AI-SDLC work survives only as supporting delivery discipline. |
-| W7 | Observability, SRE & Guardrails | **LangSmith stays core.** Langfuse/Phoenix go to Alt research (see below), not duplicate core. Optional: OpenTelemetry GenAI conventions. |
-| W8 | Security, Governance & Responsible AI | Anchor on **OWASP LLM Top 10** as the framework. Guardrails frameworks (NeMo Guardrails / Guardrails AI) alongside LLM Guard/Presidio. |
-| W9-10 | AI Security, Governance & System Hardening / Production Rollout, Showcase & Client Handoff | **Authored** as shared transfer data in `assets/js/curriculum-lessons-w09-w10.js`, evidence in `docs/research/w09/` and `docs/research/w10/`. AWS/GCP certification objectives and provider facts stay evidence-gated until the parallel research lane lands. |
+| W7 | Terraform + Ansible & AI CI/CD | **Source-remapped 2026-10-14.** Terraform judgement/state/plan/modules/drift → Ansible inventory/playbooks/roles/idempotence → AI-assisted CI quality/security/drift/eval gates with human approval, rollback and rebuild evidence. Static/inert only. |
+| W8 | AI Observability, SRE & Reliability Guardrails | **Source-remapped 2026-10-14.** Service signals/SLOs → OTel traces/metrics/logs and model-agent-tool-Kafka correlation → eval/guardrail/circuit/degraded-mode evidence → incidents/runbooks/readout. Former W7 conclusions survive here with their original dates. |
+| W9-10 | AI Security, Governance & System Hardening / Production Rollout, Showcase & Client Handoff | **Authored** as shared transfer data in `assets/js/curriculum-lessons-w09-w10.js`, evidence in `docs/research/w09/` and `docs/research/w10/`. Preserved former-W8 security research now lives under `docs/research/w09/archive-week8-security/`. AWS/GCP certification objectives and provider facts stay evidence-gated until the parallel research lane lands. |
 
 ### Alt-research day topics (Wed of W1-8)
 
@@ -139,8 +139,10 @@ so learners see the landscape, not just our pick:
 
 - **W3 / W4 (LangChain / LangGraph weeks):** alt agent frameworks — CrewAI,
   AutoGen, OpenAI Agents SDK — vs LangChain/LangGraph.
-- **W7 (Observability):** alt eval/trace platforms — Langfuse, Arize Phoenix,
-  Helicone — vs LangSmith.
+- **W7 (IaC and delivery):** Terraform vs OpenTofu vs provider-native IaC,
+  plus Ansible vs immutable configuration and AI-assisted review controls.
+- **W8 (AI reliability):** alt eval/trace platforms — Langfuse, Arize Phoenix,
+  Helicone — vs LangSmith, with OTel portability and regulated-data boundaries.
 
 Cross-cutting theme: teach **the current standard** (MCP, LangChain v1.0) and our
 primary pick per area, with alternatives parked in Alt research — not the
@@ -189,10 +191,10 @@ check—must fit within 30 minutes.
   Required interactions carry `data-core-interaction`; quiz questions tagged
   `cloud: "aws"|"gcp"` count only on their path. Validator: `tests/core30.py`
   and `tests/test_cloud_core30.py`; design: `docs/cloud-paths.md`.
-- `tests/test_w08d2_core30.py` is the frozen validator demonstrated by the
-  accepted W8D2 slice. That validator arrives in PR 22, so PR 22 must land first
-  and this documentation change must land second for the pointer to be valid on
-  `main`.
+- `tests/test_platform_weeks_core30.py` validates all ten source-remapped Week
+  7–8 routes, the shared transfer data/renderer, required-path pacing, one
+  interaction, six-question checks, no-JavaScript access, and Week 8 → Week 9
+  continuity.
 
 The remaining metrics below continue to guide lesson construction where they do
 not conflict with Core 30:
@@ -319,11 +321,9 @@ summary per task. Everything else stays in the sub-agents.
 
 ---
 
-## W3-8 day topics (LOCKED 2026-07-01)
+## W3-8 day topics (W7–8 remapped 2026-10-14)
 
-5 reading-days each (Mon–Fri). **Wed (d3) = alt-research day** for W3/W4/W6/W7/W8 (W5 d3 stays
-core — GraphRAG construction and retriever choice). d5 = ★ milestone. Feeds the workflow `args.days = [{d,topic,sub}, …]` per
-week, one sequential run per week.
+Five reading-days each (Mon–Fri); d5 is the ★ milestone. Alternative research is a separate Wednesday ritual and does not replace the core d3 route. The table feeds `args.days = [{d,topic,sub}, …]` when the fan-out workflow is used.
 
 | Wk | Theme (core tech) | d1 | d2 | d3 (Wed) | d4 | d5 ★ |
 |----|----|----|----|----|----|----|
@@ -331,8 +331,8 @@ week, one sequential run per week.
 | W4 | Multi-Agent + KG (LangGraph + Neo4j) | Orchestration patterns (supervisor/swarm/handoffs) | LangGraph state/persistence/checkpointers | *alt:* CrewAI/AutoGen vs LangGraph | Neo4j KG modeling + Cypher for GraphRAG | GraphRAG E2E |
 | W5 | Neo4j KG + Context Engineering | Property graph, Cypher, local Neo4j | Traversal, integrity, import, rules, ADR lock/defer | GraphRAG construction + three retrievers | Hybrid context, grounding, performance, MCP/topology | Graph model review + two-audience GraphRAG readout |
 | W6 | Kafka & Event-Driven AI Pipelines | EDA judgement + Kafka foundations + local CLI | Delivery semantics + schemas + Python + managed economics | MSK judgement + event-driven agents + backpressure + Chroma/Neo4j | E2E pipeline + failure/rebalance + OTel + runbooks + static egress | Architecture defense + throughput/lag/egress readout |
-| W7 | Observability/SRE/Guardrails (LangSmith) | Observability — traces/spans, LangSmith | Evals in production (online/offline) | *alt:* Langfuse/Phoenix/Helicone vs LangSmith | SRE: latency/cost/reliability, OTel GenAI | Guardrails + observability E2E |
-| W8 | Security/Governance/Responsible AI (OWASP LLM Top 10) | OWASP LLM Top 10 framework | Prompt injection & jailbreaks | *alt:* guardrails frameworks (NeMo/Guardrails AI/LLM Guard/Presidio) | Governance, PII, privacy, responsible AI | Red-team + secure agent deploy E2E |
+| W7 | Terraform + Ansible & AI CI/CD | Terraform judgement, providers, resources, state, plan, lifecycle | Modules, environments, secrets, drift, AI-assisted review | Ansible inventory, playbooks, roles, handlers, idempotence, promotion estimate | CI quality/security/drift/eval gates, human approval, rollback evidence | Project 2 primary-cloud ADR, rebuild tabletop, two-audience defense |
+| W8 | AI Observability, SRE & Reliability Guardrails | AI service signals, latency/quality/cost SLO, error budget | OTel traces/metrics/logs, Collector, GenAI spans, drift | Agent/model/tool/Kafka correlation, dashboards, bad-answer root cause | Offline/online evals, guardrails, retries, circuits, graceful degradation, drills | Incident timeline, runbook, rollback/degrade decision, reliability readout |
 
 ## Cross-week concept collision (fixed 2026-07-01)
 

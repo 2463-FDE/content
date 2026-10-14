@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "reviewed_date": "2026-10-14",
+  "archify_source": {
+    "repository": "https://github.com/tt-a1i/archify",
+    "version": "v3.0.1",
+    "tag_object": "679f195584e4216fd582c073d8964b3a9f59107e",
+    "peeled_commit": "2ab3cae7ac2c2a55d7386ca789d03c4fcd31816c",
+    "commit_tree": "b33243ebe2bd6878a9ae58417ff8597c94d31e12",
+    "archify_subtree": "7dcd73a73672d5da4f85d4c612017b478547303b",
+    "release_zip_sha256": "b0b23bd28db314f04ca8ab9620fe20f8c1ac6474a3546bd8fe4679508aa1b7f5"
+  },
+  "tooling": {
+    "node": "v24.2.0",
+    "os": "macOS 26.7.1 (25G241) arm64",
+    "sanitizer_sha256": "266e2da15149921f0a95aa52e4a1837240ca9d171be8bd041553642fb1ba925c",
+    "sandbox_profile_sha256": "fb0cf29674f373078d7035cda9455a9139913791fa3d0645175680e50af731d9",
+    "presentation_style": ".fde-diagram .c-grid{fill:none}",
+    "presentation_style_sha256": "b04c5adf24d46df60d3a96a9e2baaccf5f26195f65966160fa8ca7e3ce48aeba",
+    "import_normalization": "XML declaration omitted for inline HTML; trailing line whitespace removed; SVG semantics unchanged"
+  },
+  "controls": {
+    "network": "denied",
+    "user_files_outside_scratch": "denied",
+    "update_check": "disabled",
+    "npm": "unused",
+    "raw_outputs": "disposed",
+    "input_json": "disposed",
+    "brands_repository_sources": "absent",
+    "runtime_dependency": "none"
+  },
+  "visuals": {
+    "w07": {
+      "type": "architecture",
+      "title": "Human-controlled infrastructure delivery evidence path",
+      "description": "Reviewed Terraform configuration produces a plan artifact that passes deterministic quality, security, drift, and evaluation gates before human approval. A narrow inventory handoff leads to Ansible configuration evidence and an owned rollback and rebuild path. Apply and deploy remain blocked outside the lesson.",
+      "figcaption": "Configuration becomes reviewable plan evidence, then passes deterministic and human gates. A narrow inventory handoff connects Ansible evidence to an owned recovery path; apply and deploy remain blocked.",
+      "input_bytes": 2942,
+      "input_sha256": "19a1416ee1517cacc9f34fe20c7ca5a0ed6eeb702ea125d8593a312a50112e66",
+      "raw_render_1_bytes": 761185,
+      "raw_render_1_sha256": "03e11de634f33c95ff1c582f90140f131670038cc9020c302cc52bd63257fc8e",
+      "raw_render_2_bytes": 761185,
+      "raw_render_2_sha256": "03e11de634f33c95ff1c582f90140f131670038cc9020c302cc52bd63257fc8e",
+      "raw_cmp": "pass",
+      "sanitized_1_bytes": 17087,
+      "sanitized_1_sha256": "f0736f1a255a660dc19e4f57f531805c18b4a4805bda06e88ebd21e8e29dec90",
+      "sanitized_2_bytes": 17087,
+      "sanitized_2_sha256": "f0736f1a255a660dc19e4f57f531805c18b4a4805bda06e88ebd21e8e29dec90",
+      "sanitized_cmp": "pass",
+      "forbidden_content_scan": "pass",
+      "xml_aria_id_checks": "pass",
+      "human_review": "pass",
+      "inline_import_sha256": "a2a59372d0144f9440c4170d5a5688c1181295df7fb9e2692eb5bb69f96cdf48"
+    },
+    "w08": {
+      "type": "architecture",
+      "title": "Correlated AI reliability evidence and response path",
+      "description": "An AI service emits payload-free traces, metrics, and structured logs through an OpenTelemetry Collector. Versioned evaluation and guardrail outcomes join service signals in SLO, error-budget, and cost decisions that an incident owner executes through a runbook, degraded mode, rollback, or repair.",
+      "figcaption": "Payload-free traces, metrics, logs, evaluations, and guardrail decisions converge on SLO and budget policy. An incident owner chooses a runbook response and verifies the user outcome.",
+      "input_bytes": 3023,
+      "input_sha256": "6cbbd1875ad919dff37c85a266730c65843ada39e2ec67809cf852d3578fbad6",
+      "raw_render_1_bytes": 763971,
+      "raw_render_1_sha256": "07ae9963bd585b0708c1f0d11b2844a63566342fe78049c37484bb3413818eae",
+      "raw_render_2_bytes": 763971,
+      "raw_render_2_sha256": "07ae9963bd585b0708c1f0d11b2844a63566342fe78049c37484bb3413818eae",
+      "raw_cmp": "pass",
+      "sanitized_1_bytes": 19011,
+      "sanitized_1_sha256": "4f68455e0d77b8688506b08650bf63aec4da959b912c91fd8da8c67d9739edaf",
+      "sanitized_2_bytes": 19011,
+      "sanitized_2_sha256": "4f68455e0d77b8688506b08650bf63aec4da959b912c91fd8da8c67d9739edaf",
+      "sanitized_cmp": "pass",
+      "forbidden_content_scan": "pass",
+      "xml_aria_id_checks": "pass",
+      "human_review": "pass",
+      "inline_import_sha256": "e283ea0e3fb3e5537856fa6e389d98a6ee07eaf100a7ed019da0fa34441aa586"
+    }
+  },
+  "routes": {
+    "w07d1": {
+      "visual": "w07",
+      "figure_fragment_bytes": 17487,
+      "figure_fragment_sha256": "b36d13de5c81bf585e9c1c0e029197fef5f6a325cba18a8344b605eb74c42de8",
+      "inline_svg_sha256": "a2a59372d0144f9440c4170d5a5688c1181295df7fb9e2692eb5bb69f96cdf48",
+      "document_id_check": "pass",
+      "no_runtime_check": "pass",
+      "no_javascript_text_alternative": "pass"
+    },
+    "w07d2": {
+      "visual": "w07",
+      "figure_fragment_bytes": 17487,
+      "figure_fragment_sha256": "b36d13de5c81bf585e9c1c0e029197fef5f6a325cba18a8344b605eb74c42de8",
+      "inline_svg_sha256": "a2a59372d0144f9440c4170d5a5688c1181295df7fb9e2692eb5bb69f96cdf48",
+      "document_id_check": "pass",
+      "no_runtime_check": "pass",
+      "no_javascript_text_alternative": "pass"
+    },
+    "w07d3": {
+      "visual": "w07",
+      "figure_fragment_bytes": 17487,
+      "figure_fragment_sha256": "b36d13de5c81bf585e9c1c0e029197fef5f6a325cba18a8344b605eb74c42de8",
+      "inline_svg_sha256": "a2a59372d0144f9440c4170d5a5688c1181295df7fb9e2692eb5bb69f96cdf48",
+      "document_id_check": "pass",
+      "no_runtime_check": "pass",
+      "no_javascript_text_alternative": "pass"
+    },
+    "w07d4": {
+      "visual": "w07",
+      "figure_fragment_bytes": 17487,
+      "figure_fragment_sha256": "b36d13de5c81bf585e9c1c0e029197fef5f6a325cba18a8344b605eb74c42de8",
+      "inline_svg_sha256": "a2a59372d0144f9440c4170d5a5688c1181295df7fb9e2692eb5bb69f96cdf48",
+      "document_id_check": "pass",
+      "no_runtime_check": "pass",
+      "no_javascript_text_alternative": "pass"
+    },
+    "w07d5": {
+      "visual": "w07",
+      "figure_fragment_bytes": 17487,
+      "figure_fragment_sha256": "b36d13de5c81bf585e9c1c0e029197fef5f6a325cba18a8344b605eb74c42de8",
+      "inline_svg_sha256": "a2a59372d0144f9440c4170d5a5688c1181295df7fb9e2692eb5bb69f96cdf48",
+      "document_id_check": "pass",
+      "no_runtime_check": "pass",
+      "no_javascript_text_alternative": "pass"
+    },
+    "w08d1": {
+      "visual": "w08",
+      "figure_fragment_bytes": 19391,
+      "figure_fragment_sha256": "2d7a0a802828b84857adc9dd4dad6de30c8964a2bee603b34d0bc9d69a614157",
+      "inline_svg_sha256": "e283ea0e3fb3e5537856fa6e389d98a6ee07eaf100a7ed019da0fa34441aa586",
+      "document_id_check": "pass",
+      "no_runtime_check": "pass",
+      "no_javascript_text_alternative": "pass"
+    },
+    "w08d2": {
+      "visual": "w08",
+      "figure_fragment_bytes": 19391,
+      "figure_fragment_sha256": "2d7a0a802828b84857adc9dd4dad6de30c8964a2bee603b34d0bc9d69a614157",
+      "inline_svg_sha256": "e283ea0e3fb3e5537856fa6e389d98a6ee07eaf100a7ed019da0fa34441aa586",
+      "document_id_check": "pass",
+      "no_runtime_check": "pass",
+      "no_javascript_text_alternative": "pass"
+    },
+    "w08d3": {
+      "visual": "w08",
+      "figure_fragment_bytes": 19391,
+      "figure_fragment_sha256": "2d7a0a802828b84857adc9dd4dad6de30c8964a2bee603b34d0bc9d69a614157",
+      "inline_svg_sha256": "e283ea0e3fb3e5537856fa6e389d98a6ee07eaf100a7ed019da0fa34441aa586",
+      "document_id_check": "pass",
+      "no_runtime_check": "pass",
+      "no_javascript_text_alternative": "pass"
+    },
+    "w08d4": {
+      "visual": "w08",
+      "figure_fragment_bytes": 19391,
+      "figure_fragment_sha256": "2d7a0a802828b84857adc9dd4dad6de30c8964a2bee603b34d0bc9d69a614157",
+      "inline_svg_sha256": "e283ea0e3fb3e5537856fa6e389d98a6ee07eaf100a7ed019da0fa34441aa586",
+      "document_id_check": "pass",
+      "no_runtime_check": "pass",
+      "no_javascript_text_alternative": "pass"
+    },
+    "w08d5": {
+      "visual": "w08",
+      "figure_fragment_bytes": 19391,
+      "figure_fragment_sha256": "2d7a0a802828b84857adc9dd4dad6de30c8964a2bee603b34d0bc9d69a614157",
+      "inline_svg_sha256": "e283ea0e3fb3e5537856fa6e389d98a6ee07eaf100a7ed019da0fa34441aa586",
+      "document_id_check": "pass",
+      "no_runtime_check": "pass",
+      "no_javascript_text_alternative": "pass"
+    }
+  }
+}

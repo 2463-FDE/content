@@ -40,7 +40,7 @@ before they become functional `ix-run` blocks. Tracked here per the fan-out plan
 
 ## W3–W8 current inventory
 
-**Status: deferred, not live.** The shipped pages contain 45 `.ix-future` placeholders across W4–W8. W3 has no placeholders because its client-side agent widgets are already implemented. W5's obsolete spec-week placeholders were removed in the Neo4j Wave 1 replacement; each W5 route now has one local client-side decision lab instead. Source-corrected W6 has five required local decision interactions and no deferred placeholders. The entries below inventory the remaining placeholder copy already present in the reading pages; they do not promise a backend, launch date, or live provider connection.
+**Status: deferred, not live.** The shipped pages contain 14 `.ix-future` placeholders, all in W4. W3 has implemented client-side agent widgets. W5–W6 replaced their old placeholders with required local decision labs. Source-remapped W7–W8 each ship one required local decision interaction per route and no deferred placeholders. The entries below inventory only placeholder copy still present in shipped reading pages; they do not promise a backend, launch date, or live provider connection.
 
 ### Week 4
 
@@ -121,67 +121,29 @@ _Week 6 subtotal: 0 deferred placeholders._
 
 ### Week 7
 
-#### w07d1 — Observability for LLM Systems: Traces, Spans, and LangSmith (3)
+The Terraform + Ansible & AI CI/CD replacement retires the former observability placeholders. Each route ships one required, deterministic decision interaction in `assets/js/platform-lesson.js`; no provider, host, CI service, model, or cloud action is required. The former trace/cost implementation is preserved unloaded in `assets/js/archive/interactive-w7-trace-observability-v1.js` for reviewed Week 8 reuse, not counted as shipped work.
 
-- **Which span owns the twenty minutes** — Planned: a waterfall reader over a seeded intake trace — hover a span for its duration and share of the parent, then find the child that owns the 19m48s. Needs backend standup.
-- **Cost rolls up three levels — and metadata does not roll anywhere** — Planned: a cost-rollup sandbox — toggle a metadata key at root and child level and watch the per-tenant dollars-per-request number shift under you. Needs backend standup.
-- **A URL instead of an adjective** — Planned: a pre-share scrub preview — mark PHI-bearing fields on a seeded intake trace and diff what a public viewer sees before versus after redaction-at-emission. Needs backend standup.
+#### w07d1 — Terraform foundations and plan discipline (0)
+#### w07d2 — Modules, drift, and AI-assisted plan review (0)
+#### w07d3 — Ansible configuration and idempotent change (0)
+#### w07d4 — AI CI/CD gates and human-controlled delivery (0)
+#### w07d5 — Project 2 infrastructure delivery and rebuild evidence (0)
 
-#### w07d2 — Evals in Production: Online and Offline (2)
-
-- **Grading live traffic is a budget decision too** — Planned: a sampling-cost calculator — set trace volume, filter, sampling rate, and judge model, then watch judge spend, retention storage, and caught-incidents-per-week move together. Needs backend standup.
-- **Turn a score into a build-breaking control** — Planned: a gate simulator — load a labeled gold set, move the groundedness threshold, and watch pass/fail counts, false-block rate, and which past incidents get caught flip in real time. Needs backend standup.
-
-#### w07d3 — Alt Research: Langfuse, Phoenix & Helicone against LangSmith (2)
-
-- **"We support OpenTelemetry" tells you nothing** — Planned: a Collector fanout sandbox — emit one instrumented span stream, route it to two backends simultaneously, and diff what each one actually stored from the same trace. Needs backend standup.
-- **Four incompatible meters — which is exactly the point** — Planned: a meter calculator — enter monthly traces, spans per trace, and payload size, and watch the same workload priced in units, requests, spans+GB, and LCU/LSU side by side. Needs backend standup.
-
-#### w07d4 — SRE for AI Systems: SLOs, Error Budgets, and the OTel GenAI Conventions (1)
-
-- **Alert on the rate you're spending, not the spike** — Planned: a burn-rate calculator — set an SLO, a window and an outage duration, and watch which of the 14.4× / 6× / 1× rules fire and how much budget is gone. Needs backend standup.
-
-#### w07d5 — Guardrails and Observability, End to End (3)
-
-- **Three vendors, three shapes of "is this true?"** — Planned: a threshold dial — score a seeded summary against a chart, drag the threshold, and watch pass flip to block (and benign answers start getting declined). Needs backend standup.
-- **Publish your own attribute contract** — Planned: a trace inspector — fire a seeded ungrounded summary and watch the guardrail span appear beside the model call, with its five attributes, `Unset` status, and the counter incrementing. Needs backend standup.
-- **Shadow first, enforce second** — Planned: a shadow-mode replay — run 200 seeded summaries in inspect-only, watch the ungrounded rate accumulate into a before-number, then flip to enforce. Needs backend standup.
-
-_Week 7 subtotal: 11 deferred placeholders._
+_Week 7 subtotal: 0 deferred placeholders._
 
 ### Week 8
 
-#### w08d1 — The OWASP LLM Top 10 (2026) as a Working Framework (3)
+The AI Observability, SRE & Reliability Guardrails replacement retires the former security placeholders. Preserved security research moved to Week 9, while each Week 8 route ships one required, deterministic decision interaction over synthetic evidence. The former security practice is preserved unloaded in `assets/js/archive/interactive-w8-security-v1.js` for reviewed Week 9 reuse.
 
-- **Why this edition can answer "says who?"** — Planned: a ranking explorer — slide the vote/incident weighting from 100/0 to 0/100 and watch the ten entries reorder. Needs backend standup.
-- **LLM02, LLM08, LLM09: three ways the same data gets out** — Planned: an inversion demo — embed a short PHI-bearing sentence, run a Vec2Text-style reconstruction, and diff the recovered text against the original. Needs backend standup.
-- **The crosswalk is the part that makes it a framework** — Planned: a crosswalk lookup — pick an entry, see its ●/○/— row across all nine pinned frameworks, and export it as markdown for a risk register. Needs backend standup.
+#### w08d1 — AI service signals and negotiated SLOs (0)
+#### w08d2 — OTel signals, GenAI spans, and drift evidence (0)
+#### w08d3 — Correlate agents, tools, models, and event flows (0)
+#### w08d4 — Evaluations and reliability guardrails (0)
+#### w08d5 — Incident response and reliability evidence (0)
 
-#### w08d2 — Prompt Injection and Jailbreaks (1)
+_Week 8 subtotal: 0 deferred placeholders._
 
-- **What survives an attacker who moves second** — Planned: a pattern picker — describe an agent's tools and data, step through the six patterns, see what each costs. Needs backend standup.
-
-#### w08d3 — Guardrail Frameworks: Pricing the Control (3)
-
-- **A latency number without an instance type is fiction** — Planned: a latency-budget calculator — pick a scanner set, an instance type, and ONNX on/off, and watch the serial p99 ceiling and the sum-of-averages central estimate move against a stated turn budget. Needs backend standup.
-- **Precision is a staffing number** — Planned: a false-positive economics widget — set precision, recall, base rate and daily volume, and read out wrongly-blocked humans per day plus the accuracy consistency check. Needs backend standup.
-- **Detection method predicts where the errors live** — Planned: a recognizer coverage prober — paste a synthetic note, toggle the active recognizer set and threshold, and see which spans get caught, by which method, and what survives into the prompt. Needs backend standup.
-
-#### w08d4 — Governance, PII and Responsible AI in a Regulated Deployment (3)
-
-- **"The vendor is HIPAA-ready" is not a row you can write** — Planned: a coverage-table lookup — pick a vendor surface and retention setting, get covered/not-covered plus the clause and its retrieval date as a data-flow row's agreement cell. Needs backend standup.
-- **A redactor is a test suite, not a promise** — Planned: a redactor bench — paste a clinical note, run the (A)–(R) suite, see per-category recall with leaked spans highlighted and a pass/block verdict. Needs backend standup.
-- **Say no with a date attached** — Planned: a gate builder — pick your levers, draft two conditions, have them linted for the three required parts plus a binary acceptance test. Needs backend standup.
-
-#### w08d5 — Red-Teaming and Secure Agent Deployment, End to End (3)
-
-- **Evidence is a rate, not an anecdote** — Planned: a garak console against a demo summarizer — pick a probe family, watch the hit log fill, read the rate move. Needs backend standup.
-- **The score is not the decision** — Planned: an SSVC deployer-tree walker — set the four decision points and watch the outcome and timeline resolve, tree path highlighted. Needs backend standup.
-- **A medium in an agent is not a medium** — Planned: an AIVSS calculator — enter a CVSS base, slide the ten agentic factors, watch the score, the agent class and the emitted SSVC outcome JSON move together. Needs backend standup.
-
-_Week 8 subtotal: 13 deferred placeholders._
-
-**Inventory total: 45 deferred placeholders.**
+**Inventory total: 14 deferred placeholders.**
 
 ### Setup, expected output, and troubleshooting metadata gap
 

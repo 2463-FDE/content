@@ -91,7 +91,7 @@ def documented_inventory():
     }
     headline = int(
         re.search(
-            r"shipped pages contain (\d+) `\.ix-future` placeholders across W4–W8",
+            r"shipped pages contain (\d+) `\.ix-future` placeholders",
             inventory_section,
         ).group(1)
     )

@@ -6,9 +6,9 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Curriculum authoring is research-first; follow `docs/week-fanout-plan.md` and update the matching `docs/research/wWW/` artifact before changing a current technical claim in week HTML.
 - Run static curriculum regressions with `python3 -m unittest discover -s tests -v`. `tests/test_curriculum_currency.py` validates the public HTML/embedded-JS contract for the Week 3–4 currency slice.
 - Read-only lesson code popups use `assets/js/codeviewer.js`, shared modal behavior in `assets/js/modals.js`, and the `.code-cta` / `.code-modal` styles in `assets/css/style.css`.
-- Week 6 and Week 9–10 routes are thin shells over their shared lesson data/renderers (`assets/js/curriculum-lessons-w06.js` + `assets/js/kafka-lesson.js`, then `assets/js/curriculum-lessons-w09-w10.js` + `assets/js/capstone-lesson.js`); batch/client/cloud-lane presentation config is single-source in `assets/js/curriculum-config.js`.
+- Week 6, Week 7–8, and Week 9–10 routes are thin shells over shared lesson data/renderers (`curriculum-lessons-w06.js` + `kafka-lesson.js`, `curriculum-lessons-w07-w08.js` + `platform-lesson.js`, then `curriculum-lessons-w09-w10.js` + `capstone-lesson.js` under `assets/js/`); batch/client/cloud-lane presentation config is single-source in `assets/js/curriculum-config.js`.
 - Week 5 Archify SVGs and drift metadata live beside `docs/research/w05/archify-visual-brief.md`.
-- Week 6 Archify source/tool/output provenance and drift rules live in `docs/research/w06/archify-visual-plan.md` and `archify-provenance.json`; keep authoring inputs, raw viewers, caches, source checkouts, and all Archify runtime files disposable.
+- Archify source/tool/output provenance and drift rules live in each scope's visual plan/manifest (`docs/research/w06/archify-*` and `docs/research/w07-w08-archify-*`); keep authoring inputs, raw viewers, caches, source checkouts, and all Archify runtime files disposable.
 
 ## Maintaining this file
 
