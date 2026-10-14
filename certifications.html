@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Paths &amp; Certifications | 2463-FDE</title>
+<link rel="stylesheet" href="assets/css/style.css?v=20260805-rc3">
+<link rel="stylesheet" href="assets/css/cloud-path.css?v=20261014-c1">
+<script src="assets/js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="delivery-track.html">Delivery Track</a>
+    <a class="topnav" href="gauntlet.html">🎤 AI Interview</a>
+  </nav>
+  <div class="topbar-right"></div>
+</div>
+
+<main class="cert-wrap" id="main">
+  <header class="cert-hero">
+    <div class="cert-kicker">AWS · GCP · Both</div>
+    <h1>Cloud paths &amp; certifications</h1>
+    <p>Pick one cloud and follow it. Your chosen cloud is your <strong>primary implementation plane</strong>; the
+    other cloud appears as the <strong>comparison substrate</strong> in optional depth. Shared concepts are written
+    once for both paths, and every lesson's required path fits inside <strong>Core 30</strong> on whichever cloud you
+    choose. <strong>Both</strong> shows everything and runs longer.</p>
+  </header>
+
+  <div id="cloud-path-mount"></div>
+
+  <section class="cert-sec" aria-labelledby="how-title">
+    <h2 id="how-title">How the paths work</h2>
+    <ul class="cert-points">
+      <li><strong>One cloud is the expected route.</strong> Lessons with provider content show your cloud's block
+      open and the other cloud's block collapsed as an optional comparison. Nothing is removed.</li>
+      <li><strong>Core 30 holds per path.</strong> Each lesson publishes one pacing label per cloud, measured on that
+      cloud's required path: reading, one or two interactions, and the check.</li>
+      <li><strong>Links keep the path.</strong> Add <code>?cloud=aws</code>, <code>?cloud=gcp</code> or
+      <code>?cloud=both</code> to any lesson link to share a view; it applies to that browser tab and does not change
+      the viewer's saved choice.</li>
+      <li><strong>Works without JavaScript.</strong> Every provider block is open and labelled AWS or GCP, and both
+      pacing labels are visible.</li>
+      <li><strong>No cloud accounts are used.</strong> Provider labs in this curriculum are in-page simulations and
+      read-only code — nothing is provisioned, billed, or deployed.</li>
+    </ul>
+  </section>
+
+  <section class="cert-sec" aria-labelledby="project-title">
+    <h2 id="project-title">Project progression by path</h2>
+    <div class="cert-table-wrap">
+      <table class="cert-table">
+        <caption>Primary implementation plane and comparison substrate for each project phase</caption>
+        <thead>
+          <tr><th scope="col">Phase</th><th scope="col">AWS path</th><th scope="col">GCP path</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Weeks 1–5 · solo project<br><span class="cert-sub">local-first; cloud use is model APIs</span></th>
+            <td>Amazon Bedrock is the model plane. Gemini Enterprise Agent Platform appears as the comparison.</td>
+            <td>Gemini Enterprise Agent Platform is the model plane. Amazon Bedrock appears as the comparison.</td>
+          </tr>
+          <tr>
+            <th scope="row">Weeks 6–10 · teams of 2–3<br><span class="cert-sub">inherits the solo project's decisions and artifacts</span></th>
+            <td>AWS is the primary implementation plane for the team's services. GCP is the comparison substrate for the
+            cross-cloud work — the event hop and egress measurement, and the second provider in the infrastructure
+            design.</td>
+            <td>GCP is the primary implementation plane for the team's services. AWS is the comparison substrate for the
+            cross-cloud work. GCP learners do not inherit an AWS-primary topology.</td>
+          </tr>
+          <tr>
+            <th scope="row">Cross-cloud judgement days</th>
+            <td colspan="2">Required on both paths: placement, egress, identity federation, and the final
+            workload-placement memo are judgements across two clouds, so they are written once for everyone.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="cert-note">Infrastructure as code stays in its later week; nothing here moves it earlier.</p>
+  </section>
+
+  <section class="cert-sec" aria-labelledby="lessons-title">
+    <h2 id="lessons-title">Lessons with AWS and GCP blocks</h2>
+    <ul id="provider-pages" class="cert-lessons">
+      <li><a href="weeks/w01/d4b.html">Week 1 · Day 4 (Part 2) — Output guardrails</a></li>
+    </ul>
+  </section>
+
+  <section class="cert-sec" aria-labelledby="aws-title">
+    <h2 id="aws-title">AWS path</h2>
+    <p class="cert-lede">Aligned to AWS's Professional generative-AI certification. Each objective lists the live
+    lessons that teach it.</p>
+    <div id="cert-aws" class="cert-slot">
+      <article class="cert-card" data-cert="aip-c01">
+        <h3>AWS Certified Generative AI Developer – Professional (AIP-C01)</h3>
+        <p class="cert-links"><a href="https://aws.amazon.com/certification/certified-generative-ai-developer-professional/" target="_blank" rel="noopener">Certification page</a> ·
+        <a href="https://docs.aws.amazon.com/aws-certification/latest/ai-professional-01/ai-professional-01.html" target="_blank" rel="noopener">Official exam guide</a></p>
+        <noscript><p class="cert-note">Turn on JavaScript to see each objective and the lessons that teach it.</p></noscript>
+      </article>
+    </div>
+  </section>
+
+  <section class="cert-sec" aria-labelledby="gcp-title">
+    <h2 id="gcp-title">GCP path</h2>
+    <p class="cert-lede cert-pending" role="note"><strong>Certification alignment: decision pending.</strong> Google
+    Cloud currently lists two Professional credentials that touch this curriculum. Until the program records which one
+    the GCP path aligns to, both are shown here as published evidence — neither is claimed as the target.</p>
+    <div id="cert-gcp" class="cert-slot" data-target="pending">
+      <article class="cert-card" data-cert="paa">
+        <h3>Google Cloud Professional Agentic Architect (beta)</h3>
+        <p class="cert-links"><a href="https://cloud.google.com/learn/certification/agentic-architect/" target="_blank" rel="noopener">Certification page</a> ·
+        <a href="https://services.google.com/fh/files/misc/professional_agentic_architect_exam_guide_english.pdf" target="_blank" rel="noopener">Official exam guide</a></p>
+      </article>
+      <article class="cert-card" data-cert="pmle">
+        <h3>Google Cloud Professional Machine Learning Engineer</h3>
+        <p class="cert-links"><a href="https://cloud.google.com/learn/certification/machine-learning-engineer" target="_blank" rel="noopener">Certification page</a> ·
+        <a href="https://services.google.com/fh/files/misc/professional_machine_learning_engineer_exam_guide_english_new.pdf" target="_blank" rel="noopener">Official exam guide</a></p>
+      </article>
+    </div>
+  </section>
+
+  <section class="cert-sec" aria-labelledby="adjacent-title">
+    <h2 id="adjacent-title">Adjacent credentials (optional)</h2>
+    <ul id="cert-adjacent" class="cert-lessons">
+      <li><a href="https://aws.amazon.com/certification/certified-machine-learning-engineer-associate/" target="_blank" rel="noopener">AWS Certified Machine Learning Engineer – Associate</a></li>
+      <li><a href="https://cloud.google.com/learn/certification/generative-ai-leader" target="_blank" rel="noopener">Google Cloud Generative AI Leader</a></li>
+    </ul>
+  </section>
+
+  <p class="cert-foot">Curriculum alignment, not an exam-prep guarantee. Certification facts are from AWS and Google
+  Cloud first-party pages and exam guides, accessed <time datetime="2026-10-14">October 14, 2026</time>.</p>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Cloud paths</footer>
+
+<script src="assets/js/cert-objectives.js?v=20261014-c1"></script>
+<script src="assets/js/cloud-map.js?v=20261014-c1"></script>
+<script src="assets/js/cloud-path.js?v=20261014-c1"></script>
+<script src="assets/js/cert-page.js?v=20261014-c1"></script>
+<script src="assets/js/roster.js?v=20260706"></script>
+<script src="assets/js/auth.js"></script>
+</body>
+</html>
