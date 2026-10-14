@@ -174,6 +174,73 @@ class CurriculumHubTransferTests(unittest.TestCase):
         self.assertIn('id="hub-day"', hub)
         self.assertIn("Weeks 1–10 routed", hub)
 
+    def test_signed_in_topbar_keeps_batch_apply_clear_of_theme_toggle(self) -> None:
+        chrome = find_chrome()
+        if not chrome:
+            self.skipTest("Chrome/Chromium is unavailable")
+        widths = [390, 768, 1024, 1280, 1440, 1600]
+        harness_script = """
+const widths = %s, hub = %s, out = {};
+localStorage.setItem('fde_identity', JSON.stringify({code:'T', name:'Trainer Test', role:'trainer'}));
+function measure(i) {
+  if (i >= widths.length) { document.body.setAttribute('data-result', JSON.stringify(out)); return; }
+  const frame = document.createElement('iframe');
+  frame.style.cssText = 'width:' + widths[i] + 'px;height:800px;border:0';
+  frame.onload = () => setTimeout(() => {
+    const doc = frame.contentDocument;
+    const apply = doc.querySelector('.batch-context button');
+    const toggle = doc.querySelector('.theme-toggle');
+    if (!apply || !toggle) { out[widths[i]] = {missing: !apply ? 'apply' : 'theme'}; }
+    else {
+      const a = apply.getBoundingClientRect(), t = toggle.getBoundingClientRect();
+      const ox = Math.min(a.right, t.right) - Math.max(a.left, t.left);
+      const oy = Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top);
+      out[widths[i]] = {overlap: ox > 0.5 && oy > 0.5 ? ox : 0,
+        applyInView: a.left >= 0 && a.right <= widths[i],
+        signedIn: doc.body.textContent.includes('Trainer Test')};
+    }
+    frame.remove(); measure(i + 1);
+  }, 400);
+  frame.src = hub;
+  document.body.appendChild(frame);
+}
+measure(0);
+""" % (json.dumps(widths), json.dumps((ROOT / "index.html").as_uri()))
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp) / "topbar-harness.html"
+            harness.write_text(
+                f"<!doctype html><html><body><script>{harness_script}</script></body></html>"
+            )
+            result = subprocess.run(
+                [
+                    chrome,
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-first-run",
+                    "--no-default-browser-check",
+                    f"--user-data-dir={Path(tmp) / 'profile'}",
+                    "--allow-file-access-from-files",
+                    "--window-size=1700,900",
+                    "--virtual-time-budget=15000",
+                    "--dump-dom",
+                    harness.as_uri(),
+                ],
+                text=True,
+                capture_output=True,
+                timeout=60,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr[-1000:])
+        match = re.search(r'data-result="([^"]*)"', result.stdout)
+        self.assertIsNotNone(match, "harness did not report measurements")
+        measured = json.loads(match.group(1).replace("&quot;", '"'))
+        for width in widths:
+            with self.subTest(width=width):
+                row = measured[str(width)]
+                self.assertNotIn("missing", row)
+                self.assertTrue(row["signedIn"], "trainer identity did not render")
+                self.assertEqual(row["overlap"], 0, "theme toggle overlaps batch Apply")
+                self.assertTrue(row["applyInView"], "batch Apply clipped by viewport")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -139,8 +139,8 @@ that file somewhere you will find it again: it is what you bring to your week 10
 | **1** baseline | **Week 6** · AI-Augmented SDLC | The SDLC loop itself | **Section D, the loop check.** You will have just built loops. Do yours have a stopping condition, or do they stop when the agent says so? |
 | **2** | **Week 7** · Observability, SRE & Guardrails | Measuring running systems | **The Measure stage.** Observability is Measure wearing an engineering hat. If your spread is still empty there the week did not transfer. |
 | **3** | **Week 8** · Security, Governance & Responsible AI | Hardening, phase 3 | **Trait 2, calibration.** Watch for `excessive_changes` appearing as you learn to harden. "Precision is the entry fee" is not the same as gold-plating. |
-| **4** | **Week 9** · Client Specialization Track | Working a real client domain | **The Scope stage, and traits 1, 3 and 6.** This is the week the XY problem is available to you for the first time. Did `wrong_approach` fall? |
-| **5** | **Week 10** · Project Work & Client Showcase | Shipping and defending | **The shelfware test.** Read your `outcome` counts. Did anyone adopt the thing, and can you defend the whole arc from Scope to Measure? |
+| **4** | **Week 9** · AI Security, Governance & System Hardening | Hardening the delivered system | **The Scope stage, and traits 1, 3 and 6.** This is the week the XY problem is available to you for the first time. Did `wrong_approach` fall? |
+| **5** | **Week 10** · Production Rollout, Showcase & Client Handoff | Shipping and defending | **The shelfware test.** Read your `outcome` counts. Did anyone adopt the thing, and can you defend the whole arc from Scope to Measure? |
 
 Two rules that make this a cadence rather than five disconnected reports:
 
