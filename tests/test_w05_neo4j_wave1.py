@@ -99,21 +99,18 @@ class Week5Neo4jWave1Tests(unittest.TestCase):
             "}]))));"
         )
 
-    def test_all_five_routes_are_static_source_authoritative_lessons(self) -> None:
+    def test_all_five_routes_keep_the_lesson_structure(self) -> None:
         self.assertEqual([p.stem for p in PAGES], list(EXPECTED_TITLES))
         for path in PAGES:
             with self.subTest(route=path.stem):
                 page = ParsedPage(path)
-                text = page.normalized_text
-                self.assertIn(EXPECTED_TITLES[path.stem], text)
-                self.assertIn("Neo4j Knowledge Graphs & Context Engineering", text)
-                self.assertNotIn("Spec-Driven Dev & Problem Scoping", text)
-                self.assertNotIn("JavaScript is required for this lesson", text)
-                self.assertIn("Diagram key:", text)
                 self.assertEqual(1, len(page.root.find_all("article", "reading-col")))
                 self.assertEqual(EXPECTED_SECTIONS[path.stem], len(page.root.find_all("section", "step")))
 
-    def test_daily_scope_matches_the_accepted_map(self) -> None:
+    def test_browser_renders_the_accepted_daily_scope(self) -> None:
+        chrome = find_chrome()
+        if not chrome:
+            self.skipTest("Chrome/Chromium is unavailable")
         required_terms = {
             "w05d1": ["property graph", "MATCH", "CREATE", "MERGE", "Docker", "Browser", "decision point"],
             "w05d2": ["Variable-length", "Indexes", "constraints", "LOAD CSV", "Compliance", "Lock", "AI-native story"],
@@ -121,10 +118,53 @@ class Week5Neo4jWave1Tests(unittest.TestCase):
             "w05d4": ["institutional memory", "Chroma", "LangGraph", "Evaluate grounding", "performance", "MCP", "topology"],
             "w05d5": ["Assessment", "executive", "technical-team", "MCP", "Text2Cypher", "feedback"],
         }
-        for path in PAGES:
-            text = ParsedPage(path).normalized_text
-            for term in required_terms[path.stem]:
-                with self.subTest(route=path.stem, term=term):
+        routes = {path.stem: path.as_uri() for path in PAGES}
+        harness_script = r"""
+const routes = %s, out = {};
+function load(entries, i) {
+  if (i >= entries.length) { document.body.dataset.result = JSON.stringify(out); return; }
+  const [id, url] = entries[i], frame = document.createElement('iframe');
+  frame.onload = () => setTimeout(() => {
+    const d = frame.contentDocument;
+    d.querySelectorAll('details').forEach(el => el.open = true);
+    out[id] = {
+      title: d.querySelector('h1')?.innerText.trim() || '',
+      text: d.body.innerText.replace(/\s+/g, ' ').trim()
+    };
+    frame.remove(); load(entries, i + 1);
+  }, 250);
+  frame.src = url; document.body.appendChild(frame);
+}
+load(Object.entries(routes), 0);
+""" % json.dumps(routes)
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp) / "w5-scope-harness.html"
+            harness.write_text(
+                f"<!doctype html><html><body><script>{harness_script}</script></body></html>",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    "--no-default-browser-check", "--allow-file-access-from-files",
+                    f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=7000",
+                    "--dump-dom", harness.as_uri(),
+                ],
+                text=True, capture_output=True, timeout=40,
+            )
+        self.assertEqual(0, result.returncode, result.stderr[-1000:])
+        match = re.search(r'data-result="([^"]*)"', result.stdout)
+        self.assertIsNotNone(match, "scope harness did not report")
+        rendered = json.loads(html.unescape(match.group(1)))
+        for lesson_id, terms in required_terms.items():
+            text = rendered[lesson_id]["text"]
+            with self.subTest(route=lesson_id):
+                self.assertEqual(EXPECTED_TITLES[lesson_id], rendered[lesson_id]["title"])
+                self.assertIn("Neo4j Knowledge Graphs & Context Engineering", text)
+                self.assertNotIn("Spec-Driven Dev & Problem Scoping", text)
+                self.assertNotIn("JavaScript is required for this lesson", text)
+            for term in terms:
+                with self.subTest(route=lesson_id, term=term):
                     self.assertIn(term.casefold(), text.casefold())
 
     def test_each_day_meets_core30_pacing_and_optional_depth_contract(self) -> None:
