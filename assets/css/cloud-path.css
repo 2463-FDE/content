@@ -21,8 +21,9 @@
 .cloud-picker.is-compact legend { font-size: 13px; }
 .cloud-picker.is-compact .cloud-picker-option { min-height: 36px; padding: 4px 12px; font-size: 14px; }
 
-/* Per-path Core-30 labels: without JS both labels show; with JS only the active one. */
-.core30-meta[data-cloud] + .core30-meta[data-cloud] { margin-left: 8px; }
+/* Per-path Core-30 labels: without JS (or in Both) both labels show, each on its own line, flush-left. */
+.core30-meta[data-cloud] { display: block; }
+.core30-meta[data-cloud][hidden] { display: none; }
 
 /* Provider blocks */
 details.cloud-block {
