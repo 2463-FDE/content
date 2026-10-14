@@ -56,14 +56,14 @@
         decide.</strong> Model selection isn't a contest with a single winner. It's a constrained optimization across six
         axes that pull against each other, and the right model is the one that fits <em>this</em> task, <em>this</em>
         budget, and <em>this</em> client's rules — frequently <em>not</em> the most capable model on the market.</p>
-        <p>The landscape, as of <span class="nowrap">June 2026</span>, is four broad options. <strong>Anthropic's
-        Claude</strong> family (Opus, Sonnet, Haiku tiers). <strong>OpenAI's GPT</strong> family (the GPT-5 line, topping
-        out at GPT-5.5 on the API). <strong>Google's Gemini</strong> family (the 3.x and 2.5 lines, Pro and Flash tiers).
+        <p>The landscape, as verified <span class="nowrap">September 25, 2026</span>, is four broad options.
+        <strong>Anthropic's Claude</strong> family (Fable, Opus, Sonnet, and Haiku tiers).
+        <strong>OpenAI's GPT</strong> family (GPT-6 Astra, Sol, and Luna).
+        <strong>Google's Gemini</strong> family (Gemini 3.8 Flash plus other 3.x and 2.5 catalog models).
         And the <strong>open-weight / self-hosted</strong> world — Llama, Mistral, DeepSeek, Qwen — where you download the
-        weights and run inference on hardware you control. <span class="src">[sources: Anthropic model catalog (claude-api
-        reference, cached 2026-06-04); OpenAI API docs, platform.openai.com (verified 2026-06-28); Google Gemini API
-        pricing, ai.google.dev (verified 2026-06-28)]</span> The version names will have moved by the time you read this —
-        which is exactly why you learn the <em>axes</em>, not the names.</p>
+        weights and run inference on hardware you control. <span class="src">[sources: Anthropic, OpenAI, and Google
+        official model catalogs, accessed 2026-09-25]</span> The version names will move again — which is exactly why you
+        learn the <em>axes</em>, not the names.</p>
         <p>The six axes: <strong>capability</strong>, <strong>cost</strong>, <strong>latency</strong>, <strong>context
         window</strong>, <strong>tooling &amp; ecosystem</strong>, and <strong>data residency / compliance</strong>. The
         diagram is the funnel: a task and its constraints enter at the top, each axis narrows the field, and a defensible
@@ -76,8 +76,8 @@
         <p>Capability is the axis everyone over-weights. The instinct is to grab the smartest model and stop thinking. But
         "smartest" is expensive and slow, and most production tasks don't need it. The discipline is to match the model's
         capability tier to the <em>hardest thing the task actually requires</em> — and no higher. Every major vendor ships
-        a <strong>tiered family</strong> precisely so you can: Anthropic's Opus / Sonnet / Haiku, Google's Pro / Flash /
-        Flash-Lite, OpenAI's larger and smaller GPT-5 variants. The vendor is telling you, in pricing, not to run
+        a <strong>tiered family</strong> precisely so you can: Anthropic's Fable / Opus / Sonnet / Haiku, Google's Pro /
+        Flash / Flash-Lite, and OpenAI's GPT-6 Astra / Sol / Luna. The vendor is telling you, in pricing, not to run
         everything on the flagship.</p>
         <p>The FDE move is to <strong>decompose the workload</strong>. A support feature might use a small cheap model to
         classify an inbound message ("billing, shipping, or technical?") and escalate only the genuinely hard
@@ -100,14 +100,15 @@
         <div class="tag">Axis 2 · Cost</div>
         <h2>Cost: input and output are priced differently, and it compounds</h2>
         <p>Day 1's equation returns: <strong>cost ≈ (input tokens + output tokens) × price-per-token</strong> — but input
-        and output bill at <em>different</em> rates, and output is almost always the more expensive. As of
-        <span class="nowrap">June 2026</span>, on Anthropic's API, Opus 4.8 runs about <strong>$5 / $25</strong> per
-        million input / output tokens, Sonnet 4.6 about <strong>$3 / $15</strong>, Haiku 4.5 about <strong>$1 / $5</strong>.
-        <span class="src">[source: Anthropic model catalog, claude-api reference, cached 2026-06-04]</span> Gemini 3.5
-        Flash sits lower (~<strong>$1.50 / $9</strong>), the Pro tier higher (~<strong>$2.70 / $16</strong>).
-        <span class="src">[source: Google Gemini API pricing, ai.google.dev, verified 2026-06-28]</span> The numbers
-        drift; the <em>shape</em> is durable — output costs several times input, and the cheapest tier is often an order
-        of magnitude below the flagship.</p>
+        and output bill at <em>different</em> rates, and output is usually the more expensive. The verified
+        <span class="nowrap">September 2026</span> price anchors below are per million input / output tokens:</p>
+        <pre class="price-table" aria-label="Current model API prices verified September 25, 2026" style="box-sizing:border-box; width:100%; max-width:100%; min-width:0; white-space:pre-wrap; overflow-wrap:anywhere; overflow-x:auto; border:1px solid var(--line); border-radius:6px; padding:12px 14px; font-family:var(--mono); font-size:12px; line-height:1.5;"><code>ANTHROPIC  Fable 5.1  $10 / $50   Opus 5.5  $4 / $20   Sonnet 5  $2 / $10   Haiku 4.5  $1 / $5
+OPENAI     GPT-6 Astra $10 / $50  GPT-6 Sol $2 / $10   GPT-6 Luna $0.10 / $0.50
+GOOGLE     Gemini 3.8 Flash $0.75 / $3.75 through Dec 31, 2026; $1.50 / $7.50 from Jan 1, 2027</code></pre>
+        <p><span class="src">[sources: Anthropic Models overview, OpenAI Models, Google Gemini 3.8 Flash and pricing;
+        accessed 2026-09-25]</span> These are comparison anchors, not benchmark claims. The numbers drift; the
+        <em>shape</em> is durable — output costs more than input, and lower tiers can be dramatically cheaper than the
+        specialist or flagship tier.</p>
         <p>That asymmetry drives design. A feature that reads a lot and answers briefly (classify, extract, label) is
         dominated by <em>input</em> cost — a cheap-input, big-context model wins. A feature that generates long output
         (write the report, draft the email) is dominated by <em>output</em> cost, where one step down the tier ladder
@@ -148,10 +149,10 @@
         <div class="tag">Axis 4 · Context window</div>
         <h2>Context window: how much can you hand it, and what does that cost?</h2>
         <p>The context window — Day 1's central idea — is also a selection axis, because models differ in window size and
-        the size you need is set by the task. As of <span class="nowrap">June 2026</span> the frontier tiers have
-        converged on very large windows: Claude's current models offer up to <strong>1 million tokens</strong>, the
-        smaller Haiku tier <strong>200K</strong>; Gemini's Pro tier sits in the same 1M-class range.
-        <span class="src">[source: Anthropic model catalog, claude-api reference, cached 2026-06-04]</span> A million
+        the size you need is set by the task. As verified <span class="nowrap">September 2026</span>, Claude Fable 5.1,
+        Opus 5.5, and Sonnet 5 offer <strong>1 million tokens</strong>, while Haiku 4.5 offers <strong>200K</strong>;
+        Gemini 3.8 Flash also documents a <strong>1M-token</strong> window.
+        <span class="src">[sources: Anthropic Models overview and Google Gemini 3.8 Flash, accessed 2026-09-25]</span> A million
         tokens is a few thousand pages — an entire codebase, a long contract, a quarter of support transcripts in one
         call.</p>
         <p>But a bigger window is not automatically better, and treating "1M context" as a pure win is a beginner error.
@@ -237,7 +238,7 @@
         <div class="ix-spot"
           data-snippet="# called from 12 places across the codebase
 resp = openai.chat.completions.create(
-    model=&quot;gpt-5.5&quot;,
+    model=&quot;gpt-6-sol&quot;,
     messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}],
 )
 answer = resp.choices[0].message.content"
@@ -260,10 +261,13 @@ answer = resp.choices[0].message.content"
       <section class="reading-sources" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
-          <li><a href="https://platform.claude.com/docs/en/about-claude/models/overview" target="_blank" rel="noopener">Anthropic — Claude models overview</a> — primary source for the tiered family (Opus / Sonnet / Haiku), the $5/$25, $3/$15, $1/$5 per-MTok pricing, the 1M vs 200K context windows, and the Bedrock / Vertex enterprise channels this page cites on the capability, cost, context, and residency axes.</li>
-          <li><a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" rel="noopener">Google — Gemini API pricing</a> — official per-million-token rates for the Gemini Pro and Flash tiers, backing the cost-axis comparison and the cross-vendor "every flagship ships a cheaper tier" point.</li>
-          <li><a href="https://developers.openai.com/api/docs/pricing" target="_blank" rel="noopener">OpenAI — API pricing</a> — primary source for GPT-5-line input/output token pricing, the 10% cached-input rate, and the data-residency regional-processing uplift referenced on the cost and compliance axes.</li>
-          <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic — Prompt caching</a> — documents cache reads at 0.1× normal input price, the concrete number behind the tooling-axis claim that a stable prefix can be reused "at roughly a tenth of normal input."</li>
+          <li><a href="https://platform.claude.com/docs/en/models/overview" target="_blank" rel="noopener">Anthropic — Claude models overview</a> — current Fable / Opus / Sonnet / Haiku lineup, IDs, prices, and context windows (accessed 2026-09-25).</li>
+          <li><a href="https://developers.openai.com/api/docs/models" target="_blank" rel="noopener">OpenAI — Models</a> — current GPT-6 Astra / Sol / Luna positioning, IDs, prices, and context windows (accessed 2026-09-25).</li>
+          <li><a href="https://ai.google.dev/gemini-api/docs/latest-model" target="_blank" rel="noopener">Google — Gemini 3.8 Flash</a> — GA status, model ID, 1M context window, and introductory price (accessed 2026-09-25).</li>
+          <li><a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" rel="noopener">Google — Gemini API pricing</a> — confirms the introductory and 2027 Gemini 3.8 Flash rates (accessed 2026-09-25).</li>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic — Prompt caching</a> — documents model-specific cache-read rates and the stable-prefix rule (accessed 2026-09-25).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-4-5.html" target="_blank" rel="noopener">AWS — Claude Haiku 4.5 model card</a> — verifies the US inference-profile ID used by the default snippet (accessed 2026-09-25).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-5.html" target="_blank" rel="noopener">AWS — Claude Sonnet 5 model card</a> — verifies the current size-up profile used by the snippet (accessed 2026-09-25).</li>
         </ul>
       </section>
 
@@ -309,20 +313,20 @@ answer = resp.choices[0].message.content"
     <p class="quiz-sub">Optional. ~6 minutes. The one-page artifact behind Part 1 — the thing you actually hand a client.</p>
 
     <p>Score each candidate 1–5 on every axis, weight the axes for <em>this</em> task, and the choice — plus the
-    reasoning — is on the page. Sample numbers are illustrative current-state anchors, not a verdict; pricing drifts, so
-    re-verify before you ship one. <span class="src">[pricing/context sources: Anthropic catalog (claude-api, cached
-    2026-06-04); Gemini API pricing, ai.google.dev (2026-06-28); OpenAI API docs (2026-06-28)]</span></p>
+    reasoning — is on the page. Sample numbers are verified September 2026 comparison anchors, not a verdict; pricing
+    drifts, so re-verify before you ship one. <span class="src">[official Anthropic, OpenAI, and Google catalogs;
+    accessed 2026-09-25]</span></p>
 
     <div class="model-answer show">
       <div class="ma-k">Worked scorecard — a federal-acquisitions document-summarization feature</div>
       <pre style="background:#f1efe9; border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.5; margin:6px 0 0;"><code>AXIS (weight)        Flagship API     Mid-tier API       Open-weight (self-host)
-                     e.g. Opus 4.8    e.g. Sonnet/Flash  e.g. Llama/Mistral
+                     e.g. Opus 5.5    e.g. Sonnet 5      e.g. Llama/Mistral
 Capability (×2)        5                4                  3
-Cost in/out ($/M)      $5 / $25  →2     $1.50-3 / $9-15 →4 infra-only     →4
+Cost in/out ($/M)      $4 / $20  →2     $2 / $10      →4  infra-only     →4
 Latency (×1)           3                4                  4 (you size HW)
-Context window (×1)    1M        →5     1M / 200K     →5  varies          →3
+Context window (×1)    1M        →5     1M            →5  varies          →3
 Tooling/ecosystem(×1)  5                5                  3 (DIY)
-Data residency (×3)    BAA+Bedrock →4   BAA+Vertex   →4   FULL control →5
+Data residency (×3)    BAA+Bedrock →4   US profile   →4   FULL control →5
 ─────────────────────────────────────────────────────────────────────────
 If "data never leaves our boundary" is mandatory, the ×3 weight on the last
 row can make open-weight win even though it scores lower on capability.</code></pre>
@@ -391,8 +395,8 @@ window.DIAGRAM = {
 
     // ② cost @ volume — the eliminator for flagship
     { id:"costL", step:2, x:14,  y:204, w:122, h:38, label:"② Cost @vol",
-      detail:"cost ≈ (input + output tokens) × price, and OUTPUT bills several× higher than input. At ~50k calls/day summarizing 40 pages, a flagship at ~$25 / M output is roughly 6× the bill of a mid-tier (~$9–15 / M). Cost — not capability — is what eliminates the 'best' model here. A 2¢ demo call becomes a six-figure yearly line item at this volume." },
-    { id:"cost1", step:2, x:146, y:204, w:176, h:38, label:"✗ ~6× pricier" },
+      detail:"cost ≈ (input + output tokens) × price, and OUTPUT bills higher than input. At ~50k calls/day, Opus 5.5 at $4/$20 is 2× Sonnet 5 at $2/$10 for the same token shape. Cost — not capability — is what eliminates the overqualified model here." },
+    { id:"cost1", step:2, x:146, y:204, w:176, h:38, label:"✗ 2× pricier" },
     { id:"cost2", step:2, x:332, y:204, w:176, h:38, label:"✓ infra-only" },
     { id:"cost3", step:2, x:518, y:204, w:176, h:38, label:"✓ cheapest" },
 
@@ -441,7 +445,7 @@ window.DIAGRAM = {
   captions: [
     "One concrete task, three real candidates. The pick falls out of <i>this</i> task's constraints — <b>50k calls/day, US-only residency</b> — not a leaderboard. <span style='opacity:.7'>(tap a row label for detail)</span>",
     "<b>① Capability</b>: all three clear the bar — summarize→JSON isn't frontier-hard, so the flagship is <i>overkill</i>. Capability rarely decides; match the tier to the hardest thing the task needs.",
-    "<b>② Cost @volume</b>: the flagship's ~$25 / M output makes it ~6× pricier at 50k/day — <b>eliminated</b>. Cost, not capability, knocks out the 'best' model. <span style='opacity:.7'>(tap)</span>",
+    "<b>② Cost @volume</b>: Opus 5.5's $4/$20 rates make the same call 2× Sonnet 5 at $2/$10 — <b>eliminated</b> for this task. Cost, not capability, knocks out the overqualified model. <span style='opacity:.7'>(tap)</span>",
     "<b>③ Latency</b>: a smaller tier is faster, and the flagship is already out. Mid-tier and self-host are both serviceable here.",
     "<b>④ Context</b>: a 40-page RFP (~35k tokens) fits every option — even the 200K tier. Not a differentiator for this task.",
     "<b>⑤ Tooling</b>: the task needs guaranteed JSON. The API tiers do it natively; self-host means DIY parsing <i>and</i> running the hardware — friction you'd take on for nothing.",
@@ -528,7 +532,7 @@ def answer(prompt: str, *, model: str = DEFAULT_MODEL, system: str | None = None
 label = answer(&quot;Classify: &#x27;my card was declined&#x27;  -&gt;  billing | shipping | technical&quot;)
 
 # Size up only where it earns its cost -- same interface, one argument:
-summary = answer(long_rfp, model=&quot;us.anthropic.claude-sonnet-4-6-v1&quot;)</pre></div>
+summary = answer(long_rfp, model=&quot;us.anthropic.claude-sonnet-5&quot;)</pre></div>
     <p class="cv-foot">Every caller talks to answer(), never a vendor SDK directly — that is the seam Part 2 wraps in timeouts and retries.</p>
   </div>
 </div>

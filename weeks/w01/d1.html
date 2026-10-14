@@ -270,6 +270,7 @@ $ claude &quot;read every file in the whole repo, then find and fix the bug&quot
         <ul>
           <li><a href="https://platform.claude.com/docs/en/build-with-claude/context-windows" target="_blank" rel="noopener">Anthropic — Context windows</a> — how the window is structured and what counts against it (input + output).</li>
           <li><a href="https://platform.claude.com/docs/en/build-with-claude/token-counting" target="_blank" rel="noopener">Anthropic — Token counting</a> — measure tokens before you send, so you can budget a call instead of guessing.</li>
+          <li><a href="https://platform.claude.com/docs/en/models/overview" target="_blank" rel="noopener">Anthropic — Models overview</a> — current model IDs and per-million-token prices used in the worked cost example (accessed 2026-09-25).</li>
           <li><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Vaswani et al. — Attention Is All You Need</a> — the original transformer paper; where "attention" as a finite, shared resource comes from.</li>
         </ul>
       </section>
@@ -317,9 +318,10 @@ $ claude &quot;read every file in the whole repo, then find and fix the bug&quot
     <p><strong>Tokens aren't words.</strong> Rule of thumb: 1 token ≈ 4 characters ≈ 0.75 English words. Common words are
     one token; rare or long words ("antidisestablishmentarianism") split into several; code and punctuation tokenize
     heavier than prose. When you size a budget, count tokens, not words.</p>
-    <p><strong>The cost formula.</strong> Providers bill input and output separately, per million tokens. Say a model
-    charges $3 / M input and $15 / M output (output is usually pricier). Cost of one call =
-    (input_tokens / 1e6 × $3) + (output_tokens / 1e6 × $15).</p>
+    <p><strong>The cost formula.</strong> Providers bill input and output separately, per million tokens. Using
+    Claude Sonnet 5's verified September 2026 rate of $2 / M input and $10 / M output (output is pricier), one call costs
+    (input_tokens / 1e6 × $2) + (output_tokens / 1e6 × $10).
+    <span class="src">[source: Anthropic models overview, accessed 2026-09-25]</span></p>
     <div class="model-answer show">
       <div class="ma-k">Worked example — one support-bot turn</div>
       <ul class="deliv-list">
@@ -329,9 +331,9 @@ $ claude &quot;read every file in the whole repo, then find and fix the bug&quot
         <li>User question: 100 tokens</li>
         <li>Answer (output): 400 tokens</li>
       </ul>
-      <p style="margin:8px 0 0">Input = 4,800 tokens → $0.0144. Output = 400 → $0.0060.
-      <strong>≈ $0.02 per turn.</strong> Trivial once — until you multiply by 50,000 turns/day = <strong>~$1,000/day</strong>,
-      and suddenly that 1,200-token history you never trimmed is a $250/day line item. Thursday's "context compression"
+      <p style="margin:8px 0 0">Input = 4,800 tokens → $0.0096. Output = 400 → $0.0040.
+      <strong>≈ $0.014 per turn.</strong> Trivial once — until you multiply by 50,000 turns/day = <strong>$680/day</strong>,
+      and suddenly that 1,200-token history you never trimmed is a $120/day line item. Thursday's "context compression"
       topic is, quite literally, a cost-savings project.</p>
     </div>
     <p style="margin-top:14px"><strong>Determinism caveat.</strong> Even at temperature 0, outputs are not guaranteed
@@ -494,7 +496,7 @@ messages = [{&quot;role&quot;: &quot;user&quot;,
              &quot;content&quot;: [{&quot;text&quot;: &quot;My badge is 7741, desk on floor 3. What floor?&quot;}]}]
 
 resp = bedrock.converse(
-    modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,  # current-gen needs the us. prefix
+    modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,  # US geo profile; may route across US Regions
     system=system,
     messages=messages,
     inferenceConfig={&quot;maxTokens&quot;: 200, &quot;temperature&quot;: 0},   # temp 0 -&gt; repeatable
