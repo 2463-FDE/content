@@ -7,6 +7,7 @@
 <meta name="fde-concepts" content="dense-vs-sparse-retrieval,hybrid-retrieval,reciprocal-rank-fusion,cross-encoder-reranking,late-interaction-colbert">
 <title>W2·D3 — Retrieval Strategies: Dense, Sparse, Hybrid &amp; Re-ranking | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
+<link rel="stylesheet" href="../../assets/css/cloud-path.css?v=20261014-c1">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -36,7 +37,8 @@
         <div class="meta">
           <span><b>Week 2</b> · Day 3</span>
           <span>Foundation AI Engineering</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~11 min read · 2 interactions · 7-Q check</span>
+          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 7-Q check</span>
         </div>
         <p class="summary">A RAG system is only as good as the slice of text it puts in the window — and the job of
         choosing that slice is <strong>retrieval</strong>. Today you learn the two ways a system can find relevant text
@@ -51,11 +53,14 @@
       <section class="step" data-diagram="0" data-step="0">
         <div class="tag">The whole game</div>
         <h2>Retrieval is where RAG lives or dies</h2>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: why retrieval is the whole ballgame</summary>
         <p>Yesterday's window lesson left you with one rule: <strong>more retrieved text is not more intelligence</strong> —
         precision of retrieval is. Today we open that black box. When a user asks a question, the system has to reach into
         a corpus of thousands or millions of chunks and pull back the handful that actually answer it. <em>How</em> it
         decides which chunks are relevant is the whole ballgame. Get retrieval right and a small, cheap model looks
         brilliant; get it wrong and the best model on earth confidently answers from the wrong passage.</p>
+        </details>
         <p>There are two fundamentally different ways to score "is this chunk relevant to this query," and they come from
         two different views of what text <em>means</em>. <strong>Dense (semantic) search</strong> compares the meaning of
         the query and the chunk. <strong>Sparse (lexical / keyword) search</strong> compares the literal words they share.
@@ -85,9 +90,12 @@
         look semantically similar" instead of demanding the exact match. Ask a dense system for "error TS-4471" and it may
         cheerfully return passages about errors in general, because in meaning-space "TS-4471" isn't very far from
         "TS-4470."</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the Pollock query through dense eyes</summary>
         <p>That is the trade you are buying: dense search reads <em>"catch"</em> in our Pollock query as the fishing
         concept and pulls general fishing content, while potentially under-weighting the specific phrase the user actually
         cares about. Brilliant on intent, shaky on exactness.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -104,11 +112,14 @@
         scores it near nothing — it cannot disambiguate or bridge synonyms and paraphrases. In our example, sparse
         retrieval matches the literal "Alaskan Pollock" perfectly but is oblivious to whether the surrounding query is
         about fishing, cooking, or conservation; it matched the string, not the intent.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: complementary signals, not competitors</summary>
         <p>So now you have the full picture and the reason hybrid exists. <strong>Dense vectors disambiguate meaning;
         sparse keyword scoring catches the exact tokens</strong> — and each is blind precisely where the other sees. They
         are not competitors to choose between. They are <strong>complementary signals</strong>, and the engineer's move is
         to run both and combine them. That combination is hybrid search, and the rest of the pipeline is about doing the
         combining well.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -125,17 +136,26 @@
         range and compute <code>alpha · dense + (1 − alpha) · sparse</code>, where alpha is a dial between 0 (pure sparse)
         and 1 (pure dense). Tuning that single number is one of the highest-leverage things you'll do on a RAG engagement,
         and the defaults are worth memorizing.</p>
+        <details class="deep" data-core="optional">
+          <summary>Practice (optional): hybrid that only matches keywords</summary>
         <div class="ix-predict"
           data-q="A client's catalog search uses hybrid retrieval but users complain it 'ignores meaning and only matches on keywords.' Inspecting the config, you see dense and sparse scores are summed with no normalization. What's happening, and what's the fix?"
           data-a="The <b>sparse (BM25) scores aren't normalized to the dense range</b>, so on their larger numeric scale they <b>dominate the sum</b> — the system is effectively pure keyword search even though dense is 'on.' Fix: normalize both signals into a comparable range and combine with an explicit weight, e.g. an <b>alpha convex combination</b> <code>alpha·dense + (1−alpha)·sparse</code>, then tune alpha (≈0.75 favors natural-language meaning, ≈0.25 favors keyword specificity).">
         </div>
+        </details>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: alpha rules of thumb by query type</summary>
         <p>The rules of thumb: <strong>alpha ≈ 0.75</strong> is a good default for natural-language queries (lean on
         meaning), <strong>alpha ≈ 0.5</strong> balances both signals evenly, and <strong>alpha ≈ 0.25</strong> favors
         high-keyword-specificity queries — SKUs, technical IDs, named entities — where the literal token matters most. A
         single product can even pick alpha per query type: conversational questions ride high alpha, while a query that's
         obviously a part number drops alpha toward sparse. That's not a parlor trick; it's reading the query and spending
         your retrieval budget where the signal is.</p>
+        </details>
+        <details class="deep" data-core="optional">
+          <summary>Practice (optional): slide alpha between sparse and dense</summary>
         <div class="ix-retrieve" data-scenario="apikey" data-mode="alpha"></div>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
@@ -147,17 +167,23 @@
         the sum of its reciprocal ranks across the lists — roughly <code>Σ 1 / (k + rank)</code> over each retriever that
         returned it. A document ranked #1 by dense and #3 by sparse accumulates a strong combined score; a document only
         one retriever liked, far down its list, contributes little.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: why rank fusion shrugs off score scales</summary>
         <p>The beauty is that <strong>rank is unitless</strong>. RRF never looks at the magnitude of a BM25 score or a
         cosine similarity — only at the <em>order</em> each retriever produced. That makes it inherently
         <strong>robust to incompatible score scales</strong> between BM25 and dense retrieval, which is exactly the
         problem that sinks naïve score-summing. It's why RRF is the default fusion method in production stacks: Weaviate
         ships it as the default <code>rankedFusion</code>, with a score-based <code>relativeScoreFusion</code> available as
         the alternative when you specifically want magnitudes to matter.</p>
+        </details>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: when to reach for RRF vs alpha</summary>
         <p>Practically, you'll choose between the two families a lot. Reach for <strong>RRF / rank fusion</strong> when
         your two retrievers have wildly different score distributions and you want a safe, low-tuning default. Reach for a
         <strong>weighted score combination (alpha)</strong> when you've done the normalization work and want fine,
         per-query-type control over how much meaning vs keyword matters. Either way the goal is identical: one merged,
         sensibly-ordered candidate list out of two very different retrievers.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
@@ -169,11 +195,14 @@
         <strong>recall</strong>: cast a wide net so that the truly relevant chunk is somewhere in the candidate pool, even
         if it's not yet at the top. You are deliberately accepting some junk in exchange for near-certainty that the right
         answer is in the bucket.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: why stage one over-retrieves on purpose</summary>
         <p>This is a mindset shift worth naming. In stage one you are <em>not</em> trying to be precise. A hundred-plus
         candidates is far too many to hand a language model — yesterday's lesson tells you stuffing all of them into the
         window is the amateur move that buries the signal and shrinks the answer room. So why pull so many? Because
         <strong>you can't re-rank a document you never retrieved.</strong> Stage one's only job is to make sure nothing
         important got missed. Precision is somebody else's problem — specifically, stage two's.</p>
+        </details>
         <p>The phrase to carry to a client whiteboard: <strong>"hybrid boosts recall; reranking restores precision."</strong>
         That single sentence explains the whole architecture and tells a team why both stages exist. Skip stage two and
         you drown the model in candidates; skip stage one's width and stage two has nothing good to promote. They're a
@@ -191,6 +220,8 @@
         the query and each candidate document <strong>jointly</strong> through a transformer and outputs a single, precise
         relevance score. It can reason about how the query and that specific document interact — which is far more accurate
         and far too expensive to run across the whole corpus, but perfectly affordable across ~100 candidates.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: a production cross-encoder, and what re-ranking buys in numbers</summary>
         <p>The production-standard example is <strong>Cohere Rerank 3.5</strong>: a cross-encoder that takes the query
         plus candidate documents and returns a relevance-scored ordering, with a <strong>4096-token context window</strong>
         and state-of-the-art results on the BEIR and multilingual retrieval benchmarks. You hand it your fused 100, it
@@ -202,13 +233,16 @@
         single most important number to take to a skeptical client: the re-ranking stage is not polish, it's often a
         double-digit accuracy jump for a bounded, cheap-per-query cost. When someone asks "is re-ranking worth the extra
         hop?", that range is your answer.</p>
-        <div class="ix-retrieve" data-scenario="apikey" data-mode="rerank"></div>
+        </details>
+        <div class="ix-retrieve" data-scenario="apikey" data-mode="rerank" data-core-interaction></div>
         <button class="code-cta" type="button" data-modal="code-d3"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· retrieve.py</span></button>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
         <div class="tag">Variations &amp; where it runs</div>
         <h2>Late interaction, and hybrid right in Postgres</h2>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: late interaction (ColBERT) and hybrid inside Postgres</summary>
         <p>Cross-encoders aren't the only re-ranking tool, and you should know the one clients increasingly ask about:
         <strong>late-interaction models</strong>, the ColBERT family. Instead of crushing a whole document into one
         vector, ColBERT stores a <strong>per-token embedding</strong> for the document and scores a query against it with
@@ -227,12 +261,13 @@
         <code>WHERE</code>-clause filters — a real fix for the classic "my metadata filter starved the vector search"
         bug. Version hygiene matters: the current stable release as of mid-2026 is <strong>0.8.3</strong>, so any
         "we're on a current version" claim should point past 0.8.0.</p>
+        </details>
         <p>Step back and you have a portable mental model that survives whichever vendor a client has chosen. Whether it's
         Pinecone's cascading retrieval, Weaviate's rankedFusion, Qdrant's server-side hybrid with ColBERT rerank, or
         pgvector columns in plain Postgres, the <em>shape</em> is identical: <strong>run dense and sparse, fuse them into a
         wide high-recall candidate set, then re-rank down to a small high-precision final set.</strong> Learn the shape,
         and every product is just a different set of knobs on the same machine.</p>
-        <div class="callout mindset">
+        <div class="callout mindset" data-core="optional">
           <div class="k">FDE mindset</div>
           <p>When a client says "our RAG can't find the right document," resist the urge to swap the embedding model.
           Walk the retrieval pipeline instead: <strong>Is sparse even in the mix, or is it dense-only missing the exact
@@ -242,7 +277,77 @@
         </div>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">On your cloud · managed retrieval</div>
+        <h2>Managed retrieval: the same two stages, pre-packaged</h2>
+        <p>The strategy decision is the same on either cloud: run dense and sparse, fuse them, re-rank the shortlist.
+        What a managed service changes is how much of that pipeline arrives pre-packaged, and which knobs it still hands
+        you. Before you trust a "hybrid" checkbox, ask it the same questions: is sparse really in the mix, how are the
+        lists fused, and is there a re-rank stage? Open your path; the other cloud stays as an optional comparison.</p>
+
+        <details class="cloud-block" data-cloud="aws" open>
+          <summary><span class="cloud-tag">AWS</span>Knowledge Bases hybrid search + Bedrock rerankers<span class="cloud-role"></span></summary>
+          <p>In <strong>Bedrock Knowledge Bases</strong> the strategy is a per-query setting. A Retrieve or
+          RetrieveAndGenerate call can set <code>overrideSearchType</code> to <code>HYBRID</code>, which searches the
+          vector embeddings <em>and</em> the raw text, or <code>SEMANTIC</code>, vectors only; leave it out and Bedrock
+          picks. The catch: hybrid works only on Amazon RDS (Aurora), OpenSearch Serverless and MongoDB stores that have a
+          filterable text field. On any other store, the query quietly runs as semantic search. On Aurora, the sparse half
+          is a Postgres full-text index on the chunk text, sitting beside the HNSW index. Re-ranking is a second, optional
+          step: call the <strong>Rerank</strong> operation directly, or attach a reranker to the knowledge base query,
+          and its order overrides the default ranking. The models are Amazon Rerank 1.0 and Cohere Rerank 3.5 — the
+          cross-encoder from Stage 2 — and they rerank text only. Bedrock hands you the switch and the reranker; whether
+          hybrid actually ran depends on the store you chose on Day 2.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="aws">
+            <div class="ix-k">✓ Practice · did hybrid actually run?</div>
+            <p class="ix-cloud-q">Your knowledge base stores vectors in Pinecone. You set <code>overrideSearchType</code>
+            to <code>HYBRID</code>, yet exact part numbers still miss. What's going on?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="Reranking is a separate, optional step; hybrid search doesn't depend on it.">Hybrid search needs a reranker attached before it works</li>
+              <li data-correct data-why="That's the documented limit: on Pinecone the query falls back to semantic search, so the sparse half you wanted never ran.">Hybrid is supported only on Amazon RDS, OpenSearch Serverless and MongoDB stores with a filterable text field — elsewhere the query runs as semantic search</li>
+              <li data-why="The documented setting is a search type, not an alpha weight — and the real problem is that hybrid never ran on this store.">The alpha weight is set too high</li>
+              <li data-why="The embedding model isn't the issue; the store decides whether the raw-text half of hybrid exists.">Titan V2 can't embed part numbers</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>Hybrid never ran.</strong> Bedrock runs hybrid only on RDS, OpenSearch Serverless and MongoDB
+              stores with a filterable text field; on Pinecone the same request is semantic-only. Check the store before
+              you trust the switch.</p>
+            </details>
+          </div>
+        </details>
+
+        <details class="cloud-block" data-cloud="gcp" open>
+          <summary><span class="cloud-tag">GCP</span>Agent Search, Vector Search hybrid + ranking API<span class="cloud-role"></span></summary>
+          <p>GCP gives you three levels of packaging. <strong>Agent Search</strong> (formerly Vertex AI Search) is the
+          whole pipeline: an out-of-the-box semantic-and-keyword search engine for RAG, with layout-aware chunking and
+          connectors to your sources. To build it yourself, <strong>Vector Search</strong> keeps dense and sparse
+          embeddings (TF-IDF, BM25 or SPLADE) in <em>one</em> index, and a <code>HybridQuery</code> fuses the two lists
+          with RRF, because the two distances live in different spaces. Its <code>rrf_ranking_alpha</code> is a weight on
+          ranks: 1 is dense only, 0 is sparse only, 0.5 weights them equally — and if you <em>don't set it</em>, you get
+          dense only. Re-ranking is the <strong>ranking API</strong>. It's stateless, so you pass a query and up to 1,000
+          records and get back relevance scores from 0 to 1. RAG Engine can call it as its reranker, or use a slower LLM
+          reranker instead. Same two stages: Agent Search hides them, while Vector Search plus the ranking API lets you
+          set each one yourself.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="gcp">
+            <div class="ix-k">✓ Practice · where did the sparse half go?</div>
+            <p class="ix-cloud-q">Your Vector Search index holds dense and sparse embeddings. You query it with a
+            <code>HybridQuery</code> carrying both, but no <code>rrf_ranking_alpha</code>. SKU queries still miss.
+            Why?</p>
+            <ol class="ix-cloud-options">
+              <li data-correct data-why="Unset behaves like 1: dense only. Set it between 0 and 1 (0.5 is equal weight) so the sparse matches count.">With <code>rrf_ranking_alpha</code> unset, hybrid search uses only the dense results and ignores the sparse ones</li>
+              <li data-why="The opposite: a sparse index supports only dot-product distance.">Sparse embeddings need cosine distance</li>
+              <li data-why="Merging dense and sparse lists is exactly what RRF does here, because their distances can't be compared directly.">RRF can't merge dense and sparse lists</li>
+              <li data-why="The ranking API re-ranks candidates after retrieval; it can't recover results the query never returned.">You have to call the ranking API before Vector Search</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>The alpha default.</strong> Left unset, <code>rrf_ranking_alpha</code> means dense only, so your
+              "hybrid" query is pure semantic search. Set a weight below 1 and the exact-term matches come back into the
+              fused list.</p>
+            </details>
+          </div>
+        </details>
+      </section>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://docs.pinecone.io/guides/search/hybrid-search" target="_blank" rel="noopener">Pinecone — Hybrid search</a> — why dense and sparse are complementary, the BM25 normalization trap, and the alpha convex-combination defaults (0.75 / 0.5 / 0.25).</li>
@@ -253,6 +358,15 @@
           <li><a href="https://www.postgresql.org/about/news/pgvector-080-released-2952/" target="_blank" rel="noopener">PostgreSQL — pgvector 0.8.0 Released</a> — iterative index scans that prevent over-filtering under <code>WHERE</code>-clause filters.</li>
           <li><a href="https://github.com/pgvector/pgvector" target="_blank" rel="noopener">pgvector — README</a> — the <code>sparsevec</code> and <code>halfvec</code> types enabling dense + sparse columns in one Postgres table.</li>
           <li><a href="https://github.com/pgvector/pgvector/blob/master/CHANGELOG.md" target="_blank" rel="noopener">pgvector — CHANGELOG</a> — release history; current stable is 0.8.3 (2026-06-17).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/kb-test-config.html" target="_blank" rel="noopener">AWS — Configure and customize queries and response generation</a> — the HYBRID / SEMANTIC search type, the stores that support hybrid, and rerankers in knowledge base queries (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-setup.html" target="_blank" rel="noopener">AWS — Prerequisites for using a vector store you created for a knowledge base</a> — the Aurora HNSW and full-text (GIN) indexes behind hybrid search (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/rerank.html" target="_blank" rel="noopener">AWS — Improve the relevance of query responses with a reranker model</a> — the Rerank operation and reranking inside Retrieve / RetrieveAndGenerate (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/rerank-supported.html" target="_blank" rel="noopener">AWS — Supported Regions and models for reranking</a> — Amazon Rerank 1.0 and Cohere Rerank 3.5 model IDs, and the us-east-1 note behind the code tab (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/generative-ai-app-builder/docs/builder-apis" target="_blank" rel="noopener">Google Cloud — APIs for building search and RAG experiences</a> — Agent Search as an out-of-the-box semantic and keyword search engine for RAG, vs building your own retrieval (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/generative-ai-app-builder/docs/parse-chunk-documents" target="_blank" rel="noopener">Google Cloud — Parse and chunk documents</a> — Agent Search document chunking and the layout parser for RAG (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/vector-search/about-hybrid-search" target="_blank" rel="noopener">Google Cloud — About hybrid search (Vector Search)</a> — dense + sparse in one index, RRF fusion, and <code>rrf_ranking_alpha</code> (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/generative-ai-app-builder/docs/ranking" target="_blank" rel="noopener">Google Cloud — Improve search and RAG quality with ranking API</a> — the stateless reranker, its limits and scores, and the Python sample behind the GCP code tab (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/retrieval-and-ranking" target="_blank" rel="noopener">Google Cloud — Reranking for RAG Engine</a> — ranking API vs LLM reranker inside RAG Engine (accessed 2026-10-14).</li>
         </ul>
       </section>
 
@@ -273,7 +387,7 @@
         </button>
         <button class="activity-card accent" type="button" data-modal="quiz-modal">
           <div class="ac-k">✓ Comprehension check</div>
-          <div class="ac-t">6 quick questions on retrieval strategies</div>
+          <div class="ac-t">7 quick questions on retrieval strategies</div>
           <div class="ac-meta">~5 min · practice, not graded</div>
         </button>
       </div>
@@ -456,6 +570,24 @@ window.QUIZ = {
         { l: "Cross-encoder re-ranker", r: "scores query+document jointly for precise relevance" },
         { l: "ColBERT late interaction", r: "per-token embeddings scored with MaxSim, used to rerank" } ],
       explain: "Dense and sparse are complementary (opposite failure modes); a cross-encoder (e.g. Cohere Rerank 3.5) reads query and doc together for a precise score; ColBERT stores per-token embeddings and scores via MaxSim, typically as a rerank stage after cheap single-vector retrieval." },
+    { type: "scq", cloud: "aws",
+      stem: "On the AWS path, how does a reranker fit into an Amazon Bedrock Knowledge Bases query?",
+      options: [
+        "It replaces the embedding model at ingest time",
+        "You attach a reranker model (such as Cohere Rerank 3.5) to Retrieve or RetrieveAndGenerate, or call Rerank directly; its order overrides the knowledge base's default ranking",
+        "It reranks images and tables, not text",
+        "It has to run over the whole corpus before retrieval" ],
+      answer: 1,
+      explain: "Bedrock's reranker models (Amazon Rerank 1.0, Cohere Rerank 3.5) score retrieved chunks against the query and reorder them — text only. Use one inside a knowledge base query, where its results override the default ranking, or through the standalone Rerank operation." },
+    { type: "scq", cloud: "gcp",
+      stem: "On the GCP path, what does the ranking API need before you can call it?",
+      options: [
+        "An Agent Search data store that has already indexed the documents",
+        "Only the query and the candidate records — it's stateless, takes up to 1,000 records per request, and returns relevance scores from 0 to 1",
+        "A Vector Search hybrid index",
+        "A model fine-tuned on your corpus" ],
+      answer: 1,
+      explain: "The ranking API is stateless, so there's no indexing step. Pass the query plus candidate records from Vector Search, BM25 or anything else, and it returns relevance scores between 0 and 1. That's the stage-two re-ranker." },
     { type: "open",
       stem: "In one or two sentences: when would you set alpha ≈ 0.25 in an alpha convex-combination hybrid, and what does that choice do to dense vs sparse?",
       hint: "Think about what kind of query has its meaning IN the literal tokens.",
@@ -468,12 +600,12 @@ window.QUIZ = {
   <div class="modal-card code-modal">
     <button class="modal-close" type="button" aria-label="Close">✕</button>
     <h2>Production code: hybrid retrieval + re-ranking</h2>
-    <p class="cv-cap">Query time: fuse a dense Titan vector search with a sparse (BM25) lexical search, then Bedrock&#x27;s Rerank API re-ranks the shortlist to restore precision.</p>
-    <div class="cv" data-file="retrieve.py" data-lang="python"><pre class="cv-raw"># Query time: hybrid (dense Titan + BM25) fusion, then Bedrock re-rank.
+    <p class="cv-cap">Query time: fuse a dense vector search with a sparse (BM25) lexical search, then a managed reranker re-ranks the shortlist to restore precision -- Bedrock&#x27;s Rerank API on AWS, the ranking API on GCP.</p>
+    <div class="cv" data-file="retrieve.py" data-lang="python"><pre class="cv-raw" data-cloud="aws" data-file="aws · retrieve.py"># Query time: hybrid (dense Titan + BM25) fusion, then Bedrock re-rank.
 import boto3
 
 agent = boto3.client(&quot;bedrock-agent-runtime&quot;, region_name=&quot;us-east-1&quot;)
-RERANK_ARN = &quot;arn:aws:bedrock:us-east-1::foundation-model/amazon.rerank-v1:0&quot;
+RERANK_ARN = &quot;arn:aws:bedrock:us-east-1::foundation-model/cohere.rerank-v3-5:0&quot;  # Amazon Rerank 1.0 isn&#x27;t offered in us-east-1
 
 def hybrid_search(q: str, k: int = 20, alpha: float = 0.5) -&gt; list[dict]:
     qv = embed(q)                    # Titan V2, same model as ingest
@@ -489,8 +621,31 @@ def hybrid_search(q: str, k: int = 20, alpha: float = 0.5) -&gt; list[dict]:
             &quot;bedrockRerankingConfiguration&quot;: {&quot;numberOfResults&quot;: 5,
                 &quot;modelConfiguration&quot;: {&quot;modelArn&quot;: RERANK_ARN}}},
     )
-    return [fused[r[&quot;index&quot;]] | {&quot;score&quot;: r[&quot;relevanceScore&quot;]} for r in out[&quot;results&quot;]]</pre></div>
-    <p class="cv-foot">The reranker reads (query, doc) together, so it&#x27;s precise but costly -- that&#x27;s why it only runs on the fused top-k shortlist, never the whole corpus. amazon.rerank-v1:0 is called through the bedrock-agent-runtime Rerank API.</p>
+    return [fused[r[&quot;index&quot;]] | {&quot;score&quot;: r[&quot;relevanceScore&quot;]} for r in out[&quot;results&quot;]]</pre><pre class="cv-raw" data-cloud="gcp" data-file="gcp · retrieve.py"># Query time: hybrid (dense + BM25) fusion, then the ranking API re-ranks.
+# Auth: Application Default Credentials (gcloud auth application-default login).
+from google.cloud import discoveryengine_v1 as discoveryengine
+
+ranker = discoveryengine.RankServiceClient()
+RANKING_CONFIG = ranker.ranking_config_path(
+    project=PROJECT_ID, location=&quot;global&quot;, ranking_config=&quot;default_ranking_config&quot;)
+
+def hybrid_search(q: str, k: int = 20, alpha: float = 0.5) -&gt; list[dict]:
+    qv = embed(q)                    # gemini-embedding-001, same model as ingest
+    dense = dense_search(qv, k)      # pgvector: ORDER BY embedding &lt;=&gt; qv
+    sparse = bm25_search(q, k)       # lexical: exact terms, part numbers
+    fused = fuse(dense, sparse, alpha)[:k]   # alpha dials dense-vs-sparse
+
+    # Stateless: no indexing step -- pass the query and the shortlist (max 1,000 records).
+    out = ranker.rank(request=discoveryengine.RankRequest(
+        ranking_config=RANKING_CONFIG,
+        model=&quot;semantic-ranker-default@latest&quot;,
+        top_n=5,
+        query=q,
+        records=[discoveryengine.RankingRecord(id=str(i), content=d[&quot;body&quot;])
+                 for i, d in enumerate(fused)],
+    ))
+    return [fused[int(r.id)] | {&quot;score&quot;: r.score} for r in out.records]   # score in [0, 1]</pre></div>
+    <p class="cv-foot">The reranker reads (query, doc) together, so it&#x27;s precise but costly -- that&#x27;s why it only runs on the fused top-k shortlist, never the whole corpus. On AWS, cohere.rerank-v3-5:0 is called through the bedrock-agent-runtime Rerank API; on GCP, the ranking API&#x27;s default ranking config does the same job.</p>
   </div>
 </div>
 
@@ -501,11 +656,13 @@ def hybrid_search(q: str, k: int = 20, alpha: float = 0.5) -&gt; list[dict]:
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js"></script>
-<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/quiz.js?v=20261014-c1"></script>
 <script src="../../assets/js/interactive.js"></script>
-<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/glossary.js?v=20261014-c1"></script>
 <script src="../../assets/js/interactive-rag.js?v=20260706"></script>
-<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
+<script src="../../assets/js/codeviewer.js?v=20261014-c1"></script>
+<script src="../../assets/js/cloud-path.js?v=20261014-c1"></script>
+<script src="../../assets/js/interactive-cloud.js?v=20261014-c1"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
 <script src="../../assets/js/learning-chrome.js?v=20260925-s5"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
