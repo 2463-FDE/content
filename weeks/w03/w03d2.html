@@ -7,6 +7,7 @@
 <meta name="fde-concepts" content="mcp-host-client-server,mcp-server-primitives,mcp-tool-invocation,mcp-transports,mcp-capability-negotiation,mcp-tool-safety-hitl">
 <title>W3·D2 — Tools &amp; MCP | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
+<link rel="stylesheet" href="../../assets/css/cloud-path.css?v=20261014-c1">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -36,7 +37,8 @@
         <div class="meta">
           <span><b>Week 3</b> · Day 2</span>
           <span>Agents &amp; Tool Use</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~11 min read · 2 interactions · 6-Q check</span>
+          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 6-Q check</span>
         </div>
         <p class="summary">Yesterday a model could only <em>talk</em>. Today it can <em>act</em> — read a file, query a
         database, open a pull request — because something standard sits between the model and the outside world. That
@@ -59,6 +61,8 @@
         systems." Worse, the cost multiplied. If you have <em>M</em> AI applications and <em>N</em> data sources, the
         naive world needs up to <strong>M×N</strong> custom integrations, each one written, tested, and maintained
         separately. Every new tool meant new glue code in every app that wanted it.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the USB-C contract, and the reframe for the day</summary>
         <p>MCP replaces that mesh with a single contract. It is, in the official words, "an open-source standard for
         connecting AI applications to external systems" — data sources, tools, and workflows — so you "build once
         against the protocol instead of one bespoke connector per data source." The analogy the docs lead with is worth
@@ -70,6 +74,7 @@
         plug into through a shared port. When a client asks "how do we let our assistant use our internal systems
         without rewriting integrations for every vendor's AI?", the honest first answer is: expose them once, behind
         MCP. The rest of today is what that port actually looks like when you open it up.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="1">
@@ -82,6 +87,8 @@
         to. The <strong>server</strong> is a program that "exposes resources, tools and prompts via MCP primitives" —
         the Filesystem server, the GitHub server, your own internal-API server. Between them sits the
         <strong>client</strong>, which lives inside the host and "maintains an isolated server connection."</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the 1:1 wire and the JSON-RPC base</summary>
         <p>Here is the detail people miss: a client has a <strong>1:1 relationship with a particular server</strong>.
         One client, one server, one dedicated connection. If your host talks to three servers, it spins up three
         clients. That isolation is deliberate — it keeps a misbehaving or malicious server boxed into its own channel,
@@ -91,6 +98,7 @@
         MCP is inspired by the <strong>Language Server Protocol (LSP)</strong>, which did for editors and languages
         exactly what MCP does for AI apps and tools — standardize one integration surface so an <em>N×M</em> explosion
         collapses into <em>N+M</em>. Learn the port once; the whole ecosystem opens.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="2">
@@ -106,6 +114,8 @@
         <strong>application-controlled</strong>: the host app decides what context to pull in and attach.
         <strong>Prompts</strong> are "templated messages and workflows for users" and are <strong>user-controlled</strong>
         — think the slash-commands a user picks from a menu. Model / app / user: three controllers, three primitives.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the client-side primitives — sampling, roots, elicitation</summary>
         <p>The symmetry runs the other way too. A capable client can offer three <em>server-initiated</em> primitives
         back to the server: <strong>Sampling</strong> ("server-initiated agentic behaviors and recursive LLM
         interactions" — the server asks the host's model to think), <strong>Roots</strong> ("server-initiated inquiries
@@ -114,6 +124,7 @@
         asks the human a question mid-task). These aren't automatic; sampling, for instance, "requires the client to
         declare support in its capabilities." Which is our first hint at how MCP stays safe and extensible — a preview
         of the negotiation step coming up.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -128,24 +139,33 @@
         annotations that hint at behaviour such as read-only or destructive. If the available tools change at runtime,
         a server that declared support for change notifications <em>should</em> tell the client to re-fetch the
         list.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: tools/call, and why the schema is your tuning surface</summary>
         <p>To actually run one, the client sends a <code>tools/call</code> request with the tool's name and an arguments
         object that satisfies the input schema. That is the whole loop: list to discover, call to act. The schema is
         what makes this safe-ish to automate — the model can only fill in arguments the schema allows, and a client
         can validate those arguments before anything executes. The description and the schema together are your
         primary lever on tool <em>quality</em>: a vague description gets a tool called at the wrong moment, and a
         loose schema gets it called with garbage. Both are FDE tuning surface.</p>
+        </details>
+        <details class="deep" data-core="optional">
+          <summary>Practice (optional): walk a tools/list → tools/call exchange</summary>
         <div class="ix-mcp"></div>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Results &amp; errors</div>
         <h2>Two kinds of error, and why the difference matters</h2>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: what a tool result carries</summary>
         <p>A tool result carries a <strong>content array</strong> — one or more typed items: text, an image, audio, a link
         to a resource, or an embedded resource. For machine-readable results a tool can also return a structured
         content object, and if it declared an output schema then servers "MUST provide structured results that conform
         to this schema" while clients "SHOULD validate structured results against this schema." For backwards
         compatibility, a tool returning structured content should <em>also</em> serialize it into a text block, so
         older clients still see something.</p>
+        </details>
         <p>Now the part that trips up everyone the first time, and the reason it's worth a whole step: MCP has
         <strong>two distinct error channels</strong>, and choosing the wrong one quietly breaks agent behavior.
         <strong>Protocol errors</strong> — unknown tool, malformed request, server crash — are standard JSON-RPC
@@ -153,6 +173,8 @@
         API returned 403, the input failed a business rule — is returned inside a <em>successful</em> result with
         <code>isError: true</code> set in the result body. Not a JSON-RPC error. A <em>successful</em> response that
         says "the tool ran and here's why it didn't work."</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: why isError lets the model self-correct</summary>
         <p>The spec's rationale is the whole point: "Tool Execution Errors contain actionable feedback that language
         models can use to self-correct and retry with adjusted parameters," and "clients SHOULD provide tool execution
         errors to language models to enable self-correction." If you bury a validation failure in a JSON-RPC protocol
@@ -160,6 +182,7 @@
         the model reads "date must be in the future," adjusts, and retries. Business-logic failures belong in
         <code>isError</code>; only genuine protocol faults belong in JSON-RPC errors. That distinction is a real bug you
         will find in client codebases.</p>
+        </details>
         <button class="code-cta" type="button" data-modal="code-w03d2" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only code <span class="cc-meta">· mcp_result_bridge.py</span></button>
       </section>
 
@@ -179,12 +202,85 @@
         <code>MCP-Protocol-Version: &lt;revision&gt;</code>" on every request so the server knows which spec revision to
         speak, and a baseline session can be tracked with an <code>MCP-Session-Id</code> header. The latest 2026-07-28
         revision narrows this to POST-only messages with request-scoped streams (step 8).</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the deprecated HTTP+SSE design in stale tutorials</summary>
         <p>One historical footnote that saves you from stale tutorials: Streamable HTTP <strong>replaced the deprecated
         HTTP+SSE transport</strong> from protocol version 2024-11-05. If you find a guide wiring up two separate
         endpoints (one POST, one long-lived SSE), it's teaching the old two-endpoint design. The current model is a
         single endpoint that <em>optionally</em> streams. Pin your reading to a dated revision — MCP moves fast enough
         that undated blog posts are a real trap.</p>
+        </details>
+        <details class="deep" data-core="optional">
+          <summary>Practice (optional): pick the transport for the deployment</summary>
         <div class="ix-transport"></div>
+        </details>
+
+        <p>stdio keeps a server on the user's own machine. The moment a server has to serve a whole team, it goes
+        remote over Streamable HTTP — and now it has to <em>run</em> somewhere, behind an identity check, where agents
+        can find it. The protocol is the same open standard on both clouds; only <strong>hosting, identity, and
+        discovery</strong> differ. Open your path; the other cloud stays as an optional comparison.</p>
+
+        <details class="cloud-block" data-cloud="aws" open>
+          <summary><span class="cloud-tag">AWS</span>AgentCore Gateway and AgentCore Runtime<span class="cloud-role"></span></summary>
+          <p>On AWS you have two documented ways to put tools behind MCP. <strong>Amazon Bedrock AgentCore
+          Gateway</strong> turns what you already have into tools: it converts APIs, Lambda functions, and existing
+          services into MCP-compatible tools — OpenAPI, Smithy, and Lambda are its tool input types — and it can front
+          existing MCP servers too. For MCP targets it runs in <strong>aggregation mode</strong>: one virtual MCP server,
+          so the client sees a single consolidated <code>tools/list</code>. Every gateway needs an <strong>inbound
+          authorizer</strong>, such as OAuth (JWT) or IAM (SigV4), to decide which agents get in, while credential
+          providers handle <strong>outbound</strong> auth to each tool. When you have written your own server,
+          <strong>AgentCore Runtime</strong> hosts it: configured for MCP, it expects your container at
+          <code>0.0.0.0:8000/mcp</code>, supports stateless and stateful Streamable HTTP servers (stateful when you need
+          elicitation or sampling), and runs each user session in its own microVM. Either way the wire is still
+          <code>tools/list</code> and <code>tools/call</code> — AWS changes where the server runs and who may call it,
+          not the protocol.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="aws">
+            <div class="ix-k">✓ Practice · pick the hosting piece</div>
+            <p class="ix-cloud-q">A client has 40 internal REST APIs, each with an OpenAPI spec, and wants one MCP endpoint
+            their agents can call, with OAuth on the way in. Which AWS piece is built for that?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="Runtime can host a custom MCP server, but rewriting 40 APIs by hand is the bespoke-glue path — and it gives you many endpoints, not one.">Rewrite each API as a FastMCP server and deploy each one to AgentCore Runtime</li>
+              <li data-correct data-why="Gateway converts OpenAPI-described APIs into MCP tools, aggregates MCP targets into one virtual MCP server, and requires an inbound authorizer such as OAuth (JWT).">AgentCore Gateway with the APIs attached as OpenAPI targets</li>
+              <li data-why="stdio is a local subprocess transport; it can't give a team one remote, authenticated endpoint.">Ship each API as a stdio server that every user runs locally</li>
+              <li data-why="The two-endpoint HTTP+SSE design is deprecated, and a transport choice does nothing to convert APIs or check identity.">Expose the APIs over the old HTTP+SSE transport</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>AgentCore Gateway with OpenAPI targets.</strong> It turns existing APIs into MCP tools behind one
+              endpoint and one inbound authorizer. Save AgentCore Runtime for MCP servers you write yourself.</p>
+            </details>
+          </div>
+        </details>
+
+        <details class="cloud-block" data-cloud="gcp" open>
+          <summary><span class="cloud-tag">GCP</span>Google Cloud MCP servers and Cloud Run<span class="cloud-role"></span></summary>
+          <p>Google Cloud splits this in two. <strong>Google Cloud MCP servers</strong> are Google-managed
+          <strong>remote</strong> MCP servers for Google and Google Cloud services: they run on Google's infrastructure,
+          offer an HTTP endpoint, and the docs state they support <strong>MCP version 2026-07-28</strong> — the stateless
+          revision, so no <code>initialize</code> handshake and no <code>Mcp-Session-Id</code>. Use is governed by
+          <strong>IAM</strong> (including deny policies), the servers comply with the MCP authorization specification,
+          some offer <strong>toolsets</strong> — smaller tool groups, each with its own endpoint — to keep the agent's
+          context lean, and <strong>Model Armor</strong> can scan calls and responses. For your own server the documented
+          host is <strong>Cloud Run</strong>: it hosts Streamable HTTP servers but <strong>not stdio</strong>, deploys from
+          a container image or source, and by default requires the <strong>Cloud Run Invoker</strong> IAM role on every
+          request; a local client gets in through the Cloud Run proxy, an OIDC ID token, or IAP. <strong>Agent
+          Registry</strong> catalogs MCP servers, tools, and agents so they can be discovered. Same
+          <code>tools/list</code>, same <code>tools/call</code> — Google Cloud changes hosting, identity, and discovery.</p>
+          <div class="ix-cloud" data-core-interaction data-cloud="gcp">
+            <div class="ix-k">✓ Practice · will it host?</div>
+            <p class="ix-cloud-q">Your custom MCP server runs over stdio on your laptop. You deploy it to Cloud Run unchanged
+            so the whole team can use it. What happens?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="Cloud Run doesn't bridge stdio; its documented support is for Streamable HTTP MCP servers.">It works — Cloud Run turns stdin/stdout into an HTTP endpoint</li>
+              <li data-correct data-why="The Cloud Run guide says it supports MCP servers with Streamable HTTP transport, but not with stdio transport.">It won't serve as-is — switch the server to Streamable HTTP first</li>
+              <li data-why="Agent Registry is a catalog for discovery and governance; registering a server doesn't change its transport.">It works once you register it in Agent Registry</li>
+              <li data-why="By default a Cloud Run URL requires the Cloud Run Invoker IAM role on every request, so it isn't open to everyone.">It works, and anyone on the internet can call its tools</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p><strong>Switch to Streamable HTTP first.</strong> Cloud Run hosts remote MCP servers over Streamable HTTP,
+              not stdio — and once it runs, the Invoker role still decides who can reach it.</p>
+            </details>
+          </div>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="6">
@@ -196,6 +292,8 @@
         baseline rule is strict and simple: <strong>a feature is only usable if it was declared.</strong> The latest
         2026-07-28 revision documents this connection-scoped handshake as backward-compatibility behavior, so recognize
         it without mistaking it for the latest revision's core message model.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: what gets declared, and why it keeps the protocol backward-compatible</summary>
         <p>Concretely: a server that wants to offer tools declares the tools capability during initialization, and if it
         also promises to send list-changed notifications it says so in that same declaration. A server that wants
         clients to subscribe to resource updates must declare subscription support. A client that will honour
@@ -208,6 +306,7 @@
         declares, and the negotiated set is the contract for that session. When you debug "why won't this server's fancy
         feature work in this host?", your first move is to read the negotiated capabilities — the answer is almost
         always that one side never declared it.</p>
+        </details>
       </section>
 
       <section class="step" data-diagram="0" data-step="7">
@@ -225,6 +324,8 @@
         "read-only" or "safe." That annotation is a claim by the server, not a guarantee; a malicious or compromised
         server will happily label a destructive tool as harmless. Never let a self-reported annotation stand in for a
         real consent gate.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: Origin validation and localhost binding</summary>
         <p>Third, for network transports the spec is specific about a classic attack: Streamable HTTP servers "MUST
         validate the <code>Origin</code> header ... to prevent DNS rebinding attacks," and local servers "SHOULD bind
         only to localhost" rather than <code>0.0.0.0</code>. Skip that and a random web page the user visits can reach
@@ -232,7 +333,8 @@
         model call tools" — that's easy — but "make sure it can't call the wrong tool, without consent, against a
         server that lied about being safe, reachable from the open internet." Diagnose the consent path before you
         celebrate the capability.</p>
-        <div class="ix-consent"></div>
+        </details>
+        <div class="ix-consent" data-core-interaction></div>
       </section>
 
       <section class="step extra" data-diagram="0" data-step="8">
@@ -246,12 +348,15 @@
         latest published revision, while recognizing <strong>2025-11-25 as the widely deployed baseline</strong> you may
         need to interoperate with. Pin implementations to a dated revision instead of treating undated examples as
         universal.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: the through-line — diagnose the protocol boundary</summary>
         <p>The through-line from yesterday holds. Day 1 said: diagnose the <em>window</em> before you blame the model.
         Today says: diagnose the <em>protocol boundary</em> before you blame the tool. Who controls this primitive — model,
         app, or user? Was this capability actually declared at init? Is this an <code>isError</code> the model can
         self-correct from, or a protocol fault it never sees? Is there a human on the consent gate, and did anyone verify
         the server before trusting its annotations? Those questions don't expire when the spec revision does.</p>
-        <div class="callout mindset">
+        </details>
+        <div class="callout mindset" data-core="optional">
           <div class="k">FDE mindset</div>
           <p>When an FDE wires an agent into a client's systems, the win is never "look, it can call tools." It's
           <strong>"every tool call is discoverable, validated, negotiated, and gated by a human who can say no."</strong>
@@ -261,7 +366,7 @@
         </div>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://modelcontextprotocol.io/docs/getting-started/intro" target="_blank" rel="noopener">What is the Model Context Protocol (MCP)? — modelcontextprotocol.io</a> — the official intro and the "USB-C port for AI" framing.</li>
@@ -271,6 +376,13 @@
           <li><a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools" target="_blank" rel="noopener">MCP Server / Tools — spec 2025-11-25</a> — <code>tools/list</code>, <code>tools/call</code>, the Tool object, structured content, <code>isError</code>, and tool security.</li>
           <li><a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/transports" target="_blank" rel="noopener">MCP Basic / Transports — spec 2025-11-25</a> — stdio vs Streamable HTTP, the HTTP+SSE deprecation, and the Origin-validation security warning.</li>
           <li><a href="https://blog.modelcontextprotocol.io/posts/2026-mcp-roadmap/" target="_blank" rel="noopener">The 2026 MCP Roadmap — Model Context Protocol Blog</a> — statelessness, Tasks/Agent Communication, governance, and enterprise readiness (roadmap, not stable).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html" target="_blank" rel="noopener">AWS — Amazon Bedrock AgentCore Gateway</a> — converting APIs, Lambda functions, and services into MCP-compatible tools; OpenAPI, Smithy, and Lambda inputs; inbound and outbound auth (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-core-concepts.html" target="_blank" rel="noopener">AWS — Core concepts for AgentCore Gateway</a> — aggregation mode into one virtual MCP server, inbound authorizer types, and credential providers (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-mcp.html" target="_blank" rel="noopener">AWS — Deploy MCP servers in AgentCore Runtime</a> — the <code>0.0.0.0:8000/mcp</code> contract and stateless vs stateful Streamable HTTP servers (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html" target="_blank" rel="noopener">AWS — Host agent or tools with AgentCore Runtime</a> — per-session microVM isolation and MCP/A2A protocol support (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/mcp/overview" target="_blank" rel="noopener">Google Cloud — Google Cloud MCP servers overview</a> — Google-managed remote MCP servers, MCP version 2026-07-28 support, IAM, toolsets, Model Armor, and publishing your own server (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/run/docs/host-mcp-servers" target="_blank" rel="noopener">Google Cloud — Host MCP servers on Cloud Run</a> — Streamable HTTP but not stdio, deploy from image or source, and Invoker / proxy / OIDC / IAP authentication (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/agent-registry/overview" target="_blank" rel="noopener">Google Cloud — Agent Registry overview</a> — the catalog for discovering and governing MCP servers, tools, and agents (accessed 2026-10-14).</li>
         </ul>
       </section>
 
@@ -549,11 +661,13 @@ window.QUIZ = {
 <script src="../../assets/js/diagram.js?v=20260630-3"></script>
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20260924-w3"></script>
-<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/quiz.js?v=20261014-c1"></script>
 <script src="../../assets/js/interactive.js?v=20260714-w3f"></script>
 <script src="../../assets/js/interactive-agents.js?v=20260714-w3f"></script>
 <script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
-<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/cloud-path.js?v=20261014-c1"></script>
+<script src="../../assets/js/interactive-cloud.js?v=20261014-c1"></script>
+<script src="../../assets/js/glossary.js?v=20261014-c1"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
 <script src="../../assets/js/learning-chrome.js?v=20260925-s5"></script>
 <script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
