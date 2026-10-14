@@ -1404,6 +1404,17 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
 .capstone-drill-status.is-correct, .w5-status.is-correct { color:var(--good-ink); }
 .w5-noscript, .diagram-fallback { padding:10px 12px; border:1px dashed var(--line); border-radius:8px; background:var(--surface-2); color:var(--ink-soft); font-size:13px; line-height:1.5; }
 .diagram-fallback { margin-top:10px; }
+.fde-diagram { margin:28px 0 36px; padding:14px; border:1px solid var(--line); border-radius:14px; background:var(--surface); box-shadow:0 6px 24px var(--shadow); }
+.archify-kicker { margin:0 2px 10px; color:var(--accent-ink); font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+.fde-diagram-viewport { max-width:100%; overflow-x:auto; overscroll-behavior-inline:contain; border:1px solid var(--line); border-radius:9px; background:#fff; }
+.fde-diagram-viewport .fde-archify { display:block; width:100%; min-width:720px; }
+/* The pinned sanitizer keeps Archify's grid path but intentionally replaces the
+   generated stylesheet; this local, static override prevents SVG default fill. */
+.fde-diagram .fde-archify .c-grid { fill:none; }
+.fde-diagram .fde-archify .t-backend { fill:#0369a1; }
+.fde-diagram .fde-archify .t-messagebus { fill:#047857; }
+.fde-diagram figcaption { margin:11px 2px 0; color:var(--ink-soft); font-size:14px; line-height:1.55; }
+.fde-diagram figcaption b { color:var(--ink); }
 .lesson-loading, .lesson-load-error { max-width:720px; margin:72px auto; padding:28px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
 
 @media (max-width:1180px) {
@@ -1421,6 +1432,8 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
   .batch-context--compact button::after { content:"Set"; font-size:12px; }
   .curriculum-hub-intro { margin-inline:-12px; padding:20px; border-radius:12px; }
   .capstone-drill, .w5-lab { padding:14px; }
+  .fde-diagram { margin-inline:-8px; padding:10px; }
+  .fde-diagram-viewport::after { content:"Scroll diagram horizontally →"; display:block; position:sticky; left:10px; width:max-content; margin:6px 10px 8px; color:#475569; font-size:11px; font-weight:700; }
   .capstone-lesson .step { min-height:0; }
 }
 
@@ -1474,6 +1487,10 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
     display: block; width: 100% !important; height: auto !important;
     min-height: 0 !important; max-height: 180mm;
   }
+  .fde-diagram { break-inside:avoid; box-shadow:none; }
+  .fde-diagram-viewport { overflow:visible; border-color:#999; }
+  .fde-diagram-viewport .fde-archify { width:100% !important; min-width:0 !important; }
+  .fde-diagram-viewport::after { display:none !important; }
   .d-el { opacity: 1 !important; }
 
   pre, code, .cv-body, .ix-snippet { white-space: pre-wrap !important; overflow-wrap: anywhere; }

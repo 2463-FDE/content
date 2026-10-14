@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import html
 import re
@@ -9,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 try:
@@ -30,6 +32,14 @@ EXPECTED_TITLES = {
     "w05d4": "Engineer Production Context with Graph and Vector Retrieval",
     "w05d5": "Review the Graph Model and Defend the GraphRAG Service",
 }
+ARCHIFY_ROUTES = {"w05d3", "w05d4"}
+ARCHIFY_MANIFEST = ROOT / "docs" / "research" / "w05" / "archify-provenance.json"
+ARCHIFY_FORBIDDEN = re.compile(
+    r"<script|foreignObject|<image|<(?:iframe|object|embed)|"
+    r"\s+on[a-z0-9_-]+\s*=|@import|@font-face|JetBrains|"
+    r"(?:href|src)\s*=|url\s*\(\s*[\"']?(?:https?:|//|data:)",
+    re.I,
+)
 
 
 def node_json(source: str) -> dict:
@@ -215,9 +225,87 @@ class Week5Neo4jWave1Tests(unittest.TestCase):
         archify = (ROOT / "docs/research/w05/archify-visual-brief.md").read_text(encoding="utf-8")
         self.assertIn("tt-a1i/archify", archify)
         self.assertIn("v3.0.1", archify)
-        self.assertIn("do not install or execute", archify)
+        self.assertIn("sections 6–8", archify)
         self.assertIn("<title>", archify)
         self.assertIn("<desc>", archify)
+        css = (ROOT / "assets" / "css" / "style.css").read_text(encoding="utf-8")
+        self.assertIn(".fde-diagram .fde-archify .c-grid { fill:none; }", css)
+
+    def test_archify_svgs_match_provenance_and_safe_import_contract(self) -> None:
+        manifest = json.loads(ARCHIFY_MANIFEST.read_text(encoding="utf-8"))
+        self.assertEqual("v3.0.1", manifest["source"]["version"])
+        self.assertEqual(
+            "2ab3cae7ac2c2a55d7386ca789d03c4fcd31816c",
+            manifest["source"]["commit"],
+        )
+        self.assertEqual(
+            "266e2da15149921f0a95aa52e4a1837240ca9d171be8bd041553642fb1ba925c",
+            manifest["tooling"]["sanitizerSha256"],
+        )
+        self.assertEqual(ARCHIFY_ROUTES, set(manifest["diagrams"]))
+
+        for lesson_id in ARCHIFY_ROUTES:
+            path = ROOT / "weeks" / "w05" / f"{lesson_id}.html"
+            source = path.read_text(encoding="utf-8")
+            matches = re.findall(
+                r'(<svg\b(?=[^>]*class="fde-archify")[\s\S]*?</svg>\n)', source
+            )
+            with self.subTest(route=lesson_id):
+                self.assertEqual(1, len(matches))
+                svg_bytes = matches[0].encode("utf-8")
+                evidence = manifest["diagrams"][lesson_id]
+                self.assertEqual(evidence["sanitizedBytes"], len(svg_bytes))
+                self.assertEqual(
+                    evidence["sanitizedSha256"], hashlib.sha256(svg_bytes).hexdigest()
+                )
+                self.assertIsNone(ARCHIFY_FORBIDDEN.search(matches[0]))
+
+                root = ET.fromstring(matches[0])
+                ids = [node.get("id") for node in root.iter() if node.get("id")]
+                self.assertEqual(len(ids), len(set(ids)))
+                self.assertEqual("img", root.get("role"))
+                self.assertEqual("0", root.get("tabindex"))
+                labels = (root.get("aria-labelledby") or "").split()
+                self.assertEqual(2, len(labels))
+                self.assertTrue(all(label in ids for label in labels))
+                title = next(
+                    node for node in root if node.tag.rsplit("}", 1)[-1] == "title"
+                )
+                desc = next(
+                    node for node in root if node.tag.rsplit("}", 1)[-1] == "desc"
+                )
+                self.assertEqual(evidence["title"], (title.text or "").strip())
+                self.assertTrue((desc.text or "").strip())
+                focus_order = [
+                    (node.get("aria-label") or "").split(",", 1)[0]
+                    for node in root.iter()
+                    if node.get("role") == "group" and node.get("tabindex") == "0"
+                ]
+                expected_order = {
+                    "w05d3": ["Documents", "LLM Extract", "Schema Gate", "Neo4j Graph", "Retriever"],
+                    "w05d4": ["Question", "Chroma", "Neo4j", "Context Pack", "Grounding Gate", "Agent"],
+                }
+                self.assertEqual(expected_order[lesson_id], focus_order)
+
+                page = ParsedPage(path)
+                all_ids = [
+                    node.attrs["id"] for node in page.root.find_all() if node.attrs.get("id")
+                ]
+                self.assertEqual(len(all_ids), len(set(all_ids)))
+                figures = page.root.find_all("figure", "fde-diagram")
+                self.assertEqual(1, len(figures))
+                self.assertTrue(text_of(figures[0].find_all("figcaption")[0]))
+                self.assertFalse(
+                    any(
+                        "archify" in (script.attrs.get("src") or "").casefold()
+                        for script in page.root.find_all("script")
+                    )
+                )
+
+        non_archify = set(EXPECTED_TITLES) - ARCHIFY_ROUTES
+        for lesson_id in non_archify:
+            source = (ROOT / "weeks" / "w05" / f"{lesson_id}.html").read_text(encoding="utf-8")
+            self.assertNotIn('class="fde-archify"', source)
 
     def test_browser_renders_week5_across_hub_trainer_and_delivery_surfaces(self) -> None:
         chrome = find_chrome()
@@ -327,8 +415,25 @@ load(Object.keys(pages), 0);
         self.assertEqual(0, nojs.returncode, nojs.stderr[-1000:])
         self.assertIn(EXPECTED_TITLES["w05d3"], nojs.stdout)
         self.assertIn("Diagram key:", nojs.stdout)
+        self.assertIn("GraphRAG construction from reviewed sources", nojs.stdout)
+        self.assertIn('class="fde-archify"', nojs.stdout)
         self.assertIn("JavaScript is off. Record your choice", nojs.stdout)
         self.assertNotIn("JavaScript is required for this lesson", nojs.stdout)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf = Path(tmp) / "w05d3.pdf"
+            printed = subprocess.run(
+                [
+                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    "--no-default-browser-check", "--allow-file-access-from-files",
+                    f"--user-data-dir={Path(tmp) / 'profile'}",
+                    f"--print-to-pdf={pdf}", "--no-pdf-header-footer", route.as_uri(),
+                ],
+                text=True, capture_output=True, timeout=40,
+            )
+            self.assertEqual(0, printed.returncode, printed.stderr[-1000:])
+            self.assertTrue(pdf.read_bytes().startswith(b"%PDF"))
+            self.assertGreater(pdf.stat().st_size, 20_000)
 
     def test_responsive_theme_keyboard_and_reduced_motion_contract(self) -> None:
         chrome = find_chrome()
@@ -355,14 +460,22 @@ function run(i) {
     const dark = getComputedStyle(d.documentElement).getPropertyValue('--bg').trim();
     const article = d.querySelector('.reading-col'), side = d.querySelector('.side');
     const input = d.querySelector('[data-w5-lab] input'), check = d.querySelector('[data-w5-check]');
+    const diagram = d.querySelector('.fde-archify'), viewport = d.querySelector('.fde-diagram-viewport');
+    diagram.focus();
+    const diagramFocusWorks = d.activeElement === diagram;
     input.focus();
     const ar = article.getBoundingClientRect(), sr = side.getBoundingClientRect();
+    const vr = viewport.getBoundingClientRect();
     const motionProbe = d.querySelector('.step');
     out[widths[i]] = {
       overflow: d.documentElement.scrollWidth > d.documentElement.clientWidth + 1,
       articleVisible: ar.width >= 250 && ar.left >= -1 && ar.right <= widths[i] + 1,
       overlaps: overlap(ar,sr),
       focusWorks: d.activeElement === input,
+      diagramFocusWorks,
+      diagramContained: vr.left >= ar.left - 10 && vr.right <= ar.right + 10,
+      narrowDiagramScrolls: widths[i] > 560 || viewport.scrollWidth > viewport.clientWidth,
+      gridHasNoFill: getComputedStyle(diagram.querySelector('.c-grid')).fill === 'none',
       semanticControls: input.tagName === 'INPUT' && check.tagName === 'BUTTON' && input.tabIndex === 0 && check.tabIndex === 0,
       themeDiffers: light && dark && light !== dark,
       reduced: w.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -402,6 +515,10 @@ run(0);
                 self.assertTrue(row["articleVisible"])
                 self.assertFalse(row["overlaps"])
                 self.assertTrue(row["focusWorks"])
+                self.assertTrue(row["diagramFocusWorks"])
+                self.assertTrue(row["diagramContained"])
+                self.assertTrue(row["narrowDiagramScrolls"])
+                self.assertTrue(row["gridHasNoFill"])
                 self.assertTrue(row["semanticControls"])
                 self.assertTrue(row["themeDiffers"])
                 self.assertTrue(row["reduced"])

@@ -13,7 +13,139 @@
 <div class="topbar"><div class="topbar-left"><span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span><a class="topnav" href="../../index.html">Home</a></div><nav class="topbar-center" aria-label="Program"><a class="topnav" href="../../atlas/">FDE Mindset Atlas</a><a class="topnav" href="../../client-delivery.html">Client Delivery</a><a class="topnav" href="../../gauntlet.html">AI Interview</a></nav><div class="topbar-right"><span class="progressbar" aria-hidden="true"><i></i></span></div></div>
 <main class="lesson2"><div class="reading2col"><nav class="toc" aria-label="On this page"></nav><article class="reading-col">
 <div class="lede"><div class="capstone-kicker">Agentic Systems → Context Engineering · Week 5 · Day 4</div><h1>Engineer Production Context with Graph and Vector Retrieval</h1><div class="meta"><span><b>Week 5</b> · Day 4</span><span>Neo4j Knowledge Graphs & Context Engineering</span><span class="core30-meta" title="Reading time is calculated from required words at 150 words per minute; diagram, interaction, and six-question check are included in the total."><b>Core 30</b> · ~5 min read · 3 min diagram · 1 interaction · 6-Q check · ~19 min required</span></div><p class="summary">Turn the graph into bounded agent context: combine Chroma candidates with Neo4j paths, query through a LangGraph node, evaluate grounding, manage latency and cost, review a scoped Neo4j MCP surface, and compare graph placement without provisioning anything.</p><div class="ix-legend"></div></div>
-<section class="step" data-diagram="0" data-step="0"><div class="tag">1 · Required</div><h2>Institutional memory needs ownership</h2><p>A knowledge graph can preserve entities, relationships, decisions, and evidence across agent sessions and team changes. Calling it institutional memory is justified only when correction and governance are designed. Every material assertion needs provenance, freshness or effective time, and an owner or source. Superseded facts must remain traceable without being returned as current. Unknown and conflicting evidence must survive context assembly. A graph that only accumulates edges becomes institutional rumor with excellent traversal.</p></section><section class="step" data-diagram="0" data-step="1"><div class="tag">2 · Required</div><h2>Combine Chroma candidates with Neo4j paths</h2><p>Use Chroma where semantic similarity finds passages or entities despite varied wording. Use Neo4j where an answer depends on explicit connections such as current rule → exception → owner → escalation. A hybrid path may retrieve semantic candidates, resolve their stable identifiers, traverse only required relationships, then deduplicate and assemble evidence. Do not query both stores by habit. Define what each contributes, what happens when identifiers disagree, and which source owns correction. The required lab makes you choose this bounded hybrid for a mixed semantic-and-path question.</p></section><section class="step" data-diagram="0" data-step="2"><div class="tag">3 · Required</div><h2>Query Neo4j from a LangGraph node</h2><p>A LangGraph node can call application code that runs a parameterized, read-only Neo4j query. Keep the node contract narrow: validated input, timeout, database selection, maximum rows/paths, typed evidence output, and explicit error state. Database authorization is enforced by the application and database—not by the model’s intention. Return source IDs, path facts, and limits rather than an unbounded graph dump or a finished answer. The next node can assemble context or choose an abstention path when evidence is missing.</p><button class="code-cta" type="button" data-modal="code-modal" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> Inspect the inert example <span class="cc-meta">optional</span></button></section><section class="step" data-diagram="0" data-step="3"><div class="tag">4 · Required</div><h2>Evaluate grounding in layers</h2><p>Separate retrieval relevance from answer support. First, did semantic search return the expected candidate? Second, did graph expansion return the expected connected path and current version? Third, does each material answer claim map to retrieved evidence? Fourth, does the agent abstain or surface conflict when support is absent? Track failures by layer so a generation rewrite does not hide a retrieval defect. Use synthetic golden questions and adversarial no-evidence cases. A polished answer with no trace is a failed grounding result.</p><div class="w5-lab" data-w5-lab><div class="ix-k">Required interaction · Context-pack builder</div><fieldset><legend>The question uses varied wording and asks for a current exception, its owner, and escalation path. Which context plan is most defensible?</legend><div class="w5-options" data-w5-options><label><input type="radio" name="w5-decision" value="vector"> <span>Send the top 20 Chroma passages directly to the agent</span></label><label><input type="radio" name="w5-decision" value="graph"> <span>Traverse every relationship within five hops from every Policy node</span></label><label><input type="radio" name="w5-decision" value="hybrid"> <span>Retrieve semantic candidates, traverse the required path, then assemble bounded sourced evidence</span></label><label><input type="radio" name="w5-decision" value="unbounded"> <span>Export both stores into the model context and let it decide</span></label></div></fieldset><div class="w5-actions"><button class="ix-btn" type="button" data-w5-check>Check decision</button><button class="ix-btn secondary" type="button" data-w5-reset hidden>Try again</button></div><p class="w5-status" data-w5-status role="status" aria-live="polite"></p><noscript><p class="w5-noscript">JavaScript is off. Record your choice and reasoning; the trainer can run the feedback check. The lesson and diagram key remain available.</p></noscript></div></section><section class="step" data-diagram="0" data-step="4"><div class="tag">5 · Required</div><h2>Assemble context for the decision</h2><p>Context engineering is selection, structure, and limits. Include the question, eligible claims, compact graph paths, source identifiers, freshness, conflict notes, and instructions for citation/abstention. Deduplicate the passage and graph representation of the same fact. Preserve enough path semantics to explain why evidence is connected. Apply a token budget and prioritize decision-bearing evidence over background. More context can increase latency and bury the rule that mattered; a bigger window is not a substitute for an evidence policy.</p></section><section class="step" data-diagram="0" data-step="5"><div class="tag">6 · Required</div><h2>Make query cost and performance visible</h2><p>Parameterize queries and select the intended database. Bound variable paths and result counts. Use <code>EXPLAIN</code> to inspect a plan without execution and <code>PROFILE</code> when measured execution is safe; PROFILE executes the query, so never treat it as a harmless preview of a write. Review index use, cardinality, traversal fan-out, driver transaction pattern, timeout, and context-token growth. Reuse old NFR/cost judgment here: latency, operational ownership, data movement, and model tokens are part of retrieval quality.</p></section><section class="step" data-diagram="0" data-step="6"><div class="tag">7 · Required</div><h2>Use Neo4j through MCP as a scoped tool</h2><p>A Neo4j MCP server can expose graph operations to Claude Code or another MCP client. Treat it as a tool surface, not an authorization boundary. Allowlist read operations for the lab, use synthetic/local data, keep credentials outside prompts and repositories, and require application/database policy. Review the exact tool schema and returned payload. No MCP connection is performed by this page, and no external action is authorized. The useful retro question is which configuration improved evidence access without widening power.</p></section><section class="step" data-diagram="0" data-step="7"><div class="tag">8 · Required</div><h2>Compare topology without choosing a cloud path</h2><p>The source curriculum requires a graph-topology comparison: self-managed Neo4j on EC2 or GCE versus Aura available through AWS or Google Cloud marketplaces; private connectivity; and data gravity. Compare dated eligibility, regions, networking, operational ownership, workload volume, latency, egress, and correction/recovery needs. Marketplace presence proves availability—not price parity, private connectivity, suitability, or a recommendation. This is an architecture worksheet only: no cloud picker, certification objective, account change, provisioning, or deployment. Record unknowns and the evidence that would flip a placement decision.</p></section>
+<section class="step" data-diagram="0" data-step="0"><div class="tag">1 · Required</div><h2>Institutional memory needs ownership</h2><p>A knowledge graph can preserve entities, relationships, decisions, and evidence across agent sessions and team changes. Calling it institutional memory is justified only when correction and governance are designed. Every material assertion needs provenance, freshness or effective time, and an owner or source. Superseded facts must remain traceable without being returned as current. Unknown and conflicting evidence must survive context assembly. A graph that only accumulates edges becomes institutional rumor with excellent traversal.</p></section><section class="step" data-diagram="0" data-step="1"><div class="tag">2 · Required</div><h2>Combine Chroma candidates with Neo4j paths</h2><p>Use Chroma where semantic similarity finds passages or entities despite varied wording. Use Neo4j where an answer depends on explicit connections such as current rule → exception → owner → escalation. A hybrid path may retrieve semantic candidates, resolve their stable identifiers, traverse only required relationships, then deduplicate and assemble evidence. Do not query both stores by habit. Define what each contributes, what happens when identifiers disagree, and which source owns correction. The required lab makes you choose this bounded hybrid for a mixed semantic-and-path question.</p></section><figure class="fde-diagram"><div class="archify-kicker">Essential data flow · allow ~3 min</div><div class="fde-diagram-viewport"><svg viewBox="0 0 1000 520" role="img" lang="en" aria-labelledby="fde-d3bac9b8bd21-title fde-d3bac9b8bd21-desc" xmlns="http://www.w3.org/2000/svg" class="fde-archify" tabindex="0" focusable="true">
+        <title id="fde-d3bac9b8bd21-title">Hybrid graph and vector context assembly with grounding gate</title><desc id="fde-d3bac9b8bd21-desc">A bounded decision question is sent to Chroma for semantic candidates and to Neo4j for explicit read-only paths. The context pack deduplicates evidence, preserves freshness, and applies a token budget. A grounding gate passes supported evidence to the agent or requires abstention; the agent receives no authority.</desc><style type="text/css">svg.fde-archify{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:#fff;color:#18324a;max-width:100%;height:auto}svg.fde-archify:focus{outline:3px solid #075985;outline-offset:3px}.c-grid{stroke:#dbe5ec}.c-region{fill:#f8fafc;stroke:#64748b;stroke-dasharray:6 4}.c-mask{fill:#fff;stroke:none}.c-backend{fill:#e0f2fe;stroke:#0369a1}.c-messagebus{fill:#ecfdf5;stroke:#047857}.a-default{fill:none;stroke:#334155}.a-emphasis{fill:none;stroke:#0369a1}.m-default{fill:#334155}.m-emphasis{fill:#0369a1}.t-primary{fill:#0f172a}.t-muted{fill:#475569}.t-cloud{fill:#334155}.t-edge-default{fill:#334155}.t-edge-emphasis{fill:#075985}.semantic-sigil{fill:none;stroke:currentColor;stroke-width:1.5}.semantic-sigil .sigil-fill{fill:currentColor;stroke:none}g[tabindex]:focus&gt;rect:not(.c-mask){stroke:#b45309;stroke-width:3}</style><defs>
+          <marker id="fde-d3bac9b8bd21-005-arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-default" />
+          </marker>
+          <marker id="fde-d3bac9b8bd21-007-arrowhead-emphasis" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-emphasis" />
+          </marker>
+          <marker id="fde-d3bac9b8bd21-009-arrowhead-security" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-security" />
+          </marker>
+          <marker id="fde-d3bac9b8bd21-011-arrowhead-dashed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-dashed" />
+          </marker>
+          <pattern id="fde-d3bac9b8bd21-013-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" class="c-grid" stroke-width="0.5" />
+          </pattern>
+        </defs>
+
+        
+        <rect width="100%" height="100%" fill="url(#fde-d3bac9b8bd21-013-grid)" />
+
+        
+        <rect x="197" y="91" width="181" height="334" rx="12" class="c-region" stroke-width="1" />
+
+        <rect x="412" y="201" width="386" height="114" rx="12" class="c-region" stroke-width="1" />
+
+        
+        <path d="M 165 260 L 215 150" class="a-default" stroke-width="1.5" marker-end="url(#fde-d3bac9b8bd21-005-arrowhead)" />
+        <path d="M 165 260 L 215 370" class="a-emphasis" stroke-width="1.8" marker-end="url(#fde-d3bac9b8bd21-007-arrowhead-emphasis)" />
+        <path d="M 360 150 L 430 260" class="a-default" stroke-width="1.5" marker-end="url(#fde-d3bac9b8bd21-005-arrowhead)" />
+        <path d="M 360 370 L 430 260" class="a-emphasis" stroke-width="1.8" marker-end="url(#fde-d3bac9b8bd21-007-arrowhead-emphasis)" />
+        <path d="M 575 260 L 635 260" class="a-emphasis" stroke-width="1.8" marker-end="url(#fde-d3bac9b8bd21-007-arrowhead-emphasis)" />
+        <path d="M 780 260 L 830 260" class="a-emphasis" stroke-width="1.8" marker-end="url(#fde-d3bac9b8bd21-007-arrowhead-emphasis)" />
+
+        
+        <g id="fde-d3bac9b8bd21-024-node-question" tabindex="0" role="group" aria-label="Question, bounded decision, Architecture component">
+          <title>Question · bounded decision · Architecture component</title>
+          <rect x="30" y="225" width="135" height="70" rx="6" class="c-mask" />
+          <rect x="30" y="225" width="135" height="70" rx="6" class="c-backend" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-backend" transform="translate(36 231) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5" />
+          </g>
+          <text x="97.5" y="258" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Question</text>
+        <text x="97.5" y="274" class="t-muted" font-size="9" text-anchor="middle">bounded decision</text>
+        </g>
+
+        <g id="fde-d3bac9b8bd21-032-node-vector" tabindex="0" role="group" aria-label="Chroma, semantic candidates, Read-only retrieval">
+          <title>Chroma · semantic candidates · Read-only retrieval · TOP-K</title>
+          <rect x="215" y="115" width="145" height="70" rx="6" class="c-mask" />
+          <rect x="215" y="115" width="145" height="70" rx="6" class="c-backend" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-backend" transform="translate(221 121) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5" />
+          </g>
+          <text x="287.5" y="148" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Chroma</text>
+        <text x="287.5" y="164" class="t-muted" font-size="9" text-anchor="middle">semantic candidates</text>
+        <text x="287.5" y="177" class="t-backend" font-size="7" text-anchor="middle">TOP-K</text>
+        </g>
+
+        <g id="fde-d3bac9b8bd21-041-node-graph" tabindex="0" role="group" aria-label="Neo4j, explicit paths, Read-only retrieval">
+          <title>Neo4j · explicit paths · Read-only retrieval · READ ONLY</title>
+          <rect x="215" y="335" width="145" height="70" rx="6" class="c-mask" />
+          <rect x="215" y="335" width="145" height="70" rx="6" class="c-backend" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-backend" transform="translate(221 341) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5" />
+          </g>
+          <text x="287.5" y="368" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Neo4j</text>
+        <text x="287.5" y="384" class="t-muted" font-size="9" text-anchor="middle">explicit paths</text>
+        <text x="287.5" y="397" class="t-backend" font-size="7" text-anchor="middle">READ ONLY</text>
+        </g>
+
+        <g id="fde-d3bac9b8bd21-050-node-context" tabindex="0" role="group" aria-label="Context Pack, dedupe + freshness, Application-owned context policy">
+          <title>Context Pack · dedupe + freshness · Application-owned context policy · TOKEN BUDGET</title>
+          <rect x="430" y="225" width="145" height="70" rx="6" class="c-mask" />
+          <rect x="430" y="225" width="145" height="70" rx="6" class="c-backend" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-backend" transform="translate(436 231) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5" />
+          </g>
+          <text x="502.5" y="258" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Context Pack</text>
+        <text x="502.5" y="274" class="t-muted" font-size="9" text-anchor="middle">dedupe + freshness</text>
+        <text x="502.5" y="287" class="t-backend" font-size="7" text-anchor="middle">TOKEN BUDGET</text>
+        </g>
+
+        <g id="fde-d3bac9b8bd21-059-node-gate" tabindex="0" role="group" aria-label="Grounding Gate, support or abstain, Application-owned context policy">
+          <title>Grounding Gate · support or abstain · Application-owned context policy · FAILURE BOUNDARY</title>
+          <rect x="635" y="225" width="145" height="70" rx="6" class="c-mask" />
+          <rect x="635" y="225" width="145" height="70" rx="6" class="c-messagebus" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-messagebus" transform="translate(641 231) scale(0.6875)">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" />
+            <circle cx="5" cy="4.5" r="1" class="sigil-fill" />
+            <circle cx="10.5" cy="8" r="1" class="sigil-fill" />
+            <circle cx="7" cy="11.5" r="1" class="sigil-fill" />
+          </g>
+          <text x="707.5" y="258" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Grounding Gate</text>
+        <text x="707.5" y="274" class="t-muted" font-size="9" text-anchor="middle">support or abstain</text>
+        <text x="707.5" y="287" class="t-messagebus" font-size="7" text-anchor="middle">FAILURE BOUNDARY</text>
+        </g>
+
+        <g id="fde-d3bac9b8bd21-071-node-agent" tabindex="0" role="group" aria-label="Agent, sourced response, Architecture component">
+          <title>Agent · sourced response · Architecture component · NO AUTHORITY</title>
+          <rect x="830" y="225" width="135" height="70" rx="6" class="c-mask" />
+          <rect x="830" y="225" width="135" height="70" rx="6" class="c-backend" stroke-width="1.5" />
+          <g aria-hidden="true" class="semantic-sigil s-backend" transform="translate(836 231) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5" />
+          </g>
+          <text x="897.5" y="258" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Agent</text>
+        <text x="897.5" y="274" class="t-muted" font-size="9" text-anchor="middle">sourced response</text>
+        <text x="897.5" y="287" class="t-backend" font-size="7" text-anchor="middle">NO AUTHORITY</text>
+        </g>
+
+        
+
+
+
+
+
+
+
+        
+        <g>
+          <rect x="201" y="95" width="112.6" height="16" rx="3" class="c-mask" />
+          <text x="205" y="108" class="t-cloud" font-size="9" font-weight="600">Read-only retrieval</text>
+        </g>
+
+        <g>
+          <rect x="416" y="205" width="182.79999999999998" height="16" rx="3" class="c-mask" />
+          <text x="420" y="218" class="t-cloud" font-size="9" font-weight="600">Application-owned context policy</text>
+        </g>
+
+        
+
+      </svg>
+</div><figcaption><b>Follow both retrieval lanes.</b> A bounded question reaches Chroma for semantic candidates and Neo4j for explicit paths. The assembler deduplicates sourced evidence; the grounding gate either passes support to the agent or requires abstention. The agent gains context, not authority.</figcaption></figure><section class="step" data-diagram="0" data-step="2"><div class="tag">3 · Required</div><h2>Query Neo4j from a LangGraph node</h2><p>A LangGraph node can call application code that runs a parameterized, read-only Neo4j query. Keep the node contract narrow: validated input, timeout, database selection, maximum rows/paths, typed evidence output, and explicit error state. Database authorization is enforced by the application and database—not by the model’s intention. Return source IDs, path facts, and limits rather than an unbounded graph dump or a finished answer. The next node can assemble context or choose an abstention path when evidence is missing.</p><button class="code-cta" type="button" data-modal="code-modal" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> Inspect the inert example <span class="cc-meta">optional</span></button></section><section class="step" data-diagram="0" data-step="3"><div class="tag">4 · Required</div><h2>Evaluate grounding in layers</h2><p>Separate retrieval relevance from answer support. First, did semantic search return the expected candidate? Second, did graph expansion return the expected connected path and current version? Third, does each material answer claim map to retrieved evidence? Fourth, does the agent abstain or surface conflict when support is absent? Track failures by layer so a generation rewrite does not hide a retrieval defect. Use synthetic golden questions and adversarial no-evidence cases. A polished answer with no trace is a failed grounding result.</p><div class="w5-lab" data-w5-lab><div class="ix-k">Required interaction · Context-pack builder</div><fieldset><legend>The question uses varied wording and asks for a current exception, its owner, and escalation path. Which context plan is most defensible?</legend><div class="w5-options" data-w5-options><label><input type="radio" name="w5-decision" value="vector"> <span>Send the top 20 Chroma passages directly to the agent</span></label><label><input type="radio" name="w5-decision" value="graph"> <span>Traverse every relationship within five hops from every Policy node</span></label><label><input type="radio" name="w5-decision" value="hybrid"> <span>Retrieve semantic candidates, traverse the required path, then assemble bounded sourced evidence</span></label><label><input type="radio" name="w5-decision" value="unbounded"> <span>Export both stores into the model context and let it decide</span></label></div></fieldset><div class="w5-actions"><button class="ix-btn" type="button" data-w5-check>Check decision</button><button class="ix-btn secondary" type="button" data-w5-reset hidden>Try again</button></div><p class="w5-status" data-w5-status role="status" aria-live="polite"></p><noscript><p class="w5-noscript">JavaScript is off. Record your choice and reasoning; the trainer can run the feedback check. The lesson and diagram key remain available.</p></noscript></div></section><section class="step" data-diagram="0" data-step="4"><div class="tag">5 · Required</div><h2>Assemble context for the decision</h2><p>Context engineering is selection, structure, and limits. Include the question, eligible claims, compact graph paths, source identifiers, freshness, conflict notes, and instructions for citation/abstention. Deduplicate the passage and graph representation of the same fact. Preserve enough path semantics to explain why evidence is connected. Apply a token budget and prioritize decision-bearing evidence over background. More context can increase latency and bury the rule that mattered; a bigger window is not a substitute for an evidence policy.</p></section><section class="step" data-diagram="0" data-step="5"><div class="tag">6 · Required</div><h2>Make query cost and performance visible</h2><p>Parameterize queries and select the intended database. Bound variable paths and result counts. Use <code>EXPLAIN</code> to inspect a plan without execution and <code>PROFILE</code> when measured execution is safe; PROFILE executes the query, so never treat it as a harmless preview of a write. Review index use, cardinality, traversal fan-out, driver transaction pattern, timeout, and context-token growth. Reuse old NFR/cost judgment here: latency, operational ownership, data movement, and model tokens are part of retrieval quality.</p></section><section class="step" data-diagram="0" data-step="6"><div class="tag">7 · Required</div><h2>Use Neo4j through MCP as a scoped tool</h2><p>A Neo4j MCP server can expose graph operations to Claude Code or another MCP client. Treat it as a tool surface, not an authorization boundary. Allowlist read operations for the lab, use synthetic/local data, keep credentials outside prompts and repositories, and require application/database policy. Review the exact tool schema and returned payload. No MCP connection is performed by this page, and no external action is authorized. The useful retro question is which configuration improved evidence access without widening power.</p></section><section class="step" data-diagram="0" data-step="7"><div class="tag">8 · Required</div><h2>Compare topology without choosing a cloud path</h2><p>The source curriculum requires a graph-topology comparison: self-managed Neo4j on EC2 or GCE versus Aura available through AWS or Google Cloud marketplaces; private connectivity; and data gravity. Compare dated eligibility, regions, networking, operational ownership, workload volume, latency, egress, and correction/recovery needs. Marketplace presence proves availability—not price parity, private connectivity, suitability, or a recommendation. This is an architecture worksheet only: no cloud picker, certification objective, account change, provisioning, or deployment. Record unknowns and the evidence that would flip a placement decision.</p></section>
 <details class="deep" data-core="optional"><summary>Grounding scorecard · optional depth</summary><p>Record candidate recall, path/result correctness, claim support, citation/provenance validity, conflict handling, and abstention behavior separately. One blended score can hide the failing layer.</p></details>
 <details class="deep" data-core="optional"><summary>MCP review checklist · optional depth</summary><p>Exact tool and operation; caller identity; database/tenant scope; read versus write; arguments; result limit; timeout; audit event; secret location; denial test. MCP transport does not replace any row.</p></details>
 <details class="deep" data-core="optional"><summary>Topology evidence sheet · optional depth</summary><p>Compare self-managed and managed options using dated region/eligibility, private-network pattern, operations owner, data gravity, egress, workload assumptions, normalized cost unit, and flip condition. Leave unknown cells pending rather than filling them from memory.</p></details>
