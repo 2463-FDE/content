@@ -12,6 +12,7 @@
   --node: var(--surface);
   --node-stroke: #2b2f36;
   --dim: #666d76;
+  --disabled-fill: #c9ccd1;
   --good: #2f9e44;
   --bad: #e03131;
   --maxprose: 780px;
@@ -376,7 +377,7 @@ details.deep[open] summary { border-bottom: 1px solid var(--line); margin-bottom
 }
 .btn:hover:not(:disabled) { background: var(--accent-ink); }
 .btn:active:not(:disabled) { transform: translateY(1px); }
-.btn:disabled { background: var(--dim); cursor: default; }
+.btn:disabled { background: var(--disabled-fill); cursor: default; }
 .scorebox { font-weight: 600; }
 .scorebox.pass { color: var(--good); }
 .scorebox.fail { color: var(--bad); }
@@ -1044,6 +1045,7 @@ html[data-theme="dark"] {
   --node: #1d2027;
   --node-stroke: #4a515c;
   --dim: #8d95a0;
+  --disabled-fill: #3a3f47;
   --good: #51cf66;
   --bad: #ff6b6b;
   --surface: #1d2027;
@@ -1126,7 +1128,7 @@ html[data-theme="dark"] .ds-check-row.done .ds-check-mark { color: #0c1f12; }
 #quiz .opt-multi.chosen:before { background:var(--accent); border-color:var(--accent); }
 .quiz-submitbar { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:24px 0 4px; padding-top:18px; border-top:1px solid var(--line); }
 .quiz-submitbar .qs-hint { font-size:13.5px; color:var(--ink-soft); }
-.quiz-submitbar .btn:disabled { background:var(--dim); }
+.quiz-submitbar .btn:disabled { background:var(--disabled-fill); }
 
 /* ---- quiz launcher card: completed state ---- */
 .activity-card.is-done { border-color:var(--good); }

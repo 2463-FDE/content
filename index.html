@@ -4,20 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>2463-FDE · Forward Deployed Engineer Program</title>
-<link rel="stylesheet" href="assets/css/style.css?v=20261027-3">
+<link rel="stylesheet" href="assets/css/style.css?v=20261027">
 <script src="assets/js/theme.js"></script>
 <script src="assets/js/progress.js?v=20260630-2"></script>
 <script src="assets/js/cloud-path.js?v=20261014-c1"></script>
 </head>
 <body>
-<!--
-THESIS: an engineering dispatch board for a ten-week program; refuses the marketing-hero-over-cards default.
-OWN-WORLD: warm paper ground, hairline-bordered panels (borders structure, shadows only float), one orange accent split into line/fill/ink roles, phase-colored top rules, uppercase micro-labels at 11px/.08em, tabular numerals, drawn 2px-stroke glyphs.
-STORY: a learner or trainer lands, sees where the cohort is, and opens today's work in one click; states (start/resume/completed, ready/pending) read at a glance.
-FIRST VIEWPORT: compact topbar; left intro panel naming the program and batch context; right launcher with week/day selects and one filled action; calendar grid begins immediately below.
-FORM: dispatch runbook, candidate 3 of 7, seed e8af15a1.
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
--->
 <div class="topbar">
   <div class="topbar-left">
     <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
@@ -178,6 +170,8 @@ window.WEEKS = [
       + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
       + ICONS[name] + "</svg>";
   }
+  function dayId(week, di) { return "w" + String(week.w).padStart(2, "0") + "d" + (di + 1); }
+  function firstHref(day) { return day.href || (day.parts && day.parts[0] && day.parts[0].href) || null; }
   function render() {
   const DOW = ["Mon","Tue","Wed","Thu","Fri"];
   const legend = document.querySelector(".legend");
@@ -195,10 +189,8 @@ window.WEEKS = [
   let currentWeek = null;
   outer: for (const week of window.WEEKS) {
     for (let di = 0; di < week.days.length; di++) {
-      const d = week.days[di];
-      if (!(d.href || (d.parts && d.parts[0] && d.parts[0].href))) continue;
-      const id = "w" + String(week.w).padStart(2, "0") + "d" + (di + 1);
-      const st = window.FDE_PROGRESS ? window.FDE_PROGRESS.status(id) : "none";
+      if (!firstHref(week.days[di])) continue;
+      const st = window.FDE_PROGRESS ? window.FDE_PROGRESS.status(dayId(week, di)) : "none";
       if (st !== "completed") { currentWeek = week.w; break outer; }
     }
   }
@@ -220,8 +212,7 @@ window.WEEKS = [
       // no material taught yet to interview on. Deep-links the gauntlet scoped to
       // that day (cumulative through the prior day). Accent-filled so it stands out.
       if (!(week.w === 1 && di === 0)) {
-        const dd = "w" + String(week.w).padStart(2, "0") + "d" + (di + 1);
-        rituals += `<a class="ritual iv" href="gauntlet.html?day=${dd}" title="Daily AI Interview: do it before end of day">${icon("mic")}AI Interview</a>`;
+        rituals += `<a class="ritual iv" href="gauntlet.html?day=${dayId(week, di)}" title="Daily AI Interview: do it before end of day">${icon("mic")}AI Interview</a>`;
       }
       if (di === 0) rituals += `<a class="ritual cr" href="client-delivery.html?w=${week.w}">${icon("clipboard")}Client request</a>`;
       // Weekly FDE Session — Thursday, from week 2 onward (week 1 is onboarding).
@@ -241,14 +232,13 @@ window.WEEKS = [
       // Per-learner Start / Resume / Completed (server-backed via progress.js).
       // A day flips to Completed when the learner records the end-of-day STT summary.
       // Only days with reading pages get a button; future "soon" days don't.
-      const firstHref = day.href || (day.parts && day.parts[0] && day.parts[0].href) || null;
+      const startHref = firstHref(day);
       let progHtml = "";
-      if (firstHref) {
-        const dayId = "w" + String(week.w).padStart(2, "0") + "d" + (di + 1);
-        const st = (window.FDE_PROGRESS ? window.FDE_PROGRESS.status(dayId) : "none");
+      if (startHref) {
+        const st = (window.FDE_PROGRESS ? window.FDE_PROGRESS.status(dayId(week, di)) : "none");
         const label = st === "completed" ? `${icon("check")}Completed` : (st === "started" ? `${icon("rotate")}Resume` : `${icon("play", true)}Start`);
         const cls = "day-prog day-prog--" + (st === "completed" ? "done" : (st === "started" ? "resume" : "start"));
-        progHtml = `<a class="${cls}" href="${firstHref}">${label}</a>`;
+        progHtml = `<a class="${cls}" href="${startHref}">${label}</a>`;
       }
       const el = document.createElement("div");
       const inBuild = !!week.build && !day.href && !day.parts;

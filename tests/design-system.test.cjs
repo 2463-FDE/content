@@ -1,34 +1,151 @@
 /* design-system.test.cjs — behavioral/visual contracts for the shared shell.
-   These are static contracts over assets/css/style.css and the shell markup:
-   they pin the token system, both themes, accessibility affordances, and the
-   motion rules the curriculum pages rely on, without rendering a browser. */
+   assets/css/style.css is parsed into a rule model (at-rule context ->
+   selectors -> declarations) and the hub markup into its element tree, so the
+   contracts assert what the cascade and the served page actually declare. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
 const ROOT = path.join(__dirname, "..");
-const css = fs.readFileSync(path.join(ROOT, "assets/css/style.css"), "utf8");
+const cssSource = fs.readFileSync(path.join(ROOT, "assets/css/style.css"), "utf8");
 const hub = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 
-function block(startMarker) {
-  const start = css.indexOf(startMarker);
-  assert.notEqual(start, -1, `missing block: ${startMarker}`);
-  const open = css.indexOf("{", start);
-  let depth = 0;
-  for (let i = open; i < css.length; i++) {
-    if (css[i] === "{") depth++;
-    else if (css[i] === "}") {
-      depth--;
-      if (depth === 0) return css.slice(open + 1, i);
+function stripComments(src) {
+  let out = "";
+  let quote = null;
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (quote) {
+      out += ch;
+      if (ch === "\\") out += src[++i] || "";
+      else if (ch === quote) quote = null;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+      out += ch;
+    } else if (ch === "/" && src[i + 1] === "*") {
+      const end = src.indexOf("*/", i + 2);
+      i = end === -1 ? src.length : end + 1;
+    } else {
+      out += ch;
     }
   }
-  assert.fail(`unterminated block: ${startMarker}`);
+  return out;
+}
+
+function parseDeclaration(text) {
+  const colon = text.indexOf(":");
+  if (colon === -1) return null;
+  let value = text.slice(colon + 1).trim();
+  const important = /!\s*important$/i.test(value);
+  if (important) value = value.replace(/!\s*important$/i, "").trim();
+  return { prop: text.slice(0, colon).trim().toLowerCase(), value, important };
+}
+
+function parseBlock(src, start) {
+  const node = { decls: [], children: [] };
+  let buf = "";
+  let quote = null;
+  let parens = 0;
+  for (let i = start; i < src.length; i++) {
+    const ch = src[i];
+    if (quote) {
+      buf += ch;
+      if (ch === "\\") buf += src[++i] || "";
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") { quote = ch; buf += ch; continue; }
+    if (ch === "(") parens++;
+    if (ch === ")") parens--;
+    if (parens > 0) { buf += ch; continue; }
+    if (ch === ";") {
+      const decl = parseDeclaration(buf.trim());
+      if (decl && !decl.prop.startsWith("@")) node.decls.push(decl);
+      buf = "";
+    } else if (ch === "{") {
+      const child = parseBlock(src, i + 1);
+      child.prelude = buf.trim().replace(/\s+/g, " ");
+      node.children.push(child);
+      i = child.end;
+      buf = "";
+    } else if (ch === "}") {
+      const decl = parseDeclaration(buf.trim());
+      if (decl) node.decls.push(decl);
+      node.end = i;
+      return node;
+    } else {
+      buf += ch;
+    }
+  }
+  node.end = src.length;
+  return node;
+}
+
+function splitSelectors(prelude) {
+  const parts = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of prelude) {
+    if (ch === "(" || ch === "[") depth++;
+    if (ch === ")" || ch === "]") depth--;
+    if (ch === "," && depth === 0) { parts.push(cur.trim()); cur = ""; } else cur += ch;
+  }
+  if (cur.trim()) parts.push(cur.trim());
+  return parts;
+}
+
+function flatten(node, context = [], out = { rules: [], keyframes: [] }) {
+  for (const child of node.children) {
+    const prelude = child.prelude;
+    if (/^@(-webkit-)?keyframes\b/.test(prelude)) {
+      out.keyframes.push({
+        name: prelude.split(/\s+/)[1],
+        context,
+        frames: child.children.map((f) => ({ selector: f.prelude, decls: f.decls })),
+      });
+    } else if (prelude.startsWith("@")) {
+      if (child.decls.length) out.rules.push({ context, atRule: prelude, selectors: [], decls: child.decls });
+      flatten(child, context.concat(prelude), out);
+    } else {
+      out.rules.push({ context, selectors: splitSelectors(prelude), decls: child.decls });
+      flatten(child, context, out);
+    }
+  }
+  return out;
+}
+
+const sheet = flatten(parseBlock(stripComments(cssSource), 0));
+
+function rulesFor(selector, context = []) {
+  return sheet.rules.filter(
+    (r) => r.selectors.includes(selector) && r.context.length === context.length && r.context.every((c, i) => c === context[i])
+  );
+}
+
+function declared(rules) {
+  const map = new Map();
+  for (const r of rules) for (const d of r.decls) map.set(d.prop, d);
+  return map;
+}
+
+function parseHtmlElements(html) {
+  const body = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<script\b[\s\S]*?<\/script>/gi, "");
+  const elements = [];
+  for (const m of body.matchAll(/<([a-zA-Z][\w-]*)((?:\s+[^\s=>\/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*\/?>/g)) {
+    const attrs = new Map();
+    for (const a of m[2].matchAll(/([^\s=>\/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g)) {
+      attrs.set(a[1].toLowerCase(), a[2] ?? a[3] ?? a[4] ?? "");
+    }
+    elements.push({ tag: m[1].toLowerCase(), attrs });
+  }
+  return elements;
 }
 
 const REQUIRED_TOKENS = [
   "--bg", "--ink", "--ink-soft", "--line", "--surface", "--surface-2",
   "--accent", "--accent-fill", "--accent-ink", "--accent-soft", "--accent-line",
+  "--dim", "--disabled-fill",
   "--good", "--good-soft", "--good-line", "--good-ink",
   "--bad", "--bad-soft", "--bad-line", "--bad-ink",
   "--info", "--warn-soft", "--warn-ink",
@@ -38,88 +155,122 @@ const REQUIRED_TOKENS = [
   "--label-size", "--label-track",
 ];
 
+test("the stylesheet parses into a non-trivial rule model", () => {
+  assert.ok(sheet.rules.length > 200, `parsed only ${sheet.rules.length} rules`);
+  assert.ok(sheet.keyframes.length >= 1, "expected at least one @keyframes rule");
+});
+
 test("light theme defines every semantic token", () => {
-  const root = block(":root");
+  const root = declared(rulesFor(":root"));
   for (const token of REQUIRED_TOKENS) {
-    assert.match(root, new RegExp(`${token}\\s*:`), `:root must define ${token}`);
+    assert.ok(root.has(token) && root.get(token).value, `:root must define ${token}`);
   }
+  assert.equal(root.get("color-scheme").value, "light");
 });
 
 test("dark theme redefines the themeable surface and state tokens", () => {
-  const dark = block('html[data-theme="dark"] {');
+  const dark = declared(rulesFor('html[data-theme="dark"]'));
+  const light = declared(rulesFor(":root"));
   const themeable = [
     "--bg", "--ink", "--ink-soft", "--line", "--surface", "--surface-2",
-    "--accent", "--accent-fill", "--accent-ink",
+    "--accent", "--accent-fill", "--accent-ink", "--dim", "--disabled-fill",
     "--good-ink", "--bad-ink", "--warn-ink",
     "--shadow-1", "--shadow-2", "--shadow-3",
   ];
   for (const token of themeable) {
-    assert.match(dark, new RegExp(`${token}\\s*:`), `dark theme must redefine ${token}`);
+    assert.ok(dark.has(token), `dark theme must redefine ${token}`);
+    assert.notEqual(dark.get(token).value, light.get(token).value, `dark ${token} must differ from light`);
   }
-  assert.match(dark, /color-scheme:\s*dark/);
+  assert.equal(dark.get("color-scheme").value, "dark");
 });
 
 test("keyboard focus indicator survives at the shell level", () => {
-  assert.match(css, /:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--accent\)/);
+  const outline = declared(rulesFor(":focus-visible")).get("outline");
+  assert.ok(outline, "top-level :focus-visible rule must set an outline");
+  assert.equal(outline.value, "3px solid var(--accent)");
+  assert.ok(outline.important, "shell focus outline must not be overridable by components");
 });
 
 test("reduced motion collapses animation and transition time globally", () => {
-  const start = css.indexOf("@media (prefers-reduced-motion: reduce)");
-  assert.notEqual(start, -1, "reduced-motion media block is required");
-  const slice = css.slice(start, start + 600);
-  assert.match(slice, /animation-duration:\s*\.01ms\s*!important/);
-  assert.match(slice, /transition-duration:\s*\.01ms\s*!important/);
-  assert.match(slice, /animation-iteration-count:\s*1\s*!important/);
+  const ctx = ["@media (prefers-reduced-motion: reduce)"];
+  const universal = declared(rulesFor("*", ctx));
+  for (const [prop, value] of [
+    ["animation-duration", ".01ms"],
+    ["transition-duration", ".01ms"],
+    ["animation-iteration-count", "1"],
+  ]) {
+    const d = universal.get(prop);
+    assert.ok(d, `reduced-motion * rule must set ${prop}`);
+    assert.equal(d.value, value);
+    assert.ok(d.important, `${prop} must be !important under reduced motion`);
+  }
+  for (const pseudo of ["*::before", "*::after"]) {
+    assert.ok(rulesFor(pseudo, ctx).length, `reduced-motion collapse must cover ${pseudo}`);
+  }
 });
 
 test("print stylesheet keeps the reading path printable", () => {
-  assert.match(css, /@media print/);
-  const printStart = css.indexOf("@media print");
-  const printSlice = css.slice(printStart);
-  assert.match(printSlice, /\.topbar[^{]*\{[^}]*display:\s*none/s);
+  const display = declared(rulesFor(".topbar", ["@media print"])).get("display");
+  assert.ok(display, "print media must hide the topbar");
+  assert.equal(display.value, "none");
 });
 
-test("keyframe animations move only transform and opacity", () => {
-  const re = /@keyframes\s+[\w-]+\s*\{([\s\S]*?)\}\s*(?=@|\.|\/\*|#|:|\w|$)/g;
-  let m;
-  let found = 0;
-  while ((m = re.exec(css))) {
-    found++;
-    const body = m[1];
-    const props = [...body.matchAll(/([a-z-]+)\s*:/g)].map((p) => p[1]);
-    for (const prop of props) {
-      assert.ok(
-        ["transform", "opacity", "from", "to"].includes(prop),
-        `@keyframes animates "${prop}" — only transform/opacity are allowed`
-      );
+test("disabled filled controls use the muted disabled role, not label dim", () => {
+  for (const selector of [".btn:disabled", ".quiz-submitbar .btn:disabled"]) {
+    const bg = declared(rulesFor(selector)).get("background");
+    assert.ok(bg, `${selector} must set a background`);
+    assert.equal(bg.value, "var(--disabled-fill)");
+  }
+  const light = declared(rulesFor(":root"));
+  assert.notEqual(light.get("--disabled-fill").value, light.get("--dim").value);
+});
+
+test("keyframe animations move only transform and opacity in every frame", () => {
+  const allowed = new Set(["transform", "opacity"]);
+  for (const kf of sheet.keyframes) {
+    assert.ok(kf.frames.length >= 2, `@keyframes ${kf.name} must have at least two frames`);
+    for (const frame of kf.frames) {
+      for (const d of frame.decls) {
+        assert.ok(
+          allowed.has(d.prop),
+          `@keyframes ${kf.name} ${frame.selector} animates "${d.prop}" — only transform/opacity are allowed`
+        );
+      }
     }
   }
-  assert.ok(found >= 1, "expected at least one @keyframes rule");
 });
 
 test("filled accent controls use the AA fill token, not the raw accent", () => {
-  // Any rule that paints white text over an accent background must use
-  // --accent-fill (tuned to >=4.5:1 against #fff). The raw --accent stays for
-  // lines, marks, and large fills that carry no text.
   const offenders = [];
-  for (const m of css.matchAll(/([^{}]+)\{([^}]*color:\s*#fff[^}]*)\}/g)) {
-    const body = m[2];
-    if (/background[^;]*var\(--accent\)[\s;]/.test(body.replace(/var\(--accent-(fill|ink|soft|line)\)/g, ""))) {
-      offenders.push(m[1].trim().slice(0, 60));
+  for (const rule of sheet.rules) {
+    const decls = declared([rule]);
+    const color = decls.get("color");
+    if (!color || !/^#fff(fff)?$/i.test(color.value)) continue;
+    for (const prop of ["background", "background-color"]) {
+      const bg = decls.get(prop);
+      if (bg && /var\(--accent\)/.test(bg.value)) offenders.push(rule.selectors.join(", "));
     }
   }
-  assert.deepEqual(offenders, [], `white-on-raw-accent controls: ${offenders.join(", ")}`);
+  assert.deepEqual(offenders, [], `white-on-raw-accent controls: ${offenders.join(" | ")}`);
 });
 
 test("hub shell keeps its workflow contracts", () => {
-  for (const anchor of [
-    'id="hub-week"', 'id="hub-day"', 'id="hub-open"',
-    '<div class="cal" id="cal" data-curriculum-surface>',
-    "data-client-name", "data-batch-value", "data-cloud-path-status",
-    'aria-live="polite"',
-  ]) {
-    assert.ok(hub.includes(anchor), `index.html must keep ${anchor}`);
+  const elements = parseHtmlElements(hub);
+  const byId = (id) => elements.find((e) => e.attrs.get("id") === id);
+  for (const [id, tag] of [["hub-week", "select"], ["hub-day", "select"], ["hub-open", null]]) {
+    const el = byId(id);
+    assert.ok(el, `index.html must keep #${id}`);
+    if (tag) assert.equal(el.tag, tag, `#${id} must be a <${tag}>`);
   }
+  const cal = byId("cal");
+  assert.ok(cal, "index.html must keep #cal");
+  assert.equal(cal.tag, "div");
+  assert.ok(cal.attrs.get("class").split(/\s+/).includes("cal"));
+  assert.ok(cal.attrs.has("data-curriculum-surface"));
+  for (const attr of ["data-client-name", "data-batch-value", "data-cloud-path-status"]) {
+    assert.ok(elements.some((e) => e.attrs.has(attr)), `index.html must keep a [${attr}] mount`);
+  }
+  assert.ok(elements.some((e) => e.attrs.get("aria-live") === "polite"), "a polite live region is required");
 });
 
 test("hub chrome carries no emoji glyphs — icons are drawn SVG", () => {
