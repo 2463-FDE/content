@@ -19,7 +19,8 @@
   .tr-curriculum { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 20px; border-color:var(--accent-line); background:var(--accent-soft); }
   .tr-curriculum h2 { margin:0 0 3px; }
   .tr-curriculum p { margin:0; color:var(--ink-soft); font-size:14px; }
-  .tr-curriculum-actions { display:flex; flex-wrap:wrap; gap:8px; flex:0 0 auto; }
+  .tr-curriculum > div:first-child { flex:1 1 320px; min-width:min(100%, 320px); }
+  .tr-curriculum-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; flex:0 1 auto; min-width:0; }
   .tr-curriculum-actions a { min-height:44px; display:inline-flex; align-items:center; padding:8px 13px; border:1px solid var(--accent); border-radius:9px; color:var(--accent-ink); background:var(--surface); font-size:13px; font-weight:750; text-decoration:none; }
   @media (max-width:700px) { .tr-curriculum { align-items:flex-start; flex-direction:column; } }
 
