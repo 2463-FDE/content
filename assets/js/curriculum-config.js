@@ -15,6 +15,7 @@
       storageKey: "fde_batch_context",
       queryParameter: "batch",
       label: "Batch",
+      next: Object.freeze({ id: null, label: "Next batch", status: "unconfigured" }),
       models: Object.freeze({
         "2567": Object.freeze({
           id: "ltm-2567",

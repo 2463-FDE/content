@@ -10,6 +10,7 @@
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
+<a class="skip-link" id="reading-skip-link" href="#reading-main">Skip to reading</a>
 
 <div class="topbar">
   <div class="topbar-left">
@@ -25,7 +26,7 @@
     <span class="progressbar"><i></i></span></div>
 </div>
 
-<main class="lesson2">
+<main class="lesson2 reading-main-target" id="reading-main" tabindex="-1">
   <div class="reading2col">
 
     <nav class="toc" aria-label="On this page"></nav>
@@ -36,7 +37,7 @@
         <div class="meta">
           <span><b>Week 1</b> · Day 2 · Part 1</span>
           <span>Choosing a Foundation Model</span>
-          <span><b>~20 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" data-core-words="1092" title="Required path: measured reading, essential diagram, one objective-aligned interaction with feedback, and the six-question check. Optional details are outside the cap."><b>Core 30</b> · ~7 min read · 1 interaction · 6-Q check · ~19 min required</span>
         </div>
         <p class="summary">Day 1 gave you the context window — what an LLM can and can't do, and why. Today is the first
         decision every Forward Deployed Engineer makes on every engagement: <strong>which foundation model do you build
@@ -47,6 +48,12 @@
         <div class="ix-legend"></div>
       </div>
 
+      <section class="w1-core-brief" data-source-anchor="PDF p.1 · TUE" aria-labelledby="w1-core-d2a">
+        <p class="w1-source-anchor">Authoritative v3 · PDF p.1 · Tuesday</p>
+        <h2 id="w1-core-d2a">Begin the brownfield engagement</h2>
+        <p>Before recommending a model, establish what already exists. In one unfamiliar subsystem, use Claude Code only as a reading assistant: identify the system boundary, trace one business rule to a file and symbol, and label every inference that lacks evidence. Then compare Claude, GPT, Gemini, and an open-weight option on capability, cost, latency, context, ecosystem, and data boundary. The exercise below gives immediate feedback on whether your tier choice matches the workload rather than a leaderboard.</p>
+      </section>
+
       <section class="step" data-diagram="0" data-step="0">
         <div class="tag">The whole game</div>
         <h2>"Which model should we use?" is a framework, not a leaderboard</h2>
@@ -56,14 +63,13 @@
         decide.</strong> Model selection isn't a contest with a single winner. It's a constrained optimization across six
         axes that pull against each other, and the right model is the one that fits <em>this</em> task, <em>this</em>
         budget, and <em>this</em> client's rules — frequently <em>not</em> the most capable model on the market.</p>
-        <p>The landscape, as of <span class="nowrap">June 2026</span>, is four broad options. <strong>Anthropic's
-        Claude</strong> family (Opus, Sonnet, Haiku tiers). <strong>OpenAI's GPT</strong> family (the GPT-5 line, topping
-        out at GPT-5.5 on the API). <strong>Google's Gemini</strong> family (the 3.x and 2.5 lines, Pro and Flash tiers).
-        And the <strong>open-weight / self-hosted</strong> world — Llama, Mistral, DeepSeek, Qwen — where you download the
-        weights and run inference on hardware you control. <span class="src">[sources: Anthropic model catalog (claude-api
-        reference, cached 2026-06-04); OpenAI API docs, platform.openai.com (verified 2026-06-28); Google Gemini API
-        pricing, ai.google.dev (verified 2026-06-28)]</span> The version names will have moved by the time you read this —
-        which is exactly why you learn the <em>axes</em>, not the names.</p>
+        <p>The landscape verified <span class="nowrap">2026-10-27</span> still has four broad options. <strong>Anthropic's
+        Claude</strong> family currently spans Fable, Opus, Sonnet, and Haiku tiers. <strong>OpenAI's GPT</strong> family
+        currently spans GPT-6 Astra, GPT-6.1 Sol/Terra, and GPT-6 Luna. <strong>Google's Gemini</strong> family includes
+        Gemini 3.8 Flash. And the <strong>open-weight / self-hosted</strong> world — Llama, Mistral, DeepSeek, Qwen — lets
+        you run inference on hardware you control. <span class="src">[sources: first-party Anthropic, OpenAI, and Google
+        model/pricing pages, accessed 2026-10-27]</span> Those names will move again; that is exactly why you learn the
+        <em>axes</em>, not the names.</p>
         <p>The six axes: <strong>capability</strong>, <strong>cost</strong>, <strong>latency</strong>, <strong>context
         window</strong>, <strong>tooling &amp; ecosystem</strong>, and <strong>data residency / compliance</strong>. The
         diagram is the funnel: a task and its constraints enter at the top, each axis narrows the field, and a defensible
@@ -77,7 +83,7 @@
         "smartest" is expensive and slow, and most production tasks don't need it. The discipline is to match the model's
         capability tier to the <em>hardest thing the task actually requires</em> — and no higher. Every major vendor ships
         a <strong>tiered family</strong> precisely so you can: Anthropic's Opus / Sonnet / Haiku, Google's Pro / Flash /
-        Flash-Lite, OpenAI's larger and smaller GPT-5 variants. The vendor is telling you, in pricing, not to run
+        Flash-Lite, and OpenAI's Astra / Sol / Terra / Luna. The vendor is telling you, in pricing, not to run
         everything on the flagship.</p>
         <p>The FDE move is to <strong>decompose the workload</strong>. A support feature might use a small cheap model to
         classify an inbound message ("billing, shipping, or technical?") and escalate only the genuinely hard
@@ -85,7 +91,7 @@
         flagship for the final summary a human reads. This cheap-first, expensive-only-when-needed pattern is a
         <strong>model router</strong> or <strong>cascade</strong>, and you'll build a primitive version into nearly every
         engagement.</p>
-        <div class="ix-predict"
+        <div class="ix-predict" data-core-interaction data-interaction-kind="prediction-feedback"
           data-q="A support inbox classifies every message as billing / shipping / technical — 200,000 messages a day, simple labels. Which capability tier do you reach for, and why?"
           data-a="The <b>smallest, cheapest tier</b> (Haiku / Flash-Lite class). Classification into three known buckets is an easy task; a flagship would be correct <i>and</i> 10–20× more expensive and slower, for no quality gain at this volume. Match the tier to the hardest thing the task needs — here, almost nothing. Save the flagship for the rare hard escalations.">
         </div>
@@ -96,18 +102,34 @@
         abstract benchmark. Capability is the first axis, but the one you measure last and most concretely.</p>
       </section>
 
-      <section class="step" data-diagram="0" data-step="2">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="2">
+        <summary>Deeper: Cost: input and output are priced differently, and it compounds · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Axis 2 · Cost</div>
         <h2>Cost: input and output are priced differently, and it compounds</h2>
         <p>Day 1's equation returns: <strong>cost ≈ (input tokens + output tokens) × price-per-token</strong> — but input
-        and output bill at <em>different</em> rates, and output is almost always the more expensive. As of
-        <span class="nowrap">June 2026</span>, on Anthropic's API, Opus 4.8 runs about <strong>$5 / $25</strong> per
-        million input / output tokens, Sonnet 4.6 about <strong>$3 / $15</strong>, Haiku 4.5 about <strong>$1 / $5</strong>.
-        <span class="src">[source: Anthropic model catalog, claude-api reference, cached 2026-06-04]</span> Gemini 3.5
-        Flash sits lower (~<strong>$1.50 / $9</strong>), the Pro tier higher (~<strong>$2.70 / $16</strong>).
-        <span class="src">[source: Google Gemini API pricing, ai.google.dev, verified 2026-06-28]</span> The numbers
-        drift; the <em>shape</em> is durable — output costs several times input, and the cheapest tier is often an order
-        of magnitude below the flagship.</p>
+        and output bill at <em>different</em> rates, and output is usually more expensive. This 2026-10-27 snapshot is a
+        comparison input, not a permanent recommendation:</p>
+        <div class="w1-table-wrap" role="region" aria-label="Current model price comparison; scroll horizontally if needed" tabindex="0">
+          <table class="w1-model-table">
+            <caption>Standard API price per million input / output tokens (USD)</caption>
+            <thead><tr><th scope="col">Provider</th><th scope="col">Current tier</th><th scope="col">Input</th><th scope="col">Output</th><th scope="col">Time qualifier</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Anthropic</th><td>Fable 5.1</td><td>$10</td><td>$50</td><td>current</td></tr>
+              <tr><th scope="row">Anthropic</th><td>Opus 5.5</td><td>$4</td><td>$20</td><td>current</td></tr>
+              <tr><th scope="row">Anthropic</th><td>Sonnet 5.5</td><td>$2</td><td>$10</td><td>current</td></tr>
+              <tr><th scope="row">Anthropic</th><td>Haiku 5.5</td><td>from $0.10</td><td>from $0.50</td><td>current</td></tr>
+              <tr><th scope="row">OpenAI</th><td>GPT-6 Astra</td><td>$10</td><td>$50</td><td>standard</td></tr>
+              <tr><th scope="row">OpenAI</th><td>GPT-6.1 Sol</td><td>$2</td><td>$10</td><td>standard</td></tr>
+              <tr><th scope="row">OpenAI</th><td>GPT-6.1 Terra</td><td>$1</td><td>$5</td><td>standard</td></tr>
+              <tr><th scope="row">OpenAI</th><td>GPT-6 Luna</td><td>$0.10</td><td>$0.50</td><td>standard</td></tr>
+              <tr><th scope="row">Google</th><td>Gemini 3.8 Flash</td><td>$0.75</td><td>$3.75</td><td>through 2026-12-31</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><span class="src">[sources: Anthropic Models overview; OpenAI Models and Pricing; Google Gemini API pricing;
+        accessed 2026-10-27]</span> Prices, service modes, and promotions drift; re-check before making a client estimate.
+        The durable shape is tiering: the cheapest suitable model can be far below the flagship.</p>
         <p>That asymmetry drives design. A feature that reads a lot and answers briefly (classify, extract, label) is
         dominated by <em>input</em> cost — a cheap-input, big-context model wins. A feature that generates long output
         (write the report, draft the email) is dominated by <em>output</em> cost, where one step down the tier ladder
@@ -120,9 +142,12 @@
         viable product and a deal-breaker. The FDE who can say "this endpoint costs $0.02 a call, runs 50,000 times a day,
         and we cut it 70% by moving the classification step to Haiku" is the one who keeps the engagement. For high-volume
         features, cost isn't a footnote to the model choice — it often <em>is</em> the model choice.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="3">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="3">
+        <summary>Deeper: Latency: how fast does the answer need to arrive? · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Axis 3 · Latency</div>
         <h2>Latency: how fast does the answer need to arrive?</h2>
         <p>Capability and cost get the headlines; latency quietly decides whether users tolerate the feature at all. A
@@ -142,16 +167,18 @@
         classic expensive mistake: a flagship model on a synchronous user-facing path "because it's the best," then a
         feature that feels broken because every interaction takes eight seconds. The best model that arrives too late is
         the wrong model.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="4">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="4">
+        <summary>Deeper: Context window: how much can you hand it, and what does that cost? · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Axis 4 · Context window</div>
         <h2>Context window: how much can you hand it, and what does that cost?</h2>
         <p>The context window — Day 1's central idea — is also a selection axis, because models differ in window size and
-        the size you need is set by the task. As of <span class="nowrap">June 2026</span> the frontier tiers have
-        converged on very large windows: Claude's current models offer up to <strong>1 million tokens</strong>, the
-        smaller Haiku tier <strong>200K</strong>; Gemini's Pro tier sits in the same 1M-class range.
-        <span class="src">[source: Anthropic model catalog, claude-api reference, cached 2026-06-04]</span> A million
+        the size you need is set by the task. As verified <span class="nowrap">2026-10-27</span>, Anthropic lists a
+        <strong>1-million-token context window</strong> for all four current Claude tiers.
+        <span class="src">[source: Anthropic Models overview, accessed 2026-10-27]</span> A million
         tokens is a few thousand pages — an entire codebase, a long contract, a quarter of support transcripts in one
         call.</p>
         <p>But a bigger window is not automatically better, and treating "1M context" as a pure win is a beginner error.
@@ -166,9 +193,12 @@
         you need retrieval (RAG, all of Week 2), not a bigger model. And <strong>what will it cost to fill the window you
         actually use?</strong> A huge window with expensive input can lose to a smaller window with cheap input, if your
         real inputs fit the smaller one. Size the window to the task, then price the tokens you'll really send.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="5">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="5">
+        <summary>Deeper: Tooling &amp; ecosystem: the model is half of what you&#x27;re buying · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Axis 5 · Tooling &amp; ecosystem</div>
         <h2>Tooling &amp; ecosystem: the model is half of what you're buying</h2>
         <p>Here's the axis junior engineers forget entirely: you're not just choosing a model, you're choosing the
@@ -181,7 +211,10 @@
         <strong>Prompt caching</strong> — reusing a stable prefix at a fraction of the price (Anthropic prices cache reads
         at roughly a tenth of normal input). <strong>Batch APIs</strong> for async work. The maturity of the
         <strong>SDKs</strong> in your client's language. And whether mainstream <strong>agent frameworks</strong> and
-        observability tools support the model first-class.</p>
+        observability tools support the model first-class. Anthropic's standard cache-read multiplier is 0.1×, but the
+        current Fable, Opus, and Sonnet pages document lower model-specific multipliers; verify the selected model instead
+        of treating one discount as universal. <span class="src">[source: Anthropic prompt-caching docs, accessed
+        2026-10-27]</span></p>
         <p>This is where the biggest vendors earn their keep beyond raw model quality. A model with mediocre benchmarks but
         a rock-solid SDK, native structured output, reliable tool calling, and prompt caching can get a working,
         affordable feature into production a week faster than a marginally smarter model with a thinner ecosystem — and a
@@ -189,9 +222,12 @@
         each (one structured call, one tool call) and notice <em>how much friction</em> there was. That friction,
         multiplied across a project, is real cost the benchmark never shows. The model is maybe half of what you're
         buying; the ecosystem is the other half.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="6">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="6">
+        <summary>Deeper: Data residency, BAA &amp; self-hosting: the axis that overrules the rest · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Axis 6 · Data residency &amp; compliance</div>
         <h2>Data residency, BAA &amp; self-hosting: the axis that overrules the rest</h2>
         <p>The final axis frequently <strong>vetoes every other axis at once</strong>. It doesn't matter that a model is
@@ -209,16 +245,15 @@
         all. And "<strong>no training on your data</strong>" is the baseline that your client's proprietary content won't
         leak into a future model.</p>
         <p>The major API vendors have responded to exactly this pressure. Anthropic offers BAAs and runs Claude through
-        enterprise channels — Amazon Bedrock, Google Vertex AI, a dedicated Claude-on-AWS path — that bring it inside a
-        client's existing cloud-governance and data-residency boundary. <span class="src">[source: Anthropic platform
-        docs, claude-api reference, cached 2026-06-04]</span> OpenAI offers BAAs to eligible customers, a
-        no-training-by-default posture, and residency across roughly ten regions; Google delivers Gemini through Vertex AI
-        with the full Google Cloud compliance stack. <span class="src">[sources: OpenAI pricing &amp; API docs,
-        platform.openai.com, verified 2026-06-28; Google Vertex AI docs]</span> And when even a compliant public API is
+        enterprise channels including Amazon Bedrock and Google Cloud. Those channels expose different regional and
+        routing choices; a provider name alone is not a residency guarantee. Confirm the selected endpoint, region,
+        contract, and organization policy before claiming compliance. <span class="src">[sources: Anthropic platform
+        and AWS Bedrock model docs, accessed 2026-10-27]</span> And when even a compliant public API is
         off-limits — air-gapped networks, classified systems, FedRAMP-High and beyond — this axis is the entire reason
         <strong>open-weight, self-hosted models</strong> are in your toolkit. For a Karsun federal engagement, this isn't
         a tiebreaker; it's often the first filter, settling the decision before capability, cost, or latency get a vote.</p>
-      </section>
+        </div>
+      </details>
 
       <section class="step" data-diagram="0" data-step="7">
         <div class="tag">Putting it together</div>
@@ -234,16 +269,21 @@
         understand the trade-off: what you gave up and why. An FDE who can produce a one-page model-selection rationale
         (the scorecard in today's deep-dive is a template) is doing the consulting half of the job, not just the coding
         half.</p>
-        <div class="ix-spot"
+        <details class="deep" data-core="optional">
+
+          <summary>Deeper practice: test the model seam · outside Core 30</summary>
+
+          <div class="ix-spot"
           data-snippet="# called from 12 places across the codebase
 resp = openai.chat.completions.create(
-    model=&quot;gpt-5.5&quot;,
+    model=&quot;gpt-6.1-sol&quot;,
     messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}],
 )
 answer = resp.choices[0].message.content"
           data-q="The model aced the scorecard. Six weeks in, the client mandates a self-hosted model for compliance. What does this code cost you — and what was the real mistake?"
           data-a="The vendor's SDK shape (<code>openai.chat...</code>, <code>resp.choices[0]...</code>) is hard-coded at <b>12 call sites</b>, so a model swap is a hunt-and-replace across the codebase plus a re-test of every one. The pick was never the risk — the missing <b>seam</b> was. The fix is the rule attached to every pick: put the model behind <b>one thin interface</b> (build request → send → parse) so swapping is a config change and a re-run of your eval set, not a rewrite.">
         </div>
+        </details>
         <button class="code-cta" type="button" data-modal="code-w1d2a"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· llm.py</span></button>
         <div class="callout mindset">
           <div class="k">FDE mindset</div>
@@ -257,13 +297,24 @@ answer = resp.choices[0].message.content"
         </div>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <noscript data-core="optional">
+        <section class="w1-nojs" aria-labelledby="nojs-d2a">
+          <h2 id="nojs-d2a">Static Core 30 fallback</h2>
+          <p><strong>Essential diagram — Model decision funnel:</strong> Data boundary → latency → context fit → capability/cost on real evals → tooling → swappable choice.</p>
+          <p><strong>Practice:</strong> A three-label classifier runs 200,000 times daily. Which tier starts the evaluation? Write your decision before revealing feedback.</p>
+          <details><summary>Compare with feedback</summary><p>Start with the smallest tier that passes the real eval set; flagship capability adds cost and latency without value for a simple label task.</p></details>
+          <p>The six-question interactive check needs JavaScript. Without it, use this prompt as the check and take your written evidence to the trainer session.</p>
+        </section>
+      </noscript>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
-          <li><a href="https://platform.claude.com/docs/en/about-claude/models/overview" target="_blank" rel="noopener">Anthropic — Claude models overview</a> — primary source for the tiered family (Opus / Sonnet / Haiku), the $5/$25, $3/$15, $1/$5 per-MTok pricing, the 1M vs 200K context windows, and the Bedrock / Vertex enterprise channels this page cites on the capability, cost, context, and residency axes.</li>
-          <li><a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" rel="noopener">Google — Gemini API pricing</a> — official per-million-token rates for the Gemini Pro and Flash tiers, backing the cost-axis comparison and the cross-vendor "every flagship ships a cheaper tier" point.</li>
-          <li><a href="https://developers.openai.com/api/docs/pricing" target="_blank" rel="noopener">OpenAI — API pricing</a> — primary source for GPT-5-line input/output token pricing, the 10% cached-input rate, and the data-residency regional-processing uplift referenced on the cost and compliance axes.</li>
-          <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic — Prompt caching</a> — documents cache reads at 0.1× normal input price, the concrete number behind the tooling-axis claim that a stable prefix can be reused "at roughly a tenth of normal input."</li>
+          <li><a href="https://platform.claude.com/docs/en/about-claude/models/overview" target="_blank" rel="noopener">Anthropic — Models overview</a> — current Claude tiers, IDs, context windows, and prices in the 2026-10-27 snapshot.</li>
+          <li><a href="https://developers.openai.com/api/docs/models" target="_blank" rel="noopener">OpenAI — Models</a> and <a href="https://developers.openai.com/api/docs/pricing" target="_blank" rel="noopener">Pricing</a> — current GPT-6 tier names, IDs, and standard prices in the snapshot.</li>
+          <li><a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" rel="noopener">Google — Gemini API pricing</a> — Gemini 3.8 Flash's time-bounded introductory and later rates.</li>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic — Prompt caching</a> — prefix matching, write multipliers, and current per-model cache-read exceptions.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html" target="_blank" rel="noopener">AWS — Claude Haiku 5.5 model card</a> — source for the <code>bedrock-runtime</code> US geo profile ID used in the static code example (accessed 2026-10-27; no account call).</li>
         </ul>
       </section>
 
@@ -272,7 +323,8 @@ answer = resp.choices[0].message.content"
     <aside class="side">
       <div class="side-diagram">
         <div class="stage-title">Live diagram</div>
-        <svg id="diagram"></svg>
+        <svg id="diagram" aria-label="Interactive lesson diagram"></svg>
+        <noscript><p class="static-diagram" role="img" aria-label="Model decision funnel: Data boundary → latency → context fit → capability/cost on real evals → tooling → swappable choice."><strong>Model decision funnel</strong><br>Data boundary → latency → context fit → capability/cost on real evals → tooling → swappable choice.</p></noscript>
         <div class="stage-caption"></div>
       </div>
 
@@ -292,7 +344,7 @@ answer = resp.choices[0].message.content"
       <div class="side-nav">
         <a class="snav-btn" href="d1.html">◂ Back</a>
         <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
-        <a class="snav-btn snav-next"></a>
+        <a class="snav-btn snav-next" href="d2b.html">Day 2 · API patterns →</a>
       </div>
     </aside>
 
@@ -309,23 +361,27 @@ answer = resp.choices[0].message.content"
     <p class="quiz-sub">Optional. ~6 minutes. The one-page artifact behind Part 1 — the thing you actually hand a client.</p>
 
     <p>Score each candidate 1–5 on every axis, weight the axes for <em>this</em> task, and the choice — plus the
-    reasoning — is on the page. Sample numbers are illustrative current-state anchors, not a verdict; pricing drifts, so
-    re-verify before you ship one. <span class="src">[pricing/context sources: Anthropic catalog (claude-api, cached
-    2026-06-04); Gemini API pricing, ai.google.dev (2026-06-28); OpenAI API docs (2026-06-28)]</span></p>
+    reasoning — is on the page. Scores below are illustrative, not current product claims; attach a dated price sheet and
+    re-verify it before you ship one.</p>
 
     <div class="model-answer show">
       <div class="ma-k">Worked scorecard — a federal-acquisitions document-summarization feature</div>
-      <pre style="background:#f1efe9; border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.5; margin:6px 0 0;"><code>AXIS (weight)        Flagship API     Mid-tier API       Open-weight (self-host)
-                     e.g. Opus 4.8    e.g. Sonnet/Flash  e.g. Llama/Mistral
-Capability (×2)        5                4                  3
-Cost in/out ($/M)      $5 / $25  →2     $1.50-3 / $9-15 →4 infra-only     →4
-Latency (×1)           3                4                  4 (you size HW)
-Context window (×1)    1M        →5     1M / 200K     →5  varies          →3
-Tooling/ecosystem(×1)  5                5                  3 (DIY)
-Data residency (×3)    BAA+Bedrock →4   BAA+Vertex   →4   FULL control →5
-─────────────────────────────────────────────────────────────────────────
-If "data never leaves our boundary" is mandatory, the ×3 weight on the last
-row can make open-weight win even though it scores lower on capability.</code></pre>
+      <div class="w1-table-wrap" role="region" aria-label="Worked model selection scorecard; scroll horizontally if needed" tabindex="0">
+        <table class="w1-model-table w1-scorecard">
+          <caption>Illustrative scores (1–5); arrows show the resulting fit score</caption>
+          <thead><tr><th scope="col">Axis (weight)</th><th scope="col">Flagship API</th><th scope="col">Mid-tier API</th><th scope="col">Open-weight, self-hosted</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Capability (×2)</th><td>5</td><td>4</td><td>3</td></tr>
+            <tr><th scope="row">Cost (×2)</th><td>2</td><td>4</td><td>4 · infrastructure only</td></tr>
+            <tr><th scope="row">Latency (×1)</th><td>3</td><td>4</td><td>4 · you size hardware</td></tr>
+            <tr><th scope="row">Context fit (×1)</th><td>5</td><td>5</td><td>3 · varies</td></tr>
+            <tr><th scope="row">Tooling (×1)</th><td>5</td><td>5</td><td>3 · DIY</td></tr>
+            <tr><th scope="row">Residency (×3)</th><td>4 · approved region</td><td>4 · approved region</td><td>5 · full control</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="w1-table-note">If “data never leaves our boundary” is mandatory, the ×3 residency weight can make
+      open-weight win even when it scores lower on capability.</p>
       <p style="margin:8px 0 0">The point isn't the exact cells — it's the <em>method</em>: explicit axes, a weight that
       encodes <em>this</em> client's priorities, and a defensible total. For a regulated client the data-residency weight
       is often so high it decides the table before capability gets a vote. Pair the scorecard with a 10–20 example eval
@@ -391,8 +447,8 @@ window.DIAGRAM = {
 
     // ② cost @ volume — the eliminator for flagship
     { id:"costL", step:2, x:14,  y:204, w:122, h:38, label:"② Cost @vol",
-      detail:"cost ≈ (input + output tokens) × price, and OUTPUT bills several× higher than input. At ~50k calls/day summarizing 40 pages, a flagship at ~$25 / M output is roughly 6× the bill of a mid-tier (~$9–15 / M). Cost — not capability — is what eliminates the 'best' model here. A 2¢ demo call becomes a six-figure yearly line item at this volume." },
-    { id:"cost1", step:2, x:146, y:204, w:176, h:38, label:"✗ ~6× pricier" },
+      detail:"cost = input tokens × input rate + output tokens × output rate. At ~50k calls/day summarizing 40 pages, the current flagship premium can dominate the bill even when a mid-tier clears the eval bar. Price the measured token shape with a dated rate sheet; do not reuse a demo's per-call guess." },
+    { id:"cost1", step:2, x:146, y:204, w:176, h:38, label:"✗ premium at volume" },
     { id:"cost2", step:2, x:332, y:204, w:176, h:38, label:"✓ infra-only" },
     { id:"cost3", step:2, x:518, y:204, w:176, h:38, label:"✓ cheapest" },
 
@@ -441,7 +497,7 @@ window.DIAGRAM = {
   captions: [
     "One concrete task, three real candidates. The pick falls out of <i>this</i> task's constraints — <b>50k calls/day, US-only residency</b> — not a leaderboard. <span style='opacity:.7'>(tap a row label for detail)</span>",
     "<b>① Capability</b>: all three clear the bar — summarize→JSON isn't frontier-hard, so the flagship is <i>overkill</i>. Capability rarely decides; match the tier to the hardest thing the task needs.",
-    "<b>② Cost @volume</b>: the flagship's ~$25 / M output makes it ~6× pricier at 50k/day — <b>eliminated</b>. Cost, not capability, knocks out the 'best' model. <span style='opacity:.7'>(tap)</span>",
+    "<b>② Cost @volume</b>: price the measured input/output shape using a dated rate sheet. At 50k calls/day, a flagship premium can eliminate the 'best' model even when every candidate clears the eval bar. <span style='opacity:.7'>(tap)</span>",
     "<b>③ Latency</b>: a smaller tier is faster, and the flagship is already out. Mid-tier and self-host are both serviceable here.",
     "<b>④ Context</b>: a 40-page RFP (~35k tokens) fits every option — even the 200K tier. Not a differentiator for this task.",
     "<b>⑤ Tooling</b>: the task needs guaranteed JSON. The API tiers do it natively; self-host means DIY parsing <i>and</i> running the hardware — friction you'd take on for nothing.",
@@ -513,7 +569,7 @@ import boto3
 _bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
 
 # The pick lives in ONE place. Change this string, not 12 call sites.
-DEFAULT_MODEL = &quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;   # cheap default
+DEFAULT_MODEL = &quot;us.anthropic.claude-haiku-5-5&quot;   # US geo profile; verify routing policy
 
 def answer(prompt: str, *, model: str = DEFAULT_MODEL, system: str | None = None) -&gt; str:
     resp = _bedrock.converse(
@@ -528,7 +584,7 @@ def answer(prompt: str, *, model: str = DEFAULT_MODEL, system: str | None = None
 label = answer(&quot;Classify: &#x27;my card was declined&#x27;  -&gt;  billing | shipping | technical&quot;)
 
 # Size up only where it earns its cost -- same interface, one argument:
-summary = answer(long_rfp, model=&quot;us.anthropic.claude-sonnet-4-6-v1&quot;)</pre></div>
+summary = answer(long_rfp, model=&quot;us.anthropic.claude-sonnet-5-5&quot;)</pre></div>
     <p class="cv-foot">Every caller talks to answer(), never a vendor SDK directly — that is the seam Part 2 wraps in timeouts and retries.</p>
   </div>
 </div>

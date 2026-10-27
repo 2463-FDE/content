@@ -1,0 +1,41 @@
+Week 1 launch-readiness browser evidence
+Date: 2026-10-27
+Tool/session: chrome-devtools-axi, session fde-week1
+Origin: http://127.0.0.1:8943 (local python http.server only)
+Identity: synthetic "Browser QA" learner stored locally; no learner data or provider credential used.
+
+Surfaces exercised
+- /index.html?batch=2567: authoritative Week 1 title, honest unconfigured next-batch wording, AWS/GCP/Both ready state.
+- /index.html?batch=9001: unavailable content model, calendar hidden, recovery copy states that another cohort's content is not shown.
+- /weeks/w01/d1.html?batch=2567: deep-link preservation, first-viewport orientation, visible keyboard skip link, required diagnosis feedback, Core-30 label, light/dark themes.
+- /weeks/w01/d2a.html?batch=2567: current catalog copy and scorecard dialog/table.
+- /trainer.html?batch=2567: learner role denied; signed-out state exposed one labelled modal dialog with focus in the labelled Access code field and inert/AX-hidden background.
+
+Responsive/overflow pass
+The D2a page and table dialog were measured after a fresh reload. documentElement.scrollWidth never exceeded innerWidth:
+- 320 CSS px: page 320/320; table wrapper client 260, internal scroll 560; topbar 320.
+- 342 CSS px: page 342/342; table wrapper client 282, internal scroll 560; topbar 342.
+- 390 CSS px: page 390/390; table wrapper client 330, internal scroll 560; topbar 390.
+- 640 CSS px (1280px viewport reflow equivalent at 200% zoom): page 640/640; table wrapper client 568, internal scroll 620; topbar 640.
+- 768 CSS px: page 768/768; table wrapper client/scroll 696/696; topbar 768.
+Visual inspection confirmed that mobile now begins with the lesson title/objectives rather than placing the entire side diagram before the reading. The scorecard stays inside its labelled horizontal-scroll region rather than widening the page.
+
+Accessibility/structure
+- AX snapshot exposes one H1, a named Learning objectives region, source orientation heading, disclosure controls, source links, and the modal as `dialog "Deep dive: a model-selection scorecard" modal` with focused Close button.
+- The scorecard is exposed as region `Worked model selection scorecard; scroll horizontally if needed`, followed by its caption, column labels, row labels, and values in reading order.
+- Keyboard Tab reached the visible `Skip to reading` control; its href resolves to the focusable reading target.
+- Authentication modal exposes `dialog "Sign in to continue" modal`, `textbox "Access code"`, Sign in button, and polite status; background content is absent from its AX subtree.
+
+Contrast/theme checks
+Computed token contrast ratios against their intended base surface:
+- Light: ink/background 15.12:1; soft text/background 7.58:1; accent ink/surface 5.18:1.
+- Dark: ink/background 14.52:1; soft text/background 7.94:1; accent ink/surface 7.79:1.
+Both theme actions and labels were present. The reduced-motion contract is stylesheet/runtime-backed (`prefers-reduced-motion: reduce` collapses durations and diagram/scrolly scripts query the preference) and is covered by the existing headless reduced-motion regressions.
+
+Mechanical UI detector
+- Impeccable detector ran once over every changed UI target. It reported degraded regex mode because optional parser modules are unavailable. Its non-advisory findings were incumbent side-accent/layout-transition rules in shared CSS and two incumbent curriculum phrases; none points into the new table, topbar, auth, launchpad, or Core-30 additions. Article-wide em-dash findings were advisory.
+
+Fallbacks and errors
+- Every Week 1 route's parsed HTML contains a source-specific static diagram, practice prompt, feedback disclosure, check fallback, and navigation under `<noscript>`; the hub has a complete static Week 1 launchpad and trainer auth fails closed without JavaScript.
+- The final responsive page pass reported no console errors.
+- No provider call, paid service, deployment, publication, or cloud provisioning occurred.

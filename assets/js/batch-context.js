@@ -130,7 +130,7 @@
     var recovery = supportedBatches.length === 1
       ? " Choose Batch " + supportedBatches[0] + " to load its curriculum."
       : " Choose a supported batch to load its curriculum.";
-    var message = supported ? "" : "No curriculum is configured for Batch " + value + "." + recovery;
+    var message = supported ? "" : "No curriculum is configured for Batch " + value + "; content from another cohort is not shown." + recovery;
     if (status.hidden !== supported) status.hidden = supported;
     if (status.textContent !== message) status.textContent = message;
 

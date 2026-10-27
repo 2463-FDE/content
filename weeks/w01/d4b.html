@@ -11,6 +11,7 @@
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
+<a class="skip-link" id="reading-skip-link" href="#reading-main">Skip to reading</a>
 
 <div class="topbar">
   <div class="topbar-left">
@@ -26,7 +27,7 @@
     <span class="progressbar"><i></i></span></div>
 </div>
 
-<main class="lesson2">
+<main class="lesson2 reading-main-target" id="reading-main" tabindex="-1">
   <div class="reading2col">
 
     <nav class="toc" aria-label="On this page"></nav>
@@ -37,8 +38,8 @@
         <div class="meta">
           <span><b>Week 1</b> · Day 4 · Part 2</span>
           <span>Reliability Engineering</span>
-          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~11 min read · 2 interactions · 7-Q check</span>
-          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 7-Q check</span>
+          <span class="core30-meta" data-cloud="aws" data-core-words="929" title="Required path: measured reading, essential diagram, two objective-aligned interactions with feedback, and the selected-provider check. Optional details and the other provider are outside the cap."><b>Core 30</b> · AWS · ~6 min read · 2 interactions · 7-Q check · ~22 min required</span>
+          <span class="core30-meta" data-cloud="gcp" data-core-words="929" title="Required path: measured reading, essential diagram, two objective-aligned interactions with feedback, and the selected-provider check. Optional details and the other provider are outside the cap."><b>Core 30</b> · GCP · ~6 min read · 2 interactions · 7-Q check · ~22 min required</span>
         </div>
         <p class="summary">Part 1 made each call <em>cost less</em>. Part 2 makes each response
         <strong>trustworthy</strong>. The hard truth about LLM output is that it's <strong>generated text, not a guaranteed
@@ -49,6 +50,12 @@
         caught.</p>
         <div class="ix-legend"></div>
       </div>
+
+      <section class="w1-core-brief" data-source-anchor="PDF p.1 · THU" aria-labelledby="w1-core-d4b">
+        <p class="w1-source-anchor">Authoritative v3 · PDF p.1 · Thursday</p>
+        <h2 id="w1-core-d4b">Harden every untrusted output</h2>
+        <p>Validate shape before use, bound retry-on-invalid, ground factual claims, and end in a safe fallback. On AWS, introduce Bedrock Guardrails content filters and denied topics without pretending they replace application validation; on GCP, preserve the same application-owned contract and use the selected managed filter surface. Add a failing prompt-regression fixture before changing a prompt. The two required exercises diagnose one malformed output and one provider-specific safeguard.</p>
+      </section>
 
       <section class="step" data-diagram="0" data-step="0">
         <div class="tag">The whole game</div>
@@ -79,7 +86,7 @@
         <em>before</em> you act on it. If it conforms, proceed. If it doesn't, you've caught the problem at the boundary
         instead of three systems downstream. This is the single highest-value reliability habit on this page, because it
         converts a silent, intermittent data-corruption bug into a loud, immediate, catchable error.</p>
-        <div class="ix-spot" data-core-interaction
+        <div class="ix-spot" data-core-interaction data-interaction-kind="diagnosis-feedback"
           data-snippet="resp = model.call(&quot;Extract the invoice as JSON: total, due_date, vendor&quot;)
 data = json.loads(resp.text)          # trust the shape
 record.total   = data[&quot;total&quot;]        # ... straight into the DB
@@ -112,7 +119,9 @@ db.save(record)
         <button class="code-cta" type="button" data-modal="code-w1d4b"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· extract_tool.py</span></button>
       </section>
 
-      <section class="step" data-diagram="0" data-step="2">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="2">
+        <summary>Deeper: Retry-on-invalid: a second chance, but a bounded one · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Guardrail 2 · Retry on invalid</div>
         <h2>Retry-on-invalid: a second chance, but a bounded one</h2>
         <p>Catching a bad response answers "is this output usable?" The next question is "what do I do when it isn't?" The
@@ -138,9 +147,12 @@ db.save(record)
         billable call — a feature with a 30% retry rate costs noticeably more than its happy-path math suggests, which is
         exactly why the per-run cost tracking from Part 1 matters. A bounded, feedback-driven retry loop is one of the most
         reliable patterns you'll build all program.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="3">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="3">
+        <summary>Deeper: Hallucination mitigation: defend against confident wrongness · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Guardrail 3 · Hallucination</div>
         <h2>Hallucination mitigation: defend against confident wrongness</h2>
         <p>Schema validation catches malformed output. It does <em>not</em> catch the more insidious failure: output that
@@ -172,9 +184,12 @@ return resp.text             # straight to the customer"
         silence is acceptable. And <strong>verify the high-stakes claims</strong>: for a number, a name, a policy, a cheap
         second check catches fabrications before they reach the user. The mindset: you'll fix far more hallucinations by
         managing the window than by swapping in a bigger model.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="3">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="3">
+        <summary>Deeper: Refusal &amp; fallback: fail safe, never ship garbage · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Guardrail 4 · last line</div>
         <h2>Refusal &amp; fallback: fail safe, never ship garbage</h2>
         <p>Even with validation, retries, and grounding, some requests still end in a bad place — the model refuses on
@@ -208,7 +223,8 @@ return resp.text             # straight to the customer"
         anything that still can't be trusted — a refusal, an exhausted retry budget, an ungrounded claim — hits a
         <em>safe fallback</em> instead of the user. That loop is the diagram on the right, and it's the difference between a
         demo and a production feature.</p>
-      </section>
+        </div>
+      </details>
 
       <section class="step" data-diagram="0" data-step="3">
         <div class="tag">On your cloud · managed guardrails</div>
@@ -230,7 +246,7 @@ return resp.text             # straight to the customer"
           define. The <strong>ApplyGuardrail</strong> API runs the same guardrail on any text without invoking a model, so
           one policy can screen inputs and outputs anywhere in your flow. It still sits <em>beside</em> your schema check and
           bounded retry, not instead of them.</p>
-          <div class="ix-cloud" data-core-interaction data-cloud="aws">
+          <div class="ix-cloud" data-core-interaction data-interaction-kind="provider-decision-feedback" data-cloud="aws">
             <div class="ix-k">✓ Practice · pick the safeguard</div>
             <p class="ix-cloud-q">A RAG answer passes your schema check but states a 60-day refund window that appears
             nowhere in the retrieved policy. Which Bedrock Guardrails safeguard is designed to flag it?</p>
@@ -258,7 +274,7 @@ return resp.text             # straight to the customer"
           its documented filter list has <strong>no source-grounding check</strong>, so on this path Guardrail 3 —
           grounding, citations, an "I don't know" exit — stays in your own code, beside your schema check and bounded
           retry.</p>
-          <div class="ix-cloud" data-core-interaction data-cloud="gcp">
+          <div class="ix-cloud" data-core-interaction data-interaction-kind="provider-decision-feedback" data-cloud="gcp">
             <div class="ix-k">✓ Practice · what does the filter cover?</div>
             <p class="ix-cloud-q">A RAG answer passes your schema check but states a 60-day refund window that appears
             nowhere in the retrieved policy. What does Model Armor do about it?</p>
@@ -296,6 +312,16 @@ return resp.text             # straight to the customer"
         </div>
       </section>
 
+      <noscript data-core="optional">
+        <section class="w1-nojs" aria-labelledby="nojs-d4b">
+          <h2 id="nojs-d4b">Static Core 30 fallback</h2>
+          <p><strong>Essential diagram — Output trust boundary:</strong> Untrusted output → schema validation → grounding check → bounded correction → safe fallback.</p>
+          <p><strong>Practice:</strong> Valid JSON invents a refund period. Did schema validation solve the risk? Write your decision before revealing feedback.</p>
+          <details><summary>Compare with feedback</summary><p>No. Shape is valid but the fact is ungrounded. Require source grounding/citations, permit “not found,” and safely reject unsupported claims.</p></details>
+          <p>The six-question interactive check needs JavaScript. Without it, use this prompt as the check and take your written evidence to the trainer session.</p>
+        </section>
+      </noscript>
+
       <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
@@ -307,6 +333,7 @@ return resp.text             # straight to the customer"
           <li><a href="https://docs.cloud.google.com/model-armor/overview" target="_blank" rel="noopener">Google Cloud — Model Armor overview</a> — the GCP path's prompt/response screening, templates, and filter list (accessed 2026-10-14).</li>
           <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/capabilities/control-generated-output" target="_blank" rel="noopener">Google Cloud — Structured output</a> — <code>response_schema</code> + <code>response_mime_type</code> for schema-conformant JSON on Gemini Enterprise Agent Platform (accessed 2026-10-14).</li>
           <li><a href="https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations" target="_blank" rel="noopener">Anthropic — Reduce hallucinations</a> — primary backing for Guardrail 3: ground in source, demand citations per claim, and permit "I don't know."</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html" target="_blank" rel="noopener">AWS — Claude Haiku 5.5 model card</a> — source for the <code>bedrock-runtime</code> US geo profile ID used in the static code example (accessed 2026-10-27; no account call).</li>
         </ul>
       </section>
 
@@ -315,7 +342,8 @@ return resp.text             # straight to the customer"
     <aside class="side">
       <div class="side-diagram">
         <div class="stage-title">Live diagram</div>
-        <svg id="diagram"></svg>
+        <svg id="diagram" aria-label="Interactive lesson diagram"></svg>
+        <noscript><p class="static-diagram" role="img" aria-label="Output trust boundary: Untrusted output → schema validation → grounding check → bounded correction → safe fallback."><strong>Output trust boundary</strong><br>Untrusted output → schema validation → grounding check → bounded correction → safe fallback.</p></noscript>
         <div class="stage-caption"></div>
       </div>
 
@@ -335,7 +363,7 @@ return resp.text             # straight to the customer"
       <div class="side-nav">
         <a class="snav-btn" href="d4a.html">◂ Back</a>
         <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
-        <a class="snav-btn snav-next"></a>
+        <a class="snav-btn snav-next" href="d5.html">Day 5 →</a>
       </div>
     </aside>
 
@@ -546,7 +574,7 @@ tool_config = {
 }
 
 resp = bedrock.converse(
-    modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+    modelId=&quot;us.anthropic.claude-haiku-5-5&quot;,
     messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: f&quot;Extract the invoice:\n{raw_invoice}&quot;}]}],
     toolConfig=tool_config,
     inferenceConfig={&quot;maxTokens&quot;: 512, &quot;temperature&quot;: 0},

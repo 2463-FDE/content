@@ -95,18 +95,26 @@
         `<div class="ix-grid">` +
         `<label>Input tokens<input class="c-in" type="number" value="4800"></label>` +
         `<label>Output tokens<input class="c-out" type="number" value="400"></label>` +
-        `<label>$ / M input<input class="c-pin" type="number" step="0.1" value="3"></label>` +
-        `<label>$ / M output<input class="c-pout" type="number" step="0.1" value="15"></label>` +
+        `<label>$ / M input<input class="c-pin" type="number" step="0.1" value="2"></label>` +
+        `<label>$ / M output<input class="c-pout" type="number" step="0.1" value="10"></label>` +
         `<label>Calls / day<input class="c-n" type="number" value="50000"></label>` +
         `</div>` +
         `<div class="ix-out">Per call <b class="c-call">$0</b> · Per day <b class="c-day">$0</b> · Per month <b class="c-mo">$0</b></div>`;
       const g = (s) => parseFloat(el.querySelector(s).value) || 0;
+      function setMoney(selector, amount, digits) {
+        const output = el.querySelector(selector);
+        output.dataset.value = String(amount);
+        output.textContent = new Intl.NumberFormat(undefined, {
+          style: "currency", currency: "USD",
+          minimumFractionDigits: digits, maximumFractionDigits: digits,
+        }).format(amount);
+      }
       function upd() {
         const per = g(".c-in") / 1e6 * g(".c-pin") + g(".c-out") / 1e6 * g(".c-pout");
         const day = per * g(".c-n"); const mo = day * 30;
-        el.querySelector(".c-call").textContent = "$" + per.toFixed(4);
-        el.querySelector(".c-day").textContent = "$" + day.toLocaleString(undefined, { maximumFractionDigits: 0 });
-        el.querySelector(".c-mo").textContent = "$" + mo.toLocaleString(undefined, { maximumFractionDigits: 0 });
+        setMoney(".c-call", per, 4);
+        setMoney(".c-day", day, 0);
+        setMoney(".c-mo", mo, 0);
       }
       el.querySelectorAll("input").forEach(i => i.addEventListener("input", upd)); upd();
     });
@@ -305,7 +313,7 @@
               `<div class="ce-ln"><span class="cek">from</span> langchain.agents <span class="cek">import</span> create_agent</div>` +
               `<div class="ce-ln"> </div>` +
               `<div class="ce-ln">agent = create_agent(</div>` +
-              `<div class="ce-ln ce-i">model=<span class="ces">"claude-haiku-4-5"</span>,</div>` +
+              `<div class="ce-ln ce-i">model=<span class="ces">"claude-haiku-5-5"</span>,</div>` +
               `<div class="ce-ln ce-i">system_prompt=<span class="ces">"</span><textarea class="ag-sys ce-ed" rows="1" spellcheck="false"></textarea><span class="ces">"</span>,</div>` +
               `<div class="ce-ln ce-i">tools=[<span class="ce-tools">${AGENT_TOOLS_UI.map(t => `<label class="ce-tool" title="${t.desc}"><input type="checkbox" class="ce-toolbox" value="${t.name}" checked><span>${t.name}</span></label>`).join('<span class="cep">, </span>')}</span>],</div>` +
               `<div class="ce-ln ce-i">tool_choice=<span class="ces">"</span><select class="ag-tc ce-ed ce-sel">${TC_CODE.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select><span class="ces">"</span>,</div>` +
