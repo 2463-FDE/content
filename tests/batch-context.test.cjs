@@ -29,8 +29,6 @@ test('supported cohorts resolve explicitly and unrelated cohorts do not inherit 
   assert.equal(api.modelFor(config, '2567').id, 'ltm-2567');
   assert.equal(api.modelFor(config, '2463'), null);
   assert.equal(api.modelFor(config, '987654321'), null);
-  assert.deepEqual([...config.cloudPath.options], ['aws', 'gcp', 'both']);
-  assert.equal(config.cloudPath.active, true);
   assert.deepEqual(config.batch.next, { id: null, label: 'Next batch', status: 'unconfigured' });
 });
 

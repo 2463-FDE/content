@@ -24,10 +24,10 @@
       })
     }),
     cloudPath: Object.freeze({
-      status: "ready",
-      label: "AWS/GCP/Both paths ready",
+      status: "evidence-lane-pending",
+      label: "AWS/GCP evidence seam pending",
       options: Object.freeze(["aws", "gcp", "both"]),
-      active: true
+      active: false
     })
   });
 });
