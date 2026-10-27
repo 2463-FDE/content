@@ -763,7 +763,9 @@ body.is-trainer .trainer-only { display:block; }
   .friday-rituals { flex-direction:row; flex-wrap:wrap; align-items:center; gap:10px; padding:9px 12px; }
   .friday-rituals .fr-label { margin-bottom:0; }
 }
-.cal { display:grid; grid-template-columns:188px repeat(5,1fr); gap:10px; }
+/* minmax(0,1fr) lets day tracks shrink below their nowrap-chip min-content, so
+   the grid can never blow out of .cal-main and slide under the sticky rail. */
+.cal { display:grid; grid-template-columns:188px repeat(5,minmax(0,1fr)); gap:10px; }
 .cal-dayhead { text-align:center; font-weight:700; color:var(--ink-soft); font-size:13px; text-transform:uppercase; letter-spacing:.08em; padding:4px 0 8px; }
 .cal-week { border-radius:var(--r-panel); padding:14px; background:var(--surface); border:1px solid var(--line); border-top:3px solid var(--pc); display:flex; flex-direction:column; justify-content:center; }
 .cal-week .ww { font-size:var(--label-size); font-weight:700; letter-spacing:var(--label-track); text-transform:uppercase; color:color-mix(in srgb, var(--pc) 70%, var(--ink)); font-variant-numeric:tabular-nums; }
@@ -774,8 +776,8 @@ body.is-trainer .trainer-only { display:block; }
 .cal-week.is-current { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
 .cal-week .wcur { margin-top:6px; font-size:var(--label-size); font-weight:700; letter-spacing:var(--label-track); text-transform:uppercase; color:var(--accent-ink); }
 .cal-cell { display:flex; flex-direction:column; text-decoration:none; color:inherit; background:var(--surface); border:1px solid var(--line); border-top:3px solid var(--pc); border-radius:var(--r-panel); padding:12px 13px; min-height:108px; position:relative; transition:transform var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out); }
-.cal-cell .ct { font-weight:650; font-size:14.5px; line-height:1.25; padding-right:38px; }
-.cal-cell .cs { font-size:12px; color:var(--ink-soft); margin-top:5px; line-height:1.35; }
+.cal-cell .ct { font-weight:650; font-size:14.5px; line-height:1.25; padding-right:38px; overflow-wrap:break-word; hyphens:auto; }
+.cal-cell .cs { font-size:12px; color:var(--ink-soft); margin-top:5px; line-height:1.35; overflow-wrap:break-word; }
 /* foot pinned to the bottom — Start + tags land in the same spot on every card */
 .cell-foot { margin-top:auto; display:flex; flex-direction:column; gap:9px; padding-top:11px; }
 .cal-cell .mk { display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:20px; border:1px solid var(--line); white-space:nowrap; }
