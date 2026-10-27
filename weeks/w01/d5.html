@@ -10,6 +10,7 @@
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
+<a class="skip-link" id="reading-skip-link" href="#reading-main">Skip to reading</a>
 
 <div class="topbar">
   <div class="topbar-left">
@@ -25,7 +26,7 @@
     <span class="progressbar"><i></i></span></div>
 </div>
 
-<main class="lesson2">
+<main class="lesson2 reading-main-target" id="reading-main" tabindex="-1">
   <div class="reading2col">
 
     <nav class="toc" aria-label="On this page"></nav>
@@ -36,7 +37,7 @@
         <div class="meta">
           <span><b>Week 1</b> · Day 5</span>
           <span>Build &amp; Assessment Day</span>
-          <span><b>~20 min</b> · build-day reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" data-core-words="1349" title="Required path: measured reading, essential diagram, one objective-aligned interaction with feedback, and the six-question check. Optional details are outside the cap."><b>Core 30</b> · ~9 min read · 1 interaction · 6-Q check · ~21 min required</span>
         </div>
         <p class="summary">Four days of ideas — the context window, model selection, resilient API calls, prompting,
         token budgets, output guardrails — collapse into one artifact today: a small piece of code that sits between
@@ -46,6 +47,13 @@
         the diagram on the right assembles the client layer by layer as you go.</p>
         <div class="ix-legend"></div>
       </div>
+
+      <section class="w1-core-brief" data-source-anchor="PDF p.1 · FRI" aria-labelledby="w1-core-d5">
+        <p class="w1-source-anchor">Authoritative v3 · PDF p.1 · Friday</p>
+        <h2 id="w1-core-d5">Close Delivery 1 with parity evidence</h2>
+        <p>Review the client as a system, not a demo. Compare the same model contract on Amazon Bedrock and Google’s managed Gemini/Model Garden surface: access boundary, request/response contract, streaming behavior, quota/error shape, observability, and data location. “Parity” means the same acceptance fixtures and explainable differences, not identical prose. A static tabletop is valid; no paid provider call is required.</p>
+        <p>For the Claude Code retro, share one workflow choice you kept and one you rejected with evidence. Submit the versioned prompt library, complete the code-review assessment, and prepare two readout layers: an executive outcome and the technical evidence that supports it. Finish with the Week 1 feedback form.</p>
+      </section>
 
       <section class="step" data-diagram="0" data-step="0">
         <div class="tag">The whole game</div>
@@ -69,7 +77,9 @@
         The diagram starts where the client does: with config.</p>
       </section>
 
-      <section class="step" data-diagram="0" data-step="1">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="1">
+        <summary>Deeper: Configuration, and where the key lives · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Layer 1 · config</div>
         <h2>Configuration, and where the key lives</h2>
         <p>Start at the bottom, with the least glamorous layer that quietly causes the most incidents:
@@ -89,9 +99,21 @@
         max-output lets a runaway answer cost many times the task; a middling temperature turns a deterministic
         extraction into a "flaky" bug. State your intentions here — short timeout, bounded output, temperature matched to
         the task — not whatever the library shipped.</p>
-      </section>
+        <details class="callout">
+          <summary><span class="k">Trainer troubleshooting · Bedrock IDs are routes</span></summary>
+          <p>For boto3 <code>bedrock-runtime</code>, the 2026-10-27 model cards list
+          <code>us.anthropic.claude-haiku-5-5</code> and <code>us.anthropic.claude-sonnet-5-5</code> as US geo profiles;
+          they can route across US Regions. Bare in-Region IDs and <code>global.</code> profiles carry different routing
+          semantics, and the separate <code>bedrock-mantle</code> endpoint also uses bare IDs. Check the model card,
+          endpoint, target Region, and the organization's approved profile together—never guess a prefix. This static
+          review made no AWS account call; organization-specific enablement remains a trainer/specialist check.</p>
+        </details>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="2">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="2">
+        <summary>Deeper: The model adapter: one interface, many models · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Layer 2 · adapter</div>
         <h2>The model adapter: one interface, many models</h2>
         <p>On top of config sits the <strong>adapter</strong> — the layer that hides the provider behind an interface
@@ -109,9 +131,12 @@
         run, and flakes on network hiccups. Swap in a fake adapter that returns a fixed answer and you can assert "given
         this model response, does my code do the right thing?" thousands of times for free. The interface you draw here
         is the contract the team programs against — design it for the caller's convenience, not the provider's quirks.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="3">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="3">
+        <summary>Deeper: Building the request, on a token budget · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Layer 3 · request builder</div>
         <h2>Building the request, on a token budget</h2>
         <p>Now the layer where Monday and Thursday collect their debt. The <strong>request builder</strong> assembles the
@@ -127,9 +152,12 @@
         site, good clients pull them from a <strong>prompt library</strong> — named, versioned, reusable templates with
         marked slots for the variable parts. We come back to that at the end; submitting one is part of Friday's
         hand-in.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="4">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="4">
+        <summary>Deeper: The network will fail — plan for it · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Layer 4 · resilient transport</div>
         <h2>The network will fail — plan for it</h2>
         <p>Here is the layer that separates a demo from a product. The moment your client leaves your laptop it talks to
@@ -151,9 +179,12 @@
         slow down, not push harder — which makes your client a good <em>citizen</em> of the API and keeps the whole
         system stable under load.</p>
         <button class="code-cta" type="button" data-modal="code-w1d5"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· transport.py</span></button>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="5">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="5">
+        <summary>Deeper: Streaming changes the feel and the failure modes · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Layer 4b · streaming</div>
         <h2>Streaming changes the feel and the failure modes</h2>
         <p>Transport has a second mode to support deliberately: <strong>streaming</strong>. Instead of waiting for the
@@ -167,7 +198,8 @@
         validate an answer that hasn't finished arriving, so you often buffer, then validate the complete result. The FDE
         judgment call is simple: stream the things humans watch in real time; don't bother streaming a classification or
         a JSON object headed for another system. Match the mode to who's on the other end.</p>
-      </section>
+        </div>
+      </details>
 
       <section class="step" data-diagram="0" data-step="6">
         <div class="tag">Layer 5 · validator / guardrail</div>
@@ -182,10 +214,13 @@
         and not the model's creative fourth option? On failure the client has options, in order of preference: retry once
         with a corrective instruction, fall back to a safe default, or surface a clear error — but it must
         <em>never</em> silently pass malformed output forward.</p>
-        <div class="ix-predict"
+        <details class="deep" data-core="optional">
+          <summary>Deeper practice: bound invalid-output retries · outside Core 30</summary>
+          <div class="ix-predict"
           data-q="Your validator catches malformed JSON, so you wire it to retry the call with a 'return valid JSON only' instruction. What guardrail must you add so this can't run forever — and what's the security seed here?"
           data-a="<b>A bounded retry-then-fallback</b> — at most one or two corrective retries, then fall back or error, so a model that keeps returning garbage can't loop and burn budget. The security seed (a whole Week-4 topic): never pass raw model output into anything <i>consequential</i> — a shell command, a DB write, a rendered page — any more than you'd pass raw user input into a SQL query. The validator is your first line of defense; output that gets executed or displayed is exactly where an attacker who can influence the prompt aims.">
         </div>
+        </details>
         <p>Guardrails go beyond format: strip outputs that leak the system prompt, block disallowed content, confirm a
         cited source exists, bound the length. Monday's model holds — a confident wrong answer is the model filling a gap,
         and the validator is your structured refusal to let that gap become the user's problem. On most real AI features
@@ -222,7 +257,7 @@
         client can pass every unit test and still leak keys, retry a non-idempotent action, or pass unvalidated JSON to
         production. So you review against a specific set of questions that map onto the layers you just built. Here's a
         wrapper a teammate wrote:</p>
-        <div class="ix-spot"
+        <div class="ix-spot" data-core-interaction data-interaction-kind="diagnosis-feedback"
           data-snippet="API_KEY = &quot;sk-ant-prod-9f3c...&quot;          # quick, fix later
 
 def ask(prompt):
@@ -246,7 +281,9 @@ def ask(prompt):
         and your partner's.</p>
       </section>
 
-      <section class="step extra" data-diagram="0" data-step="8">
+      <details class="deep w1-optional step extra" data-core="optional" data-diagram="0" data-step="8">
+        <summary>Deeper: Build a prompt library, not a pile of strings · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Deliverable · the prompt library</div>
         <h2>Build a prompt library, not a pile of strings</h2>
         <p>One deliverable deserves its own moment: the <strong>prompt library</strong>. By Friday you've written a lot
@@ -272,15 +309,28 @@ def ask(prompt):
           <strong>fill out the Week&nbsp;1 survey</strong> (the link is in the sidebar). Your numbers are how we keep the
           next four weeks calibrated to where you actually are.</p>
         </div>
-      </section>
+        </div>
+      </details>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <noscript data-core="optional">
+        <section class="w1-nojs" aria-labelledby="nojs-d5">
+          <h2 id="nojs-d5">Static Core 30 fallback</h2>
+          <p><strong>Essential diagram — Production client seam:</strong> Config → model adapter → request builder → resilient transport → validator → safe logs → prompt library.</p>
+          <p><strong>Practice:</strong> Tests pass, but raw model output flows downstream. What blocks launch? Write your decision before revealing feedback.</p>
+          <details><summary>Compare with feedback</summary><p>The missing validation boundary blocks launch. Treat output as untrusted, schema-check it, bound retries, define fallback, and prove the unhappy path before the readout.</p></details>
+          <p>The six-question interactive check needs JavaScript. Without it, use this prompt as the check and take your written evidence to the trainer session.</p>
+        </section>
+      </noscript>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://12factor.net/config" target="_blank" rel="noopener">The Twelve-Factor App — Config</a> — the canonical case for reading API keys and config from the environment, never committing them to source: exactly Layer 1's rule.</li>
           <li><a href="https://platform.claude.com/docs/en/api/errors" target="_blank" rel="noopener">Claude API — Errors</a> — the real HTTP codes your transport layer reasons about (429 rate limits, 5xx/529 overloaded, 504 timeout) plus the per-response request id for log correlation.</li>
           <li><a href="https://platform.claude.com/docs/en/cli-sdks-libraries/overview" target="_blank" rel="noopener">Claude API — CLI, SDKs, and libraries</a> — the official provider SDKs your model adapter wraps; each ships built-in streaming, retries, and typed error handling.</li>
           <li><a href="https://platform.claude.com/docs/en/build-with-claude/streaming" target="_blank" rel="noopener">Claude API — Streaming messages</a> — how server-sent-event streaming actually works, backing Layer 4b's time-to-first-token and mid-stream failure handling.</li>
+          <li><a href="https://platform.claude.com/docs/en/about-claude/models/model-ids-and-versions" target="_blank" rel="noopener">Anthropic — Model IDs and versioning</a> — current canonical IDs, aliases, and snapshots (accessed 2026-10-27).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html" target="_blank" rel="noopener">AWS — Claude Haiku 5.5 model card</a> and <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-5-5.html" target="_blank" rel="noopener">Sonnet 5.5 model card</a> — endpoint-specific IDs and regional routing choices (accessed 2026-10-27).</li>
         </ul>
       </section>
 
@@ -289,7 +339,8 @@ def ask(prompt):
     <aside class="side">
       <div class="side-diagram">
         <div class="stage-title">Live diagram</div>
-        <svg id="diagram"></svg>
+        <svg id="diagram" aria-label="Interactive lesson diagram"></svg>
+        <noscript><p class="static-diagram" role="img" aria-label="Production client seam: Config to model adapter to request builder to resilient transport to validator to safe logs to prompt library."><strong>Production client seam</strong><br>Config → model adapter → request builder → resilient transport → validator → safe logs → prompt library.</p></noscript>
         <div class="stage-caption"></div>
       </div>
 
@@ -309,7 +360,7 @@ def ask(prompt):
       <div class="side-nav">
         <a class="snav-btn" href="d4b.html">◂ Back</a>
         <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
-        <a class="snav-btn snav-next"></a>
+        <a class="snav-btn snav-next" href="survey.html">Week 1 feedback →</a>
       </div>
     </aside>
 

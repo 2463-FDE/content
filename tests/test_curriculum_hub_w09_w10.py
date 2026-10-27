@@ -94,9 +94,9 @@ class CurriculumHubTransferTests(unittest.TestCase):
             "console.log(JSON.stringify({pending:render(cfg),active:render(active)}));"
         )
         self.assertEqual(result["pending"]["client"], "LTM, formerly LTIMindtree")
-        self.assertEqual(result["pending"]["badge"], "AWS/GCP evidence seam pending")
-        self.assertEqual(result["pending"]["status"], "evidence-lane-pending")
-        self.assertEqual(result["pending"]["classes"], ["is-pending"])
+        self.assertEqual(result["pending"]["badge"], "AWS/GCP/Both paths ready")
+        self.assertEqual(result["pending"]["status"], "ready")
+        self.assertEqual(result["pending"]["classes"], ["is-ready"])
         self.assertEqual(result["active"]["badge"], "AWS/GCP evidence integrated")
         self.assertEqual(result["active"]["status"], "evidence-lane-integrated")
         self.assertEqual(result["active"]["classes"], ["is-ready"])

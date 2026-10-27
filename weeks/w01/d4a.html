@@ -10,6 +10,7 @@
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
+<a class="skip-link" id="reading-skip-link" href="#reading-main">Skip to reading</a>
 
 <div class="topbar">
   <div class="topbar-left">
@@ -25,7 +26,7 @@
     <span class="progressbar"><i></i></span></div>
 </div>
 
-<main class="lesson2">
+<main class="lesson2 reading-main-target" id="reading-main" tabindex="-1">
   <div class="reading2col">
 
     <nav class="toc" aria-label="On this page"></nav>
@@ -36,7 +37,7 @@
         <div class="meta">
           <span><b>Week 1</b> · Day 4 · Part 1</span>
           <span>Cost Engineering</span>
-          <span><b>~17 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" data-core-words="977" title="Required path: measured reading, essential diagram, one objective-aligned interaction with feedback, and the six-question check. Optional details are outside the cap."><b>Core 30</b> · ~7 min read · 1 interaction · 6-Q check · ~19 min required</span>
         </div>
         <p class="summary">Day 1 gave you the mental model: the context window is a <strong>finite budget</strong>, and
         every token in and out is metered. Today you turn that model into the first discipline a Forward Deployed Engineer
@@ -47,6 +48,12 @@
         comes back and makes it <em>trustworthy</em>.</p>
         <div class="ix-legend"></div>
       </div>
+
+      <section class="w1-core-brief" data-source-anchor="PDF p.1 · THU" aria-labelledby="w1-core-d4a">
+        <p class="w1-source-anchor">Authoritative v3 · PDF p.1 · Thursday</p>
+        <h2 id="w1-core-d4a">Harden the input and its cost</h2>
+        <p>Production hardening starts before generation. Keep stable prefixes cacheable, compress history without deleting commitments, assemble only the context this call needs, and attribute token spend per feature, user, and run. Diagnose the silent cache invalidator below, then use the check to distinguish caching, compression, dynamic assembly, and spend attribution. Detailed implementation and cost math remain available as optional depth.</p>
+      </section>
 
       <section class="step" data-diagram="0" data-step="0">
         <div class="tag">The whole game</div>
@@ -81,14 +88,14 @@
         on the next call it can reuse the already-processed version instead of re-reading it from scratch. You mark where
         the stable part ends, and subsequent requests that share that exact prefix get it served from cache. The economics
         are the whole point: a cached read costs only a fraction of the normal input price, while the first write costs
-        slightly more than normal to populate the cache. As of <span class="nowrap">June 2026</span>, on Anthropic's API a
-        cache <strong>read</strong> is billed at roughly <strong>0.1×</strong> the base input price — about a 90% discount
-        on the cached portion — while the cache <strong>write</strong> costs about <strong>1.25×</strong> for the short
-        (5-minute) lifetime or <strong>2×</strong> for the one-hour lifetime. <span class="src">[source: Anthropic
-        prompt-caching docs, platform.claude.com/docs/en/build-with-claude/prompt-caching, verified 2026-06-28]</span></p>
-        <p>Run the arithmetic and the discipline becomes obvious. Cache a 10,000-token stable prefix. The first call pays
-        ~1.25× to write it; every call after pays ~0.1× to read it instead of 1×. With the 5-minute cache you break even
-        after just <strong>two</strong> requests (1.25 + 0.1 = 1.35 versus 2.0 if you hadn't cached), and from the third
+        slightly more than normal to populate the cache. As verified <span class="nowrap">2026-10-27</span>, a 5-minute
+        cache <strong>write</strong> is <strong>1.25×</strong> base input and a one-hour write is <strong>2×</strong>.
+        Reads are model-specific: Sonnet 5.5 and Opus 5.5 are <strong>0.05×</strong>, Fable 5.1 is <strong>0.025×</strong>,
+        and models without an exception use <strong>0.1×</strong>. <span class="src">[source: Anthropic prompt-caching
+        docs, accessed 2026-10-27]</span></p>
+        <p>Run the arithmetic and the discipline becomes obvious. On Sonnet 5.5, cache a 10,000-token stable prefix. The
+        first call pays 1.25× to write it; every call after pays 0.05× to read it instead of 1×. With the 5-minute cache
+        you break even after just <strong>two</strong> requests (1.25 + 0.05 = 1.30 versus 2.0 uncached), and from the third
         request on it's nearly free. For a feature handling thousands of requests an hour against a fixed manual, caching
         routinely cuts the input bill by the better part of an order of magnitude.</p>
         <p>But there is one rule you must internalize, because it is the source of nearly every "why isn't my cache
@@ -96,7 +103,7 @@
         after it.</strong> Put a <code>datetime.now()</code> timestamp, a per-request UUID, or the user's name near the
         <em>top</em> of your system prompt and the prefix differs on every call — so nothing ever caches, you pay the write
         premium forever, and you get zero reads.</p>
-        <div class="ix-spot"
+        <div class="ix-spot" data-core-interaction data-interaction-kind="diagnosis-feedback"
           data-snippet="SYSTEM_PROMPT = f&quot;&quot;&quot;
 Current time: {datetime.now()}          # &lt;-- top of the prefix
 Session: {uuid4()}
@@ -115,7 +122,9 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
         <button class="code-cta" type="button" data-modal="code-w1d4a"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· cached_call.py</span></button>
       </section>
 
-      <section class="step" data-diagram="0" data-step="2">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="2">
+        <summary>Deeper: Context compression: shrink what you carry · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Lever 2 · Context compression</div>
         <h2>Context compression: shrink what you carry</h2>
         <p>Day 1's "silent leak" was conversation history: every turn re-sends the entire prior conversation, so a long
@@ -146,9 +155,12 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
         and what must stay verbatim (the user's stated constraints, IDs, numbers, the active task). Remember the Day 1
         line: <em>more retrieved text is not more intelligence; it's more budget spent.</em> A good summary is lossy on
         purpose, but lossy in the right places.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="3">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="3">
+        <summary>Deeper: Dynamic prompt assembly: include only what this call needs · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Lever 3 · Dynamic assembly</div>
         <h2>Dynamic prompt assembly: include only what this call needs</h2>
         <p>The beginner builds one giant prompt template — every instruction, every tool description, every example, every
@@ -172,23 +184,25 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
         is layering — keep a stable core (system prompt, the tools you always offer) at the front where it caches, and do
         your dynamic selection <em>after</em> the cache boundary. You get the cache discount on the stable part and the
         leanness of dynamic assembly on the variable part. That's why these levers are taught together, not in isolation.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="4">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="4">
+        <summary>Deeper: Cost management: you can&#x27;t optimize what you don&#x27;t measure · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Lever 4 · Cost management</div>
         <h2>Cost management: you can't optimize what you don't measure</h2>
         <p>All three levers above are guesses until you measure them. <strong>Cost management</strong> is the discipline of
         actually tracking what your AI features spend — the one that turns "the AI feature is expensive" (a vibe) into "the
-        summarization endpoint costs $0.018 per call and runs 40,000 times a day, which is $720/day, and 60% of that is the
-        uncached manual" (an action item). Clients ask the vibe question constantly. Your value is answering with the
+        summarization endpoint costs $0.0156 per call and runs 40,000 times a day, which is $624/day, and most input is
+        the uncached manual" (an action item). Clients ask the vibe question constantly. Your value is answering with the
         number. Run a feature's math yourself:</p>
         <div class="ix-cost"></div>
         <p>The base unit never changes from Day 1: <strong>cost ≈ (input + output tokens) × price-per-token</strong>, with
-        input and output billed at different rates and output usually the pricier. As of <span class="nowrap">June
-        2026</span>, a mid-tier model like Claude Sonnet 4.6 runs about <strong>$3 / M input and $15 / M output</strong>,
-        while a top-tier Opus model is roughly <strong>$5 / $25</strong>. <span class="src">[source: Anthropic model
-        pricing, claude-api reference catalog, cached 2026-06-04]</span> Those exact numbers will drift — always re-verify
-        — but the <em>shape</em> is durable: output costs several times more than input, so a feature that generates long
+        input and output billed at different rates and output usually the pricier. As verified <span class="nowrap">2026-10-27</span>,
+        Claude Sonnet 5.5 is <strong>$2 / M input and $10 / M output</strong>, while Opus 5.5 is
+        <strong>$4 / $20</strong>. <span class="src">[source: Anthropic Models overview, accessed 2026-10-27]</span>
+        Those numbers will drift — always re-verify — but the <em>shape</em> is durable: output costs more than input, so a feature that generates long
         responses has a very different cost profile than one that extracts a single label.</p>
         <p>The non-obvious part is the <strong>granularity</strong> of your tracking. A single aggregate "we spent $1,200
         last month" tells you nothing actionable. The numbers that drive decisions are sliced three ways. <strong>Per
@@ -203,9 +217,12 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
         user it belongs to, and you have a cost dashboard. That dashboard is what lets you say, with a straight face, "we
         cut this feature's cost 70% by caching the manual" — and prove it. Cost management isn't a finance chore bolted on
         at the end; it's the feedback loop that tells you whether the other three levers actually worked.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step extra" data-diagram="0" data-step="4">
+      <details class="deep w1-optional step extra" data-core="optional" data-diagram="0" data-step="4">
+        <summary>Deeper: Your tooling rewards exactly these habits · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Your tools</div>
         <h2>Your tooling rewards exactly these habits</h2>
         <p>Everything in Part 1 maps directly onto how you'll actually work this program. Token discipline here isn't an
@@ -226,14 +243,26 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
           that moved it is the one who gets the next contract. Carry the lean call into Part 2, where you make what it
           returns trustworthy.</p>
         </div>
-      </section>
+        </div>
+      </details>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <noscript data-core="optional">
+        <section class="w1-nojs" aria-labelledby="nojs-d4a">
+          <h2 id="nojs-d4a">Static Core 30 fallback</h2>
+          <p><strong>Essential diagram — Cost controls:</strong> Stable prefix → cache; old history → compress; per-call needs → assemble; usage → attribute by feature/user/run.</p>
+          <p><strong>Practice:</strong> A timestamp is inserted at the start of a cached prompt. What happens? Write your decision before revealing feedback.</p>
+          <details><summary>Compare with feedback</summary><p>The prefix changes every call, so cache reads miss. Put stable content first and volatile values after the cache boundary, then verify cache-read metrics.</p></details>
+          <p>The six-question interactive check needs JavaScript. Without it, use this prompt as the check and take your written evidence to the trainer session.</p>
+        </section>
+      </noscript>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic — Prompt caching</a> — the primary doc for Lever 1: prefix matching, cache invalidation, and the per-model minimum cacheable prefix size this page cites.</li>
-          <li><a href="https://platform.claude.com/docs/en/about-claude/pricing" target="_blank" rel="noopener">Anthropic — Pricing</a> — confirms the exact numbers in the cost-math section: cache read 0.1×, writes 1.25×/2× base input, Sonnet $3/$15 and Opus $5/$25 per MTok.</li>
+          <li><a href="https://platform.claude.com/docs/en/about-claude/models/overview" target="_blank" rel="noopener">Anthropic — Models overview</a> — confirms the 2026-10-27 Sonnet 5.5 $2/$10 and Opus 5.5 $4/$20 rates used in the cost math.</li>
           <li><a href="https://developers.openai.com/api/docs/guides/prompt-caching" target="_blank" rel="noopener">OpenAI — Prompt caching</a> — the same prefix-caching discipline at another provider: cached input up to ~90% cheaper, stable content first and variable content last.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html" target="_blank" rel="noopener">AWS — Claude Haiku 5.5 model card</a> — source for the <code>bedrock-runtime</code> US geo profile ID used in the static code example (accessed 2026-10-27; no account call).</li>
         </ul>
       </section>
 
@@ -242,7 +271,8 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
     <aside class="side">
       <div class="side-diagram">
         <div class="stage-title">Live diagram</div>
-        <svg id="diagram"></svg>
+        <svg id="diagram" aria-label="Interactive lesson diagram"></svg>
+        <noscript><p class="static-diagram" role="img" aria-label="Cost controls: Stable prefix → cache; old history → compress; per-call needs → assemble; usage → attribute by feature/user/run."><strong>Cost controls</strong><br>Stable prefix → cache; old history → compress; per-call needs → assemble; usage → attribute by feature/user/run.</p></noscript>
         <div class="stage-caption"></div>
       </div>
 
@@ -262,7 +292,7 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
       <div class="side-nav">
         <a class="snav-btn" href="d3b.html">◂ Back</a>
         <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
-        <a class="snav-btn snav-next"></a>
+        <a class="snav-btn snav-next" href="d4b.html">Day 4 · Guardrails →</a>
       </div>
     </aside>
 
@@ -279,39 +309,37 @@ resp = model.call(SYSTEM_PROMPT + user_question, cache=True)"
     <p class="quiz-sub">Optional. ~6 minutes. The numbers under today's picture.</p>
 
     <p><strong>1 · What caching actually saves.</strong> Caching is a prefix match billed in two parts: a cache
-    <em>write</em> (slightly more than normal input price) and cache <em>reads</em> (a small fraction of it). As of
-    <span class="nowrap">June 2026</span> on Anthropic's API, a read is ~<strong>0.1×</strong> base input price and a
-    write is ~<strong>1.25×</strong> (5-min cache) or ~<strong>2×</strong> (1-hour cache). <span class="src">[Anthropic
-    prompt-caching docs, verified 2026-06-28]</span> Caching only kicks in above a minimum prefix size (roughly
-    1,024–4,096 tokens depending on model) — shorter prefixes silently won't cache.</p>
+    <em>write</em> and cache <em>reads</em>. For Sonnet 5.5 as verified 2026-10-27, a read is <strong>0.05×</strong> base
+    input price and a write is <strong>1.25×</strong> (5-minute cache) or <strong>2×</strong> (1-hour cache).
+    <span class="src">[Anthropic prompt-caching docs, accessed 2026-10-27]</span> Minimum cacheable prefix sizes vary by
+    model, so verify that threshold too.</p>
 
     <div class="model-answer show">
       <div class="ma-k">Worked example — caching a 10,000-token stable prefix (5-min cache)</div>
       <ul class="deliv-list">
         <li>Uncached: every call pays <b>1×</b> → 10 calls = <b>10.0</b> prefix-equivalents</li>
-        <li>Cached: 1 write (1.25×) + 9 reads (0.1× each = 0.9) = <b>2.15</b> for the same 10 calls</li>
-        <li>That's a <b>~78%</b> cut on the prefix across 10 calls — and savings only grow with volume</li>
+        <li>Cached: 1 write (1.25×) + 9 reads (0.05× each = 0.45) = <b>1.70</b> for the same 10 calls</li>
+        <li>That's an <b>83%</b> cut on the prefix across 10 calls — and savings grow with volume</li>
       </ul>
-      <p style="margin:8px 0 0">Break-even is fast: by call 2, cached (1.25 + 0.1 = 1.35) already beats uncached (2.0).
+      <p style="margin:8px 0 0">Break-even is fast: by call 2, cached (1.25 + 0.05 = 1.30) already beats uncached (2.0).
       The one rule: a timestamp/UUID/username near the <em>top</em> of the prefix changes it every call → 0 reads, and you
       pay the write premium forever. Keep volatile content <em>after</em> the cache boundary.</p>
     </div>
 
     <p style="margin-top:14px"><strong>2 · A per-feature cost model.</strong> Base unit unchanged from Day 1:
-    cost = (input × in_price) + (output × out_price). Take a support-bot turn at Sonnet-class pricing (~$3 / M input,
-    $15 / M output as of <span class="nowrap">June 2026</span> <span class="src">[claude-api catalog, cached
-    2026-06-04]</span>):</p>
+    cost = (input × in_price) + (output × out_price). Take a support-bot turn at Claude Sonnet 5.5's 2026-10-27 rate
+    ($2 / M input and $10 / M output):</p>
     <div class="model-answer show">
       <div class="ma-k">One turn, then at scale</div>
       <ul class="deliv-list">
         <li>System prompt 1,500 + manual 3,000 + history 1,200 + question 100 = <b>5,800 input</b></li>
         <li>Answer = <b>400 output</b></li>
-        <li>Input 5,800 → $0.0174 · Output 400 → $0.0060 · <b>≈ $0.023 / turn</b></li>
-        <li>× 40,000 turns/day = <b>~$920/day</b>. Cache the 4,500-token system+manual prefix and the input bill on
-        cached calls drops ~90% of that portion → roughly <b>$300–$400/day saved</b>.</li>
+        <li>Input 5,800 → $0.0116 · Output 400 → $0.0040 · <b>$0.0156 / turn</b></li>
+        <li>× 40,000 turns/day = <b>$624/day</b>. Cache the 4,500-token system+manual prefix at Sonnet 5.5's 0.05× read
+        rate: steady-state calls fall to about <b>$0.0071</b> → roughly <b>$342/day saved</b>.</li>
       </ul>
       <p style="margin:8px 0 0">Now slice it: <b>per feature</b> (this endpoint is 80% of the bill), <b>per user</b> (one
-      tenant driving 40% of turns), <b>per run</b> (an agent task that fans out to 12 calls costs ~$0.28, not $0.023). You
+      tenant driving 40% of turns), <b>per run</b> (an agent task that fans out to 12 calls costs about $0.19, not $0.0156). You
       get every number from the usage fields on each response — log them, tag them, and you have a dashboard you can defend
       to the client.</p>
     </div>
@@ -365,16 +393,16 @@ window.DIAGRAM = {
     // contrast card — the whole funnel in one line: BLOATED 12k vs TRIMMED 2.4k
     { id:"ex", step:0, kind:"example", x:20, y:14, w:600, h:86,
       label:"BLOATED  system + manual + 15 tools + all history + Q  ≈ 12,000 tok\nTRIMMED  cached prefix + 300-tok summary + 2 tools + Q   ≈  2,400 tok",
-      detail:"Same task, two prompts. BLOATED re-sends a 1,500-tok system prompt, a 3,000-tok manual, all 15 tool schemas, and 20 turns of verbatim history every call — ~12,000 tokens, nearly all of it repeated or irrelevant. TRIMMED caches the fixed system+manual prefix (≈0.1× on reuse), replaces old turns with a 300-tok summary, sends only the 2 tools this request could use, and appends the question after the cache boundary — ~2,400 tokens, and most of it cached. Same answer, a fraction of the bill." },
+      detail:"Same task, two prompts. BLOATED re-sends a 1,500-tok system prompt, a 3,000-tok manual, all 15 tool schemas, and 20 turns of verbatim history every call — ~12,000 tokens, nearly all of it repeated or irrelevant. TRIMMED caches the fixed system+manual prefix (0.05× on Sonnet 5.5 reuse), replaces old turns with a 300-tok summary, sends only the 2 tools this request could use, and appends the question after the cache boundary — ~2,400 tokens, and most of it cached. Same answer, a fraction of the bill." },
 
     // ── RAW (step 0): input fills almost the whole window, barely any answer room ──
     { id:"rawL",   step:0, x:20, y:146, w:100, h:48, label:"RAW\neverything" },
     { id:"rawIn",  step:0, kind:"example", x:130, y:146, w:430, h:48, label:"~12k in · mostly repeat / irrelevant" },
     { id:"rawRm",  step:0, x:560, y:146, w:50,  h:48, label:"" },
 
-    // ── ① cache (step 1): stable prefix served at ~0.1× → input drops to ~7k ──
+    // ── ① cache (step 1): stable prefix served at 0.05× on Sonnet 5.5 → input drops to ~7k ──
     { id:"cacheL", step:1, x:20, y:216, w:100, h:48, label:"① cache\nprefix",
-      detail:"Cache the stable prefix — the system prompt, the product manual, and the fixed tool list don't change between calls. You mark where the stable part ends and the provider serves it from cache on reuse at ~0.1× input price (the first write costs ~1.25×, so you break even by call 2). The one rule: any byte change ABOVE the cache boundary — a datetime.now(), a per-request UUID, the user's name — makes the prefix differ every call, so nothing caches and you pay the write premium forever. Keep all volatile content AFTER the boundary." },
+      detail:"Cache the stable prefix — the system prompt, the product manual, and the fixed tool list don't change between calls. You mark where the stable part ends and the provider serves it from cache on reuse at 0.05× input price on Sonnet 5.5 (the first write costs ~1.25×, so you break even by call 2). The one rule: any byte change ABOVE the cache boundary — a datetime.now(), a per-request UUID, the user's name — makes the prefix differ every call, so nothing caches and you pay the write premium forever. Keep all volatile content AFTER the boundary." },
     { id:"cacheIn",step:1, kind:"example", x:130, y:216, w:251, h:48, label:"~7k in · prefix cached" },
     { id:"cacheRm",step:1, x:381, y:216, w:229, h:48, label:"room to answer ↑" },
 
@@ -403,7 +431,7 @@ window.DIAGRAM = {
   ],
   captions: [
     "Read each row as the <b>same context window</b> (fixed width). The <b>dark</b> part is input tokens you pay for; the empty part is room left to answer. At RAW it's ~12,000 tokens — nearly all repeated or irrelevant — and almost no answer room. Each lever below shrinks the dark part. <span style='opacity:.7'>(tap the top card)</span>",
-    "<b>① Prompt caching</b>: the stable prefix (system + manual) is reused at ~0.1× input price, so it stops counting against you — the dark bar drops to ~7k and answer room opens up. Keep volatile content <i>after</i> the cache boundary or nothing caches. <span style='opacity:.7'>(tap ① cache)</span>",
+    "<b>① Prompt caching</b>: the stable prefix (system + manual) is reused at 0.05× input price on Sonnet 5.5, so it stops counting against you — the dark bar drops to ~7k and answer room opens up. Keep volatile content <i>after</i> the cache boundary or nothing caches. <span style='opacity:.7'>(tap ① cache)</span>",
     "<b>② Compress</b>: replace 20 verbatim turns with a 300-token summary and extract only the relevant slice of retrieved docs — input falls to ~4k. More text is not more intelligence; it's more budget spent. <span style='opacity:.7'>(tap ② compress)</span>",
     "<b>③ Dynamic assembly</b>: include only the instructions, tools, and examples <b>this</b> request needs — done <i>after</i> the cache boundary so the prefix still caches. The dark bar bottoms out at ~2.4k; the window is now mostly answer room. <span style='opacity:.7'>(tap ③ assemble)</span>",
     "The window is lean, so the <b>metered call</b> costs a fraction of the bloated one — ~2,400 tokens, not ~12,000. cost = (input + output) × price; track it per feature, per user, per run. <span style='opacity:.7'>(tap API CALL)</span>"
@@ -448,7 +476,7 @@ window.QUIZ = {
     { type: "match",
       stem: "Match each cost lever to what it does.",
       pairs: [
-        { l: "Prompt caching", r: "reuse a stable prefix at ~0.1× input price" },
+        { l: "Prompt caching", r: "reuse a stable prefix at 0.05× input price on Sonnet 5.5" },
         { l: "Context compression", r: "replace bulky history/docs with a smaller representation" },
         { l: "Dynamic assembly", r: "include only the parts this request needs" },
         { l: "Cost management", r: "measure spend per feature / user / run" } ],
@@ -465,15 +493,15 @@ window.QUIZ = {
   <div class="modal-card code-modal">
     <button class="modal-close" type="button" aria-label="Close">✕</button>
     <h2>Production code: prompt caching</h2>
-    <p class="cv-cap">A single cachePoint marks where the stable prefix ends; the system rules and manual are served from cache at ~0.1x on every later call, while the volatile question stays after the boundary.</p>
+    <p class="cv-cap">A single cachePoint marks where the stable prefix ends; for this dated Haiku 5.5 example, the system rules and manual are served from cache at 0.1× on later calls while the volatile question stays after the boundary.</p>
     <div class="cv" data-file="cached_call.py" data-lang="python"><pre class="cv-raw"># Stop paying full price for the same prefix twice: cache the stable part with a cachePoint.
 # Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
 import boto3
 
 bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
 
-# STABLE prefix first (system rules + manual). Haiku 4.5 needs &gt;= 4096 tokens to cache.
-# The cachePoint marks where the cacheable prefix ends; reads bill at ~0.1x.
+# STABLE prefix first (system rules + manual). Haiku 5.5 needs &gt;= 512 tokens to cache.
+# The cachePoint marks where the cacheable prefix ends; Haiku 5.5 reads bill at 0.1x.
 system = [
     {&quot;text&quot;: SYSTEM_RULES + PRODUCT_MANUAL},    # identical on every call
     {&quot;cachePoint&quot;: {&quot;type&quot;: &quot;default&quot;}},         # &lt;-- everything ABOVE this is cached
@@ -481,7 +509,7 @@ system = [
 
 def ask(question: str):
     resp = bedrock.converse(
-        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+        modelId=&quot;us.anthropic.claude-haiku-5-5&quot;,
         system=system,
         # VOLATILE content goes AFTER the boundary, so the prefix stays byte-identical.
         messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: question}]}],

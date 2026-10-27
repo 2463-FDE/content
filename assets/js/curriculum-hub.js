@@ -54,7 +54,7 @@
     weekSelect.addEventListener("change", fillDays);
     daySelect.addEventListener("change", update);
     open.addEventListener("click", launch);
-    weekSelect.value = weeks.some(function (week) { return week.w === 9; }) ? "9" : (weeks[0] ? String(weeks[0].w) : "");
+    weekSelect.value = weeks.some(function (week) { return week.w === 1; }) ? "1" : (weeks[0] ? String(weeks[0].w) : "");
     fillDays();
   }
   document.addEventListener("DOMContentLoaded", init);

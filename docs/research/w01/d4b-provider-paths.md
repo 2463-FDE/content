@@ -15,6 +15,12 @@ Source: https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-use-inde
 
 - "You can use the ApplyGuardrail API to assess any text using your pre-configured Amazon Bedrock Guardrails, without invoking the foundation models." User inputs and FM outputs can be evaluated independently.
 
+## AWS — current code-example model ID
+
+Source (accessed 2026-10-27): https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html
+
+The model card lists `us.anthropic.claude-haiku-5-5` as a US geo inference-profile ID for `bedrock-runtime`. A geo profile may route across Regions in its geography and is not a single-Region guarantee. This static review made no account call and does not claim organization-specific enablement.
+
 ## GCP — Model Armor
 
 Source: https://docs.cloud.google.com/model-armor/overview (page "Last updated 2026-10-13 UTC")

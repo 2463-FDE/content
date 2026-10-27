@@ -22,11 +22,12 @@
     localStorage.removeItem(KEY);
     localStorage.removeItem(TOKEN_KEY);
   }
-  // Server-side validation: POST the code to the Worker; on success it returns
-  // {ok, token, name, role}. Returns {idt, token} or null. Never throws.
+  // Server-side validation: keep an invalid code distinct from an unavailable
+  // sign-in service so learners get an honest recovery action. Never throws.
   async function resolve(code) {
     const c = (code || "").trim();
-    if (!c || !RUN) return null;
+    if (!c) return { status: "invalid" };
+    if (!RUN) return { status: "unavailable" };
     try {
       const r = await fetch(RUN + "/auth/login", {
         method: "POST",
@@ -35,10 +36,13 @@
       });
       const data = await r.json();
       if (r.ok && data && data.ok) {
-        return { idt: { code: c, name: data.name, role: data.role }, token: data.token };
+        return { status: "ok", idt: { code: c, name: data.name, role: data.role }, token: data.token };
       }
-    } catch (e) { /* network/parse error -> treated as not recognized */ }
-    return null;
+      if (r.status === 400 || r.status === 401 || r.status === 403 || r.status === 404) {
+        return { status: "invalid" };
+      }
+      return { status: "unavailable" };
+    } catch (e) { return { status: "unavailable" }; }
   }
   // Trainer-only nav link: shown site-wide (auth.js is global) when the session
   // role is "trainer". Learners never see it. Server still enforces trainer on
@@ -77,25 +81,45 @@
   function overlay() {
     const o = document.createElement("div");
     o.className = "login-overlay";
+    o.setAttribute("role", "dialog");
+    o.setAttribute("aria-modal", "true");
+    o.setAttribute("aria-labelledby", "login-title");
     o.innerHTML =
       '<div class="login-card">' +
         '<div class="lc-brand"><b>2463</b>·FDE</div>' +
-        '<h2>Enter your access code</h2>' +
-        '<p>This marks who you are so your readings, checks, and surveys are saved under your name. Your trainer gives you the code.</p>' +
-        '<input type="text" class="lc-input" placeholder="Enter your access code" autocomplete="off" spellcheck="false">' +
-        '<button class="btn lc-go" type="button">Continue</button>' +
-        '<div class="lc-err"></div>' +
+        '<h2 id="login-title">Sign in to continue</h2>' +
+        '<p>Use the access code from your trainer. It connects saved readings, checks, and surveys to your learner profile.</p>' +
+        '<label class="lc-label" for="fde-access-code">Access code</label>' +
+        '<input id="fde-access-code" type="text" class="lc-input" autocomplete="off" spellcheck="false" maxlength="128" aria-describedby="login-error">' +
+        '<button class="btn lc-go" type="button">Sign in</button>' +
+        '<div class="lc-err" id="login-error" role="status" aria-live="polite"></div>' +
       '</div>';
     document.body.appendChild(o);
+    Array.from(document.body.children).forEach(node => {
+      if (node === o || node.tagName === "SCRIPT") return;
+      node.inert = true;
+      node.setAttribute("aria-hidden", "true");
+    });
     const inp = o.querySelector(".lc-input"), err = o.querySelector(".lc-err"), go = o.querySelector(".lc-go");
     async function submit() {
-      go.disabled = true; err.textContent = "";
+      go.disabled = true; o.setAttribute("aria-busy", "true"); err.textContent = "";
       const m = await resolve(inp.value);
-      if (m) { set(m.idt, m.token); location.reload(); }
-      else { err.textContent = "Code not recognized. Check with your trainer."; go.disabled = false; inp.focus(); }
+      if (m.status === "ok") { set(m.idt, m.token); location.reload(); return; }
+      err.textContent = m.status === "invalid"
+        ? "That code wasn’t recognized. Check it, or ask your trainer for a new code."
+        : "Sign-in is temporarily unavailable. Your code was not changed. Check your connection and try again.";
+      go.disabled = false; o.removeAttribute("aria-busy"); inp.focus();
     }
     go.addEventListener("click", submit);
     inp.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+    o.addEventListener("keydown", e => {
+      if (e.key !== "Tab") return;
+      const focusable = [inp, go].filter(node => !node.disabled);
+      if (!focusable.length) { e.preventDefault(); return; }
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
     setTimeout(() => inp.focus(), 50);
   }
   // Sessions expire (~30 days) but the identity record does not, so a learner keeps
@@ -110,7 +134,7 @@
     const idt = get();
     if (!idt || !idt.code) return "";
     const m = await resolve(idt.code);
-    if (!m) return "";
+    if (m.status !== "ok") return "";
     set(m.idt, m.token);
     return m.token;
   }
