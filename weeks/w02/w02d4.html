@@ -36,7 +36,7 @@
         <div class="meta">
           <span><b>Week 2</b> · Day 4</span>
           <span>Foundation AI Engineering</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta"><b>Core 30</b> · ~9 min read · 1 interaction · 6-Q check</span>
         </div>
         <p class="summary">You've built a RAG system. It returns answers. They look right. That is exactly the moment
         a Forward Deployed Engineer should get nervous — because "looks right" is not "is right," and the client is about
@@ -45,7 +45,9 @@
         scoring each with metrics that turn vibes into numbers. By the end you can tell a client not just <em>that</em>
         the system is wrong, but <em>where</em> it broke and which knob to turn. Scroll the reading; the panel on the
         right assembles the evaluation pipeline one metric at a time.</p>
+        <aside class="callout mindset project-progress" aria-label="Solo insurance project progress"><b>Project 1 · solo insurance brownfield</b><p>Advance: add a synthetic eval set covering retrieval misses, context pollution, faithfulness, context recall, and answer relevance.</p></aside>
         <div class="ix-legend"></div>
+        <noscript><section class="core30-fallback" aria-label="No-JavaScript practice and check"><h2>Offline practice</h2><p>Classify one failed answer as retrieval, grounding, or relevance failure.</p><details><summary>Check your reasoning</summary><p>Use context recall/precision for retrieval and faithfulness/answer relevance for generation; name the stage before the fix.</p></details></section></noscript>
       </div>
 
       <section class="step" data-diagram="0" data-step="0">
@@ -110,7 +112,7 @@
         ids against known-relevant ids — cheap and deterministic when you have that labelling. The reference-free
         variant is the one you reach for first on a client engagement where nobody has built a labelled test set
         yet.</p>
-        <div class="ix-precision"></div>
+        <details class="deep" data-core="optional"><summary>Optional practice: inspect ranking precision</summary><div class="ix-precision"></div></details>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -133,9 +135,10 @@
         A strict mode forces binary scoring at a threshold of 1, meaning anything less than perfectly grounded fails.
         That threshold is a policy decision you make with the client: a customer-facing medical or financial assistant
         might demand strict mode, while an internal brainstorming tool can tolerate a softer bar.</p>
-        <div class="ix-faith" data-scenario="refund" data-live="1"></div>
+        <div class="ix-faith" data-core-interaction data-scenario="refund" data-live="1"></div>
       </section>
 
+      <details class="deep" data-core="optional"><summary>Optional depth: judge mechanics, robustness &amp; failure taxonomy</summary>
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">The shared engine</div>
         <h2>How the scoring actually works: LLM-as-judge</h2>
@@ -241,7 +244,9 @@
         </div>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      </details>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/" target="_blank" rel="noopener">Ragas — List of available metrics</a> — the full metric catalogue and how the three core metrics map to what a RAG system must get right.</li>

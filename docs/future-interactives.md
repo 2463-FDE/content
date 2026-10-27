@@ -61,13 +61,13 @@ before they become functional `ix-run` blocks. Tracked here per the fan-out plan
 - **CrewAI: orchestration is an enum and a manager** — Planned: a crew-run inspector — define a three-agent crew, toggle between the sequential and hierarchical processes with a manager model, and watch the task-allocation decisions the manager makes, and re-makes, on the same input. Needs backend standup.
 - **One axis, three positions — making the call like an FDE** — Planned: a pattern-translation board — describe a client workflow in one sentence and see it mapped side-by-side into all three stacks (LangGraph supervisor/swarm code sketch, CrewAI Process + delegation flags, MAF orchestration choice), with the explicitness tradeoff annotated on each. Needs backend standup.
 
-#### w04d4 — Knowledge Graphs & Cypher: When Retrieval Needs Relationships (3)
+#### w04d4 — Knowledge Graphs & Cypher, optional Week 5 history (3)
 
 - **Nouns become labels, verbs become relationships** — Planned: a schema-builder panel — paste three sentences describing a client domain, highlight the nouns and verbs, and watch them assemble into a labeled property-graph schema you can then test against sample use-case questions. Needs backend standup.
 - **Neo4j's vector index: semantic search and traversal in one store** — Planned: a live Cypher console against a small seeded movie graph — create the vector index, run `db.index.vector.queryNodes` with a real embedded question, and inspect the returned nodes and similarity scores. Needs backend standup.
 - **Text2Cypher: retrieval by writing the query** — Planned: a Text2Cypher playground — type a natural-language question, see the LLM-generated Cypher and the executed results side by side, then vandalize the schema (rename `ACTED_IN` to `RELATED_TO`) and watch the generated query degrade. Needs backend standup.
 
-#### w04d5 — GraphRAG End-to-End: When Retrieval Grows a Graph (3)
+#### w04d5 — GraphRAG End-to-End, optional Week 5 history (3)
 
 - **SimpleKGPipeline: docs in, graph out** — Planned: paste a short incident report and run a live `SimpleKGPipeline` pass — watch the splitter, embedder, and extractor stages fire and the extracted entity graph render node by node. Needs backend standup.
 - **The retriever ladder: vector entry, graph expansion** — Planned: fire the same question at a `VectorRetriever` and a `VectorCypherRetriever` side by side and diff the retrieved context — see exactly what the graph hop added. Needs backend standup.
