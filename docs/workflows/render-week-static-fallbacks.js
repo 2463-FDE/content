@@ -39,7 +39,7 @@ for (const catalog of catalogs) {
     const desc = source.match(/<desc\b[^>]*>([\s\S]*?)<\/desc>/i);
     if (!desc) throw new Error(`${id}: Archify description missing`);
     const fallback = catalog.renderer.staticFallbackHtml(catalog.lessons[id], decode(desc[1]));
-    const next = source.replace(/<noscript>[\s\S]*?<\/noscript>/, fallback);
+    const next = source.replace(/<noscript>[\s\S]*?<\/noscript>/, () => fallback);
     if (next === source && !source.includes(fallback)) throw new Error(`${id}: no replaceable fallback`);
     if (source !== next) {
       stale.push(path.relative(root, file));
