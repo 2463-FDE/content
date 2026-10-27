@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "authority": {
+    "filename": "RevaturePro | LTIM FDE v3.pdf",
+    "sha256": "1792ba5c20a62fdd1e83463d9032d129ee644e58b220129b2f736f5fb863ed7e",
+    "pdfHeader": "%PDF-1.3",
+    "pages": 8,
+    "baseline": "a971f2aeec2fc65d6d71c134eae52b2bb7889061"
+  },
+  "denominator": {
+    "modules": 10,
+    "days": 50,
+    "standardTopicGroups": 353,
+    "milestoneOrDeliveryGroups": 33,
+    "feedbackLinks": 10,
+    "sourceItems": 396,
+    "countingRule": "A source item is one visually separated standard topic group, red milestone/delivery group, or Friday feedback link. Repeated phase labels, column headers, the page-8 legend, and copyright text are not objectives."
+  },
+  "statusMeaning": {
+    "covered": "The current site has the source day’s technical and delivery outcomes, allowing split routes and explicit cross-day references.",
+    "partial": "The current site covers substantial content, but at least one source-assigned outcome is absent, implicit, stale, or only available on a different day without a clear bridge.",
+    "conflict": "The current route’s primary topic displaces the source day’s assigned topic. Preserve useful work, but the week lane must restore the v3 outcome."
+  },
+  "modules": [
+    {
+      "week": 1,
+      "phase": 1,
+      "title": "Production LLM Engineering on Bedrock & Claude Code",
+      "days": [
+        {"day": 1, "sourceItems": 8, "routes": ["weeks/w01/d1.html"], "status": "partial", "gap": "Make orientation, toolchain/auth, CLAUDE.md, plan-mode discipline, and baseline calibration explicit."},
+        {"day": 2, "sourceItems": 9, "routes": ["weeks/w01/d2a.html", "weeks/w01/d2b.html"], "status": "covered", "gap": null},
+        {"day": 3, "sourceItems": 8, "routes": ["weeks/w01/d3a.html", "weeks/w01/d3b.html"], "status": "covered", "gap": null},
+        {"day": 4, "sourceItems": 9, "routes": ["weeks/w01/d4a.html", "weeks/w01/d4b.html"], "status": "covered", "gap": null},
+        {"day": 5, "sourceItems": 7, "routes": ["weeks/w01/d5.html", "weeks/w01/survey.html"], "status": "partial", "gap": "Add the Claude Code retro, provider parity defense, and explicit executive/technical readout closure."}
+      ]
+    },
+    {
+      "week": 2,
+      "phase": 1,
+      "title": "Production RAG with Chroma",
+      "days": [
+        {"day": 1, "sourceItems": 8, "routes": ["weeks/w02/w02d1.html"], "status": "covered", "gap": null},
+        {"day": 2, "sourceItems": 9, "routes": ["weeks/w02/w02d2.html"], "status": "covered", "gap": null},
+        {"day": 3, "sourceItems": 8, "routes": ["weeks/w02/w02d3.html"], "status": "covered", "gap": null},
+        {"day": 4, "sourceItems": 8, "routes": ["weeks/w02/w02d4.html"], "status": "covered", "gap": null},
+        {"day": 5, "sourceItems": 7, "routes": ["weeks/w02/w02d5.html"], "status": "partial", "gap": "Add the skills retro, named deployment comparison, brownfield client-corpus delivery, two-audience readout, and feedback closure."}
+      ]
+    },
+    {
+      "week": 3,
+      "phase": 1,
+      "title": "Single Agents with LangChain + Tracing",
+      "days": [
+        {"day": 1, "sourceItems": 9, "routes": ["weeks/w03/w03d1.html", "weeks/w03/w03d3.html", "weeks/w03/w03d5.html"], "status": "partial", "gap": "Plan-and-execute and Reflexion are not explicit; source content is scattered across three routes."},
+        {"day": 2, "sourceItems": 8, "routes": ["weeks/w03/w03d2.html", "weeks/w03/w03d5.html"], "status": "partial", "gap": "Make confidence thresholds and escalation paths explicit alongside approval gates."},
+        {"day": 3, "sourceItems": 8, "routes": ["weeks/w03/w03d2.html", "weeks/w03/w03d4.html"], "status": "partial", "gap": "Add the Python MCP-server lab and technical-stack onboarding outcome; retain all four memory forms."},
+        {"day": 4, "sourceItems": 9, "routes": ["weeks/w03/w03d5.html"], "status": "partial", "gap": "Add eval-driven success metrics, structured logging, replay, and failure attribution to the existing OTel/provider targets."},
+        {"day": 5, "sourceItems": 8, "routes": ["weeks/w03/w03d5.html"], "status": "partial", "gap": "Add completed-agent submission, hooks retro, walkthrough assessment, brownfield delivery, demo/readout, and feedback closure."}
+      ]
+    },
+    {
+      "week": 4,
+      "phase": 2,
+      "title": "Multi-Agent Orchestration: LangGraph & CrewAI",
+      "days": [
+        {"day": 1, "sourceItems": 9, "routes": ["weeks/w04/w04d1.html"], "status": "covered", "gap": null},
+        {"day": 2, "sourceItems": 8, "routes": ["weeks/w04/w04d2.html"], "status": "partial", "gap": "Add shared-state schema, message-passing, conflict-resolution, and cross-framework handoff criteria."},
+        {"day": 3, "sourceItems": 9, "routes": ["weeks/w04/w04d3.html"], "status": "covered", "gap": null},
+        {"day": 4, "sourceItems": 8, "routes": ["weeks/w04/w04d4.html"], "status": "conflict", "gap": "The route teaches Week 5 graph material. Restore cost/latency, token budget, approval, cross-agent traces, dashboards, Claude subagents, and the provider-swap seam while preserving useful historical work."},
+        {"day": 5, "sourceItems": 8, "routes": ["weeks/w04/w04d5.html"], "status": "conflict", "gap": "The route teaches Week 5 GraphRAG. Restore pipeline boundaries/handoffs, subagent retro, Gemini enterprise-agent and mock MCP exercises, architecture assessment, brownfield delivery, two-audience readout, and feedback."}
+      ]
+    },
+    {
+      "week": 5,
+      "phase": 2,
+      "title": "Neo4j Knowledge Graphs & Context Engineering",
+      "days": [
+        {"day": 1, "sourceItems": 9, "routes": ["weeks/w05/w05d1.html"], "status": "covered", "gap": null},
+        {"day": 2, "sourceItems": 7, "routes": ["weeks/w05/w05d2.html"], "status": "covered", "gap": null},
+        {"day": 3, "sourceItems": 8, "routes": ["weeks/w05/w05d3.html"], "status": "covered", "gap": null},
+        {"day": 4, "sourceItems": 9, "routes": ["weeks/w05/w05d4.html"], "status": "covered", "gap": null},
+        {"day": 5, "sourceItems": 6, "routes": ["weeks/w05/w05d5.html"], "status": "covered", "gap": null}
+      ]
+    },
+    {
+      "week": 6,
+      "phase": 3,
+      "title": "Kafka & Event-Driven AI Pipelines",
+      "days": [
+        {"day": 1, "sourceItems": 8, "routes": ["weeks/w06/w06d1.html"], "status": "covered", "gap": null},
+        {"day": 2, "sourceItems": 8, "routes": ["weeks/w06/w06d2.html"], "status": "covered", "gap": null},
+        {"day": 3, "sourceItems": 9, "routes": ["weeks/w06/w06d3.html"], "status": "covered", "gap": null},
+        {"day": 4, "sourceItems": 8, "routes": ["weeks/w06/w06d4.html"], "status": "covered", "gap": null},
+        {"day": 5, "sourceItems": 6, "routes": ["weeks/w06/w06d5.html"], "status": "covered", "gap": null}
+      ]
+    },
+    {
+      "week": 7,
+      "phase": 3,
+      "title": "IaC: Terraform + Ansible & CI/CD for AI",
+      "days": [
+        {"day": 1, "sourceItems": 9, "routes": ["weeks/w07/w07d1.html"], "status": "covered", "gap": null},
+        {"day": 2, "sourceItems": 9, "routes": ["weeks/w07/w07d2.html"], "status": "covered", "gap": null},
+        {"day": 3, "sourceItems": 9, "routes": ["weeks/w07/w07d3.html"], "status": "covered", "gap": null},
+        {"day": 4, "sourceItems": 9, "routes": ["weeks/w07/w07d4.html"], "status": "covered", "gap": null},
+        {"day": 5, "sourceItems": 7, "routes": ["weeks/w07/w07d5.html"], "status": "covered", "gap": null}
+      ]
+    },
+    {
+      "week": 8,
+      "phase": 4,
+      "title": "AI Observability, SRE & Reliability Guardrails",
+      "days": [
+        {"day": 1, "sourceItems": 9, "routes": ["weeks/w08/w08d1.html"], "status": "covered", "gap": null},
+        {"day": 2, "sourceItems": 8, "routes": ["weeks/w08/w08d2.html"], "status": "covered", "gap": null},
+        {"day": 3, "sourceItems": 7, "routes": ["weeks/w08/w08d3.html"], "status": "covered", "gap": null},
+        {"day": 4, "sourceItems": 8, "routes": ["weeks/w08/w08d4.html"], "status": "covered", "gap": null},
+        {"day": 5, "sourceItems": 6, "routes": ["weeks/w08/w08d5.html"], "status": "covered", "gap": null}
+      ]
+    },
+    {
+      "week": 9,
+      "phase": 4,
+      "title": "AI Security, Governance & System Hardening",
+      "days": [
+        {"day": 1, "sourceItems": 9, "routes": ["weeks/w09/w09d1.html"], "status": "covered", "gap": null},
+        {"day": 2, "sourceItems": 8, "routes": ["weeks/w09/w09d2.html"], "status": "covered", "gap": null},
+        {"day": 3, "sourceItems": 8, "routes": ["weeks/w09/w09d3.html"], "status": "partial", "gap": "Replace the stale pending-evidence message with the source-assigned WIF versus IAM-role/OIDC trust-boundary exercise, using landed provider evidence."},
+        {"day": 4, "sourceItems": 8, "routes": ["weeks/w09/w09d4.html"], "status": "partial", "gap": "Fill the source-assigned Bedrock Guardrails versus Model Armor comparison; keep prices evidence-dated and do not provision."},
+        {"day": 5, "sourceItems": 6, "routes": ["weeks/w09/w09d5.html", "certifications.html"], "status": "partial", "gap": "The route still says objective mapping is unavailable although the verified AIP-C01 and Google AI Professional Certificate map has landed."}
+      ]
+    },
+    {
+      "week": 10,
+      "phase": 4,
+      "title": "Production & Client Showcase",
+      "days": [
+        {"day": 1, "sourceItems": 9, "routes": ["weeks/w10/w10d1.html"], "status": "partial", "gap": "Add explicit BigQuery, Cloud Run, and Vertex AI Search rows to the evidence-gated workload-placement memo."},
+        {"day": 2, "sourceItems": 7, "routes": ["weeks/w10/w10d2.html"], "status": "covered", "gap": null},
+        {"day": 3, "sourceItems": 6, "routes": ["weeks/w10/w10d3.html"], "status": "covered", "gap": null},
+        {"day": 4, "sourceItems": 5, "routes": ["weeks/w10/w10d4.html"], "status": "covered", "gap": null},
+        {"day": 5, "sourceItems": 6, "routes": ["weeks/w10/w10d5.html"], "status": "partial", "gap": "Replace the generic pending-provider conclusion with the source-assigned cloud-placement defense and links to dated evidence; no final provider recommendation is required."}
+      ]
+    }
+  ],
+  "baselineMetrics": {
+    "coveredDays": 34,
+    "partialDays": 14,
+    "conflictingDays": 2,
+    "sourceItemsInCoveredDays": 271,
+    "sourceItemsInPartialDays": 109,
+    "sourceItemsInConflictingDays": 16,
+    "interpretation": "Item-weighted values classify whole day cells; they are not a claim that every item in a partial cell is missing."
+  }
+}
