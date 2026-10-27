@@ -11,21 +11,34 @@ import core30
 ROOT = Path(__file__).resolve().parents[1]
 PAGES = [ROOT / "weeks" / f"w{week:02d}" / f"w{week:02d}d{day}.html"
          for week in range(2, 5) for day in range(1, 6)]
-AUTHORITY_SHA = "1792ba5c20a62fdd1e83463d9032d129ee644e58b220129b2f736f5fb863ed7e"
 
 
 class WeeksTwoToFourProductionWave(unittest.TestCase):
-    def test_inventory_pins_authority_denominator_and_all_routes(self) -> None:
+    def _inventory_rows(self) -> list[dict[str, object]]:
         inventory = (ROOT / "docs" / "research" / "w02-w04-v3-production-wave.md").read_text(encoding="utf-8")
-        self.assertIn(AUTHORITY_SHA, inventory)
-        self.assertIn("%PDF-1.3", inventory)
-        self.assertIn("**124", inventory)
-        self.assertIn("15 day cells", inventory)
-        self.assertEqual(15, len(PAGES))
+        rows = []
+        for line in inventory.splitlines():
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            match = re.fullmatch(r"W(\d) D(\d)", cells[0]) if len(cells) == 6 else None
+            if not match:
+                continue
+            routes = re.findall(r"`([^`]+\.html)`", cells[3])
+            rows.append({"week": int(match.group(1)), "day": int(match.group(2)),
+                         "items": int(cells[1]), "route": routes[0] if routes else None})
+        return rows
+
+    def test_inventory_reconciles_124_items_across_15_owned_routes(self) -> None:
+        rows = self._inventory_rows()
+        self.assertEqual(15, len(rows))
+        self.assertEqual(124, sum(row["items"] for row in rows))
+        per_week = {week: sum(row["items"] for row in rows if row["week"] == week) for week in (2, 3, 4)}
+        self.assertEqual({2: 40, 3: 42, 4: 42}, per_week)
+        expected = [page.relative_to(ROOT).as_posix() for page in PAGES]
+        self.assertEqual(expected, [row["route"] for row in rows])
+        self.assertEqual([(week, day) for week in range(2, 5) for day in range(1, 6)],
+                         [(row["week"], row["day"]) for row in rows])
         for page in PAGES:
-            with self.subTest(page=page.relative_to(ROOT)):
-                self.assertTrue(page.is_file())
-                self.assertIn(page.relative_to(ROOT).as_posix(), inventory)
+            self.assertTrue(page.is_file())
 
     def test_every_route_has_truthful_core30_interaction_and_check(self) -> None:
         for page in PAGES:
@@ -78,6 +91,7 @@ class WeeksTwoToFourProductionWave(unittest.TestCase):
             "weeks/w02/w02d5.html": ("Claude Code skills retro", "executive version", "technical version", "feedback"),
             "weeks/w03/w03d1.html": ("Plan-and-Execute", "Reflexion", "deterministic workflow"),
             "weeks/w03/w03d2.html": ("confidence bands", "escalation", "inert Python MCP lab", "idempotency"),
+            "weeks/w03/w03d3.html": ("stack-onboarding", "tool/MCP boundary", "assumption"),
             "weeks/w03/w03d5.html": ("eval suite", "structured logs", "Replay", "failure-attribution", "hooks retro"),
             "weeks/w04/w04d2.html": ("typed envelope", "merge policy", "conflict", "interoperate"),
             "weeks/w04/w04d4.html": ("token", "approval", "trace", "cost", "ChatBedrock", "ChatAnthropicVertex", "Claude Code subagents"),

@@ -50,7 +50,7 @@
       <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive"><h2>Sources &amp; deeper dive</h2><ul><li><a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools" target="_blank" rel="noopener">MCP tools specification</a> — schema, consent, and tool-safety boundaries.</li><li><a href="https://docs.cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview" target="_blank" rel="noopener">Google Cloud — Agent Runtime</a> — managed placement referenced by the static exercise.</li><li><a href="https://a2a-protocol.org/latest/" target="_blank" rel="noopener">A2A protocol</a> — cross-agent discovery and task/message exchange.</li><li><a href="https://docs.anthropic.com/en/docs/claude-code/sub-agents" target="_blank" rel="noopener">Anthropic — Claude Code subagents</a> — separate contexts and scoped tools.</li></ul></section>
       <details class="deep legacy-bridge" data-core="optional"><summary>Optional Week 5 bridge: the former GraphRAG milestone</summary><p>The detailed GraphRAG research remains in <code>docs/research/w04/w04d5.md</code>, the inert graph-hop popup remains below, and Week 5 now owns the authoritative graph sequence. The historical reading follows for continuity.</p>
       <div class="lede legacy-lede">
-        <h1>GraphRAG End-to-End: When Retrieval Grows a Graph</h1>
+        <h2>GraphRAG End-to-End: When Retrieval Grows a Graph</h2>
         <div class="meta">
           <span><b>Week 4</b> · Day 5 · ★ milestone</span>
           <span>Knowledge Graphs &amp; Multi-Agent Systems</span>
@@ -63,7 +63,6 @@
         week's milestone: by the end you can draw the full path from raw docs to grounded, graph-aware answers, and
         justify every stage. Scroll the reading; the panel on the right assembles the pipeline one layer at a time.</p>
         <div class="ix-legend"></div>
-        <noscript><section class="core30-fallback" aria-label="No-JavaScript practice and check"><h2>Offline practice</h2><p>Walk one handoff and identify schema, owner, trace, prohibited action, and escalation.</p><details><summary>Check your reasoning</summary><p>The envelope is typed and minimal; mock tools only read fixtures or propose, and one human-owned path controls commits.</p></details></section></noscript>
       </div>
 
       <section class="legacy-step" data-diagram="0" data-step="0">
@@ -423,120 +422,6 @@ assert {row[&quot;incident_id&quot;] for row in context} == {&quot;INC-17&quot;,
 
 <script>
 window.FDE_NEXT = { label: "Back to Program →", href: "../../index.html" };
-window.DIAGRAM = {
-  title: "GraphRAG · docs → graph → hybrid retrieval",
-  width: 500, height: 690,
-  nodes: [
-    // the motivating query (dark payload card)
-    { id:"gap", step:0, kind:"example", x:14, y:14, w:472, h:78,
-      label:"QUERY  \"What are the top themes across ALL of last quarter's incident reports?\"\n  top-k vector RAG → 5 near-duplicate chunks about one theme\n  the answer lives in no single chunk — it needs structure" },
-
-    // index-time pipeline (left column)
-    { id:"idx", step:1, x:14, y:104, w:224, h:298, label:"INDEX TIME — run once per corpus",
-      detail:"Microsoft's reference pipeline: (1) segment text into TextUnits, (2) LLM-extract entities/relationships/claims per unit, (3) Leiden hierarchical community detection, (4) bottom-up community summaries. Paid up front and amortized — query-time cost is paid on every call." },
-    { id:"split", step:2, x:28, y:140, w:196, h:52, label:"FixedSizeSplitter\n+ TextChunkEmbedder",
-      detail:"Chunks the docs (approximate=True keeps boundaries clean) and stores an embedding on every chunk node — the hook that lets vector search live inside the graph DB." },
-    { id:"extract", step:2, x:28, y:200, w:196, h:52, label:"LLMEntityRelationExtractor\n(one LLM call per chunk)",
-      detail:"Reads each chunk and extracts entities + relationships. Structured output on OpenAI/VertexAI; on_error decides whether one bad chunk kills the run. This is the dominant index-time cost line." },
-    { id:"schema", step:3, x:28, y:260, w:196, h:52, label:"schema guardrails\nnode/rel types + patterns",
-      detail:"node_types, relationship_types, and patterns like (\"Person\",\"PARENT_OF\",\"Person\") constrain what the extractor may create; additional_node_types:False rejects anything undefined. A name:STRING property is auto-added when properties are omitted." },
-    { id:"resolve", step:3, x:28, y:320, w:196, h:64, label:"Neo4jWriter (batch 1000)\n→ entity resolver",
-      detail:"Writer persists in batches of 1,000. Then resolution merges duplicates — 'Acme Corp' / 'Acme Corporation' / 'ACME' — via exact-match, SpaCy semantic, or fuzzy resolvers. Over-merging poisons traversals as badly as under-merging fragments them." },
-
-    // the two-layer graph store (right column)
-    { id:"lex", step:4, x:262, y:112, w:224, h:64, label:"LEXICAL GRAPH\nDocument · Chunk · NEXT_CHUNK\nFROM_DOCUMENT · embeddings",
-      detail:"The evidence locker: source text with structure intact, embeddings on chunk nodes. create_lexical_graph=True builds it. Without it, answers float free of quotable evidence." },
-    { id:"ent", step:4, x:262, y:188, w:224, h:64, label:"ENTITY GRAPH\nschema-pruned domain\nentities + relationships",
-      detail:"The map of what the corpus is about. Entities link back to the chunks that mention them — retrieval enters one layer and harvests from the other. That cross-layer hop is what 'hybrid vector + graph' means mechanically." },
-    { id:"comm", step:6, x:262, y:264, w:224, h:70, label:"Leiden communities\n+ pre-written summaries\n(bottom-up, hierarchical)",
-      detail:"Leiden clusters densely-connected entities into nested communities; each gets an LLM-written summary, leaves first, parents from children. A corpus-level semantic index — tokens spent at index time to make 'top themes' questions answerable at all." },
-
-    // query-time (bottom)
-    { id:"ladder", step:5, x:14, y:430, w:290, h:92, label:"RETRIEVER LADDER\nVector → VectorCypher →\nHybrid → HybridCypher →\nText2Cypher · ToolsRetriever",
-      detail:"Vector = pure similarity. VectorCypher adds a Cypher traversal from each hit. Hybrid adds a full-text index for exact keywords. HybridCypher = both. Text2Cypher = LLM-written Cypher (validated before execution since 1.16.0). ToolsRetriever lets an LLM pick per query. Qdrant/Weaviate/Pinecone variants map external vector hits back to Neo4j nodes." },
-    { id:"rag", step:5, x:330, y:444, w:156, h:64, label:"GraphRAG.search()\n→ grounded answer",
-      detail:"GraphRAG(retriever=..., llm=...) then rag.search(query_text=..., retriever_config={'top_k':5}, return_context=True) — retriever fetches, LLM answers, return_context hands you the evidence for citations and evals." },
-    { id:"local", step:7, x:14, y:560, w:224, h:66, label:"LOCAL search\nentity embeddings → fan-out\n→ filtered to one window",
-      detail:"Entity-centric: query embedding matched against entity-description embeddings, then fan-out to connected entities, relationships, covariates, community reports, and raw chunks — prioritized and filtered to fit a single context window. Best for questions about specific entities." },
-    { id:"global", step:7, x:262, y:560, w:224, h:66, label:"GLOBAL search\nmap-reduce over\ncommunity reports",
-      detail:"Map: chunk the community reports, LLM emits intermediate points each with a numerical importance rating. Reduce: top-rated points become context for the final answer. Community hierarchy level is the cost/quality dial. DRIFT blends local+global; Basic is plain vector similarity." }
-  ],
-  edges: [
-    { id:"e_pipe1", step:2, from:"split",   to:"extract", label:"chunks", lx:6 },
-    { id:"e_pipe2", step:3, from:"extract", to:"schema",  label:"guided by", lx:6 },
-    { id:"e_lex",   step:4, from:"idx",     to:"lex",     label:"writes", ly:-4 },
-    { id:"e_ent",   step:4, from:"idx",     to:"ent",     label:"writes", ly:6 },
-    { id:"e_leiden",step:6, from:"ent",     to:"comm",    label:"Leiden", lx:8 },
-    { id:"e_ventry",step:5, from:"lex",     to:"ladder",  label:"vector entry", bend:-24 },
-    { id:"e_hop",   step:5, from:"ent",     to:"ladder",  label:"Cypher hop", ly:-2 },
-    { id:"e_ans",   step:5, from:"ladder",  to:"rag",     label:"context →", ly:-4 },
-    { id:"e_loc",   step:7, from:"local",   to:"ent",     label:"enters via entities", bend:30 },
-    { id:"e_glob",  step:7, from:"global",  to:"comm",    label:"reads summaries", lx:8 }
-  ],
-  captions: [
-    "The question vector RAG can't answer: it lives in <b>no single chunk</b>. Global sensemaking needs structure, not similarity. <span style='opacity:.7'>(tap nodes for detail)</span>",
-    "GraphRAG is <b>two pipelines</b>: index-time builds the graph once; query-time answers per request. Microsoft's index recipe: TextUnits → extraction → Leiden → summaries. <span style='opacity:.7'>(tap)</span>",
-    "<b>SimpleKGPipeline</b> starts like Week 2 — split and embed — then an LLM <b>extracts entities and relationships</b> from every chunk. <span style='opacity:.7'>(tap)</span>",
-    "A <b>schema</b> constrains what the extractor may create, and an <b>entity resolver</b> merges 'Acme Corp' with 'ACME' after writing. <span style='opacity:.7'>(tap)</span>",
-    "Two layers coexist: the <b>lexical graph</b> keeps the evidence; the <b>entity graph</b> maps the domain. Entities link back to their chunks — the hybrid hop. <span style='opacity:.7'>(tap)</span>",
-    "Query time: <b>vector entry, graph expansion</b>. The retriever ladder climbs from pure vectors to hybrid+Cypher; <b>GraphRAG.search()</b> answers on the context. <span style='opacity:.7'>(tap)</span>",
-    "<b>Leiden</b> clusters the entity graph into nested communities; each gets a <b>pre-written summary</b> — a table of contents the LLM wrote at index time. <span style='opacity:.7'>(tap)</span>",
-    "<b>Local</b> enters through entity embeddings and fans out; <b>global</b> map-reduces over community reports. Match the mode to the question's shape. <span style='opacity:.7'>(tap)</span>"
-  ]
-};
-window.QUIZ = {
-  id: "w04-d5",
-  title: "Check your understanding",
-  questions: [
-    { type: "scq",
-      stem: "A client's vector RAG bot answers 'what does clause 14.2 say?' perfectly but produces shallow, one-sided answers to 'what are the recurring risk themes across all our contracts?' Why?",
-      options: [
-        "The embedding model is too small and should be upgraded",
-        "The answer lives in no single chunk — global sensemaking questions need corpus-level structure, not top-k similarity",
-        "The chunks are too large for the context window",
-        "Temperature is set too high for summarization" ],
-      answer: 1,
-      explain: "That's the gap GraphRAG targets: questions 'directed at an entire text corpus' are query-focused summarization tasks. Top-k similarity retrieves a few near-duplicate fragments; the fix is structural — an entity graph plus pre-generated community summaries — not a bigger embedding model." },
-    { type: "scq",
-      stem: "In SimpleKGPipeline, what job does the schema (node_types, relationship_types, patterns) do?",
-      options: [
-        "It defines the vector index configuration for chunk embeddings",
-        "It constrains what the LLM extractor may create — and with additional_node_types:False, rejects anything undefined",
-        "It sets the batch size for the Neo4jWriter",
-        "It selects which entity resolver runs after writing" ],
-      answer: 1,
-      explain: "Left unguided, the extractor invents entity types freely and the graph drifts into noise. The schema is the contract: allowed node types, relationship types, and patterns like (\"Person\",\"PARENT_OF\",\"Person\") — with additional_node_types:False turning it from guidance into enforcement." },
-    { type: "tf",
-      stem: "The lexical graph (Document/Chunk nodes with NEXT_CHUNK and FROM_DOCUMENT) is a temporary artifact you can discard once the entity graph is built.",
-      answer: false,
-      explain: "False — hybrid retrieval needs both layers. The lexical graph is the evidence locker: source text with structure and chunk embeddings, which is where vector search enters and where grounded answers quote from. Discard it and answers float free of quotable evidence; keep only it and you're back to Week 2's pure-vector RAG with no graph hop." },
-    { type: "mcq",
-      stem: "Which statements about the retriever ladder are true? (select all that apply)",
-      options: [
-        "VectorCypherRetriever uses vector search as the entry point, then runs a Cypher traversal to enrich context from connected nodes",
-        "HybridRetriever searches a vector index and a full-text index simultaneously and merges results",
-        "Text2CypherRetriever has an LLM generate Cypher from natural language — with query validation before execution to block destructive operations",
-        "Using GraphRAG requires migrating all embeddings into Neo4j — external vector stores can't participate",
-        "ToolsRetriever replaces all other retrievers and must be used in production" ],
-      answer: [0, 1, 2],
-      explain: "The first three are exactly right. The fourth is false — QdrantNeo4jRetriever, WeaviateNeo4jRetriever, and PineconeNeo4jRetriever run vector search externally and map hits back to Neo4j nodes. The fifth is false — ToolsRetriever is a router that lets an LLM choose among retrievers per query, not a mandatory replacement." },
-    { type: "match",
-      stem: "Match each pipeline stage to what it produces or prevents.",
-      pairs: [
-        { l: "Leiden community detection", r: "nested clusters of densely connected entities" },
-        { l: "Bottom-up community summaries", r: "a pre-written corpus-level semantic index" },
-        { l: "Entity resolution (exact / semantic / fuzzy)", r: "'Acme Corp' and 'ACME' merged into one node" },
-        { l: "TextChunkEmbedder", r: "embeddings stored as chunk properties for vector entry" } ],
-      explain: "Leiden organizes the entity graph hierarchically; summaries turn those clusters into readable digests that make global questions answerable; resolution protects graph connectivity from name variants; the chunk embedder is what lets vector similarity search live inside the graph database." },
-    { type: "open",
-      stem: "A client asks: 'Why does global search cost more than local search, and what knob controls that cost?' Answer in two or three sentences using today's mechanics.",
-      hint: "Think map-reduce over community reports, importance ratings, and hierarchy levels.",
-      model: "Global search runs a map-reduce over the community reports: the map stage chunks the reports and makes LLM calls to produce intermediate points with numerical importance ratings, and the reduce stage aggregates the top-rated points into the final answer — many LLM calls per query versus local search's single fan-out from entity matches filtered into one context window. The knob is the community hierarchy level you read from: lower levels mean more detailed reports and better answers, but more report chunks to map over and therefore more compute per query." }
-  ]
-};
-</script>
-<script>
-/* Source-restored W4D5 contract; historical GraphRAG objects above remain inert evidence. */
 window.DIAGRAM={title:"Architecture defense · boundary to readout",width:500,height:620,nodes:[{id:"ask",step:0,kind:"example",x:14,y:14,w:472,h:58,label:"SYNTHETIC INSURANCE ASK · no client data · no provider call"},{id:"contract",step:0,x:42,y:102,w:416,h:50,label:"AGENT CONTRACT · inputs · outputs · tools · owner · stop"},{id:"handoff",step:1,x:42,y:184,w:416,h:54,label:"HANDOFF ENVELOPE · task · trace · evidence refs · schema · deadline"},{id:"mcp",step:2,x:42,y:270,w:198,h:62,label:"MOCK MCP\nread fixture · propose comment"},{id:"deny",step:2,x:260,y:270,w:198,h:62,label:"PROHIBITED\npost · assign · change status"},{id:"place",step:3,x:42,y:362,w:198,h:58,label:"selected cloud\nprimary on paper"},{id:"retro",step:4,x:260,y:362,w:198,h:58,label:"subagent retro\nboundary evidence"},{id:"walk",step:5,x:42,y:452,w:416,h:52,label:"WALKTHROUGH · schema · owner · trace · failure · no commit"},{id:"defend",step:6,x:42,y:534,w:198,h:54,label:"technical defense\ncontrols + evidence"},{id:"exec",step:7,x:260,y:534,w:198,h:54,label:"executive readout\noutcome + risk"}],edges:[{id:"a",step:1,from:"contract",to:"handoff"},{id:"b",step:2,from:"handoff",to:"mcp"},{id:"c",step:2,from:"handoff",to:"deny"},{id:"d",step:5,from:"mcp",to:"walk"},{id:"e",step:6,from:"walk",to:"defend"},{id:"f",step:7,from:"walk",to:"exec"}],captions:["Every agent starts with an <b>explicit contract</b>.","A structural handoff carries typed evidence and authority—not a chat dump.","Mock enterprise tools stay inert: read fixtures and propose; never post.","Defend placement on the selected cloud without provisioning it.","The subagent retro scores boundary quality, not agent count.","Walk one synthetic run and point to every schema, owner, trace, and failure control.","Defend why every split exists—and show the simpler alternative.","Separate the executive outcome/risk story from the technical evidence."]};
 window.QUIZ={id:"w04-d5",title:"Architecture-defense check",questions:[{type:"scq",stem:"What belongs in a structural handoff?",options:["The entire unfiltered transcript","Task and trace IDs, sanitized evidence references, output schema, deadline, and escalation target","A shared password","An implied owner"],answer:1,explain:"The envelope is typed, minimal, traceable, and owned."},{type:"tf",stem:"A mock Jira MCP exercise may post to a real ticket if the learner uses a test label.",answer:false,explain:"This lesson is inert: fixture reads and proposed output only, with no endpoint or credential."},{type:"scq",stem:"How should the Gemini Enterprise Agent Platform activity run?",options:["Provision an Agent Runtime deployment","Defend a static Agent Runtime placement card without an account or deployment","Create IAM roles","Call a paid model"],answer:1,explain:"The exercise is architecture judgment on paper, not cloud action."},{type:"mcq",stem:"What should a Claude Code subagent retro inspect?",options:["Independence of the delegated task","Tool scope and requested return format","Duplicated work and edit ownership","How many agents looked impressive"],answer:[0,1,2],explain:"Review contract and evidence quality, not novelty."},{type:"scq",stem:"Which readout belongs to the technical audience?",options:["Only a benefit slogan","Boundaries, schemas, provider placement, traces, gates, failure tests, and limits","A claim that the system was deployed","Learner PII"],answer:1,explain:"The technical readout makes controls and evidence inspectable."},{type:"open",stem:"Defend one agent split in two sentences, including its cost.",hint:"Name context, ownership, or parallelism—and the new failure surface.",model:"Split the read-only evidence analyst because its bounded corpus and output schema isolate context and allow independent review. The split adds another call, handoff, trace, and timeout path, so one coordinator retains state and write ownership."}]};
 </script>

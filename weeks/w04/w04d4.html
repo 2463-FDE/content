@@ -59,8 +59,8 @@
       <section class="step" data-diagram="0" data-step="5"><div class="tag">Your tools</div><h2>Use Claude Code subagents as the boundary rehearsal</h2><p>A subagent has a separate context, prompt, and scoped tools. Rehearse the production rule locally: explorers inspect; reviewers challenge; one parent owns edits. In the retro, compare planned versus actual delegation, duplicated work, context returned, and evidence quality. “More agents” is not a success criterion.</p></section>
 
       <section class="step" data-diagram="0" data-step="6"><div class="tag">Provider seam</div><h2>Keep the contract portable and test the differences</h2><p>The source names a <code>ChatBedrock</code> versus <code>ChatAnthropicVertex</code> seam. Treat that seam as an adapter boundary, not a drop-in-equivalence claim. Normalize messages, tool schemas, stop/error categories, and your trace envelope. Then acceptance-test model identity, tool-call shape, streaming, retries, usage fields, caching, and telemetry separately for the selected provider.</p>
-        <details class="cloud-block" data-cloud="aws" open><summary><span class="cloud-tag">AWS</span>Bedrock is your primary model plane<span class="cloud-role"></span></summary><p>Keep the shared adapter contract, then test Bedrock-specific model identifiers, response metadata, prompt-cache behavior, and trace export. Record observations from static fixtures only; do not invoke a model.</p><div class="ix-cloud" data-core-interaction data-cloud="aws"><p class="ix-cloud-q">A cached repeated prefix lowers one fixture's input processing. What belongs in the portability contract?</p><ul><li data-correct>The message/tool/trace shape; cache behavior stays a provider-specific acceptance test</li><li>The exact cache controls and hit semantics</li><li>A promise of identical latency</li></ul><p class="ix-cloud-answer"><b>Contract the stable shape.</b> Measure the provider-specific optimization.</p></div></details>
-        <details class="cloud-block" data-cloud="gcp" open><summary><span class="cloud-tag">GCP</span>Vertex AI is your primary model plane<span class="cloud-role"></span></summary><p>Keep the shared adapter contract, then test Vertex-specific model identifiers, response metadata, context-cache behavior, and trace export. Record observations from static fixtures only; do not invoke a model.</p><div class="ix-cloud" data-core-interaction data-cloud="gcp"><p class="ix-cloud-q">A context cache changes one fixture's processing. What belongs in the portability contract?</p><ul><li data-correct>The message/tool/trace shape; cache behavior stays a provider-specific acceptance test</li><li>The exact cache controls and hit semantics</li><li>A promise of identical latency</li></ul><p class="ix-cloud-answer"><b>Contract the stable shape.</b> Measure the provider-specific optimization.</p></div></details>
+        <details class="cloud-block" data-cloud="aws" open><summary><span class="cloud-tag">AWS</span>Bedrock is your primary model plane<span class="cloud-role"></span></summary><p>Keep the shared adapter contract, then test Bedrock-specific model identifiers, response metadata, prompt-cache behavior, and trace export. Record observations from static fixtures only; do not invoke a model.</p><div class="ix-cloud" data-core-interaction data-cloud="aws"><p class="ix-cloud-q">A cached repeated prefix lowers one fixture's input processing. What belongs in the portability contract?</p><ol class="ix-cloud-options"><li data-correct data-why="The shared shape is portable; cache behavior is measured per provider.">The message/tool/trace shape; cache behavior stays a provider-specific acceptance test</li><li data-why="Cache controls and hit semantics differ by provider.">The exact cache controls and hit semantics</li><li data-why="Latency is observed per provider, never promised across a swap.">A promise of identical latency</li></ol><details class="ix-cloud-answer"><summary>Show the answer</summary><p><b>Contract the stable shape.</b> Measure the provider-specific optimization.</p></details></div></details>
+        <details class="cloud-block" data-cloud="gcp" open><summary><span class="cloud-tag">GCP</span>Vertex AI is your primary model plane<span class="cloud-role"></span></summary><p>Keep the shared adapter contract, then test Vertex-specific model identifiers, response metadata, context-cache behavior, and trace export. Record observations from static fixtures only; do not invoke a model.</p><div class="ix-cloud" data-core-interaction data-cloud="gcp"><p class="ix-cloud-q">A context cache changes one fixture's processing. What belongs in the portability contract?</p><ol class="ix-cloud-options"><li data-correct data-why="The shared shape is portable; cache behavior is measured per provider.">The message/tool/trace shape; cache behavior stays a provider-specific acceptance test</li><li data-why="Cache controls and hit semantics differ by provider.">The exact cache controls and hit semantics</li><li data-why="Latency is observed per provider, never promised across a swap.">A promise of identical latency</li></ol><details class="ix-cloud-answer"><summary>Show the answer</summary><p><b>Contract the stable shape.</b> Measure the provider-specific optimization.</p></details></div></details>
       </section>
 
       <section class="step" data-diagram="0" data-step="7"><div class="tag">Evidence</div><h2>Exit with an operable decision sheet</h2><p>Your sheet names the topology, every agent's allowed inputs/tools/outputs, the write owner, human gate, per-run ceilings, trace fields, provider acceptance tests, and degrade/stop conditions. Add one synthetic trace calculation and one rejected over-budget design. This evidence advances the project without inventing an insurer's thresholds or touching a live system.</p></section>
@@ -69,7 +69,7 @@
 
       <details class="deep legacy-bridge" data-core="optional"><summary>Optional Week 5 bridge: the former knowledge-graph lesson</summary><p>This route previously introduced Neo4j and GraphRAG early. The detailed research remains in <code>docs/research/w04/w04d4.md</code>, the inert Cypher popup remains available above, and Week 5 now teaches the authoritative graph sequence. The historical reading follows for continuity.</p>
       <div class="lede legacy-lede">
-        <h1>Knowledge Graphs &amp; Cypher: When Retrieval Needs Relationships</h1>
+        <h2>Knowledge Graphs &amp; Cypher: When Retrieval Needs Relationships</h2>
         <div class="meta">
           <span><b>Week 4</b> · Day 4</span>
           <span>Retrieval Beyond Vectors</span>
@@ -552,122 +552,6 @@ ORDER BY score DESC</pre></div>
 
 <script>
 window.FDE_NEXT = { label: "Day 5 · Architecture defense →", href: "w04d5.html" };
-window.DIAGRAM = {
-  title: "Knowledge graph · from question to GraphRAG",
-  width: 500, height: 690,
-  nodes: [
-    // the motivating question (dark payload card)
-    { id:"ask", step:0, kind:"example", x:14, y:14, w:472, h:78,
-      label:"QUESTION  \"What are the main themes across our incident reports?\"\n  top-k similar chunks ≈ noise — the answer lives in CONNECTIONS\n  GraphRAG: extract entity graph → communities → pre-summarize → map-reduce",
-      detail:"Global sensemaking questions resemble everything vaguely and nothing specifically, so similarity search has no single chunk to find. The GraphRAG paper's answer: LLM-extract an entity knowledge graph, detect communities, pre-generate community summaries, and synthesize partial answers at query time — substantial gains over a conventional RAG baseline on comprehensiveness and diversity (~1M-token corpora)." },
-
-    // the graph itself
-    { id:"kg", step:1, x:28, y:104, w:330, h:250, label:"THE KNOWLEDGE GRAPH  (property-graph model)" },
-    { id:"p1", step:1, x:46, y:140, w:130, h:52, label:"(:Person)\nname: \"Carrie\"",
-      detail:"A node with a label (Person) saying what kind of thing it is, plus key/value properties. Schema-flexible: Neo4j does not mandate uniform properties across nodes of the same label — one Person can carry a property its neighbor lacks." },
-    { id:"m1", step:1, x:212, y:140, w:130, h:52, label:"(:Movie)\ntitle · embedding",
-      detail:"Another labeled node. Note the embedding property — a plain node property holding a vector. In step 6 a vector index is built over it, which is what lets one database serve both semantic search and traversal." },
-    { id:"p2", step:2, x:46, y:236, w:130, h:52, label:"(:Person)\nname: \"Lana\"" },
-    { id:"g1", step:2, x:212, y:236, w:130, h:52, label:"(:Genre)\nname: \"sci-fi\"" },
-    { id:"rules", step:2, x:36, y:300, w:314, h:44, label:"schema: nouns→Labels (CamelCase) · verbs→REL_TYPES · unique-ID constraints",
-      detail:"The modeling workflow: define use-case questions FIRST, build the model, test it against every question, refactor. Dominant nouns become CamelCase node labels; verbs become ALL_CAPS_UNDERSCORE relationship types — as specific as possible, always directed; properties are camelCase; uniqueness constraints keep the same entity from entering twice." },
-
-    // cypher
-    { id:"cy", step:3, x:366, y:110, w:120, h:88, label:"CYPHER\nMATCH (p)-[:ACTED_IN]->(m)\nRETURN ...",
-      detail:"Declarative, ASCII-art patterns: rounded brackets = nodes, arrows = relationships. A pattern is 'a queryable specification of a graph structure'; a path is 'an actual sequence of nodes and relationships that matches a pattern.' Fixed-length, variable-length (quantified), and SHORTEST patterns — plus Cypher 25 match modes like REPEATABLE ELEMENTS and ACYCLIC. RETURN comes at the end." },
-    { id:"ver", step:4, x:366, y:214, w:120, h:74, label:"⚠ VERSION\nCypher 25 vs 5",
-      detail:"Cypher 25 gets all new features; Cypher 5 is frozen as of Neo4j 2025.06. Selected per-database (db.query.default_language / DEFAULT LANGUAGE CYPHER 25) or per-query by prepending CYPHER 25 / CYPHER 5. From Neo4j 2026.02 new deployments set CYPHER_25 explicitly; unset means Cypher 5 — and most online tutorials are Cypher 5–era. Check the version before trusting advice." },
-
-    // vector index + entry
-    { id:"vidx", step:5, x:34, y:380, w:190, h:66, label:"VECTOR INDEX (HNSW)\nON m.embedding\ncosine · dims ≤ 4096",
-      detail:"Lucene-backed HNSW approximate-nearest-neighbor index over a node property: CREATE VECTOR INDEX ... FOR (m:Movie) ON m.embedding, dimensions 1–4096, similarity cosine or euclidean. On Neo4j 2026.01+, Cypher 25 MATCH … SEARCH returns nodes + scores and can apply a filterable tenant property inside the index before LIMIT is filled; the older queryNodes procedure is deprecated." },
-    { id:"qv", step:5, x:262, y:386, w:110, h:54, label:"query\nembedding →" },
-
-    // graphrag patterns
-    { id:"vcr", step:6, x:34, y:474, w:224, h:74, label:"VectorCypherRetriever\nvector entry → Cypher traversal\n(local · entity-anchored)",
-      detail:"neo4j-graphrag-python (first-party, successor to deprecated neo4j-genai; Python 3.10–3.14, Neo4j ≥ 5.18.1): after finding similar nodes it 'executes a Cypher query to traverse the graph based on these nodes,' pulling connected context into the window. Siblings: VectorRetriever, HybridRetriever / HybridCypherRetriever (adds full-text), plus Weaviate/Pinecone/Qdrant joins. Contrast the paper's GLOBAL mode: community summaries, map-reduced." },
-    { id:"t2c", step:7, x:286, y:474, w:200, h:74, label:"Text2CypherRetriever\nNL question → LLM → Cypher\n→ exact rows",
-      detail:"'First asks an LLM to generate a Cypher query to fetch the exact information required to answer the question from the database,' then executes it. Wins aggregations and precise multi-hop questions — but it is only as good as the schema it is prompted with. Vague RELATED_TO edges give the LLM nothing precise to compile into. Schema quality determines retrieval quality." },
-    { id:"win", step:6, x:120, y:588, w:260, h:56, label:"→ context window\nstructured entities + relations, not chunk soup",
-      detail:"Both patterns end where Week 1 started: something gets spent into the finite window. Graph retrieval changes WHAT — a curated neighborhood of entities and typed relations, or exact query results — instead of k similar prose chunks." }
-  ],
-  edges: [
-    { id:"e_act",  step:2, from:"p1", to:"m1",  label:"ACTED_IN {role}", ly:-2 },
-    { id:"e_dir",  step:2, from:"p2", to:"m1",  label:"DIRECTED", bend:20 },
-    { id:"e_gen",  step:2, from:"m1", to:"g1",  label:"IN_GENRE" },
-    { id:"e_cy",   step:3, from:"cy", to:"kg",  label:"pattern → paths", lx:-4 },
-    { id:"e_ver",  step:4, from:"ver", to:"cy", label:"which dialect?", ly:-4 },
-    { id:"e_idx",  step:5, from:"vidx", to:"m1", label:"indexes m.embedding", lx:6 },
-    { id:"e_qv",   step:5, from:"qv", to:"vidx", label:"SEARCH … LIMIT k", ly:-4 },
-    { id:"e_vcr",  step:6, from:"vidx", to:"vcr", label:"entry nodes", lx:-6 },
-    { id:"e_walk", step:6, from:"vcr", to:"win", label:"traverse → enrich", ly:-2 },
-    { id:"e_t2c",  step:7, from:"t2c", to:"win", label:"exact results", bend:-20, ly:-2 },
-    { id:"e_schema",step:7, from:"rules", to:"t2c", label:"schema = prompt", bend:30, lx:8 }
-  ],
-  captions: [
-    "One client question that breaks chunk retrieval: the answer lives in <b>connections across documents</b>, not in any single chunk. GraphRAG's bet: build a <b>knowledge graph</b> first. <span style='opacity:.7'>(tap the card)</span>",
-    "The <b>property graph</b>: nodes carry <b>labels</b> (what kind of thing) and key/value <b>properties</b> — and Neo4j never forces nodes of one label to share the same properties. <span style='opacity:.7'>(tap nodes)</span>",
-    "Verbs become <b>directed, typed relationships</b> — ACTED_IN, DIRECTED, IN_GENRE — as <b>specific as possible</b>, never RELATED_TO. Nouns→labels, verbs→REL_TYPES, constraints on IDs. <span style='opacity:.7'>(tap the schema bar)</span>",
-    "<b>Cypher</b> queries the graph by drawing it: an ASCII-art <b>pattern</b> is 'a queryable specification of a graph structure'; every matching <b>path</b> comes back. <span style='opacity:.7'>(tap)</span>",
-    "Version trap: <b>Cypher 25</b> evolves, <b>Cypher 5</b> is frozen — and 2026.02+ deployments default to 25 while most online tutorials are 5-era. Check the dialect first. <span style='opacity:.7'>(tap)</span>",
-    "Neo4j ships a built-in <b>HNSW vector index</b> over node properties — so one database answers both 'what's similar?' and 'what's connected?'. <span style='opacity:.7'>(tap)</span>",
-    "<b>Vector in, traversal out</b>: similarity finds the entry nodes, then a Cypher query walks their neighborhood — structured context into the window, not chunk soup. <span style='opacity:.7'>(tap)</span>",
-    "<b>Text2Cypher</b>: the LLM writes the query, the database answers exactly — but only as well as the <b>schema</b> lets it. Schema quality determines retrieval quality. <span style='opacity:.7'>(tap)</span>"
-  ]
-};
-window.QUIZ = {
-  id: "w04-d4",
-  title: "Check your understanding",
-  questions: [
-    { type: "scq",
-      stem: "A client asks: 'Which engineers worked on incidents affecting systems owned by the payments team?' Vector search over incident-report chunks keeps missing. Why is a knowledge graph the right fix?",
-      options: [
-        "Graphs store more text per document than vector databases",
-        "The answer is a multi-hop relationship question — it lives in typed connections between entities, not in any single similar-sounding chunk",
-        "Embeddings cannot represent incident reports",
-        "Vector databases cannot scale past a few thousand documents" ],
-      answer: 1,
-      explain: "The question is relational: engineer → incident → system → owning team. No chunk contains that answer as text, so no amount of embedding tuning finds it. A graph stores those connections as first-class, typed, directed relationships that a traversal (or a generated Cypher query) can walk exactly." },
-    { type: "scq",
-      stem: "In Neo4j's schema-design workflow, what should you define FIRST, before drawing any nodes?",
-      options: [
-        "The uniqueness constraints",
-        "The vector index configuration",
-        "The use-case questions the application must answer",
-        "The relationship property names" ],
-      answer: 2,
-      explain: "Define the questions first, then model, then test the model against every question and refactor. A graph schema isn't right in the abstract — it's right for a set of questions. (Then: nouns→CamelCase labels, verbs→specific ALL_CAPS relationship types, camelCase properties, constraints on unique IDs.)" },
-    { type: "tf",
-      stem: "In a Cypher query, a 'pattern' and a 'path' are two names for the same thing.",
-      answer: false,
-      explain: "No. A pattern is 'a queryable specification of a graph structure' — the shape you declare in ASCII-art syntax. A path is 'an actual sequence of nodes and relationships in the graph that matches a pattern' — one concrete result. You write one pattern; the engine returns every matching path." },
-    { type: "mcq",
-      stem: "Which of these are true of Neo4j's built-in vector index? (select all that apply)",
-      options: [
-        "It's an HNSW approximate-nearest-neighbor index over embedding properties",
-        "Dimensions can range from 1 to 4096, with cosine or euclidean similarity",
-        "Cypher 25 SEARCH can apply a filterable tenant predicate inside the vector index before LIMIT is filled",
-        "It replaces the need to store relationships in the graph",
-        "It requires a separate external vector database to operate" ],
-      answer: [0, 1, 2],
-      explain: "It's a Lucene-backed HNSW index over a node property, with dimensions 1–4096 and cosine/euclidean similarity. On Neo4j 2026.01+, Cypher 25 SEARCH returns nodes plus scores and can enforce a filterable tenant predicate inside the index before LIMIT is satisfied. The whole point is that it lives inside the graph store — vector hits remain nodes with relationships radiating out. The older queryNodes procedure is deprecated as of Neo4j 2026.04." },
-    { type: "match",
-      stem: "Match each retrieval question to the mechanism best suited to answer it.",
-      pairs: [
-        { l: "\"Find passages that discuss database migration pain\"", r: "plain vector similarity (VectorRetriever)" },
-        { l: "\"Tell me everything connected to this incident\"", r: "vector entry + Cypher traversal (VectorCypherRetriever)" },
-        { l: "\"How many open tickets per region?\"", r: "Text2Cypher — LLM writes the aggregation query" },
-        { l: "\"What are the main themes across the whole corpus?\"", r: "community summaries, map-reduced (GraphRAG paper's global mode)" } ],
-      explain: "Fuzzy find-similar-text is vector territory; entity-anchored neighborhood questions want a vector entry point plus traversal; precise aggregations compile naturally to a generated Cypher query with exact results; and global sensemaking needs the paper's pre-generated community summaries — no single chunk or neighborhood holds that answer." },
-    { type: "open",
-      stem: "In one or two sentences: why does a graph full of generic -[:RELATED_TO]-> relationships cripple BOTH Text2Cypher and VectorCypherRetriever, and what's the design rule that prevents it?",
-      hint: "Think about what the LLM is prompted with, and what a traversal query has to name.",
-      model: "Text2Cypher is only as good as the schema it's prompted with — a vague RELATED_TO edge gives the LLM nothing precise to compile the question into — and VectorCypherRetriever's traversal query can only walk the right connections if the relationships are specific and directed enough to name. The rule: make relationship types as specific as possible (ACTED_IN, not RELATED_TO), always directed — schema quality determines retrieval quality." }
-  ]
-};
-</script>
-<script>
-/* Source-restored W4D4 contract; historical GraphRAG objects above remain inert evidence. */
 window.DIAGRAM = {title:"Multi-agent operating envelope",width:500,height:620,nodes:[{id:"ask",step:0,kind:"example",x:14,y:14,w:472,h:64,label:"SYNTHETIC INSURANCE WORKFLOW\ncoordinator → parallel read-only analysis → one approval → one writer"},{id:"budget",step:0,x:36,y:104,w:428,h:52,label:"RUN ENVELOPE · calls · tokens · attempts · wall time · outcome"},{id:"fan",step:1,x:24,y:188,w:138,h:54,label:"worker A\nread + propose"},{id:"fan2",step:1,x:181,y:188,w:138,h:54,label:"worker B\nread + propose"},{id:"owner",step:1,x:338,y:188,w:138,h:54,label:"one writer\ncommit owner"},{id:"ledger",step:2,x:36,y:276,w:428,h:50,label:"LEDGER · agent · model · tokens · cache · attempts · duration"},{id:"gate",step:3,x:112,y:356,w:276,h:52,label:"HUMAN GATE\nproposal + evidence → decision → commit"},{id:"trace",step:4,x:36,y:438,w:428,h:52,label:"TRACE ID · coordinator → model → worker → tool"},{id:"sub",step:5,x:24,y:526,w:214,h:50,label:"Claude Code rehearsal\nexplore · review · one editor"},{id:"seam",step:6,x:262,y:526,w:214,h:50,label:"provider adapter\nstable contract · tested differences"},{id:"evidence",step:7,x:110,y:592,w:280,h:20,label:"operating sheet → architecture defense"}],edges:[{id:"a",step:1,from:"budget",to:"fan"},{id:"b",step:1,from:"budget",to:"fan2"},{id:"c",step:1,from:"fan",to:"owner"},{id:"d",step:1,from:"fan2",to:"owner"},{id:"e",step:3,from:"owner",to:"gate"},{id:"f",step:4,from:"gate",to:"trace"},{id:"g",step:7,from:"trace",to:"evidence"}],captions:["Start with the <b>run envelope</b>, not the number of agents.","Fan out independent reads; route proposals to <b>one write owner</b>.","Wall time follows the critical path; total burn sums <b>every call</b>.","A human decision sits <b>before</b> the high-impact side effect.","One trace ID correlates coordinator, model, worker, and tool spans.","Claude Code subagents rehearse bounded delegation: explorers and reviewers, one editor.","Keep a stable adapter contract; acceptance-test provider-specific behavior.","Exit with evidence: ceilings, ownership, gates, traces, and stop conditions."]};
 window.QUIZ = {id:"w04-d4",title:"Operating-envelope check",questions:[{type:"scq",stem:"Two workers need to update the same decision record. What is the safe topology?",options:["Let both commit and keep the last write","Have both propose; one named owner validates and commits","Disable tracing","Add a third writer"],answer:1,explain:"Parallelize independent reads and proposals; serialize the shared write through one owner."},{type:"tf",stem:"Total token burn and wall-clock latency are the same quantity in a parallel fan-out.",answer:false,explain:"Burn sums all calls; elapsed time follows the longest dependent path plus coordination."},{type:"scq",stem:"Where does a human approval gate belong?",options:["After the side effect","Before the high-impact side effect, with proposal and evidence persisted","Only in the dashboard","Inside an untraced retry"],answer:1,explain:"Approval must control the action, not merely review it afterward."},{type:"mcq",stem:"Which fields support cross-agent failure attribution?",options:["trace ID and parent span","agent and handoff ID","attempt and policy decision","the learner's real email"],answer:[0,1,2],explain:"Correlate technical and policy evidence; do not put learner PII in traces."},{type:"scq",cloud:"aws",stem:"On the AWS path, what should a provider swap test separately?",options:["Only CSS","Bedrock model IDs, tool responses, cache behavior, usage, errors, and telemetry","Nothing; adapters guarantee parity"],answer:1,explain:"The shared contract is portable; provider behavior is acceptance-tested."},{type:"scq",cloud:"gcp",stem:"On the GCP path, what should a provider swap test separately?",options:["Only CSS","Vertex model IDs, tool responses, cache behavior, usage, errors, and telemetry","Nothing; adapters guarantee parity"],answer:1,explain:"The shared contract is portable; provider behavior is acceptance-tested."}]};
 </script>

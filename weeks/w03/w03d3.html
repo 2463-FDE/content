@@ -38,7 +38,7 @@
           <span><b>Week 3</b> · Day 3</span>
           <span>Foundation AI Engineering</span>
           <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~12 min read · 2 interactions · 6-Q check</span>
-          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 6-Q check</span>
+          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~12 min read · 2 interactions · 6-Q check</span>
         </div>
         <p class="summary">Once you decide to build an agent, the next question a client asks is
         <em>"which framework?"</em> — and in 2026 there are four serious answers, all of which changed shape in the last
@@ -370,6 +370,8 @@
         </details>
       </section>
 
+      <section class="source-bridge" aria-labelledby="w03-stack-onboarding"><div class="tag">Source session · onboarding</div><h2 id="w03-stack-onboarding">Stack-onboarding outcome</h2><p>Write a one-page onboarding note for the synthetic insurance stack: chosen framework, runtime, tool/MCP boundary, state store, and owner. Label each item as an assumption, not client fact.</p></section>
+
       <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
@@ -477,6 +479,7 @@
       <li>Explain LangChain's <code>create_agent</code>-over-LangGraph layering and the OpenAI SDK's five primitives</li>
       <li>Describe handoffs as tool calls, CrewAI's Crews-vs-Flows split, and why AutoGen + Semantic Kernel are now one framework</li>
       <li>Pick a framework for a given client by scoring control model, provider lock-in, and enterprise/state needs — and ask first whether an agent is even needed</li>
+      <li>Produce a stack-onboarding note for the synthetic insurance project</li>
     </ul>
     <div class="ma-k">Deliverable — commit to your project repo</div>
     <ul class="deliv-list check">
@@ -484,6 +487,7 @@
       <li><b>①</b> for a task in your domain, whether it needs an agent at all — and why</li>
       <li><b>②</b> which of the four frameworks you'd pick for it, scored on control model + lock-in + enterprise needs</li>
       <li><b>③</b> one stale-advice trap (AutoGen/SK as separate, or LangChain as pre-1.0) and the current correction</li>
+      <li><b>④</b> a stack-onboarding note: framework, runtime, tool/MCP boundary, state store, and owner, each labeled as a synthetic assumption</li>
     </ul>
     <p class="goals-foot">Bring it to Day 4, where we go deeper on building with the framework you chose. This keeps
     growing the engineering journal you started in Week 1.</p>
