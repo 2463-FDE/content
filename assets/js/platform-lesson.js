@@ -15,7 +15,8 @@
     return (String(text || "").match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) || []).length;
   }
   function requiredWords(lesson) {
-    return wordCount(lesson.summary) + lesson.sections.reduce(function (sum, item) {
+    var projectWords = lesson.project ? wordCount(lesson.project.label) + wordCount(lesson.project.context) + 5 : 0;
+    return projectWords + wordCount(lesson.summary) + lesson.sections.reduce(function (sum, item) {
       return sum + wordCount(item[0]) + wordCount(item[1]);
     }, 0) + wordCount(lesson.drill.prompt) + lesson.drill.options.reduce(function (sum, item) { return sum + wordCount(item); }, 0);
   }
@@ -51,7 +52,7 @@
   }
   function interactionHtml(lesson, id, order) {
     var sequence = order || lesson.drill.options.map(function (_, index) { return index; });
-    return '<div class="capstone-drill platform-drill" data-platform-drill>' +
+    return '<div class="capstone-drill platform-drill" data-platform-drill data-core-interaction>' +
       '<div class="ix-k">Required practice · predict, then check</div>' +
       '<fieldset><legend>' + esc(lesson.drill.prompt) + '</legend>' +
       sequence.map(function (index) {
@@ -94,6 +95,20 @@
       return '<details class="deep capstone-optional" data-core="optional"><summary>' + esc(item[0]) + ' · outside Core 30</summary><p>' + esc(item[1]) + '</p></details>';
     }).join("");
   }
+  function projectHtml(lesson) {
+    if (!lesson.project) return "";
+    return '<aside class="project-context" aria-label="Project and cloud decision context"><strong>' + esc(lesson.project.label) + '</strong><p>' + esc(lesson.project.context) + '</p><a href="' + esc(lesson.project.adrHref) + '">Open the Week 6 team-primary-cloud ADR template</a></aside>';
+  }
+  function staticFallbackHtml(lesson, visualText) {
+    var dayId = "w" + String(lesson.week).padStart(2, "0") + "d" + lesson.day;
+    var pacing = pacingFor(lesson);
+    var practice = '<details><summary>Required practice: ' + esc(lesson.drill.prompt) + '</summary><ul>' + lesson.drill.options.map(function (option) { return '<li>' + esc(option) + '</li>'; }).join("") + '</ul><p><b>Defensible response:</b> ' + esc(lesson.drill.options[lesson.drill.answer]) + '</p><p>' + esc(lesson.drill.feedback) + '</p></details>';
+    var sections = lesson.sections.map(function (section, index) { return '<section><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + (index === 3 ? practice : '') + '</section>'; }).join("");
+    var checks = lesson.checks.map(function (question, index) { return '<details><summary>' + (index + 1) + '. ' + esc(question.stem) + '</summary><p><b>Answer:</b> ' + esc(question.options[question.answer]) + '</p><p>' + esc(question.explain) + '</p></details>'; }).join("");
+    var sources = lesson.sources.map(function (source) { return '<li><a href="' + esc(source.href) + '">' + esc(source.label) + '</a></li>'; }).join("");
+    var boundary = lesson.week === 7 ? "Essential delivery-control boundary" : "Essential reliability-evidence boundary";
+    return '<noscript><style>#lesson-root{display:none}</style><main class="lesson2 nojs-lesson" data-curriculum-surface><article class="reading-col"><header class="lede"><h1>' + esc(lesson.title) + '</h1><div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + '</span><span><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div><p class="summary">' + esc(lesson.summary) + '</p>' + projectHtml(lesson) + '</header><section aria-labelledby="nojs-visual-' + dayId + '"><h2 id="nojs-visual-' + dayId + '">' + boundary + ' · text alternative</h2><p>' + esc(visualText || "The required diagram connects system evidence, control boundaries, failure behavior, and human ownership.") + '</p></section>' + sections + optionalHtml(lesson) + '<section><h2>Comprehension check</h2>' + checks + '</section><section class="reading-sources" data-core="optional" aria-label="Sources and evidence"><h2>Sources &amp; evidence trail</h2><ul>' + sources + '</ul></section><p><a href="../../index.html#curriculum">Return to the curriculum hub</a> · <a href="' + esc(route(dayId)) + '">' + esc(nextLabel(lesson)) + '</a></p></article></main></noscript>';
+  }
   function render(doc, options) {
     var id = doc.body && doc.body.getAttribute("data-lesson");
     var lessons = (typeof globalThis !== "undefined" && globalThis.FDE_PLATFORM_LESSONS) || {};
@@ -125,7 +140,7 @@
     lessonRoot.innerHTML = '<header class="kafka-page-head platform-page-head"><div class="lede"><h1>' + esc(lesson.title) + '</h1>' +
       '<div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + (lesson.day === 5 ? ' · milestone' : '') + '</span><span>' + esc(lesson.phase) + '</span>' +
       '<span class="core30-meta" title="Required reading is measured at 150 words per minute. Essential diagram dwell, one interaction, and the six-question check are included."><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div>' +
-      '<p class="summary">' + esc(lesson.summary) + '</p><div class="ix-legend"></div></div></header>' +
+      '<p class="summary">' + esc(lesson.summary) + '</p>' + projectHtml(lesson) + '<div class="ix-legend"></div></div></header>' +
       '<section class="kafka-visual-breakout platform-visual-breakout" aria-label="' + visualTitle + '"><div class="stage-title">' + visualTitle + '</div>' + visualHtml + '</section>' +
       '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav><article class="reading-col">' + sections + optionalHtml(lesson) +
       '<section class="reading-sources" data-core="optional" aria-label="Sources and evidence"><h2>Sources &amp; evidence trail</h2><p>Optional references outside the required path. Dated research records carry scope and currency notes.</p><ul>' + sources + '</ul></section></article>' +
@@ -133,9 +148,10 @@
       '<button class="activity-card accent" type="button" data-modal="quiz-modal"><div class="ac-k">Comprehension check</div><div class="ac-t"><span class="quiz-count">6</span> questions on delivery judgement</div><div class="ac-meta">~5 min · practice</div></button></div>' +
       '<div class="side-nav"><a class="snav-btn" href="../../index.html#curriculum">◂ Curriculum hub</a><button class="snav-btn goals" type="button" data-modal="goals-modal">Daily goals</button><a class="snav-btn snav-next"></a></div></aside></div>';
     var overlays = doc.getElementById("lesson-overlays");
+    var projectDelivery = lesson.project ? '<li><a href="' + esc(lesson.project.adrHref) + '">Review ADR-P2-001 from the Week 6 handover</a>. Team implementation follows that one primary cloud; personal AWS/GCP/Both reading views remain independent.</li>' : "";
     overlays.innerHTML = '<div id="trainer-demo-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><h2>Trainer facilitation cue</h2><p>Ask for a prediction before revealing the diagram relationship or interaction response. Require the learner to connect decision, evidence, human authority, rollback or response, and client consequence.</p><p><b>Safety boundary:</b> inert configuration and synthetic evidence only. No account, credential, IAM, billing, provider initialization, Terraform apply/destroy, Ansible host connection, deployment, publication, external message, paid model call, or real learner/client data.</p><p><b>Batch context:</b> <span data-batch-value>loading</span> · <b>Client:</b> <span data-client-name>loading</span></p></div></div>' +
       '<div id="quiz-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><section id="quiz"></section><div class="modal-next"></div></div></div>' +
-      '<div id="goals-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><h2>Week ' + lesson.week + ' · Day ' + lesson.day + ' goals</h2><ul class="goals-list">' + lesson.goals.map(function (goal) { return '<li>' + esc(goal) + '</li>'; }).join("") + '</ul><div class="ma-k">Daily deliverable · Project 2</div><ul class="deliv-list"><li>' + esc(lesson.deliverable) + '</li><li>Use synthetic, local/static evidence only. Do not provision, apply, destroy, connect, deploy, publish, merge, send externally, or use a paid provider.</li><li><a href="../../client-delivery.html?w=' + lesson.week + '">Open the Week ' + lesson.week + ' client packet</a>.</li></ul></div></div>';
+      '<div id="goals-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><h2>Week ' + lesson.week + ' · Day ' + lesson.day + ' goals</h2><ul class="goals-list">' + lesson.goals.map(function (goal) { return '<li>' + esc(goal) + '</li>'; }).join("") + '</ul><div class="ma-k">Daily deliverable · Project 2</div><ul class="deliv-list"><li>' + esc(lesson.deliverable) + '</li>' + projectDelivery + '<li>Use synthetic, local/static evidence only. Do not provision, apply, destroy, connect, deploy, publish, merge, send externally, or use a paid provider.</li><li><a href="../../client-delivery.html?w=' + lesson.week + '">Open the Week ' + lesson.week + ' client packet</a>.</li></ul></div></div>';
     lessonRoot.className = "lesson2 capstone-lesson kafka-lesson platform-lesson week-" + lesson.week;
     var browserRoot = typeof window !== "undefined" ? window : globalThis;
     browserRoot.QUIZ = { id: dayId + "-check", title: "Check your understanding", questions: lesson.checks };
@@ -143,5 +159,5 @@
     mountInteraction(doc, lesson);
     return true;
   }
-  return { esc: esc, wordCount: wordCount, requiredWords: requiredWords, pacingFor: pacingFor, route: route, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, render: render };
+  return { esc: esc, wordCount: wordCount, requiredWords: requiredWords, pacingFor: pacingFor, route: route, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, projectHtml: projectHtml, staticFallbackHtml: staticFallbackHtml, render: render };
 });

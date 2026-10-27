@@ -68,10 +68,12 @@ See the Core-30 section of `docs/week-fanout-plan.md`; the reference page is
 | Weeks 6–10, teams of 2–3, inheriting Project 1 | The team-primary cloud recorded in the Week 6 ADR is the primary implementation plane for the team's implementation, shared repository, deployment examples, and required Core-30 work; the other provider is the comparison substrate. Members keep their own reading view. | (same rule — a GCP-primary team does not inherit an AWS-primary topology) |
 | Cross-cloud judgement (event hop and egress measurement, the two-provider infrastructure design, identity federation, the workload-placement memo) | Shared and required on both paths | Shared and required on both paths |
 
-Weeks 6–7 in the LTM structure (Kafka; Terraform + Ansible) have no live lesson
-pages yet; the curriculum-hub lane owns their transfer. When they are authored,
-the "primary plane" in each delivery narrative is the team-primary cloud recorded
-in the Week 6 ADR, and the second provider is the comparison substrate. Terraform stays in its later week.
+Weeks 6–7 are live as the Kafka and Terraform/Ansible/AI-CI/CD routes. Their
+source/day inventory and production boundary are recorded in
+`docs/research/w05-w07-production-inventory.md`. Provider-neutral fundamentals
+serve either personal path inside Core 30; provider-specific comparisons retain
+AWS/GCP evidence and do not override the team-primary cloud recorded in the Week
+6 ADR. The second provider remains comparison depth, and Terraform stays in Week 7.
 
 ## Seams with the curriculum-hub lane
 

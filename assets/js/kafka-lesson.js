@@ -16,7 +16,8 @@
     return (String(text || "").match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) || []).length;
   }
   function requiredWords(lesson) {
-    return wordCount(lesson.summary) + lesson.sections.reduce(function (sum, section) {
+    var projectWords = lesson.project ? wordCount(lesson.project.label) + wordCount(lesson.project.context) + 5 : 0;
+    return projectWords + wordCount(lesson.summary) + lesson.sections.reduce(function (sum, section) {
       return sum + wordCount(section[0]) + wordCount(section[1]);
     }, 0);
   }
@@ -50,7 +51,7 @@
   }
   function interactionHtml(lesson, id, order) {
     var sequence = order || lesson.drill.options.map(function (_, index) { return index; });
-    return '<div class="capstone-drill kafka-drill" data-kafka-drill>' +
+    return '<div class="capstone-drill kafka-drill" data-kafka-drill data-core-interaction>' +
       '<div class="ix-k">Required practice · pipeline decision</div>' +
       '<fieldset><legend>' + esc(lesson.drill.prompt) + '</legend>' +
       sequence.map(function (index) {
@@ -93,6 +94,23 @@
       return '<details class="deep capstone-optional" data-core="optional"><summary>' + esc(item[0]) + ' · outside Core 30</summary><p>' + esc(item[1]) + '</p></details>';
     }).join("");
   }
+  function projectHtml(lesson) {
+    if (!lesson.project) return "";
+    return '<aside class="project-context" aria-label="Project and cloud decision context"><strong>' + esc(lesson.project.label) + '</strong><p>' + esc(lesson.project.context) + '</p><a href="' + esc(lesson.project.adrHref) + '">Open the team-primary-cloud ADR template</a></aside>';
+  }
+  function staticFallbackHtml(lesson, visualText) {
+    var dayId = "w06d" + lesson.day;
+    var pacing = pacingFor(lesson);
+    var practice = '<details><summary>Required practice: ' + esc(lesson.drill.prompt) + '</summary><ul>' + lesson.drill.options.map(function (option) { return '<li>' + esc(option) + '</li>'; }).join("") + '</ul><p><b>Defensible response:</b> ' + esc(lesson.drill.options[lesson.drill.answer]) + '</p><p>' + esc(lesson.drill.feedback) + '</p></details>';
+    var sections = lesson.sections.map(function (section, index) {
+      return '<section><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + (index === 3 ? practice : '') + '</section>';
+    }).join("");
+    var checks = lesson.checks.map(function (question, index) {
+      return '<details><summary>' + (index + 1) + '. ' + esc(question.stem) + '</summary><p><b>Answer:</b> ' + esc(question.options[question.answer]) + '</p><p>' + esc(question.explain) + '</p></details>';
+    }).join("");
+    var sources = lesson.sources.map(function (source) { return '<li><a href="' + esc(source.href) + '">' + esc(source.label) + '</a></li>'; }).join("");
+    return '<noscript><style>#lesson-root{display:none}</style><main class="lesson2 nojs-lesson" data-curriculum-surface><article class="reading-col"><header class="lede"><h1>' + esc(lesson.title) + '</h1><div class="meta"><span><b>Week 6</b> · Day ' + lesson.day + '</span><span><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div><p class="summary">' + esc(lesson.summary) + '</p>' + projectHtml(lesson) + '</header><section aria-labelledby="nojs-visual-' + dayId + '"><h2 id="nojs-visual-' + dayId + '">Essential event-flow boundary · text alternative</h2><p>' + esc(visualText || "The required diagram connects the day's system boundaries, evidence, failure path, and human owner.") + '</p></section>' + sections + optionalHtml(lesson) + '<section><h2>Comprehension check</h2>' + checks + '</section><section class="reading-sources" data-core="optional" aria-label="Sources and evidence"><h2>Sources &amp; evidence trail</h2><ul>' + sources + '</ul></section><p><a href="../../index.html#curriculum">Return to the curriculum hub</a> · <a href="' + esc(route(dayId)) + '">' + esc(nextLabel(lesson)) + '</a></p></article></main></noscript>';
+  }
   function render(doc, options) {
     var id = doc.body && doc.body.getAttribute("data-lesson");
     var lessons = (typeof globalThis !== "undefined" && globalThis.FDE_KAFKA_LESSONS) || {};
@@ -126,7 +144,7 @@
     lessonRoot.innerHTML = '<header class="kafka-page-head"><div class="lede"><h1>' + esc(lesson.title) + '</h1>' +
       '<div class="meta"><span><b>Week 6</b> · Day ' + lesson.day + (lesson.day === 5 ? ' · milestone' : '') + '</span><span>' + esc(lesson.phase) + '</span>' +
       '<span class="core30-meta" title="Required reading time is calculated at 150 words per minute. Essential diagram dwell, one practice, and the six-question check are included in the Core 30 estimate."><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div>' +
-      '<p class="summary">' + esc(lesson.summary) + '</p><div class="ix-legend"></div></div></header>' +
+      '<p class="summary">' + esc(lesson.summary) + '</p>' + projectHtml(lesson) + '<div class="ix-legend"></div></div></header>' +
       '<section class="kafka-visual-breakout" aria-label="Essential event-flow boundary"><div class="stage-title">Essential event-flow boundary</div>' + visualHtml + '</section>' +
       '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav>' +
       '<article class="reading-col">' + sections + optionalHtml(lesson) +
@@ -138,7 +156,7 @@
     var overlays = doc.getElementById("lesson-overlays");
     overlays.innerHTML = '<div id="trainer-demo-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><h2>Trainer demonstration cue</h2><p>' + esc(lesson.demoNote) + '</p><p><b>Safety boundary:</b> static or local synthetic exercise only. No account, billing, IAM, credential, provisioning, deployment, publication, external message, paid model call, or real learner data.</p><p><b>Batch context:</b> <span data-batch-value>loading</span> · <b>Client:</b> <span data-client-name>loading</span></p></div></div>' +
       '<div id="quiz-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><section id="quiz"></section><div class="modal-next"></div></div></div>' +
-      '<div id="goals-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><h2>Week 6 · Day ' + lesson.day + ' goals</h2><ul class="goals-list">' + lesson.goals.map(function (goal) { return '<li>' + esc(goal) + '</li>'; }).join("") + '</ul><div class="ma-k">Daily deliverable</div><ul class="deliv-list"><li>' + esc(lesson.deliverable) + '</li><li>Keep every exercise local or static and use synthetic data only. Do not provision, deploy, publish, merge, send externally, or use a paid provider.</li></ul></div></div>';
+      '<div id="goals-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><h2>Week 6 · Day ' + lesson.day + ' goals</h2><ul class="goals-list">' + lesson.goals.map(function (goal) { return '<li>' + esc(goal) + '</li>'; }).join("") + '</ul><div class="ma-k">Daily deliverable · Project 2 banking/payments</div><ul class="deliv-list"><li>' + esc(lesson.deliverable) + '</li><li><a href="' + esc(lesson.project.adrHref) + '">Open ADR-P2-001: one team-primary cloud</a>. This team decision does not change any learner&rsquo;s AWS/GCP/Both reading view.</li><li>Keep every exercise local or static and use synthetic data only. Do not provision, deploy, publish, merge, send externally, or use a paid provider.</li></ul></div></div>';
 
     lessonRoot.className = "lesson2 capstone-lesson kafka-lesson";
     var browserRoot = typeof window !== "undefined" ? window : globalThis;
@@ -148,5 +166,5 @@
     return true;
   }
 
-  return { esc: esc, wordCount: wordCount, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, requiredWords: requiredWords, pacingFor: pacingFor, route: route, render: render };
+  return { esc: esc, wordCount: wordCount, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, requiredWords: requiredWords, pacingFor: pacingFor, route: route, projectHtml: projectHtml, staticFallbackHtml: staticFallbackHtml, render: render };
 });
