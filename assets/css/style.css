@@ -425,7 +425,7 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 
 /* ---------- identity / login ---------- */
 .topbar .brand a { color: inherit; text-decoration: none; }
-.id-badge { display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--ink-soft); }
+.id-badge { display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--ink-soft); white-space:nowrap; }
 .id-badge .dot { width:8px; height:8px; border-radius:50%; background:var(--good); display:inline-block; }
 .id-badge .logout { color:var(--accent); text-decoration:none; }
 .login-overlay { position:fixed; inset:0; background:var(--bar-bg); backdrop-filter:blur(6px); z-index:1000; display:flex; align-items:center; justify-content:center; }
@@ -830,7 +830,7 @@ html[data-theme="dark"] .cd-repo { background:#2b313a; }
   .topbar { flex-wrap:wrap; gap:6px 10px; padding:8px 12px; }
   .topbar-left { flex:0 0 auto; gap:10px; }
   .topbar-left .topnav { margin-left:0; }
-  .topbar-right { flex:1 1 auto; min-width:0; flex-wrap:wrap; gap:6px 10px; }
+  .topbar-right { flex:1 1 auto; min-width:0; flex-wrap:wrap; gap:6px 10px; justify-content:flex-start; }
   .progressbar { flex:1 1 60px; max-width:160px; }
   .topbar-center { order:3; flex:1 1 100%; flex-wrap:wrap; gap:4px 14px; }
   .topbar-center .topnav { margin-left:0; font-size:13px; }
@@ -838,7 +838,7 @@ html[data-theme="dark"] .cd-repo { background:#2b313a; }
 }
 
 /* Try-it: preset tabs are run-only (locked textarea); saved/cached results marked. */
-.run-in[readonly] { background: #f6f4ef; color: var(--ink-soft); cursor: default; }
+.run-in[readonly] { background: var(--surface-2); color: var(--ink-soft); cursor: default; }
 .ix-run.is-locked .run-in, .is-locked .run-in { opacity: .92; }
 .run-out.saved::before { content: "↩ saved result · "; color: var(--dim); font-weight: 700; font-size: 12px; }
 
@@ -1021,7 +1021,7 @@ html[data-theme="dark"] .cd-repo { background:#2b313a; }
 
 /* Try-it "Your turn" — the what-to-do instruction, as a visible highlighted block
    ABOVE the textarea (was buried inside the editable box and unreadable). */
-.run-note { background:#fff9db; border:1px solid #ffe066; border-left:4px solid #f59f00; border-radius:8px; padding:9px 12px; margin:2px 0 8px; font-size:13.5px; line-height:1.45; color:#5c4813; }
+.run-note { background:var(--warn-soft); border:1px solid var(--warn-line); border-radius:var(--r-ctl); padding:9px 12px; margin:2px 0 8px; font-size:13.5px; line-height:1.45; color:var(--warn-ink); }
 .run-note[hidden] { display:none; }
 
 
@@ -1168,8 +1168,8 @@ html[data-theme="dark"] .ritual.cr { color:#5fe3c0; border-color:rgba(56,217,169
 .gloss-block {
   display: block; width: 100%; text-align: left; cursor: pointer;
   margin-top: 26px; padding: 12px 13px;
-  border: 1px solid var(--line); border-left: 3px solid var(--accent);
-  border-radius: 10px; background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel); background: var(--surface);
   font: inherit; color: var(--ink);
   transition: transform .1s, box-shadow .1s, border-color .1s;
 }
@@ -1273,7 +1273,15 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
 /* In the collapsed horizontal rail, the quota card sits beside Resources at a
    fixed width; on phones it goes full-width. */
 @media (max-width: 1080px) { #codex-usage { width: 260px; } }
-@media (max-width: 620px) { .cal-rail { flex-direction: column; } #codex-usage { width: 100%; } .friday-rituals { width: 100%; } }
+@media (max-width: 620px) {
+  .cal-rail { flex-direction: column; }
+  #codex-usage { width: 100%; }
+  /* Resources collapse to a tight two-up grid so the hub heading stays close
+     to the top of the page on phones. */
+  .friday-rituals { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .friday-rituals .fr-label { grid-column: 1 / -1; }
+  .fr-btn { font-size: 12.5px; padding: 8px 10px; }
+}
 
 /* ---- per-reading study assistant (reading-coach.js) ---- */
 /* Delivery block: the "use this today" CTA that sits at the end of every
@@ -1435,6 +1443,7 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
   margin:24px 0 28px; padding:clamp(20px,3vw,36px); border:1px solid var(--line); border-radius:var(--r-card);
   background:var(--surface);
 }
+.curriculum-hub-intro .hub-copy { align-self:center; }
 .curriculum-hub-intro h1 { margin:0 0 6px; font-size:clamp(30px,4vw,42px); line-height:1.05; letter-spacing:-.02em; }
 .curriculum-hub-intro p { max-width:640px; margin:10px 0 0; color:var(--ink-soft); font-size:16px; line-height:1.6; }
 .hub-role { margin-top:10px; font-size:13px; color:var(--ink-soft); }
