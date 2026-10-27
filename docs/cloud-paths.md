@@ -68,21 +68,24 @@ See the Core-30 section of `docs/week-fanout-plan.md`; the reference page is
 | Weeks 6–10, teams of 2–3, inheriting Project 1 | The team-primary cloud recorded in the Week 6 ADR is the primary implementation plane for the team's implementation, shared repository, deployment examples, and required Core-30 work; the other provider is the comparison substrate. Members keep their own reading view. | (same rule — a GCP-primary team does not inherit an AWS-primary topology) |
 | Cross-cloud judgement (event hop and egress measurement, the two-provider infrastructure design, identity federation, the workload-placement memo) | Shared and required on both paths | Shared and required on both paths |
 
-Weeks 6–7 in the LTM structure (Kafka; Terraform + Ansible) have no live lesson
-pages yet; the curriculum-hub lane owns their transfer. When they are authored,
-the "primary plane" in each delivery narrative is the team-primary cloud recorded
-in the Week 6 ADR, and the second provider is the comparison substrate. Terraform stays in its later week.
+Weeks 6–7 are live as Kafka and Terraform + Ansible routes. Their delivery
+narratives follow the team-primary cloud recorded in the Week 6 ADR; the second
+provider remains the comparison substrate. Terraform stays in its source-assigned
+later week.
 
-## Seams with the curriculum-hub lane
+## Shared integration seam
 
-- `index.html` gets one additive `<head>` script line; the picker mounts itself
-  into `#cloud-path-mount`, or creates that mount directly above `#cal`.
-- `assets/js/curriculum-config.js` (hub-owned) may define `cloudPath.options`;
-  `cloud-path.js` reads it at call time. Once both lanes land, the hub's
-  `cloudPath.status`/`active` placeholder and its "AWS/GCP evidence seam pending"
-  status chip should be updated to reflect the live path (one-line follow-up).
-- Lesson pages, `cloud-map.js`, and the provider research artifacts belong to this
-  lane; week routing, batch context, and W9–W10 pages belong to the hub lane.
+- `cloud-path.js` mounts the picker into `#cloud-path-mount`, or directly above
+  `#cal` when a mount is absent.
+- `assets/js/curriculum-config.js` is the shared status authority. Its integrated
+  state means the picker, certification targets, and dated provider evidence are
+  live; it does not mean every source-assigned provider exercise is complete.
+- `assets/js/cert-objectives.js` and `docs/research/certifications/` own the AWS
+  AIP-C01 and Google AI Professional Certificate facts. Week-owned provider claims
+  still require their matching dated research artifact.
+- The exact v3 source coverage and remaining week gaps are tracked in
+  `docs/research/fde-ltim-v3-source-reconciliation.md` and
+  `docs/research/fde-ltim-v3-coverage.json`.
 
 ## Open items
 

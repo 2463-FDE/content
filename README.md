@@ -6,6 +6,8 @@ Reading content + live diagrams + comprehension checks for the **2463-FDE Forwar
 
 Learners pick an **AWS · GCP · Both** path on the hub (shareable as `?cloud=aws|gcp|both`); `certifications.html` maps each path to its certification target. Design and authoring contract: [`docs/cloud-paths.md`](docs/cloud-paths.md).
 
+The exact LTIM FDE v3 curriculum authority, eight-page inventory, measurable 396-item coverage denominator, and current-main gap handoff live in [`docs/research/fde-ltim-v3-source-reconciliation.md`](docs/research/fde-ltim-v3-source-reconciliation.md) and [`docs/research/fde-ltim-v3-coverage.json`](docs/research/fde-ltim-v3-coverage.json). Current product behavior remains grounded by each week's dated first-party research.
+
 ## What's here
 
 ```
