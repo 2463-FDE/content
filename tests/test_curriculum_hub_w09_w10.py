@@ -90,10 +90,10 @@ class CurriculumHubTransferTests(unittest.TestCase):
             "const b=n['[data-cloud-path-status]'][0];"
             "return {client:n['[data-client-name]'][0].textContent,badge:b.textContent,"
             "status:b.a['data-cloud-path-status'],classes:[...b.c].sort()};}"
-            "const active=Object.assign({},cfg,{cloudPath:{status:'evidence-lane-integrated',label:'AWS/GCP evidence integrated',active:true}});"
-            "console.log(JSON.stringify({pending:render(cfg),active:render(active)}));"
+            "const pending=Object.assign({},cfg,{cloudPath:{status:'evidence-lane-pending',label:'AWS/GCP evidence seam pending',active:false}});"
+            "console.log(JSON.stringify({pending:render(pending),active:render(cfg)}));"
         )
-        self.assertEqual(result["pending"]["client"], "LTM, formerly LTIMindtree")
+        self.assertEqual(result["active"]["client"], "LTM, formerly LTIMindtree")
         self.assertEqual(result["pending"]["badge"], "AWS/GCP evidence seam pending")
         self.assertEqual(result["pending"]["status"], "evidence-lane-pending")
         self.assertEqual(result["pending"]["classes"], ["is-pending"])

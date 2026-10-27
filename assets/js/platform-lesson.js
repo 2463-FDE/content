@@ -15,9 +15,11 @@
     return (String(text || "").match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) || []).length;
   }
   function requiredWords(lesson) {
-    return wordCount(lesson.summary) + lesson.sections.reduce(function (sum, item) {
+    var words = wordCount(lesson.summary) + lesson.sections.reduce(function (sum, item) {
       return sum + wordCount(item[0]) + wordCount(item[1]);
     }, 0) + wordCount(lesson.drill.prompt) + lesson.drill.options.reduce(function (sum, item) { return sum + wordCount(item); }, 0);
+    if (lesson.teamEvidence) words += wordCount(Object.values(lesson.teamEvidence).join(" "));
+    return words;
   }
   function pacingFor(lesson) {
     var words = requiredWords(lesson);
@@ -94,6 +96,11 @@
       return '<details class="deep capstone-optional" data-core="optional"><summary>' + esc(item[0]) + ' · outside Core 30</summary><p>' + esc(item[1]) + '</p></details>';
     }).join("");
   }
+  function teamEvidenceHtml(lesson) {
+    var item = lesson.teamEvidence;
+    if (!item) return "";
+    return '<section class="step team-evidence" aria-labelledby="team-evidence-title"><div class="tag">Team delivery evidence</div><h2 id="team-evidence-title">' + esc(item.artifact) + '</h2><dl><div><dt>Accountable role</dt><dd>' + esc(item.owner) + '</dd></div><div><dt>Acceptance rule</dt><dd>' + esc(item.acceptance) + '</dd></div><div><dt>Independent proof</dt><dd>' + esc(item.review) + '</dd></div></dl><p class="team-cloud-note"><b>Two separate decisions:</b> your personal AWS/GCP/Both reading view never rewrites the team’s single Week 6 primary-cloud ADR.</p></section>';
+  }
   function render(doc, options) {
     var id = doc.body && doc.body.getAttribute("data-lesson");
     var lessons = (typeof globalThis !== "undefined" && globalThis.FDE_PLATFORM_LESSONS) || {};
@@ -127,7 +134,7 @@
       '<span class="core30-meta" title="Required reading is measured at 150 words per minute. Essential diagram dwell, one interaction, and the six-question check are included."><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div>' +
       '<p class="summary">' + esc(lesson.summary) + '</p><div class="ix-legend"></div></div></header>' +
       '<section class="kafka-visual-breakout platform-visual-breakout" aria-label="' + visualTitle + '"><div class="stage-title">' + visualTitle + '</div>' + visualHtml + '</section>' +
-      '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav><article class="reading-col">' + sections + optionalHtml(lesson) +
+      '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav><article class="reading-col"><section class="capstone-context" aria-label="Project context"><b>Inherited team brownfield:</b> synthetic banking/payments evidence only. No client, learner, account, or provider fact is inferred.</section>' + sections + teamEvidenceHtml(lesson) + optionalHtml(lesson) +
       '<section class="reading-sources" data-core="optional" aria-label="Sources and evidence"><h2>Sources &amp; evidence trail</h2><p>Optional references outside the required path. Dated research records carry scope and currency notes.</p><ul>' + sources + '</ul></section></article>' +
       '<aside class="side kafka-side"><div class="side-cards"><button class="activity-card" type="button" data-modal="trainer-demo-modal"><div class="ac-k">Trainer cue</div><div class="ac-t">Facilitate the inert evidence exercise</div><div class="ac-meta">synthetic and review-only</div></button>' +
       '<button class="activity-card accent" type="button" data-modal="quiz-modal"><div class="ac-k">Comprehension check</div><div class="ac-t"><span class="quiz-count">6</span> questions on delivery judgement</div><div class="ac-meta">~5 min · practice</div></button></div>' +
@@ -143,5 +150,5 @@
     mountInteraction(doc, lesson);
     return true;
   }
-  return { esc: esc, wordCount: wordCount, requiredWords: requiredWords, pacingFor: pacingFor, route: route, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, render: render };
+  return { esc: esc, wordCount: wordCount, requiredWords: requiredWords, pacingFor: pacingFor, route: route, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, teamEvidenceHtml: teamEvidenceHtml, render: render };
 });

@@ -1492,6 +1492,25 @@ html[data-theme="dark"] .ritual.sd { color:#b197fc; border-color:rgba(132,94,247
   .lesson-loading .fde-diagram svg { min-width:900px; }
 }
 
+/* Weeks 8–10 evidence contracts: compact, reviewable, and readable without JS. */
+.capstone-context { margin:0 0 20px; padding:12px 14px; border:1px solid var(--accent-line); background:var(--surface-2); color:var(--ink-soft); line-height:1.55; }
+.team-evidence { margin:24px 0; padding:20px; border:1px solid var(--accent-line); border-radius:12px; background:var(--surface); }
+.team-evidence h2 { margin:4px 0 14px; }
+.team-evidence dl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:0; }
+.team-evidence dl > div { padding:12px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); }
+.team-evidence dt { margin-bottom:5px; color:var(--ink-soft); font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.team-evidence dd { margin:0; line-height:1.5; }
+.team-cloud-note { margin:14px 0 0; color:var(--ink-soft); font-size:14px; }
+.evidence-gate { margin-top:16px !important; padding-top:14px !important; border-top:1px solid var(--accent-line) !important; }
+.evidence-gate label { min-height:0; background:transparent; }
+.evidence-receipt { display:block; min-height:1.5em; margin-top:10px; color:var(--good-ink); font-weight:650; }
+.provider-paths { margin:28px 0; }
+.diagram-alternative { margin:18px 0; padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
+.diagram-alternative summary { cursor:pointer; font-weight:750; }
+.static-check details { margin:8px 0; padding:9px 12px; border:1px solid var(--line); border-radius:8px; }
+.static-check summary { cursor:pointer; font-weight:650; }
+@media (max-width:720px) { .team-evidence dl { grid-template-columns:1fr; } }
+
 /* ===================== Reading print layout ===================== */
 @media print {
   @page { margin: 16mm; }
