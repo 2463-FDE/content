@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="fde-day" content="w04d4">
-<meta name="fde-concepts" content="property-graph-model,kg-schema-design,cypher-pattern-matching,neo4j-vector-index,knowledge-graph,text2cypher">
-<title>W4·D4 — Knowledge Graphs &amp; Cypher for GraphRAG | 2463-FDE</title>
+<meta name="fde-concepts" content="multi-agent-cost,parallel-agent-budget,approval-gates,cross-agent-tracing,provider-swap-seam,claude-code-subagents">
+<title>W4·D4 — Operating Multi-Agent Systems | 2463-FDE</title>
 <link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
 <link rel="stylesheet" href="../../assets/css/cloud-path.css?v=20261014-c2">
 <link rel="stylesheet" href="../../assets/css/w4-major-refresh.css?v=20260925-2">
@@ -34,12 +34,46 @@
 
     <article class="reading-col">
       <div class="lede">
+        <h1>Operating Multi-Agent Systems: Cost, Control &amp; Traceability</h1>
+        <div class="meta">
+          <span><b>Week 4</b> · Day 4</span><span>Multi-Agent Orchestration</span>
+          <span class="core30-meta" data-cloud="aws"><b>Core 30</b> · AWS · ~4 min read · 2 interactions · 5-Q check</span>
+          <span class="core30-meta" data-cloud="gcp"><b>Core 30</b> · GCP · ~4 min read · 2 interactions · 5-Q check</span>
+        </div>
+        <p class="summary">A multi-agent diagram is easy; an operating envelope is the engineering. Today you bound parallel work, token and latency cost, approval authority, trace correlation, and the model-provider seam. The result is a reviewable operating sheet for the same solo insurance brownfield—no cloud call or deployment.</p>
+        <aside class="callout mindset project-progress" aria-label="Solo insurance project progress"><b>Project 1 · solo insurance brownfield</b><span>Advance: add <code>docs/agent-operations.md</code> with budgets, write ownership, approval gates, trace fields, and labeled assumptions. Use only synthetic records.</span></aside>
+        <div class="ix-legend"></div>
+        <noscript><section class="core30-fallback" aria-label="No-JavaScript practice and check"><h2>Offline practice</h2><p>Calculate total calls/tokens and the critical path for one synthetic fan-out.</p><details><summary>Check your reasoning</summary><p>Total burn sums every call; latency follows the longest dependent path. Stop at the declared ceiling.</p></details></section></noscript>
+      </div>
+
+      <section class="step" data-diagram="0" data-step="0"><div class="tag">Operating envelope</div><h2>Start with a budget, not an agent count</h2><p>Every worker adds at least one model call, another context, another failure surface, and another trace to correlate. Write the service envelope before the graph: maximum wall-clock time, aggregate input/output tokens, model-call count, retry count, and the one outcome metric that justifies the work. These are scenario limits, not provider prices. If one agent meets the outcome inside the envelope, keep one agent.</p></section>
+
+      <section class="step" data-diagram="0" data-step="1"><div class="tag">Parallelism</div><h2>Fan out only independent work</h2><p>Parallel workers reduce elapsed time only when their inputs are ready and their writes do not collide. Give each worker a typed brief, read-only inputs, an output schema, and a deadline. The coordinator joins results in a deterministic order. Dependent work stays sequential; shared mutation stays with one named owner.</p><div class="core-practice" data-core-interaction><fieldset><legend>Predict before revealing: which work can run in parallel?</legend><label><input type="radio" name="w04d4-parallel"> Two analysts independently classify separate synthetic claim notes</label><label><input type="radio" name="w04d4-parallel"> Two agents both edit the same claim-decision record</label></fieldset><details><summary>Check the boundary</summary><p>The independent, read-only classifications may fan out. Two writers to one decision record create an ownership conflict; route proposals to one commit owner.</p></details></div></section>
+
+      <section class="step" data-diagram="0" data-step="2"><div class="tag">Cost and latency</div><h2>Track the critical path and the total burn</h2><p>For each span, record agent, model, input/output tokens, cache status, attempts, duration, and outcome. Total token use is the sum across every call; wall time follows the longest dependent path, not that sum. Caching may reduce repeated-prefix processing, but it is provider-specific and measurable—not an invariant you carry across a swap. A dashboard should show both totals and the slowest path.</p></section>
+
+      <section class="step" data-diagram="0" data-step="3"><div class="tag">Human authority</div><h2>Put approval before the side effect</h2><p>Classify tools as read, propose, or commit. Reads can run inside their bounded scope. Proposals produce an artifact. A commit that changes a claim decision, sends a message, or writes a system of record requires the named human gate and one write owner. Persist the proposed action, evidence reference, approver decision, and reason before execution; retries must not duplicate the side effect.</p></section>
+
+      <section class="step" data-diagram="0" data-step="4"><div class="tag">Correlation</div><h2>One trace ID crosses every handoff</h2><p>Carry a trace ID through coordinator, worker, model, and tool spans. Add an agent name, handoff ID, parent span, attempt, and policy decision as attributes; put large prompts or sensitive content behind controlled references, not into ordinary logs. Structured logs answer what happened; the trace answers in what order and under whose decision. A failure must resolve to a specific span and owner.</p></section>
+
+      <section class="step" data-diagram="0" data-step="5"><div class="tag">Your tools</div><h2>Use Claude Code subagents as the boundary rehearsal</h2><p>A subagent has a separate context, prompt, and scoped tools. Rehearse the production rule locally: explorers inspect; reviewers challenge; one parent owns edits. In the retro, compare planned versus actual delegation, duplicated work, context returned, and evidence quality. “More agents” is not a success criterion.</p></section>
+
+      <section class="step" data-diagram="0" data-step="6"><div class="tag">Provider seam</div><h2>Keep the contract portable and test the differences</h2><p>The source names a <code>ChatBedrock</code> versus <code>ChatAnthropicVertex</code> seam. Treat that seam as an adapter boundary, not a drop-in-equivalence claim. Normalize messages, tool schemas, stop/error categories, and your trace envelope. Then acceptance-test model identity, tool-call shape, streaming, retries, usage fields, caching, and telemetry separately for the selected provider.</p>
+        <details class="cloud-block" data-cloud="aws" open><summary><span class="cloud-tag">AWS</span>Bedrock is your primary model plane<span class="cloud-role"></span></summary><p>Keep the shared adapter contract, then test Bedrock-specific model identifiers, response metadata, prompt-cache behavior, and trace export. Record observations from static fixtures only; do not invoke a model.</p><div class="ix-cloud" data-core-interaction data-cloud="aws"><p class="ix-cloud-q">A cached repeated prefix lowers one fixture's input processing. What belongs in the portability contract?</p><ul><li data-correct>The message/tool/trace shape; cache behavior stays a provider-specific acceptance test</li><li>The exact cache controls and hit semantics</li><li>A promise of identical latency</li></ul><p class="ix-cloud-answer"><b>Contract the stable shape.</b> Measure the provider-specific optimization.</p></div></details>
+        <details class="cloud-block" data-cloud="gcp" open><summary><span class="cloud-tag">GCP</span>Vertex AI is your primary model plane<span class="cloud-role"></span></summary><p>Keep the shared adapter contract, then test Vertex-specific model identifiers, response metadata, context-cache behavior, and trace export. Record observations from static fixtures only; do not invoke a model.</p><div class="ix-cloud" data-core-interaction data-cloud="gcp"><p class="ix-cloud-q">A context cache changes one fixture's processing. What belongs in the portability contract?</p><ul><li data-correct>The message/tool/trace shape; cache behavior stays a provider-specific acceptance test</li><li>The exact cache controls and hit semantics</li><li>A promise of identical latency</li></ul><p class="ix-cloud-answer"><b>Contract the stable shape.</b> Measure the provider-specific optimization.</p></div></details>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="7"><div class="tag">Evidence</div><h2>Exit with an operable decision sheet</h2><p>Your sheet names the topology, every agent's allowed inputs/tools/outputs, the write owner, human gate, per-run ceilings, trace fields, provider acceptance tests, and degrade/stop conditions. Add one synthetic trace calculation and one rejected over-budget design. This evidence advances the project without inventing an insurer's thresholds or touching a live system.</p></section>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive"><h2>Sources &amp; deeper dive</h2><ul><li><a href="https://www.anthropic.com/research/building-effective-agents" target="_blank" rel="noopener">Anthropic — Building effective agents</a> — orchestrator-worker and parallelization boundaries.</li><li><a href="https://opentelemetry.io/docs/specs/semconv/gen-ai/" target="_blank" rel="noopener">OpenTelemetry — GenAI semantic conventions</a> — portable model/agent spans.</li><li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html" target="_blank" rel="noopener">AWS — Bedrock prompt caching</a> — provider-specific AWS comparison.</li><li><a href="https://docs.cloud.google.com/vertex-ai/generative-ai/docs/context-cache/context-cache-overview" target="_blank" rel="noopener">Google Cloud — Vertex AI context caching</a> — provider-specific GCP comparison.</li><li><a href="https://docs.anthropic.com/en/docs/claude-code/sub-agents" target="_blank" rel="noopener">Anthropic — Claude Code subagents</a> — isolated contexts and scoped tools.</li></ul></section>
+
+      <details class="deep legacy-bridge" data-core="optional"><summary>Optional Week 5 bridge: the former knowledge-graph lesson</summary><p>This route previously introduced Neo4j and GraphRAG early. The detailed research remains in <code>docs/research/w04/w04d4.md</code>, the inert Cypher popup remains available above, and Week 5 now teaches the authoritative graph sequence. The historical reading follows for continuity.</p>
+      <div class="lede legacy-lede">
         <h1>Knowledge Graphs &amp; Cypher: When Retrieval Needs Relationships</h1>
         <div class="meta">
           <span><b>Week 4</b> · Day 4</span>
           <span>Retrieval Beyond Vectors</span>
-          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, one interaction, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~11 min read · 1 interaction · 6-Q check</span>
-          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, one interaction, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~11 min read · 1 interaction · 6-Q check</span>
+          <span class="legacy-core30-meta"><b>Historical pacing label</b> · superseded by the source-restored route above</span>
         </div>
         <p class="summary">Vector search finds text that <em>sounds like</em> the question. But some questions aren't
         about similar text at all — they're about <strong>connections</strong>: who reports to whom, which contract covers
@@ -52,7 +86,7 @@
         <div class="ix-legend"></div>
       </div>
 
-      <section class="step" data-diagram="0" data-step="0">
+      <section class="legacy-step" data-diagram="0" data-step="0">
         <div class="tag">Why a graph</div>
         <h2>The questions chunk retrieval can't answer</h2>
         <p>Picture the client question that breaks a plain vector pipeline: <em>"What are the main themes across all of
@@ -78,7 +112,7 @@
         </details>
       </section>
 
-      <section class="step" data-diagram="0" data-step="1">
+      <section class="legacy-step" data-diagram="0" data-step="1">
         <div class="tag">The data model</div>
         <h2>Property graphs: nodes, relationships, properties</h2>
         <p>Neo4j's model is called the <strong>property graph</strong>, and it has exactly three moving parts.
@@ -104,7 +138,7 @@
         </details>
       </section>
 
-      <section class="step" data-diagram="0" data-step="2">
+      <section class="legacy-step" data-diagram="0" data-step="2">
         <div class="tag">Schema design</div>
         <h2>Nouns become labels, verbs become relationships</h2>
         <p>Neo4j's own modeling tutorial gives you a workflow, and it starts somewhere beginners skip: <strong>define
@@ -136,7 +170,7 @@
         </div>
       </section>
 
-      <section class="step" data-diagram="0" data-step="3">
+      <section class="legacy-step" data-diagram="0" data-step="3">
         <div class="tag">The query language</div>
         <h2>Cypher: patterns you can read out loud</h2>
         <p>Cypher, created in 2011, is Neo4j's query language, and its core design choice is the same one SQL made:
@@ -163,7 +197,7 @@
         </details>
       </section>
 
-      <section class="step" data-diagram="0" data-step="4">
+      <section class="legacy-step" data-diagram="0" data-step="4">
         <div class="tag">Version trap</div>
         <h2>Cypher 5 vs Cypher 25 — the stale-tutorial hazard</h2>
         <p>A short section that will save you real debugging time. Two Cypher language versions currently coexist.
@@ -186,7 +220,7 @@
         </details>
       </section>
 
-      <section class="step" data-diagram="0" data-step="5">
+      <section class="legacy-step" data-diagram="0" data-step="5">
         <div class="tag">Vectors in the graph</div>
         <h2>Neo4j's vector index: semantic search and traversal in one store</h2>
         <p>Here's the feature that turns Neo4j from "interesting graph database" into a serious RAG backend: it ships a
@@ -223,7 +257,7 @@
         </div>
       </section>
 
-      <section class="step" data-diagram="0" data-step="6">
+      <section class="legacy-step" data-diagram="0" data-step="6">
         <div class="tag">GraphRAG pattern 1</div>
         <h2>Vector in, traversal out</h2>
         <p>Now assemble the retrieval pattern. Plain vector RAG stops at "here are the five most similar chunks."
@@ -253,7 +287,7 @@
         <button class="code-cta" type="button" data-modal="code-w04d4" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only worked example <span class="cc-meta">· incident_context.cypher</span></button>
       </section>
 
-      <section class="step" data-diagram="0" data-step="7">
+      <section class="legacy-step" data-diagram="0" data-step="7">
         <div class="tag">GraphRAG pattern 2</div>
         <h2>Text2Cypher: retrieval by writing the query</h2>
         <p>The second pattern skips embeddings entirely. <strong>Text2Cypher</strong> hands the LLM your graph's schema
@@ -281,7 +315,7 @@
         </div>
       </section>
 
-      <section class="step extra" data-diagram="0" data-step="7">
+      <section class="legacy-step extra" data-diagram="0" data-step="7">
         <div class="tag">FDE lens</div>
         <h2>Choosing the graph — and defending the choice</h2>
         <p>You now hold both retrieval families from this week: vector similarity over chunks, and graph traversal over
@@ -303,8 +337,8 @@
         the cloud; placement does, and placement decides latency to your app and model, where the data sits, and who
         gets paged when the database is down. Open your path; the other cloud stays as an optional comparison.</p>
 
-        <details class="cloud-block" data-cloud="aws" open>
-          <summary><span class="cloud-tag">AWS</span>Neo4j on AWS — and the Neptune question<span class="cloud-role"></span></summary>
+        <details class="legacy-cloud-block" open>
+          <summary><span class="cloud-tag">AWS</span>Historical graph placement comparison</summary>
           <p>Three placements. <strong>Self-managed:</strong> you run Neo4j Enterprise or Community in your own account
           — AWS's own docs describe Neo4j's all-in-one architecture, with loading, queries, storage, and management on
           the same compute, such as EC2 instances — and you own patching, backups, and scaling.
@@ -315,8 +349,8 @@
           database and supports openCypher — but AWS warns that Neo4j's Cypher has diverged from the openCypher
           specification and that APOC procedures aren't in it, so this page's queries need a compatibility review, not a
           paste. Placement changed; the schema discipline didn't.</p>
-          <div class="ix-cloud" data-core-interaction data-cloud="aws">
-            <div class="ix-k">✓ Practice · place the graph</div>
+          <div class="legacy-ix-cloud">
+            <div class="ix-k">Historical practice · place the graph</div>
             <p class="ix-cloud-q">An AWS client wants this page's Neo4j Cypher to run unchanged, on a graph Neo4j
             operates, reachable only from their VPC. Which placement fits?</p>
             <ol class="ix-cloud-options">
@@ -332,8 +366,8 @@
           </div>
         </details>
 
-        <details class="cloud-block" data-cloud="gcp" open>
-          <summary><span class="cloud-tag">GCP</span>Neo4j on Google Cloud — and the Spanner Graph question<span class="cloud-role"></span></summary>
+        <details class="legacy-cloud-block" open>
+          <summary><span class="cloud-tag">GCP</span>Historical graph placement comparison</summary>
           <p>Three placements. <strong>Self-managed:</strong> Neo4j Enterprise or Community from Neo4j's Google Cloud
           Marketplace listings, deployed and run in your own project — you own patching, backups, and scaling.
           <strong>Managed:</strong> Neo4j <strong>Aura</strong> is available through <strong>Google Cloud
@@ -344,8 +378,8 @@
           inside Spanner. It speaks an ISO GQL-compatible query language rather than Neo4j Cypher, maps existing tables
           to property graphs, and integrates vector and full-text search — so moving this page's queries means
           translating them, not pasting. Placement changed; the schema discipline didn't.</p>
-          <div class="ix-cloud" data-core-interaction data-cloud="gcp">
-            <div class="ix-k">✓ Practice · place the graph</div>
+          <div class="legacy-ix-cloud">
+            <div class="ix-k">Historical practice · place the graph</div>
             <p class="ix-cloud-q">A Google Cloud client wants this page's Neo4j Cypher to run unchanged, on a graph Neo4j
             operates, reachable only from their VPC. Which placement fits?</p>
             <ol class="ix-cloud-options">
@@ -373,8 +407,8 @@
         </div>
       </section>
 
-      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
-        <h2>Sources &amp; deeper dive</h2>
+      <section class="legacy-reading-sources" data-core="optional" aria-label="Historical sources and deeper dive">
+        <h2>Historical sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://neo4j.com/docs/cypher-manual/current/introduction/cypher-overview/" target="_blank" rel="noopener">Neo4j — Cypher overview</a> — the declarative, ASCII-art pattern language and how it differs from SQL.</li>
           <li><a href="https://neo4j.com/docs/getting-started/data-modeling/guide-data-modeling/" target="_blank" rel="noopener">Neo4j — Graph data-modeling tutorial</a> — nouns→labels, verbs→relationship types, naming conventions, constraints, and the test-against-use-cases loop.</li>
@@ -397,6 +431,7 @@
           <li><a href="https://neo4j.com/docs/operations-manual/current/cloud-deployments/" target="_blank" rel="noopener">Neo4j — Cloud deployments</a> — Aura vs self-managed Enterprise or Community from the cloud marketplace listings (accessed 2026-10-14).</li>
         </ul>
       </section>
+      </details>
 
     </article>
 
@@ -410,12 +445,12 @@
       <div class="side-cards">
         <button class="activity-card" type="button" data-modal="deep-modal">
           <div class="ac-k">⌖ Deep dive</div>
-          <div class="ac-t">Reading a real VectorCypherRetriever setup, line by line</div>
+          <div class="ac-t">Optional Week 5 bridge · VectorCypherRetriever setup</div>
           <div class="ac-meta">optional · +10 min</div>
         </button>
         <button class="activity-card accent" type="button" data-modal="quiz-modal">
           <div class="ac-k">✓ Comprehension check</div>
-          <div class="ac-t">6 quick questions on graphs, Cypher &amp; GraphRAG</div>
+          <div class="ac-t">5 path-filtered questions on operating multi-agent systems</div>
           <div class="ac-meta">~5 min · practice, not graded</div>
         </button>
       </div>
@@ -477,21 +512,10 @@
     <button class="modal-close" type="button" aria-label="Close">✕</button>
     <h2>Day 4 — goals &amp; deliverable</h2>
     <div class="ma-k">By the end of today you can</div>
-    <ul class="goals-list">
-      <li>Explain the property-graph model — labeled nodes, directed typed relationships, properties on both — and why it's schema-flexible</li>
-      <li>Derive a graph schema from a domain: use-case questions first, nouns→labels, verbs→specific relationship types, uniqueness constraints</li>
-      <li>Read a Cypher pattern query and distinguish a pattern from a path, including variable-length and SHORTEST patterns</li>
-      <li>Describe both GraphRAG retrieval shapes — vector-entry + Cypher traversal (local) vs community summaries (global) — and Text2Cypher, and say which questions each wins</li>
-    </ul>
-    <div class="ma-k">Deliverable — commit to your project repo</div>
-    <ul class="deliv-list check">
-      <li>Add to <code>NOTES.md</code> a mini graph schema for your project's domain</li>
-      <li><b>①</b> three use-case questions, then the node labels and specific relationship types that answer them</li>
-      <li><b>②</b> one question from your domain that vector search alone cannot answer, and the Cypher-shaped traversal that can</li>
-      <li><b>③</b> one sentence on whether Text2Cypher would work against your schema as written — and what you'd fix if not</li>
-    </ul>
-    <p class="goals-foot">Bring it to Day 5. Schema quality determines retrieval quality — today's model is tomorrow's
-    retrieval backend.</p>
+    <ul class="goals-list"><li>Bound parallelism, tokens, retries, latency, and cache assumptions</li><li>Place one durable approval gate before side effects</li><li>Correlate coordinator, model, worker, and tool spans</li><li>Defend a provider adapter without claiming parity</li></ul>
+    <div class="ma-k">Deliverable — solo insurance brownfield</div>
+    <ul class="deliv-list check"><li>Create <code>docs/agent-operations.md</code></li><li>Include one synthetic cost/latency trace calculation</li><li>Name one write owner and every approval gate</li><li>List AWS/GCP adapter acceptance tests, with your selected cloud primary</li><li>Label every domain assumption; do not use client data</li></ul>
+    <p class="goals-foot">Bring the operating sheet to Day 5's architecture defense.</p>
   </div>
 </div>
 
@@ -527,7 +551,7 @@ ORDER BY score DESC</pre></div>
 </div>
 
 <script>
-window.FDE_NEXT = { label: "Day 5 — next in Week 4 →", href: "w04d5.html" };
+window.FDE_NEXT = { label: "Day 5 · Architecture defense →", href: "w04d5.html" };
 window.DIAGRAM = {
   title: "Knowledge graph · from question to GraphRAG",
   width: 500, height: 690,
@@ -641,6 +665,11 @@ window.QUIZ = {
       model: "Text2Cypher is only as good as the schema it's prompted with — a vague RELATED_TO edge gives the LLM nothing precise to compile the question into — and VectorCypherRetriever's traversal query can only walk the right connections if the relationships are specific and directed enough to name. The rule: make relationship types as specific as possible (ACTED_IN, not RELATED_TO), always directed — schema quality determines retrieval quality." }
   ]
 };
+</script>
+<script>
+/* Source-restored W4D4 contract; historical GraphRAG objects above remain inert evidence. */
+window.DIAGRAM = {title:"Multi-agent operating envelope",width:500,height:620,nodes:[{id:"ask",step:0,kind:"example",x:14,y:14,w:472,h:64,label:"SYNTHETIC INSURANCE WORKFLOW\ncoordinator → parallel read-only analysis → one approval → one writer"},{id:"budget",step:0,x:36,y:104,w:428,h:52,label:"RUN ENVELOPE · calls · tokens · attempts · wall time · outcome"},{id:"fan",step:1,x:24,y:188,w:138,h:54,label:"worker A\nread + propose"},{id:"fan2",step:1,x:181,y:188,w:138,h:54,label:"worker B\nread + propose"},{id:"owner",step:1,x:338,y:188,w:138,h:54,label:"one writer\ncommit owner"},{id:"ledger",step:2,x:36,y:276,w:428,h:50,label:"LEDGER · agent · model · tokens · cache · attempts · duration"},{id:"gate",step:3,x:112,y:356,w:276,h:52,label:"HUMAN GATE\nproposal + evidence → decision → commit"},{id:"trace",step:4,x:36,y:438,w:428,h:52,label:"TRACE ID · coordinator → model → worker → tool"},{id:"sub",step:5,x:24,y:526,w:214,h:50,label:"Claude Code rehearsal\nexplore · review · one editor"},{id:"seam",step:6,x:262,y:526,w:214,h:50,label:"provider adapter\nstable contract · tested differences"},{id:"evidence",step:7,x:110,y:592,w:280,h:20,label:"operating sheet → architecture defense"}],edges:[{id:"a",step:1,from:"budget",to:"fan"},{id:"b",step:1,from:"budget",to:"fan2"},{id:"c",step:1,from:"fan",to:"owner"},{id:"d",step:1,from:"fan2",to:"owner"},{id:"e",step:3,from:"owner",to:"gate"},{id:"f",step:4,from:"gate",to:"trace"},{id:"g",step:7,from:"trace",to:"evidence"}],captions:["Start with the <b>run envelope</b>, not the number of agents.","Fan out independent reads; route proposals to <b>one write owner</b>.","Wall time follows the critical path; total burn sums <b>every call</b>.","A human decision sits <b>before</b> the high-impact side effect.","One trace ID correlates coordinator, model, worker, and tool spans.","Claude Code subagents rehearse bounded delegation: explorers and reviewers, one editor.","Keep a stable adapter contract; acceptance-test provider-specific behavior.","Exit with evidence: ceilings, ownership, gates, traces, and stop conditions."]};
+window.QUIZ = {id:"w04-d4",title:"Operating-envelope check",questions:[{type:"scq",stem:"Two workers need to update the same decision record. What is the safe topology?",options:["Let both commit and keep the last write","Have both propose; one named owner validates and commits","Disable tracing","Add a third writer"],answer:1,explain:"Parallelize independent reads and proposals; serialize the shared write through one owner."},{type:"tf",stem:"Total token burn and wall-clock latency are the same quantity in a parallel fan-out.",answer:false,explain:"Burn sums all calls; elapsed time follows the longest dependent path plus coordination."},{type:"scq",stem:"Where does a human approval gate belong?",options:["After the side effect","Before the high-impact side effect, with proposal and evidence persisted","Only in the dashboard","Inside an untraced retry"],answer:1,explain:"Approval must control the action, not merely review it afterward."},{type:"mcq",stem:"Which fields support cross-agent failure attribution?",options:["trace ID and parent span","agent and handoff ID","attempt and policy decision","the learner's real email"],answer:[0,1,2],explain:"Correlate technical and policy evidence; do not put learner PII in traces."},{type:"scq",cloud:"aws",stem:"On the AWS path, what should a provider swap test separately?",options:["Only CSS","Bedrock model IDs, tool responses, cache behavior, usage, errors, and telemetry","Nothing; adapters guarantee parity"],answer:1,explain:"The shared contract is portable; provider behavior is acceptance-tested."},{type:"scq",cloud:"gcp",stem:"On the GCP path, what should a provider swap test separately?",options:["Only CSS","Vertex model IDs, tool responses, cache behavior, usage, errors, and telemetry","Nothing; adapters guarantee parity"],answer:1,explain:"The shared contract is portable; provider behavior is acceptance-tested."}]};
 </script>
 <script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/progress.js?v=20260630-2"></script>
