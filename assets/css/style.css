@@ -6,7 +6,7 @@
   --ink: #1c2126;
   --ink-soft: #4d555f;
   --line: #e4e1d9;
-  --accent: #e8590c;        /* Revature-ish orange — lines, fills, marks */
+  --accent: #e8590c;        /* Revature-ish orange — lines and marks only (DESIGN.md Split Accent Rule) */
   --accent-fill: #c74a0a;   /* filled controls carrying white text (AA 4.7:1) */
   --accent-soft: #fdf0e7;
   --node: var(--surface);
