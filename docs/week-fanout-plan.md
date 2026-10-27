@@ -123,9 +123,9 @@ related/current tech that looks missing. **Correct me where my read is wrong.**
 | Week | Topic (as written) | Likely-missing / currency flags |
 |------|--------------------|---------------------------------|
 | W1 | LLM Engineering for Production | Solid. Could name prompt caching + structured outputs explicitly. |
-| W2 | RAG & Knowledge Retrieval | Pinecone/Chroma/pgvector stay — good teaching choices. Optional: rerankers (Cohere rerank / cross-encoders) + a nod to GraphRAG (ties to W4). |
+| W2 | RAG & Knowledge Retrieval | Pinecone/Chroma/pgvector stay — good teaching choices. Optional: rerankers (Cohere rerank / cross-encoders) + a nod to GraphRAG (ties to W5). |
 | W3 | Single-Agent Design & Memory | **LangChain v1.0** currency risk is highest here. **Add MCP (Model Context Protocol)** to the LangChain v1 material — it's the current standard tool/context interface. Prefer provider-native tool use over old LC tool wrappers. |
-| W4 | Multi-Agent & Knowledge Graphs | LangGraph persistence/checkpointers. Neo4j is the standard KG database to teach. |
+| W4 | Multi-Agent & Knowledge Graphs | LangGraph persistence/checkpointers. D4–D5 restored to operating multi-agent systems and architecture defense (see `docs/research/w02-w04-v3-production-wave.md`); prior Neo4j/GraphRAG material is optional Week 5 history. |
 | W5 | Neo4j Knowledge Graphs & Context Engineering | Source-authoritative hands-on graph week: property graphs/Cypher → governed schema/import → GraphRAG construction → hybrid production context → model review and readout. `SimpleKGPipeline` stays visibly experimental. |
 | W6 | Kafka & Event-Driven AI Pipelines | **Source-corrected 2026-10-14.** Kafka foundations → delivery/schema/economics → event-driven agents/stores → operation/failure → measured defense. Reviewed AI-SDLC work survives only as supporting delivery discipline. |
 | W7 | Terraform + Ansible & AI CI/CD | **Source-remapped 2026-10-14.** Terraform judgement/state/plan/modules/drift → Ansible inventory/playbooks/roles/idempotence → AI-assisted CI quality/security/drift/eval gates with human approval, rollback and rebuild evidence. Static/inert only. |
@@ -328,7 +328,7 @@ Five reading-days each (Mon–Fri); d5 is the ★ milestone. Alternative researc
 | Wk | Theme (core tech) | d1 | d2 | d3 (Wed) | d4 | d5 ★ |
 |----|----|----|----|----|----|----|
 | W3 | Single-Agent + Memory (LangChain v1.0 +MCP) | Agent architectures + ReAct loop | Tools & MCP (tool/context interface) | *alt:* LC v1 vs CrewAI/AutoGen/OpenAI Agents SDK | Agent memory: working vs long-term | Production single agent E2E |
-| W4 | Multi-Agent + KG (LangGraph + Neo4j) | Orchestration patterns (supervisor/swarm/handoffs) | LangGraph state/persistence/checkpointers | *alt:* CrewAI/AutoGen vs LangGraph | Neo4j KG modeling + Cypher for GraphRAG | GraphRAG E2E |
+| W4 | Multi-Agent Systems (LangGraph + CrewAI) | Orchestration patterns (supervisor/swarm/handoffs) | LangGraph state/persistence/checkpointers | *alt:* CrewAI/AutoGen vs LangGraph | Operating multi-agent systems (cost, approval, traces, provider seam) | Multi-agent architecture defense + brownfield readout |
 | W5 | Neo4j KG + Context Engineering | Property graph, Cypher, local Neo4j | Traversal, integrity, import, rules, ADR lock/defer | GraphRAG construction + three retrievers | Hybrid context, grounding, performance, MCP/topology | Graph model review + two-audience GraphRAG readout |
 | W6 | Kafka & Event-Driven AI Pipelines | EDA judgement + Kafka foundations + local CLI | Delivery semantics + schemas + Python + managed economics | MSK judgement + event-driven agents + backpressure + Chroma/Neo4j | E2E pipeline + failure/rebalance + OTel + runbooks + static egress | Architecture defense + throughput/lag/egress readout |
 | W7 | Terraform + Ansible & AI CI/CD | Terraform judgement, providers, resources, state, plan, lifecycle | Modules, environments, secrets, drift, AI-assisted review | Ansible inventory, playbooks, roles, handlers, idempotence, promotion estimate | CI quality/security/drift/eval gates, human approval, rollback evidence | Project 2 primary-cloud ADR, rebuild tabletop, two-audience defense |
