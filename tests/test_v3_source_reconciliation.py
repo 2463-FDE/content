@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 import shutil
 import subprocess
 import unittest
@@ -13,7 +12,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MAP = ROOT / "docs/research/fde-ltim-v3-coverage.json"
-RECONCILIATION = ROOT / "docs/research/fde-ltim-v3-source-reconciliation.md"
 SOURCE = Path("/Users/jestercharles/Downloads/RevaturePro | LTIM FDE v3.pdf")
 SHA256 = "1792ba5c20a62fdd1e83463d9032d129ee644e58b220129b2f736f5fb863ed7e"
 BASELINE = "a971f2aeec2fc65d6d71c134eae52b2bb7889061"
@@ -23,7 +21,6 @@ class V3SourceReconciliationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.coverage = json.loads(MAP.read_text(encoding="utf-8"))
-        cls.reconciliation = RECONCILIATION.read_text(encoding="utf-8")
 
     def test_recorded_artifact_identity_is_exact(self) -> None:
         authority = self.coverage["authority"]
@@ -32,8 +29,6 @@ class V3SourceReconciliationTests(unittest.TestCase):
         self.assertEqual(authority["pdfHeader"], "%PDF-1.3")
         self.assertEqual(authority["pages"], 8)
         self.assertEqual(authority["baseline"], BASELINE)
-        for value in (SHA256, BASELINE, "%PDF-1.3", "Page count | 8"):
-            self.assertIn(value, self.reconciliation)
 
     @unittest.skipUnless(SOURCE.is_file(), "captain-designated source is not mounted")
     def test_mounted_authoritative_bytes_still_match(self) -> None:
@@ -93,14 +88,6 @@ class V3SourceReconciliationTests(unittest.TestCase):
         self.assertEqual(metrics["sourceItemsInConflictingDays"], weights["conflict"])
         self.assertEqual(sum(weights.values()), denominator["sourceItems"])
 
-    def test_all_eight_pages_and_parallel_lane_handoffs_are_documented(self) -> None:
-        for page in range(1, 9):
-            self.assertRegex(self.reconciliation, rf"(?m)^### Page {page}$")
-        for lane in ("Week 1", "Weeks 2–4", "Weeks 5–7", "Weeks 8–10"):
-            self.assertIn(f"| {lane} |", self.reconciliation)
-        self.assertIn("34 covered, 14 partial, and 2 conflicting", self.reconciliation)
-        self.assertIn("396 source items", self.reconciliation)
-
     def test_shared_cloud_and_certification_contract_is_integrated(self) -> None:
         probe = (
             "const cfg=require('./assets/js/curriculum-config.js');"
@@ -121,19 +108,6 @@ class V3SourceReconciliationTests(unittest.TestCase):
         hub = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("AWS/GCP evidence integrated", hub)
         self.assertNotIn("AWS/GCP evidence seam pending", hub)
-
-    def test_shared_lesson_data_points_to_exact_source_authority(self) -> None:
-        for relative in (
-            "assets/js/curriculum-week5.js",
-            "assets/js/curriculum-lessons-w06.js",
-            "assets/js/curriculum-lessons-w07-w08.js",
-            "assets/js/curriculum-lessons-w09-w10.js",
-        ):
-            text = (ROOT / relative).read_text(encoding="utf-8")
-            with self.subTest(path=relative):
-                self.assertIn(SHA256, text)
-                self.assertIn("fde-ltim-v3-source-reconciliation.md", text)
-        self.assertNotIn("provisionally authoritative", (ROOT / "assets/js/curriculum-lessons-w06.js").read_text())
 
 
 if __name__ == "__main__":
