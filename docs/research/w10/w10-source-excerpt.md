@@ -4,7 +4,7 @@
 - **Record last modified:** 2026-09-25
 - **Excerpted:** 2026-10-14
 
-> **Use of this excerpt.** Topic names below are the approved curriculum record, copied verbatim. Provider product names, prices, and `[GCP]`/`[CC]` slots are curriculum *topic labels*, not verified current claims; the lessons keep them evidence-gated until the parallel AWS/GCP evidence lane lands through `FDE_CURRICULUM_CONFIG.cloudPath`.
+> **Use of this excerpt.** Topic names below are the approved curriculum record, copied verbatim. Provider product names, prices, and `[GCP]`/`[CC]` slots are curriculum *topic labels*, not verified current claims; current provider claims trace to the dated `*-provider-paths.md` artifacts indexed by `docs/research/w08-w10-production-wave.md`.
 
 ## Curriculum record — Week 10
 
