@@ -3,9 +3,13 @@ from pathlib import Path
 import json
 import re
 import subprocess
+import tempfile
+import sys
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tests"))
+import core30  # noqa: E402
 DAYS = [f"w{week:02}d{day}" for week in (8, 9, 10) for day in range(1, 6)]
 CAPSTONE_DAYS = [f"w{week:02}d{day}" for week in (9, 10) for day in range(1, 6)]
 PROVIDER_DAYS = ("w09d3", "w09d4", "w09d5", "w10d1", "w10d5")
@@ -21,11 +25,27 @@ def node_json(source: str):
 class WeeksEightToTenProductionWave(unittest.TestCase):
     def test_inventory_preserves_authority_denominator_and_week8_identity(self):
         inventory = (ROOT / "docs/research/w08-w10-production-wave.md").read_text()
-        self.assertIn("110 items across 15 day cells", inventory)
-        self.assertIn("Week 8 = 38, Week 9 = 39, Week 10 = 33", inventory)
-        self.assertIn("Preserve Week 8 reliability identity", inventory)
-        self.assertIn("synthetic banking/payments brownfield", inventory)
-        self.assertIn("single Week 6 primary-cloud ADR", inventory)
+        rows = {}
+        for line in inventory.splitlines():
+            match = re.match(r"^\| W(\d+) D(\d) \| (\d+) \| (.+?) \| (.+?) \| (.+?) \|$", line)
+            if match:
+                day = f"w{int(match.group(1)):02}d{match.group(2)}"
+                rows[day] = {"items": int(match.group(3)), "groups": match.group(4), "disposition": match.group(6)}
+        self.assertEqual(list(rows), DAYS)
+        totals = {week: sum(r["items"] for d, r in rows.items() if d.startswith(week)) for week in ("w08", "w09", "w10")}
+        self.assertEqual(totals, {"w08": 38, "w09": 39, "w10": 33})
+        self.assertEqual(sum(totals.values()), 110)
+        for day, row in rows.items():
+            with self.subTest(day=day):
+                self.assertGreaterEqual(len([g for g in row["groups"].split(";") if g.strip()]), 1)
+                self.assertTrue(row["disposition"].strip())
+        lessons = node_json(
+            "const a=require('./assets/js/curriculum-lessons-w07-w08.js');"
+            "const b=require('./assets/js/curriculum-lessons-w09-w10.js');"
+            "const out={};for(const id of " + json.dumps(DAYS) + ") out[id]=(a[id]||b[id]).week;"
+            "console.log(JSON.stringify(out));"
+        )
+        self.assertEqual(lessons, {day: int(day[1:3]) for day in DAYS})
 
     def test_every_day_has_owned_measurable_team_evidence(self):
         records = node_json(
@@ -66,7 +86,6 @@ class WeeksEightToTenProductionWave(unittest.TestCase):
             with self.subTest(day=day):
                 self.assertIn("aws", cloud)
                 self.assertIn("gcp", cloud)
-                self.assertEqual(set(cloud["minutes"]), {"aws", "gcp"})
                 page = (ROOT / "weeks" / day[:3] / f"{day}.html").read_text()
                 self.assertIn('data-cloud="aws"', page)
                 self.assertIn('data-cloud="gcp"', page)
@@ -84,12 +103,20 @@ class WeeksEightToTenProductionWave(unittest.TestCase):
             "w10d1": "docs/research/w10/w10d1-provider-paths.md",
             "w10d5": "docs/research/w10/w10d5-provider-paths.md",
         }
+        sources = node_json(
+            "const d=require('./assets/js/curriculum-lessons-w09-w10.js');"
+            "console.log(JSON.stringify(Object.fromEntries(" + json.dumps(PROVIDER_DAYS) + ".map(id=>[id,d[id].cloud.sources.map(s=>s.href)]))));"
+        )
+        self.assertEqual(set(sources), set(evidence))
+        first_party = re.compile(r"^https://([a-z0-9-]+\.)*(aws\.amazon\.com|cloud\.google\.com|grow\.google)/")
         for day, relative in evidence.items():
-            text = (ROOT / relative).read_text().lower()
+            text = (ROOT / relative).read_text()
+            cited = {url.rstrip(".,)") for url in re.findall(r"https://[^\s)`>]+", text)}
             with self.subTest(day=day):
-                self.assertIn("accessed 2026-10-14", text)
-                self.assertIn("first-party", text)
-                self.assertRegex(text, r"https://(aws|docs\.aws|cloud\.google|grow\.google)")
+                self.assertTrue(sources[day])
+                for href in sources[day]:
+                    self.assertRegex(href, first_party)
+                    self.assertIn(href, cited, f"{day} renders {href} without a research citation")
 
     def test_navigation_and_banking_project_continue_through_handoff(self):
         index = (ROOT / "index.html").read_text()
@@ -103,21 +130,81 @@ class WeeksEightToTenProductionWave(unittest.TestCase):
         for artifact in ("SRE-08-01", "SEC-09-01", "GOV-09-03", "REL-10-01", "HANDOFF-10-05"):
             self.assertIn(artifact, delivery)
 
-    def test_route_generator_and_pacing_contract_are_present(self):
-        script = (ROOT / "docs/workflows/build-capstone-routes.cjs").read_text()
-        self.assertIn("staticArticleHtml", script)
-        self.assertIn("curriculum-lessons-w09-w10.js", script)
+    def test_generator_output_matches_committed_routes_and_loads_run_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            subprocess.run(
+                ["node", "docs/workflows/build-capstone-routes.cjs", tmp], cwd=ROOT, check=True, capture_output=True
+            )
+            for day in CAPSTONE_DAYS:
+                relative = Path("weeks") / day[:3] / f"{day}.html"
+                generated = (Path(tmp) / relative).read_text()
+                with self.subTest(day=day):
+                    self.assertEqual(generated, (ROOT / relative).read_text())
+                    scripts = [Path(src.split("?")[0]).name for src in re.findall(r'<script src="([^"]+)"', generated)]
+                    self.assertIn("run-config.js", scripts)
+                    self.assertLess(scripts.index("run-config.js"), scripts.index("auth.js"))
+                    self.assertLess(scripts.index("run-config.js"), scripts.index("capstone-lesson.js"))
+
+    def test_rendered_route_has_one_team_evidence_step_bound_to_the_diagram(self):
+        result = node_json(
+            "const lessons=require('./assets/js/curriculum-lessons-w09-w10.js');"
+            "const r=require('./assets/js/capstone-lesson.js');"
+            "globalThis.FDE_CAPSTONE_LESSONS=lessons;const out={};"
+            "for(const id of " + json.dumps(CAPSTONE_DAYS) + "){"
+            "const root={innerHTML:''},overlays={innerHTML:''};"
+            "const doc={title:'',body:{getAttribute:()=>id},head:{appendChild(){}},"
+            "getElementById:k=>k==='lesson-root'?root:k==='lesson-overlays'?overlays:null,"
+            "querySelector:()=>null,createElement:()=>({})};"
+            "globalThis.window={};r.render(doc,{random:()=>0});"
+            "out[id]={main:root.innerHTML,overlays:overlays.innerHTML,steps:lessons[id].sections.length};}"
+            "console.log(JSON.stringify(out));"
+        )
+        for day, rendered in result.items():
+            html = rendered["main"] + rendered["overlays"]
+            with self.subTest(day=day):
+                self.assertEqual(html.count('id="team-evidence-title"'), 1)
+                ids = re.findall(r'\sid="([^"]+)"', html)
+                self.assertEqual(len(ids), len(set(ids)))
+                evidence_steps = re.findall(r'<section class="step team-evidence"([^>]*)>', rendered["main"])
+                self.assertEqual(len(evidence_steps), 1)
+                self.assertIn(f'data-step="{rendered["steps"] - 1}"', evidence_steps[0])
+                self.assertIn('data-diagram="0"', evidence_steps[0])
+                self.assertNotRegex(rendered["overlays"], r'class="[^"]*\bstep\b')
+                self.assertIn("team-evidence", rendered["overlays"])
+
+    def test_pacing_derives_reading_minutes_from_required_words(self):
         pacing = node_json(
             "const d=require('./assets/js/curriculum-lessons-w09-w10.js');"
             "const r=require('./assets/js/capstone-lesson.js');"
-            "console.log(JSON.stringify(Object.fromEntries(Object.entries(d).map(([id,v])=>[id,[r.pacingFor(v,'aws'),r.pacingFor(v,'gcp')]]))));"
+            "console.log(JSON.stringify(Object.fromEntries(Object.entries(d).map(([id,v])=>[id,[r.pacingFor(v),r.pacingFor(v,'aws'),r.pacingFor(v,'gcp')]]))));"
         )
+        self.assertEqual(set(pacing), set(CAPSTONE_DAYS))
         for day, paths in pacing.items():
             for record in paths:
                 with self.subTest(day=day):
                     self.assertLessEqual(record["words"], 1800)
+                    self.assertEqual(record["readMinutes"], round(record["words"] / 150))
+                    allowances = record["allowances"]
+                    self.assertEqual(
+                        record["requiredMinutes"],
+                        record["readMinutes"] + allowances["diagram"] + allowances["interaction"] + allowances["check"],
+                    )
                     self.assertLessEqual(record["requiredMinutes"], 30)
-
+        for day in CAPSTONE_DAYS:
+            article = core30.reading_article(core30.parse(ROOT / "weeks" / day[:3] / f"{day}.html"))
+            selections = (None, "aws", "gcp") if day in PROVIDER_DAYS else (None,)
+            for index, selection in enumerate(selections):
+                with self.subTest(day=day, selection=selection):
+                    self.assertEqual(pacing[day][index]["words"], core30.required_words(article, selection))
+        for day in PROVIDER_DAYS:
+            page = (ROOT / "weeks" / day[:3] / f"{day}.html").read_text()
+            nojs = re.search(r"<noscript>(.*?)</noscript>", page, re.S).group(1)
+            for index, cloud in ((1, "aws"), (2, "gcp")):
+                label = re.search(r'<span class="core30-meta" data-cloud="' + cloud + r'">.*?~(\d+) min read.*?~(\d+) min required', nojs)
+                with self.subTest(day=day, cloud=cloud):
+                    self.assertIsNotNone(label)
+                    self.assertEqual(int(label.group(1)), pacing[day][index]["readMinutes"])
+                    self.assertEqual(int(label.group(2)), pacing[day][index]["requiredMinutes"])
 
 if __name__ == "__main__":
     unittest.main()

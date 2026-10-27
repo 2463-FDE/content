@@ -38,6 +38,7 @@ function page(id, lesson) {
 <footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week ${lesson.week} Day ${lesson.day} · <span data-client-name>Client curriculum</span> · Batch <span data-batch-value>loading</span></footer>
 <div id="lesson-overlays"></div>
 ${quizScript(id, lesson)}
+<script src="../../assets/js/run-config.js"></script>
 <script src="../../assets/js/curriculum-lessons-w09-w10.js?v=20261027"></script>
 <script src="../../assets/js/capstone-lesson.js?v=20261027"></script>
 <script src="../../assets/js/progress.js?v=20260630"></script>
@@ -56,7 +57,19 @@ ${quizScript(id, lesson)}
 `;
 }
 
-for (const [id, lesson] of Object.entries(lessons)) {
-  const target = path.join(ROOT, "weeks", id.slice(0, 3), `${id}.html`);
-  fs.writeFileSync(target, page(id, lesson));
+function routePath(id) {
+  return path.join("weeks", id.slice(0, 3), `${id}.html`);
 }
+
+function build(root = ROOT) {
+  return Object.entries(lessons).map(([id, lesson]) => {
+    const target = path.join(root, routePath(id));
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, page(id, lesson));
+    return routePath(id);
+  });
+}
+
+module.exports = { page, routePath, build };
+
+if (require.main === module) build(process.argv[2] ? path.resolve(process.argv[2]) : ROOT);

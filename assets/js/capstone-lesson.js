@@ -18,21 +18,44 @@
   function providerRecord(lesson, selection) {
     return lesson.cloud && (selection === "aws" || selection === "gcp") ? lesson.cloud[selection] : null;
   }
+  var SKIPPED_TAGS = { pre: 1, script: 1, button: 1, svg: 1 };
+  var SKIPPED_CLASSES = ["reading-sources", "ix-future", "trifecta-auditor"];
+  var VOID_TAGS = { area: 1, base: 1, br: 1, col: 1, embed: 1, hr: 1, img: 1, input: 1, link: 1, meta: 1, param: 1, source: 1, track: 1, wbr: 1 };
+  function attr(attrs, name) {
+    var match = new RegExp("\\s" + name + '(?:="([^"]*)")?(?=[\\s/>]|$)').exec(attrs);
+    return match ? (match[1] == null ? "" : match[1]) : null;
+  }
+  function skipsRequiredPath(tag, attrs, selection) {
+    if (SKIPPED_TAGS[tag]) return true;
+    var classes = (attr(attrs, "class") || "").split(/\s+/);
+    if (SKIPPED_CLASSES.some(function (name) { return classes.indexOf(name) !== -1; })) return true;
+    if (attr(attrs, "data-core") === "optional" || attr(attrs, "data-core-interaction") !== null) return true;
+    var cloud = attr(attrs, "data-cloud");
+    return !!(selection && cloud && cloud !== selection);
+  }
+  function requiredPathWords(html, selection) {
+    var stack = [], texts = [], token, pattern = /<(\/?)([a-zA-Z0-9]+)([^>]*)>|([^<]+)/g;
+    while ((token = pattern.exec(html))) {
+      var skipping = stack.length && stack[stack.length - 1].skip;
+      if (token[4] != null) { if (!skipping) texts.push(token[4]); continue; }
+      var tag = token[2].toLowerCase();
+      if (token[1]) {
+        for (var i = stack.length - 1; i >= 0; i--) if (stack[i].tag === tag) { stack.length = i; break; }
+      } else if (!VOID_TAGS[tag] && !/\/\s*$/.test(token[3])) {
+        stack.push({ tag: tag, skip: skipping || skipsRequiredPath(tag, token[3], selection) });
+      }
+    }
+    return texts.join(" ").split(/\s+/).filter(Boolean).length;
+  }
   function requiredWords(lesson, selection) {
-    var words = wordCount(lesson.title) + wordCount(lesson.summary);
-    words += lesson.sections.reduce(function (sum, section) { return sum + wordCount(section[0]) + wordCount(section[1]); }, 0);
-    words += wordCount(lesson.drill.prompt) + lesson.drill.options.reduce(function (sum, option) { return sum + wordCount(option); }, 0);
-    if (lesson.teamEvidence) words += wordCount(Object.values(lesson.teamEvidence).join(" "));
-    var provider = providerRecord(lesson, selection);
-    if (provider) words += wordCount(provider[0]) + wordCount(provider[1]) + wordCount(provider[2]) + provider[3].reduce(function (sum, option) { return sum + wordCount(option); }, 0);
-    return words;
+    return requiredPathWords(articleHtml(lesson, function () { return { readMinutes: 0, requiredMinutes: 0 }; }), selection);
   }
   function pacingFor(lesson, selection) {
     var words = requiredWords(lesson, selection);
-    var measured = lesson.cloud && lesson.cloud.minutes && lesson.cloud.minutes[selection];
-    var readMinutes = measured || Math.round(words / 150);
+    var readMinutes = Math.round(words / 150);
     var interactions = lesson.cloud && (selection === "aws" || selection === "gcp") ? 2 : 1;
-    return { words: words, readMinutes: readMinutes, interactions: interactions, requiredMinutes: readMinutes + 3 + (interactions === 2 ? 8 : 6) + 5 };
+    var allowances = { diagram: 3, interaction: interactions === 2 ? 8 : 6, check: 5 };
+    return { words: words, readMinutes: readMinutes, interactions: interactions, allowances: allowances, requiredMinutes: readMinutes + allowances.diagram + allowances.interaction + allowances.check };
   }
   function route(id) {
     var match = /^w(\d\d)d(\d)$/.exec(id);
@@ -137,10 +160,12 @@
     if (!meta) { meta = doc.createElement("meta"); meta.name = name; doc.head.appendChild(meta); }
     meta.content = content;
   }
-  function teamEvidenceHtml(lesson) {
+  function teamEvidenceHtml(lesson, options) {
     var item = lesson.teamEvidence;
     if (!item) return "";
-    return '<section class="step team-evidence" aria-labelledby="team-evidence-title"><div class="tag">Team delivery evidence</div><h2 id="team-evidence-title">' + esc(item.artifact) + '</h2><dl><div><dt>Accountable role</dt><dd>' + esc(item.owner) + '</dd></div><div><dt>Acceptance rule</dt><dd>' + esc(item.acceptance) + '</dd></div><div><dt>Independent proof</dt><dd>' + esc(item.review) + '</dd></div></dl><p class="team-cloud-note"><b>Two separate decisions:</b> your AWS/GCP/Both reading view is personal. The team’s single Week 6 primary-cloud ADR controls shared implementation evidence.</p></section>';
+    if (options && options.summary) return '<section class="team-evidence" aria-label="Team delivery evidence · ' + esc(item.artifact) + '"><div class="tag">Team delivery evidence</div><h3>' + esc(item.artifact) + '</h3><dl><div><dt>Accountable role</dt><dd>' + esc(item.owner) + '</dd></div><div><dt>Acceptance rule</dt><dd>' + esc(item.acceptance) + '</dd></div><div><dt>Independent proof</dt><dd>' + esc(item.review) + '</dd></div></dl></section>';
+    var step = options && options.step != null ? ' data-diagram="0" data-step="' + options.step + '"' : "";
+    return '<section class="step team-evidence"' + step + ' aria-labelledby="team-evidence-title"><div class="tag">Team delivery evidence</div><h2 id="team-evidence-title">' + esc(item.artifact) + '</h2><dl><div><dt>Accountable role</dt><dd>' + esc(item.owner) + '</dd></div><div><dt>Acceptance rule</dt><dd>' + esc(item.acceptance) + '</dd></div><div><dt>Independent proof</dt><dd>' + esc(item.review) + '</dd></div></dl><p class="team-cloud-note"><b>Two separate decisions:</b> your AWS/GCP/Both reading view is personal. The team’s single Week 6 primary-cloud ADR controls shared implementation evidence.</p></section>';
   }
   function cloudBlockHtml(selection, record) {
     var options = record[3];
@@ -153,13 +178,14 @@
     if (!lesson.cloud) return "";
     return '<section class="provider-paths" aria-labelledby="provider-path-title"><h2 id="provider-path-title">Apply today’s decision on your selected cloud</h2><p>The selected path is primary reading; the other block is comparison depth. Both remains available beyond the one-provider Core 30.</p>' + cloudBlockHtml("aws", lesson.cloud.aws) + cloudBlockHtml("gcp", lesson.cloud.gcp) + '</section>';
   }
-  function coreLabelsHtml(lesson) {
+  function coreLabelsHtml(lesson, pacing) {
+    pacing = pacing || pacingFor;
     if (!lesson.cloud) {
-      var p = pacingFor(lesson);
+      var p = pacing(lesson);
       return '<span class="core30-meta"><b>Core 30</b> · ~' + p.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + p.requiredMinutes + ' min required</span>';
     }
     return ["aws", "gcp"].map(function (selection) {
-      var p = pacingFor(lesson, selection);
+      var p = pacing(lesson, selection);
       return '<span class="core30-meta" data-cloud="' + selection + '"><b>Core 30</b> · ' + selection.toUpperCase() + ' · ~' + p.readMinutes + ' min read · 2 interactions · 6-Q check · ~' + p.requiredMinutes + ' min required</span>';
     }).join("");
   }
@@ -186,11 +212,14 @@
     }).join("") + '</section>';
   }
   function staticArticleHtml(lesson) {
+    return articleHtml(lesson, pacingFor);
+  }
+  function articleHtml(lesson, pacing) {
     var dayId = "w" + String(lesson.week).padStart(2, "0") + "d" + lesson.day;
     var sections = lesson.sections.map(function (section, index) {
       return '<section><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + (index === 3 ? staticInteractionHtml(lesson) : "") + '</section>';
     }).join("");
-    return '<article class="reading-col"><header class="lede"><h1>' + esc(lesson.title) + '</h1><div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + '</span>' + coreLabelsHtml(lesson) + '</div><p class="summary">' + esc(lesson.summary) + '</p></header>' +
+    return '<article class="reading-col"><header class="lede"><h1>' + esc(lesson.title) + '</h1><div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + '</span>' + coreLabelsHtml(lesson, pacing) + '</div><p class="summary">' + esc(lesson.summary) + '</p></header>' +
       '<section aria-labelledby="static-diagram-' + dayId + '"><h2 id="static-diagram-' + dayId + '">Decision and evidence path · text alternative</h2><p>Follow the seven required decisions in order. Each arrow advances from client consequence and evidence to an owned control, verification result, residual risk, and handoff.</p>' + diagramAlternativeHtml(lesson) + '</section>' +
       sections + teamEvidenceHtml(lesson) + cloudHtml(lesson) + optionalHtml(lesson) + checkHtml(lesson) + sourcesHtml(lesson) + '<p><a href="../../index.html#curriculum">Return to the curriculum hub</a></p></article>';
   }
@@ -212,10 +241,10 @@
       return '<section class="step" data-diagram="0" data-step="' + index + '"><div class="tag">Required decision ' + (index + 1) + '</div><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + (index === 3 ? interactionHtml(lesson, dayId, order) : "") + '</section>';
     }).join("");
     root.innerHTML = '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav><article class="reading-col"><div class="lede"><h1>' + esc(lesson.title) + '</h1><div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + '</span><span>' + esc(lesson.phase) + '</span>' + coreLabelsHtml(lesson) + '</div><p class="summary">' + esc(lesson.summary) + '</p><div class="ix-legend"></div></div>' +
-      '<section class="capstone-context" aria-label="Project context"><b>Inherited team brownfield:</b> synthetic banking/payments evidence only. No client, learner, account, or provider fact is inferred.</section>' + sections + teamEvidenceHtml(lesson) + cloudHtml(lesson) + diagramAlternativeHtml(lesson) + optionalHtml(lesson) + sourcesHtml(lesson) + '</article>' +
+      '<section class="capstone-context" aria-label="Project context"><b>Inherited team brownfield:</b> synthetic banking/payments evidence only. No client, learner, account, or provider fact is inferred.</section>' + sections + teamEvidenceHtml(lesson, { step: lesson.sections.length - 1 }) + cloudHtml(lesson) + diagramAlternativeHtml(lesson) + optionalHtml(lesson) + sourcesHtml(lesson) + '</article>' +
       '<aside class="side"><div class="side-diagram"><div class="stage-title">Decision and evidence path</div><svg id="diagram" role="img" aria-label="Seven-step decision and evidence path"></svg><div class="stage-caption"></div></div><div class="side-cards"><button class="activity-card" type="button" data-modal="trainer-demo-modal"><div class="ac-k">Trainer cue</div><div class="ac-t">Facilitate the evidence gate</div><div class="ac-meta">synthetic · local · review-only</div></button><button class="activity-card accent" type="button" data-modal="quiz-modal"><div class="ac-k">Comprehension check</div><div class="ac-t"><span class="quiz-count">6</span> questions</div><div class="ac-meta">~5 min · practice</div></button></div><div class="side-nav"><a class="snav-btn" href="../../index.html#curriculum">◂ Curriculum hub</a><button class="snav-btn goals" type="button" data-modal="goals-modal">Daily evidence</button><a class="snav-btn snav-next"></a></div></aside></div>';
     var overlays = doc.getElementById("lesson-overlays");
-    overlays.innerHTML = '<div id="trainer-demo-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><h2>Trainer facilitation cue</h2><p>' + esc(lesson.demoNote) + '</p><p><b>Safety boundary:</b> local/static synthetic evidence only. No account, credential, IAM, billing, provider call, deployment, publication, merge, real communication, or learner/client data.</p><p><b>Batch:</b> <span data-batch-value>loading</span> · <b>Client:</b> <span data-client-name>loading</span></p></div></div><div id="quiz-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><section id="quiz"></section><div class="modal-next"></div></div></div><div id="goals-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><h2>Daily evidence contract</h2>' + teamEvidenceHtml(lesson) + '<p>Commit only to the approved project repository. Do not deploy, provision, publish, merge, or send externally as part of this lesson.</p></div></div>';
+    overlays.innerHTML = '<div id="trainer-demo-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><h2>Trainer facilitation cue</h2><p>' + esc(lesson.demoNote) + '</p><p><b>Safety boundary:</b> local/static synthetic evidence only. No account, credential, IAM, billing, provider call, deployment, publication, merge, real communication, or learner/client data.</p><p><b>Batch:</b> <span data-batch-value>loading</span> · <b>Client:</b> <span data-client-name>loading</span></p></div></div><div id="quiz-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><section id="quiz"></section><div class="modal-next"></div></div></div><div id="goals-modal" class="modal-overlay" hidden><div class="modal-card"><button class="modal-close" type="button" aria-label="Close">Close</button><h2>Daily evidence contract</h2>' + teamEvidenceHtml(lesson, { summary: true }) + '<p>Commit only to the approved project repository. Do not deploy, provision, publish, merge, or send externally as part of this lesson.</p></div></div>';
     root.className = "lesson2 capstone-lesson week-" + lesson.week;
     var browserRoot = typeof window !== "undefined" ? window : globalThis;
     browserRoot.DIAGRAM = diagramFor(lesson);
@@ -224,5 +253,5 @@
     mountInteraction(doc, lesson);
     return true;
   }
-  return { esc: esc, wordCount: wordCount, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, staticInteractionHtml: staticInteractionHtml, requiredWords: requiredWords, pacingFor: pacingFor, diagramFor: diagramFor, staticArticleHtml: staticArticleHtml, render: render };
+  return { esc: esc, wordCount: wordCount, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, staticInteractionHtml: staticInteractionHtml, requiredWords: requiredWords, requiredPathWords: requiredPathWords, pacingFor: pacingFor, teamEvidenceHtml: teamEvidenceHtml, diagramFor: diagramFor, staticArticleHtml: staticArticleHtml, render: render };
 });
