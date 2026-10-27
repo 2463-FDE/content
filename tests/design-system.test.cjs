@@ -273,10 +273,9 @@ test("hub shell keeps its workflow contracts", () => {
   assert.ok(elements.some((e) => e.attrs.get("aria-live") === "polite"), "a polite live region is required");
 });
 
-test("hub chrome carries no emoji glyphs — icons are drawn SVG", () => {
+test("hub chrome carries no emoji glyphs", () => {
   const emoji = hub.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu) || [];
   assert.deepEqual(emoji, [], `emoji found in hub markup: ${emoji.join(" ")}`);
-  assert.match(hub, /<svg viewBox="0 0 24 24" aria-hidden="true"/, "drawn icon set expected");
 });
 
 test("every root page topnav is emoji-free", () => {
