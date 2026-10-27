@@ -124,3 +124,12 @@ details.cloud-block[data-cloud-role="substrate"] > summary { color: var(--ink-so
   .cert-hero h1 { font-size: 30px; }
   .cert-sec { padding: 18px 16px; }
 }
+
+/* Hub placement: the picker sits between the Core-30 key and the calendar, so
+   it uses the compact metrics there (same values as .is-compact) to keep the
+   first week row near the first viewport. */
+.cal-main .cloud-picker { margin: 0 0 12px; padding: 8px 12px 10px; }
+.cal-main .cloud-picker legend { font-size: 13px; }
+.cal-main .cloud-picker-options { margin: 4px 0 6px; }
+.cal-main .cloud-picker-option { min-height: 36px; padding: 4px 12px; font-size: 14px; }
+.cal-main .cloud-picker-link { margin-top: 3px; font-size: 13px; }
