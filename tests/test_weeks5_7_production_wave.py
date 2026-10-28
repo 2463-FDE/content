@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import html
 import json
 import re
 import shutil
@@ -28,6 +27,47 @@ def find_chrome() -> str | None:
     ]
     candidates.extend(filter(None, (shutil.which(name) for name in ("google-chrome", "chromium"))))
     return next((item for item in candidates if Path(item).exists()), None)
+
+
+BROWSER_RUNNER = r"""
+const {spawn}=require('child_process'),net=require('net');
+const [chrome,harness,profile]=process.argv.slice(1);
+const sink=net.createServer(socket=>socket.destroy());
+const listen=()=>new Promise((resolve,reject)=>{sink.once('error',reject);sink.listen(0,'127.0.0.1',resolve)});
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+let proc,ws;
+function cleanup(){try{ws&&ws.close()}catch(e){}try{proc&&proc.kill('SIGKILL')}catch(e){}try{sink.close()}catch(e){}}
+async function main(){
+ await listen();
+ const denyOrigin=`http://127.0.0.1:${sink.address().port}`;
+ const args=['--headless=new','--remote-debugging-port=0',`--user-data-dir=${profile}`,
+  '--no-first-run','--no-default-browser-check','--disable-gpu','--disable-background-networking',
+  '--disable-component-update','--disable-sync','--metrics-recording-only','--no-pings',
+  '--allow-file-access-from-files',`--proxy-server=${denyOrigin}`,
+  '--host-resolver-rules=MAP * ~NOTFOUND','about:blank'];
+ proc=spawn(chrome,args,{stdio:['ignore','ignore','pipe']});
+ const wsUrl=await new Promise((resolve,reject)=>{let buf='';proc.stderr.on('data',d=>{buf+=d;const m=buf.match(/DevTools listening on (ws:\/\/\S+)/);if(m)resolve(m[1])});proc.on('exit',code=>reject(new Error(`chrome exited ${code}: ${buf}`)));setTimeout(()=>reject(new Error('chrome start timeout: '+buf)),30000)});
+ ws=new WebSocket(wsUrl);await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject});
+ let seq=0;const pending=new Map(),listeners=[];
+ ws.onmessage=event=>{const message=JSON.parse(event.data);if(message.id&&pending.has(message.id)){const waiter=pending.get(message.id);pending.delete(message.id);message.error?waiter.reject(new Error(JSON.stringify(message.error))):waiter.resolve(message.result)}else listeners.forEach(listener=>listener(message))};
+ const send=(method,params={},sessionId)=>new Promise((resolve,reject)=>{const id=++seq;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params,sessionId}))});
+ const {targetId}=await send('Target.createTarget',{url:'about:blank'});
+ const {sessionId}=await send('Target.attachToTarget',{targetId,flatten:true});
+ const session=(method,params={})=>send(method,params,sessionId);
+ const requests=[];
+ listeners.push(message=>{if(message.sessionId===sessionId&&message.method==='Network.requestWillBeSent')requests.push({url:message.params.request.url,type:message.params.type,frameId:message.params.frameId})});
+ await session('Runtime.enable');await session('Network.enable');await session('Page.enable');
+ const injection=await session('Page.addScriptToEvaluateOnNewDocument',{source:`Object.defineProperty(globalThis,'FDE_RUN_URL',{value:${JSON.stringify(denyOrigin)},writable:false,configurable:false});Object.defineProperty(globalThis,'__FDE_TEST_NETWORK_DENY__',{value:true,writable:false,configurable:false});`});
+ const boundaryInstalledBeforeNavigation=Boolean(injection.identifier);
+ await session('Page.navigate',{url:harness});
+ const evaluate=async expression=>{const result=await session('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value};
+ let raw='';for(let i=0;i<200;i++){raw=await evaluate("document.body&&document.body.dataset.result||''");if(raw)break;await sleep(100)}
+ if(!raw)throw new Error('browser harness did not report');
+ const isLocal=url=>{const parsed=new URL(url);if(['file:','data:','about:','blob:'].includes(parsed.protocol))return true;return ['localhost','127.0.0.1','::1'].includes(parsed.hostname)};
+ return {rendered:JSON.parse(raw),requests,nonLocalRequests:requests.filter(item=>!isLocal(item.url)),boundaryInstalledBeforeNavigation,topBoundary:await evaluate('globalThis.__FDE_TEST_NETWORK_DENY__===true')};
+}
+main().then(result=>{process.stdout.write(JSON.stringify(result),()=>{cleanup();process.exit(0)})},error=>{console.error(error.stack||error);cleanup();process.exit(1)});
+"""
 
 
 class Weeks57ProductionWaveTest(unittest.TestCase):
@@ -122,7 +162,8 @@ function load(entries,i){
       text:d.body.innerText.replace(/\s+/g,' ').trim(),
       project:d.querySelector('.project-context')?.innerText.replace(/\s+/g,' ').trim()||'',
       adr:d.querySelector('.project-context a')?.getAttribute('href')||'',
-      links:Array.from(d.querySelectorAll('a[href]')).map(a=>[a.innerText.trim(),a.getAttribute('href')])
+      links:Array.from(d.querySelectorAll('a[href]')).map(a=>[a.innerText.trim(),a.getAttribute('href')]),
+      networkDeny:frame.contentWindow.__FDE_TEST_NETWORK_DENY__===true
     };
     frame.remove();load(entries,i+1);
   },350);
@@ -134,16 +175,20 @@ load(Object.entries(pages),0);
             harness = Path(tmp) / "wave.html"
             harness.write_text(f"<!doctype html><html><body><script>{script}</script></body></html>", encoding="utf-8")
             result = subprocess.run(
-                [chrome, "--headless=new", "--disable-gpu", "--no-first-run",
-                 "--no-default-browser-check", "--allow-file-access-from-files",
-                 f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=9000",
-                 "--dump-dom", harness.as_uri()],
-                text=True, capture_output=True, timeout=60,
+                ["node", "-e", BROWSER_RUNNER, chrome, harness.as_uri(), str(Path(tmp) / "profile")],
+                text=True,
+                capture_output=True,
+                timeout=60,
             )
         self.assertEqual(result.returncode, 0, result.stderr[-1000:])
-        match = re.search(r'data-result="([^"]*)"', result.stdout)
-        self.assertIsNotNone(match, "browser harness did not report")
-        rendered = json.loads(html.unescape(match.group(1)))
+        browser = json.loads(result.stdout)
+        rendered = browser["rendered"]
+        self.assertTrue(browser["boundaryInstalledBeforeNavigation"])
+        self.assertTrue(browser["topBoundary"])
+        self.assertTrue(all(page["networkDeny"] for page in rendered.values()))
+        self.assertEqual(browser["nonLocalRequests"], [])
+        captured_urls = {request["url"] for request in browser["requests"]}
+        self.assertTrue(set(pages.values()).issubset(captured_urls))
 
         for key in ("w5start", "w5close"):
             self.assertIn("solo", rendered[key]["project"])
