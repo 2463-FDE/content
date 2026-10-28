@@ -11,11 +11,12 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
+  var ADR_LINK_LABEL = "Open the Week 6 team-primary-cloud ADR template";
   function wordCount(text) {
     return (String(text || "").match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) || []).length;
   }
   function requiredWords(lesson) {
-    var projectWords = lesson.project ? wordCount(lesson.project.label) + wordCount(lesson.project.context) + 5 : 0;
+    var projectWords = lesson.project ? wordCount(lesson.project.label) + wordCount(lesson.project.context) + wordCount(ADR_LINK_LABEL) : 0;
     return projectWords + wordCount(lesson.summary) + lesson.sections.reduce(function (sum, item) {
       return sum + wordCount(item[0]) + wordCount(item[1]);
     }, 0) + wordCount(lesson.drill.prompt) + lesson.drill.options.reduce(function (sum, item) { return sum + wordCount(item); }, 0);
@@ -97,7 +98,7 @@
   }
   function projectHtml(lesson) {
     if (!lesson.project) return "";
-    return '<aside class="project-context" aria-label="Project and cloud decision context"><strong>' + esc(lesson.project.label) + '</strong><p>' + esc(lesson.project.context) + '</p><a href="' + esc(lesson.project.adrHref) + '">Open the Week 6 team-primary-cloud ADR template</a></aside>';
+    return '<aside class="project-context" aria-label="Project and cloud decision context"><strong>' + esc(lesson.project.label) + '</strong><p>' + esc(lesson.project.context) + '</p><a href="' + esc(lesson.project.adrHref) + '">' + ADR_LINK_LABEL + '</a></aside>';
   }
   function staticFallbackHtml(lesson, visualText) {
     var dayId = "w" + String(lesson.week).padStart(2, "0") + "d" + lesson.day;

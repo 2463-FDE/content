@@ -12,11 +12,12 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
+  var ADR_LINK_LABEL = "Open the team-primary-cloud ADR template";
   function wordCount(text) {
     return (String(text || "").match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) || []).length;
   }
   function requiredWords(lesson) {
-    var projectWords = lesson.project ? wordCount(lesson.project.label) + wordCount(lesson.project.context) + 5 : 0;
+    var projectWords = lesson.project ? wordCount(lesson.project.label) + wordCount(lesson.project.context) + wordCount(ADR_LINK_LABEL) : 0;
     return projectWords + wordCount(lesson.summary) + lesson.sections.reduce(function (sum, section) {
       return sum + wordCount(section[0]) + wordCount(section[1]);
     }, 0);
@@ -96,7 +97,7 @@
   }
   function projectHtml(lesson) {
     if (!lesson.project) return "";
-    return '<aside class="project-context" aria-label="Project and cloud decision context"><strong>' + esc(lesson.project.label) + '</strong><p>' + esc(lesson.project.context) + '</p><a href="' + esc(lesson.project.adrHref) + '">Open the team-primary-cloud ADR template</a></aside>';
+    return '<aside class="project-context" aria-label="Project and cloud decision context"><strong>' + esc(lesson.project.label) + '</strong><p>' + esc(lesson.project.context) + '</p><a href="' + esc(lesson.project.adrHref) + '">' + ADR_LINK_LABEL + '</a></aside>';
   }
   function staticFallbackHtml(lesson, visualText) {
     var dayId = "w06d" + lesson.day;
