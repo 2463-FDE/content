@@ -124,6 +124,7 @@
 .pc-coach-item--try-next h3 { color: var(--accent-ink); }
 
 .pc-clock-tools { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--warn-line); background: var(--warn-soft); color: var(--warn-ink); font-size: 12px; }
+.pc-clock-tools[hidden] { display: none; }
 .pc-clock-tools button { border: 1px solid currentColor; border-radius: 7px; padding: 4px 8px; background: transparent; color: inherit; font: inherit; font-weight: 750; cursor: pointer; }
 .pc-identity { color: var(--ink-soft); font-size: 12px; }
 .pc-identity strong { color: var(--ink); }
