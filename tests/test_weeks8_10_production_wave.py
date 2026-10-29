@@ -130,7 +130,7 @@ class WeeksEightToTenProductionWave(unittest.TestCase):
         for artifact in ("SRE-08-01", "SEC-09-01", "GOV-09-03", "REL-10-01", "HANDOFF-10-05"):
             self.assertIn(artifact, delivery)
 
-    def test_generator_output_matches_committed_routes_and_loads_run_config(self):
+    def test_generator_output_matches_committed_routes_and_loads_runtime_config(self):
         with tempfile.TemporaryDirectory() as tmp:
             subprocess.run(
                 ["node", "docs/workflows/build-capstone-routes.cjs", tmp], cwd=ROOT, check=True, capture_output=True
@@ -141,9 +141,10 @@ class WeeksEightToTenProductionWave(unittest.TestCase):
                 with self.subTest(day=day):
                     self.assertEqual(generated, (ROOT / relative).read_text())
                     scripts = [Path(src.split("?")[0]).name for src in re.findall(r'<script src="([^"]+)"', generated)]
-                    self.assertIn("run-config.js", scripts)
-                    self.assertLess(scripts.index("run-config.js"), scripts.index("auth.js"))
-                    self.assertLess(scripts.index("run-config.js"), scripts.index("capstone-lesson.js"))
+                    self.assertIn("roster.js", scripts)
+                    self.assertNotIn("run-config.js", scripts)
+                    self.assertLess(scripts.index("roster.js"), scripts.index("auth.js"))
+                    self.assertLess(scripts.index("roster.js"), scripts.index("capstone-lesson.js"))
 
     def test_rendered_route_has_one_team_evidence_step_bound_to_the_diagram(self):
         result = node_json(
