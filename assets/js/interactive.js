@@ -61,11 +61,14 @@
   function tempSlider(elist) {
     const logits = [3.2, 2.4, 1.9, 1.2, 0.6]; // fixed candidate "scores"
     const labels = ["approve", "review", "deny", "escalate", "defer"];
-    elist.forEach(el => {
+    elist.forEach((el, index) => {
+      const rangeId = `ix-temperature-${index + 1}`;
+      const valueId = `${rangeId}-value`;
       el.innerHTML =
         `<div class="ix-k">▶ Try it <span class="ix-sub">temperature · how the next token is picked</span></div>` +
-        `<input class="ix-range" type="range" min="0" max="150" value="20">` +
-        `<div class="ix-temp-val">temperature = <b>0.20</b> · <span class="ix-temp-desc"></span></div>` +
+        `<label class="ix-control-label" for="${rangeId}">Temperature</label>` +
+        `<input id="${rangeId}" class="ix-range" type="range" min="0" max="150" value="20" aria-describedby="${valueId}">` +
+        `<div class="ix-temp-val" id="${valueId}">temperature = <b>0.20</b> · <span class="ix-temp-desc"></span></div>` +
         `<div class="ix-bars"></div>`;
       const range = el.querySelector(".ix-range"), val = el.querySelector("b"), desc = el.querySelector(".ix-temp-desc"), bars = el.querySelector(".ix-bars");
       function softmax(t) {
@@ -175,16 +178,23 @@
         const note = mark >= 0 ? yourTurn.slice(mark).replace(/^✎\s*/, "").trim() : "";
         tabs.push({ label: yourTurnLabel, text: starter, note: note, edit: true, variant: "edit" });
       }
+      const controlId = `run-${id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
       el.innerHTML =
         `<div class="ix-k">▶ Try it · live <span class="ix-sub">calls Claude · <b class="run-left">3</b> edit-tries</span></div>` +
         `<p class="run-guide">Run the example${examples.length > 1 ? "s" : ""} (saved — revisit any time), then ${yourTurn ? "open <b>Your turn</b>, edit the prompt," : "tweak the prompt"} and run it — watch the answer change.</p>` +
         `<div class="run-tabs">${tabs.map((t, i) => `<button type="button" class="run-tab${i === 0 ? " on" : ""}" data-i="${i}">${t.label}</button>`).join("")}</div>` +
         `<div class="run-note" hidden></div>` +
-        `<textarea class="ix-ta run-in" rows="3"></textarea>` +
+        `<label class="ix-control-label run-preset-label" for="${controlId}-preset">Example prompt</label>` +
+        `<output class="ix-ta run-in run-preset" id="${controlId}-preset" tabindex="0"></output>` +
+        `<label class="ix-control-label run-edit-label" for="${controlId}-edit" hidden>Your prompt</label>` +
+        `<textarea class="ix-ta run-in run-edit" id="${controlId}-edit" rows="3" hidden></textarea>` +
         `<button type="button" class="btn run-go">Run ▸</button>` +
-        `<div class="run-out"></div>`;
-      const ta = el.querySelector(".run-in"), out = el.querySelector(".run-out"), go = el.querySelector(".run-go"), left = el.querySelector(".run-left");
+        `<output class="run-out" aria-label="Run result" aria-live="polite"></output>`;
+      const preset = el.querySelector(".run-preset"), ta = el.querySelector(".run-edit");
+      const presetLabel = el.querySelector(".run-preset-label"), editLabel = el.querySelector(".run-edit-label");
+      const out = el.querySelector(".run-out"), go = el.querySelector(".run-go"), left = el.querySelector(".run-left");
       const note = el.querySelector(".run-note");
+      let activePrompt = preset;
       const tabEls = Array.from(el.querySelectorAll(".run-tab"));
       const cache = {};   // variant -> last output (server-backed, loaded below)
       let cur = 0;
@@ -196,8 +206,13 @@
         cur = i;
         tabEls.forEach((t, j) => t.classList.toggle("on", j === i));
         const t = tabs[i] || { text: "", edit: false, variant: "e0" };
+        preset.textContent = t.text;
         ta.value = t.text;
-        ta.readOnly = !t.edit;                 // presets: executable, not editable
+        preset.hidden = t.edit;
+        presetLabel.hidden = t.edit;
+        ta.hidden = !t.edit;
+        editLabel.hidden = !t.edit;
+        activePrompt = t.edit ? ta : preset;
         el.classList.toggle("is-locked", !t.edit);
         if (note) {                            // visible "what to do" block (your-turn tab)
           if (t.note) { note.textContent = t.note; note.hidden = false; }
@@ -226,7 +241,7 @@
         const idt = window.FDE_getIdentity ? window.FDE_getIdentity() : null;
         const trainee = idt ? idt.code : "anon";
         const t = tabs[cur] || { variant: "edit", edit: true };
-        const prompt = ta.value.trim(); if (!prompt) return;
+        const prompt = (activePrompt.value || activePrompt.textContent || "").trim(); if (!prompt) return;
         go.disabled = true; out.className = "run-out"; out.textContent = "Running…";
         try {
           const r = await fetch(url + "/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ trainee, id, prompt, system: sys, variant: t.variant }) });

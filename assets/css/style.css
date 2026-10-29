@@ -40,6 +40,8 @@
   /* label grammar — one voice for every uppercase micro-label */
   --label-size: 11px;
   --label-track: .08em;
+  --step-muted-opacity: .5;
+  --caption-hint-opacity: .7;
   /* semantic tints (themeable) — used by page-specific panels/pills/badges */
   --good-soft: #ebfbee; --good-line: #cfe6cf; --good-ink: #2f7d32;
   --bad-soft: #fff5f5;  --bad-line: #ffc9c9;  --bad-ink: #c92a2a;
@@ -149,7 +151,7 @@ body {
   border-left: 3px solid transparent;
   padding-left: 18px; margin-left: -21px;
   transition: border-color .3s, opacity .3s;
-  opacity: .5;
+  opacity: var(--step-muted-opacity);
 }
 .step:first-of-type { min-height: 30vh; padding-top: 4px; }
 .step:last-of-type { min-height: 34vh; }
@@ -172,6 +174,7 @@ body {
   border-top: 1px dashed var(--line); padding-top: 10px; min-height: 40px;
 }
 .stage .stage-caption b { color: var(--ink); }
+.stage-caption .stage-hint { opacity: var(--caption-hint-opacity); }
 .stage-title { font-size: var(--label-size); text-transform: uppercase; letter-spacing: var(--label-track); color: var(--dim); font-weight: 700; margin-bottom: 6px; }
 
 /* ---------- callouts ---------- */
@@ -379,7 +382,10 @@ details.w1-optional.step.active { border-left-color:var(--line); }
 .ix-a { display:none; margin-top:12px; padding:12px 14px; background:var(--surface-2); border:1px solid #d8e6d8; border-radius:9px; font-size:15.5px; line-height:1.6; }
 .ix-a.show { display:block; }
 .ix-snippet { background:#1f2329; color:#e8e6e1; font-family:var(--mono); font-size:13px; line-height:1.5; padding:12px 14px; border-radius:8px; overflow:auto; margin:0 0 12px; white-space:pre-wrap; }
+.ix-control-label { display:block; margin:0 0 4px; color:var(--ink); font-size:13px; font-weight:700; }
 .ix-ta { width:100%; font:inherit; padding:9px 11px; border:1.5px solid var(--line); border-radius:8px; resize:vertical; }
+.run-preset { display:block; min-height:96px; background:var(--surface-2); color:var(--ink-soft); white-space:pre-wrap; overflow:auto; }
+.run-preset[hidden], .run-edit[hidden], .run-preset-label[hidden], .run-edit-label[hidden] { display:none; }
 .ix-out { margin-top:10px; font-size:15px; color:var(--ink-soft); } .ix-out b { color:var(--ink); }
 .ix-range { width:100%; accent-color:var(--accent); margin:6px 0; }
 .ix-temp-val { font-size:14px; color:var(--ink-soft); margin-bottom:10px; }
@@ -587,7 +593,7 @@ footer.foot { border-top:1px solid var(--line); margin-top:50px; padding: 26px 2
 .code-cta:hover { border-color:var(--accent); background:var(--accent-soft); }
 .code-cta:focus-visible, .modal-close:focus-visible, .cv-tab:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .code-cta .cc-ico { font-family:var(--mono); font-size:12px; opacity:.8; }
-.code-cta .cc-meta { color:var(--dim); font-weight:500; }
+.code-cta .cc-meta { color:var(--ink-soft); font-weight:500; }
 .code-modal { max-width:860px; padding:24px 26px 22px; }
 .code-modal h2 { font-size:20px; }
 .code-modal .cv-cap { font-size:13.5px; color:var(--ink-soft); line-height:1.55; margin:2px 0 16px; }
@@ -905,8 +911,7 @@ html[data-theme="dark"] .cd-repo { background:#2b313a; }
   .topbar-center { column-gap:10px; }
 }
 
-/* Try-it: preset tabs are run-only (locked textarea); saved/cached results marked. */
-.run-in[readonly] { background: var(--surface-2); color: var(--ink-soft); cursor: default; }
+/* Try-it: preset tabs expose a named, read-only output; saved/cached results are marked. */
 .ix-run.is-locked .run-in, .is-locked .run-in { opacity: .92; }
 .run-out.saved::before { content: "↩ saved result · "; color: var(--dim); font-weight: 700; font-size: 12px; }
 
@@ -1101,7 +1106,7 @@ html[data-theme="dark"] {
   --ink-soft: #a6adb8;
   --line: #2b3038;
   --accent: #ff7a33;            /* brighter orange for dark backgrounds */
-  --accent-fill: #bf4a0c;       /* filled controls keep white text readable */
+  --accent-fill: #b7460a;       /* filled controls keep white text readable, including muted lesson steps */
   --accent-soft: #2a1a10;
   --node: #1d2027;
   --node-stroke: #4a515c;
@@ -1122,6 +1127,8 @@ html[data-theme="dark"] {
   --info: #74c0fc; --info-soft: rgba(116,192,252,.10); --info-line: rgba(116,192,252,.35);
   --warn-soft: rgba(245,159,0,.12); --warn-line: rgba(245,159,0,.38); --warn-ink: #e6c980;
   --accent-line: rgba(255,122,51,.38); --accent-ink: #ff9a5c;
+  --step-muted-opacity: .85;
+  --caption-hint-opacity: .8;
 }
 /* Tinted callouts / states -> translucent on dark so they read as accents, not slabs */
 html[data-theme="dark"] .callout.mindset,

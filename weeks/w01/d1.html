@@ -465,15 +465,15 @@ window.DIAGRAM = {
     { id:"e_hall",  step:8, from:"hall",  to:"ans",   label:"guess → fills gap", bend:-30, ly:-2 }
   ],
   captions: [
-    "One real request, assembled into <b>one finite window</b>. Everything the model can reason over for this turn has to fit here. <span style='opacity:.7'>(tap nodes for detail)</span>",
+    "One real request, assembled into <b>one finite window</b>. Everything the model can reason over for this turn has to fit here. <span class='stage-hint'>(tap nodes for detail)</span>",
     "The <b>system prompt</b> takes the first slice — the rules, paid on every single call.",
     "<b>Few-shot examples</b> teach format by example — powerful, but every example is tokens, forever.",
     "<b>Retrieved context</b> (RAG / docs) usually dwarfs everything else. More text is budget spent, not intelligence.",
-    "<b>History</b> grows every turn until it overflows — and the oldest tokens (your <b>system prompt</b>) are evicted first. That's why it 'forgot the rules.' <span style='opacity:.7'>(tap)</span>",
+    "<b>History</b> grows every turn until it overflows — and the oldest tokens (your <b>system prompt</b>) are evicted first. That's why it 'forgot the rules.' <span class='stage-hint'>(tap)</span>",
     "Only now does the user's actual <b>question</b> enter — often the smallest slice in the room.",
-    "What's left is the <b>room to answer</b>. Overfill the input → no room to think. This is the <b>token budget</b>. <span style='opacity:.7'>(tap)</span>",
-    "Generation samples token-by-token; <b>temperature / top-p</b> set deterministic vs creative. <span style='opacity:.7'>(tap)</span>",
-    "Fact never in the window? The model <b>fills the gap</b> with plausible text — that's a hallucination. <span style='opacity:.7'>(tap)</span>"
+    "What's left is the <b>room to answer</b>. Overfill the input → no room to think. This is the <b>token budget</b>. <span class='stage-hint'>(tap)</span>",
+    "Generation samples token-by-token; <b>temperature / top-p</b> set deterministic vs creative. <span class='stage-hint'>(tap)</span>",
+    "Fact never in the window? The model <b>fills the gap</b> with plausible text — that's a hallucination. <span class='stage-hint'>(tap)</span>"
   ]
 };
 window.QUIZ = {
