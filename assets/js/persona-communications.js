@@ -16,9 +16,6 @@
   var STORAGE_PREFIX = "fde_local_synthetic_persona_v1:";
   var CHANNELS = ["chat", "inbox", "coaching"];
   var PROJECTS = Object.keys(fixtureBook.scenarios);
-  var FORBIDDEN_COACHING_OUTPUTS = Object.freeze([
-    "fde_results", "fde_progress", "fde_summary", "trainer-manifest", "assessment", "rubric"
-  ]);
 
   function hashText(value) {
     var text = String(value == null ? "" : value);
@@ -38,8 +35,12 @@
 
   function getScenario(projectId) { return fixtureBook.scenarios[normalizeProject(projectId)]; }
 
+  function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
   function includesWord(text, word) {
-    return text.indexOf(word) !== -1;
+    return new RegExp("(?:^|[^a-z0-9])" + escapeRegExp(word) + "(?:s|es)?(?:$|[^a-z0-9])").test(text);
   }
 
   function selectFact(projectId, message) {
@@ -194,9 +195,10 @@
     } catch (error) { return null; }
   }
 
-  function storageKeyForIdentity(identity) {
+  function storageKeyForIdentity(identity, scope) {
     var seam = identity && (String(identity.code || "") + "|" + String(identity.role || "learner"));
-    return STORAGE_PREFIX + "local-" + hashText(seam || "missing");
+    var key = STORAGE_PREFIX + "local-" + hashText(seam || "missing");
+    return scope ? key + ":" + String(scope).replace(/[^a-z0-9-]/gi, "") : key;
   }
 
   function initialProjectState(projectId) {
@@ -230,8 +232,8 @@
     });
   }
 
-  function createStore(storage, identity) {
-    var key = storageKeyForIdentity(identity);
+  function createStore(storage, identity, scope) {
+    var key = storageKeyForIdentity(identity, scope);
     function load() {
       try {
         var value = JSON.parse(storage && storage.getItem(key) || "null");
@@ -354,7 +356,7 @@
     var query = options.query || (doc.defaultView && doc.defaultView.location && doc.defaultView.location.search) || "";
     var accelerated = /(?:\?|&)simClock=accelerated(?:&|$)/.test(query);
     var clock = options.clock || (accelerated ? createInjectedClock(fixtureBook.fixtureEpoch) : createSystemClock());
-    var store = createStore(storage, identity);
+    var store = createStore(storage, identity, accelerated ? "accelerated" : "");
     var state = store.load();
     var requestedProject = query.match(/[?&]project=(riverbend|meridian)(?:&|$)/);
     if (requestedProject) state.selectedProject = requestedProject[1];
@@ -371,6 +373,8 @@
     var channelTabs = Array.prototype.slice.call(doc.querySelectorAll("[data-channel-tab]"));
     var channelPanels = Array.prototype.slice.call(doc.querySelectorAll("[data-channel-panel]"));
     var chatLog = doc.getElementById("pc-chat-log");
+    var chatAnnouncer = doc.getElementById("pc-chat-announcer");
+    var inboxAnnouncer = doc.getElementById("pc-inbox-announcer");
     var chatForm = doc.getElementById("pc-chat-form");
     var chatInput = doc.getElementById("pc-chat-input");
     var promptHost = doc.getElementById("pc-chat-prompts");
@@ -457,18 +461,22 @@
       return "Awaiting reply";
     }
 
-    function renderInbox(scenario) {
+    function renderInbox(scenario, focusSelected) {
       var currentThread = chooseThread();
+      var selectedRow = null;
       inboxList.replaceChildren();
       projectState().threads.slice().reverse().forEach(function (thread) {
         var button = createElement(doc, "button", "pc-thread-row");
         button.type = "button";
         button.setAttribute("aria-pressed", thread.id === selectedThreadId ? "true" : "false");
+        button.setAttribute("data-thread-id", thread.id);
         button.appendChild(createElement(doc, "strong", "", thread.subject));
         button.appendChild(createElement(doc, "span", "pc-thread-row__meta", statusText(thread) + " · " + formatTime(thread.sentAt || thread.messages[0].at)));
-        button.addEventListener("click", function () { selectedThreadId = thread.id; renderInbox(scenario); });
+        button.addEventListener("click", function () { selectedThreadId = thread.id; renderInbox(scenario, true); });
+        if (thread.id === selectedThreadId) selectedRow = button;
         inboxList.appendChild(button);
       });
+      if (focusSelected && selectedRow) selectedRow.focus();
 
       var thread = currentThread;
       threadView.replaceChildren();
@@ -494,8 +502,33 @@
       coachingStatus.textContent = "Choose “Review my communication” for formative feedback on this project's local transcript.";
     }
 
+    function pendingThreadIds() {
+      var pending = {};
+      PROJECTS.forEach(function (projectId) {
+        state.projects[projectId].threads.forEach(function (thread) {
+          if (!thread.messages.some(function (message) { return message.from === "stakeholder"; })) pending[projectId + "|" + thread.id] = true;
+        });
+      });
+      return pending;
+    }
+
+    function revealAndAnnounce() {
+      var pending = pendingThreadIds();
+      var changed = revealDueReplies(state, clock.now());
+      var revealed = [];
+      PROJECTS.forEach(function (projectId) {
+        state.projects[projectId].threads.forEach(function (thread) {
+          if (pending[projectId + "|" + thread.id] && thread.status === "replied") {
+            revealed.push(getScenario(projectId).stakeholderLabel + " replied to “" + thread.subject + "”.");
+          }
+        });
+      });
+      if (revealed.length) inboxAnnouncer.textContent = revealed.join(" ");
+      return changed;
+    }
+
     function renderAll() {
-      revealDueReplies(state, clock.now());
+      revealAndAnnounce();
       var scenario = getScenario(state.selectedProject);
       projectTitle.textContent = scenario.projectLabel;
       projectPhase.textContent = scenario.projectPhase;
@@ -542,7 +575,9 @@
       projectState().chat.push({ from: "lead", at: now, factId: reply.factId, intent: reply.intent, text: reply.text });
       chatInput.value = "";
       store.save(state);
-      renderChat(getScenario(state.selectedProject));
+      var scenario = getScenario(state.selectedProject);
+      renderChat(scenario);
+      chatAnnouncer.textContent = scenario.technicalLeadLabel + ": " + reply.text;
       chatInput.focus();
     });
 
@@ -589,7 +624,7 @@
       button.addEventListener("click", function () {
         if (!clock.advance) return;
         clock.advance(Number(button.getAttribute("data-clock-advance")) * 60000);
-        revealDueReplies(state, clock.now());
+        revealAndAnnounce();
         store.save(state);
         renderInbox(getScenario(state.selectedProject));
       });
@@ -597,7 +632,7 @@
 
     if (doc.defaultView && doc.defaultView.setInterval && clock.mode === "system") {
       doc.defaultView.setInterval(function () {
-        if (revealDueReplies(state, clock.now())) {
+        if (revealAndAnnounce()) {
           store.save(state);
           renderInbox(getScenario(state.selectedProject));
         }
@@ -615,9 +650,9 @@
 
   return Object.freeze({
     fixtureBook: fixtureBook,
-    forbiddenCoachingOutputs: FORBIDDEN_COACHING_OUTPUTS,
     hashText: hashText,
     getScenario: getScenario,
+    includesWord: includesWord,
     selectFact: selectFact,
     classifyIntent: classifyIntent,
     generateChatReply: generateChatReply,

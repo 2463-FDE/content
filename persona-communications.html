@@ -9,14 +9,6 @@
 <script src="assets/js/theme.js"></script>
 </head>
 <body class="pc-page">
-<!--
-THESIS: One local scenario truth drives every channel; this surface refuses a generic chatbot beside a disconnected mock inbox.
-OWN-WORLD: The incumbent warm-neutral 2463-FDE system becomes a focused communications desk with orange state markers and evidence-first typography.
-STORY: A signed-in learner selects Riverbend or Meridian, practices with the functional technical lead, sends delayed synthetic stakeholder messages, then reviews formative coaching.
-FIRST VIEWPORT: Simulation boundary and project switch sit above a split evidence rail and working channel surface; the active task owns the majority of the screen.
-FORM: Operational extension of the established client-delivery world; no new visual identity or external asset dependency.
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
--->
 <a class="pc-skip" href="#pc-workspace">Skip to communication workspace</a>
 <div class="topbar">
   <div class="topbar-left">
@@ -93,7 +85,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             <h2 id="pc-lead-label">Riverbend IT lead</h2>
             <p>Ask for clarification, negotiate scope, or test respectful pushback. Replies are deterministic and scenario-grounded.</p>
           </header>
-          <div class="pc-chat-log" id="pc-chat-log" aria-live="polite" aria-label="Technical-lead chat transcript"></div>
+          <div class="pc-chat-log" id="pc-chat-log" aria-label="Technical-lead chat transcript"></div>
+          <p class="sr-only" id="pc-chat-announcer" role="status" aria-live="polite"></p>
           <form class="pc-chat-compose" id="pc-chat-form">
             <div class="pc-prompts" id="pc-chat-prompts" aria-label="Suggested prompts"></div>
             <label class="sr-only" for="pc-chat-input">Message the technical lead</label>
@@ -110,7 +103,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             <div id="pc-inbox-list"></div>
           </aside>
           <div class="pc-inbox-detail">
-            <div class="pc-thread-view" id="pc-thread-view" aria-live="polite"></div>
+            <div class="pc-thread-view" id="pc-thread-view"></div>
+            <p class="sr-only" id="pc-inbox-announcer" role="status" aria-live="polite"></p>
             <div class="pc-compose">
               <h3>Compose a local message</h3>
               <form class="pc-compose-form" id="pc-compose-form">

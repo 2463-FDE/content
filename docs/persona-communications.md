@@ -7,8 +7,8 @@
 - `assets/js/persona-communications-fixtures.js` is the single learner-visible scenario-truth source used by technical-lead chat and stakeholder inbox replies.
 - Replies are deterministic local rules. The surface makes no model, provider, backend, scheduler, email, credential, production, publication, or deployment request.
 - The inbox reads the existing `fde_identity` browser record. It does not validate codes or create an authentication system; learners without that existing record return to Client Delivery to use the established sign-in flow.
-- Simulation state is learner-local under an opaque hashed key prefixed `fde_local_synthetic_persona_v1:`. Reset removes only that key.
-- Stakeholder replies reveal at a deterministic synthetic `deliverAt` 15–30 minutes after send. `?simClock=accelerated` exposes the injected-clock controls used for local validation.
+- Simulation state is learner-local under an opaque hashed key prefixed `fde_local_synthetic_persona_v1:`. Reset removes only the active simulation key.
+- Stakeholder replies reveal at a deterministic synthetic `deliverAt` 15–30 minutes after send. `?simClock=accelerated` exposes the injected-clock controls used for local validation and keeps its state under a separate `:accelerated` key so it never mixes with system-clock state.
 - Coaching is computed from local transcript text and is formative only. It has no grade, progress, assessment, rubric, trainer-manifest, export, or tracking integration.
 - Learner-authored and fixture response text is rendered with DOM `textContent`.
 
