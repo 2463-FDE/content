@@ -65,7 +65,8 @@
 
   function classifyIntent(message) {
     var text = String(message || "").toLowerCase();
-    if (/\b(ship|launch|today|tomorrow|deadline|move fast|just do|skip|promise|never fail|guarantee)\b/.test(text)) return "pushback";
+    if (/\b(ship|launch|today|tomorrow|deadline|move fast|just do|skip|promise|never fail|guarantee|push back|disagree)\b/.test(text)) return "pushback";
+    if (/\bcall\b[^.?!]*\bdone\b/.test(text)) return "pushback";
     if (/\b(negotiate|compromise|tradeoff|trade-off|option|phase|scope|smaller|instead|alternative)\b/.test(text)) return "negotiate";
     if (/\?|\b(why|what|how|which|clarify|explain|help me understand)\b/.test(text)) return "clarify";
     return "clarify";

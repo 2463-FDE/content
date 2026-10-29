@@ -195,6 +195,17 @@ test("chat replies are deterministic and cover clarification, negotiation, and j
   assert.match(pushback.text, /push back|risk|smallest defensible/i);
 });
 
+test("built-in pushback and overclaim suggestions route to pushback without broad done/enough matching", () => {
+  const riverbendPrompt = fixtures.scenarios.riverbend.chatPrompts[2];
+  const meridianPrompt = fixtures.scenarios.meridian.chatPrompts[1];
+  assert.equal(comms.generateChatReply("riverbend", riverbendPrompt).intent, "pushback");
+  assert.equal(comms.generateChatReply("meridian", meridianPrompt).intent, "pushback");
+  assert.match(comms.generateChatReply("meridian", meridianPrompt).text, /push back on that commitment/);
+
+  assert.equal(comms.generateChatReply("meridian", "What does done look like for reconciliation?").intent, "clarify");
+  assert.equal(comms.generateChatReply("riverbend", "Is the privacy evidence enough for the sponsor?").intent, "clarify");
+});
+
 test("email delay is deterministic, inclusive of 15–30 minutes, and reveals only at deliverAt", () => {
   const state = comms.initialState();
   const sentAt = fixtures.fixtureEpoch;
