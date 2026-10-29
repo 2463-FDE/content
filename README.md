@@ -11,6 +11,7 @@ Learners pick an **AWS · GCP · Both** path on the hub (shareable as `?cloud=aw
 ```
 index.html              trainer-facing ten-week curriculum hub
 trainer.html            cohort/report dashboard + curriculum launch routes
+persona-communications.html local synthetic Riverbend/Meridian chat, inbox, and coaching
 weeks/                   daily reading pages (scrollytelling + diagram + quiz)
 atlas/                   FDE Mindset Atlas
 assets/
@@ -19,6 +20,8 @@ assets/
   js/scrolly.js          scroll position -> diagram step
   js/quiz.js             comprehension checks + tracking seam
   js/curriculum-config.js single-source client, batch, and cloud-lane config
+  js/persona-communications-fixtures.js shared synthetic scenario truth
+  js/persona-communications.js deterministic local communication runtime
   js/batch-context.js    batch selector + URL/storage restore, model gating
   js/curriculum-lessons-w06.js authoritative Week 6 Kafka lesson data
   js/kafka-lesson.js     shared Week 6 route renderer + decision practice
