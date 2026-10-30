@@ -1,7 +1,9 @@
-/* Authoritative Week 7–8 transfer data.
-   W7: Terraform + Ansible & AI CI/CD. W8: AI Observability, SRE & Reliability
-   Guardrails. Grounded in docs/research/w07 and docs/research/w08. Exercises
-   are inert/local and use synthetic evidence only. No cloud or provider action. */
+/* Week 7–8 transfer data.
+   Curriculum scope authority: the exact 8-page LTIM FDE v3 PDF identified by
+   SHA-256 1792ba5c20a62fdd1e83463d9032d129ee644e58b220129b2f736f5fb863ed7e;
+   inventory: docs/research/fde-ltim-v3-source-reconciliation.md. Current
+   technical claims trace to docs/research/w07 and docs/research/w08. Exercises
+   are inert/local and synthetic; no cloud or provider action occurs. */
 (function (root, factory) {
   var data = factory();
   if (typeof module === "object" && module.exports) module.exports = data;
@@ -17,6 +19,11 @@
   function evidence(week, day, sources) {
     return [{ label: "Dated Week " + week + " Day " + day + " research record", href: "../../docs/research/w" + String(week).padStart(2, "0") + "/w" + String(week).padStart(2, "0") + "d" + day + ".md" }].concat(sources || []);
   }
+  var project = Object.freeze({
+    label: "Project 2 · team of 2–3 · regional banking/payments",
+    context: "Continue the banking/payments system inherited at the Week 6 handover. ADR-P2-001 already records one team-primary cloud for shared implementation work. Each member's personal AWS, GCP, or Both reading view remains independent and may show the other provider as comparison depth.",
+    adrHref: "../../docs/templates/team-primary-cloud-adr.md"
+  });
   var src = {
     providers: { label: "Terraform providers", href: "https://developer.hashicorp.com/terraform/language/providers" },
     state: { label: "Terraform state purpose", href: "https://developer.hashicorp.com/terraform/language/state/purpose" },
@@ -39,11 +46,12 @@
     evals: { label: "LangSmith evaluation concepts", href: "https://docs.langchain.com/langsmith/evaluation-concepts" }
   };
 
-  return {
+  var lessons = {
     w07d1: {
       week: 7, day: 1, phase: "Production AI Systems", title: "Terraform foundations and plan discipline",
+      project: project,
       concepts: ["iac-judgement", "terraform-providers-resources", "terraform-state", "terraform-plan", "terraform-lifecycle"],
-      summary: "Begin the infrastructure-as-code workstream over the system built in Weeks 1–6. Decide what belongs in declarative infrastructure, read providers and resources as contracts, protect state, and treat a plan as review evidence rather than permission to change anything.",
+      summary: "Begin the infrastructure-as-code workstream over the inherited banking/payments system. Apply the Week 6 team-primary-cloud ADR, decide what belongs in declarative infrastructure, protect state, and treat a plan as review evidence rather than permission to change anything.",
       sections: [
         ["Choose IaC before choosing syntax", "Infrastructure as code is valuable when an environment must be reviewable, repeatable, versioned, and recoverable. It is not automatically the right tool for every one-off action. Start with the client outcome and ownership: which infrastructure objects must exist, which team owns their lifecycle, what evidence must survive, and how will a reviewer detect unintended deletion or replacement? Declarative configuration states a desired result; imperative automation states steps. Terraform is strongest for modeled infrastructure objects. Ansible is strongest for reviewed configuration steps on known targets. The boundary prevents a provisioner script from becoming an invisible second control plane."],
         ["Read provider, resource, and data boundaries", "A provider plugin exposes resource types and data sources. A resource block asks Terraform to manage an object's lifecycle; a data source reads information without taking ownership of that object's lifecycle. Provider requirements, versions, aliases, and authentication assumptions belong in review. Variables describe inputs and outputs expose selected results, but neither is a safe place to smuggle secrets into logs. In the inert exercise, learners inspect an AWS and Google provider shape only to compare responsibility and hierarchy. They use no account, credential, endpoint, provider download, or API call."],
@@ -51,12 +59,12 @@
         ["Make the plan the review surface", "A plan is a proposed change set. Read every action symbol, resource address, provider, replacement reason, unknown value, dependency and output. Ask what is being created, updated, replaced, forgotten or destroyed; then connect each action to cost, security, availability and client consequence. A saved plan can separate review from a later authorized apply, but plan files may contain sensitive data and need artifact controls. This lesson produces only an illustrative plan transcript. It never runs Terraform and never treats a green plan as approval."],
         ["Model lifecycle and teardown before build", "Lifecycle thinking begins before creation. Name import and adoption, replacement triggers, dependency ordering, deletion protection, data retention, state migration and ownership handoff. A destroy command is still an apply-mode operation, not cleanup magic. The learner writes a teardown and recovery checklist but executes nothing. The checklist includes preconditions, excluded durable data, approval authority, expected plan evidence, stop conditions, post-change verification, and state backup handling. This keeps a temporary exercise from teaching irreversible habits."],
         ["Keep configuration management separate", "Terraform provisioners exist, but first-party guidance treats them as a last resort because Terraform cannot model arbitrary commands as resources. Host and application configuration deserves its own inventory, idempotence, change and rollback evidence. This week therefore follows provision then configure: Terraform models infrastructure boundaries; Ansible configures approved targets. The split is judgement, not dogma. If a managed image or service removes configuration work, record that simplification rather than forcing Ansible into the diagram."],
-        ["Write the first Project 2 infrastructure ADR", "Project 2 inherits the RAG, agent, graph and Kafka artifacts from Project 1, including the prior client-system idempotency gap rather than relabeling it as a Week 5 issue. The team records one primary-cloud ADR for its delivery path while retaining explicit AWS/GCP comparison seams required by the source. The ADR names chosen scope, rejected alternative, state boundary, configuration boundary, cost and identity unknowns, and the fact that no infrastructure is authorized here. The outcome is a reviewable model another team can challenge, not a claim that the environment exists."]
+        ["Apply the Week 6 Project 2 infrastructure ADR", "Project 2's banking/payments team inherits the RAG, agent, graph, Kafka, evaluation, and decision artifacts handed over in Week 6, including the prior client-system idempotency gap rather than relabeling it as a Week 5 issue. Validate the existing ADR-P2-001 against the infrastructure scope and retain explicit AWS/GCP comparison seams. If new evidence challenges it, supersede the decision with a recorded flip condition; do not silently create a second primary. The ADR names state and configuration boundaries, cost and identity unknowns, and the fact that no infrastructure is authorized here." ]
       ],
       optional: [["Optional depth — inert HCL reading", "Review a trainer-supplied configuration fragment and annotate provider requirements, resources, data sources, variables, outputs and state-sensitive values. Do not initialize providers or run commands."]],
       drill: { prompt: "A reviewed plan proposes replacing a database because one immutable argument changed. What should happen next?", options: ["Approve because the plan completed successfully", "Stop and connect the replacement to data, downtime, rollback, and authorization evidence", "Move the resource into a data source so Terraform stops managing it"], answer: 1, feedback: "A successful plan only exposes the proposal. Replacement consequence and authority still require human review." },
-      goals: ["Choose IaC from lifecycle and ownership needs.", "Explain provider, resource, data, state, plan and lifecycle boundaries.", "Produce an inert Project 2 infrastructure ADR without provisioning."],
-      deliverable: "Commit a static infrastructure ADR, annotated plan transcript, state/access design, and teardown/recovery checklist for the inherited Project 2 system.",
+      goals: ["Choose IaC from lifecycle and ownership needs.", "Explain provider, resource, data, state, plan and lifecycle boundaries.", "Apply and, only with new evidence, supersede the Week 6 team-primary-cloud ADR without provisioning."],
+      deliverable: "Commit an annotated plan transcript, state/access design, teardown/recovery checklist, and validation note for the inherited Week 6 ADR-P2-001.",
       checks: [
         check("What does Terraform state primarily bind?", "Configuration addresses to managed-object identity.", "That mapping supports comparison and lifecycle management.", ["Provider credentials to user accounts.", "Module versions to Git branches.", "Plan approvals to deployment environments."], 1),
         check("What does a successful plan prove?", "Terraform produced a proposed change set for review.", "It is evidence, not change authority.", ["The changes are safe to apply.", "The provider can create every object.", "Rollback will restore all data."], 3),
@@ -70,6 +78,7 @@
 
     w07d2: {
       week: 7, day: 2, phase: "Production AI Systems", title: "Modules, drift, and AI-assisted plan review",
+      project: project,
       concepts: ["terraform-modules", "environment-separation", "state-secrets", "terraform-drift", "ai-plan-review"],
       summary: "Turn Terraform files into a reviewable system. Use modules without hiding provider differences, separate environments by trust boundary, keep secrets out of review surfaces, detect drift, and use AI assistance only as a proposal under human control.",
       sections: [
@@ -98,6 +107,7 @@
 
     w07d3: {
       week: 7, day: 3, phase: "Production AI Systems", title: "Ansible configuration and idempotent change",
+      project: project,
       concepts: ["ansible-inventory", "ansible-playbooks", "ansible-roles", "ansible-idempotence", "terraform-ansible-boundary"],
       summary: "Layer configuration management onto the reviewed infrastructure model. Read inventory as scope, playbooks as change contracts, roles as reusable ownership, and idempotence as tested behavior rather than a label.",
       sections: [
@@ -126,6 +136,7 @@
 
     w07d4: {
       week: 7, day: 4, phase: "Production AI Systems", title: "AI CI/CD gates and human-controlled delivery",
+      project: project,
       concepts: ["ai-cicd-gates", "eval-regression-gate", "security-drift-gates", "human-approval", "rollback-evidence"],
       summary: "Build a delivery pipeline that can say no. Order deterministic quality, security, drift and AI-evaluation gates; constrain automation and AI reviewers; separate a reviewed plan from change authority; and design rollback evidence before release.",
       sections: [
@@ -154,11 +165,12 @@
 
     w07d5: {
       week: 7, day: 5, phase: "Production AI Systems", title: "Project 2 infrastructure delivery and rebuild evidence",
+      project: project,
       concepts: ["project2-infrastructure", "multi-provider-root", "teardown-rebuild", "environment-promotion", "iac-readout"],
       summary: "Close Week 7 by defending how Project 2 would be provisioned, configured, promoted, rolled back, and rebuilt. Preserve one team-primary-cloud ADR and explicit bi-cloud seams while delivering only static, synthetic evidence.",
       sections: [
-        ["Inherit instead of restarting", "Project 2 industrializes the artifacts created in Project 1: service contracts, evaluation harness, graph and vector data boundaries, Kafka event contract, ADRs and decision history. The infrastructure package cites those identities rather than drawing a generic platform. Team ownership divides into application/eventing, platform and reliability or security lanes, but one integrator owns the evidence chain. Any missing inherited fact becomes a dated assumption, not a convenient new architecture."],
-        ["Defend the primary-cloud ADR", "Each team chooses one primary cloud for its expected delivery path. The ADR states workload, data boundary, identity model, state backend design, provider/module layout, cost unknowns, lock-in surface and flip conditions. The source also includes AWS serving and GCP ingestion in one multi-provider root. This curriculum represents that as a reviewed architecture alternative with explicit provider aliases and provider-native child modules. It does not force a cloud-neutral resource wrapper and does not activate the separate cloud-picker surface."],
+        ["Inherit instead of restarting", "The regional banking/payments Project 2 team industrializes the system accepted at the Week 6 handover: service contracts, evaluation harness, graph and vector data boundaries, Kafka payment-event contract, ADRs and decision history. The infrastructure package cites those identities rather than drawing a generic platform. Team ownership divides into application/eventing, platform and reliability or security lanes, but one integrator owns the evidence chain. Any missing inherited fact becomes a dated assumption, not a convenient new architecture."],
+        ["Defend the primary-cloud ADR", "Each team defends the one primary cloud recorded during the Week 6 handover. ADR-P2-001 states workload, data boundary, identity model, state backend design, provider/module layout, cost unknowns, lock-in surface and flip conditions. The source also includes AWS serving and GCP ingestion in one multi-provider root. Treat that as a reviewed architecture alternative with explicit provider aliases and provider-native child modules—not a reason to split the team's primary architecture or overwrite a member's personal AWS/GCP/Both reading view."],
         ["Join provisioning and configuration evidence", "The proposed Terraform plan identifies objects and relationships. The proposed Ansible run identifies target groups, configuration changes, handler effects and unchanged second-run evidence. Link them through a narrow non-secret handoff rather than copying state. Show which version of each artifact belongs together and how an operator verifies the environment after both stages. A green configuration summary cannot excuse an unexpected infrastructure replacement; each layer keeps its own review."],
         ["Rehearse teardown and rebuild on paper", "The source calls for a teardown and rebuild drill. Here the team performs a deterministic tabletop: inventory durable data and exclusions, freeze change, capture state and configuration identities, predict the destroy plan, stop before execution, sequence a hypothetical rebuild, restore or reattach data, run health and evaluation checks, and compare evidence. The exercise records every command as inert pseudocode and labels all cloud actions prohibited. Its value is discovering hidden manual steps, not proving an estate was rebuilt."],
         ["Promote through explicit gates", "Environment promotion uses the Thursday gate contract: validation, deterministic tests, security/policy checks, plan and drift review, AI evaluation, human approval and rollback readiness. The promotion record names what differs by environment and who owns that difference. If a gate fails, the record includes failure evidence and next action instead of re-running until green. If facts about identity, quota or networking remain unresolved, the safe state is blocked or single-cloud fallback, never invented configuration."],
@@ -320,4 +332,17 @@
       sources: evidence(8, 5, [src.incident, src.burn, src.slo])
     }
   };
+
+  var teamEvidence = {
+    w08d1: ["SRE-08-01 signal and SLO register", "Reliability owner", "The inherited synthetic banking/payments path has latency, correctness or quality, cost, population, window, threshold, budget action, and service owner.", "A teammate recomputes the synthetic SLI and reaches the recorded budget action."],
+    w08d2: ["SRE-08-02 telemetry and drift contract", "Telemetry owner", "Trace, metric, log, evaluation, drift, privacy, version, retention, and backend-portability rows each name evidence and owner.", "A reviewer reconstructs one operation without prompt, payment, credential, or client payload."],
+    w08d3: ["SRE-08-03 correlation and alert record", "Incident evidence owner", "HTTP, Kafka, agent, retrieval, model, tool, guardrail, and safe business correlation produce one causal chain and owned alert.", "A teammate traces the synthetic bad answer from symptom to changed retrieval evidence."],
+    w08d4: ["SRE-08-04 reliability-control ADR", "Reliability control owner", "Retry, circuit, guardrail, evaluation, degrade, and recovery rules name trigger, expected signal, stop condition, owner, and rollback.", "A peer runs one synthetic failure through the selected control and verifies the user outcome."],
+    w08d5: ["SRE-08-05 on-call and reliability package", "On-call owner", "Timeline, SLO/budget state, runbook branch, rollback/degrade decision, residual risk, and two-audience readout point to one evidence set.", "A non-author follows the runbook to choose and verify the synthetic response." ]
+  };
+  Object.keys(teamEvidence).forEach(function (id) {
+    var record = teamEvidence[id];
+    lessons[id].teamEvidence = { artifact: record[0], owner: record[1], acceptance: record[2], review: record[3] };
+  });
+  return lessons;
 });

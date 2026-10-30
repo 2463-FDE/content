@@ -6,10 +6,11 @@
 <meta name="fde-day" content="w01d3">
 <meta name="fde-concepts" content="requirements-synthesis">
 <title>W1·D3·Part 2 — Requirements Synthesis | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20261030-a11y">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
+<a class="skip-link" id="reading-skip-link" href="#reading-main">Skip to reading</a>
 
 <div class="topbar">
   <div class="topbar-left">
@@ -19,13 +20,13 @@
   <nav class="topbar-center">
     <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
     <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
-    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+    <a class="topnav" href="../../gauntlet.html">AI Interview</a>
   </nav>
   <div class="topbar-right">
     <span class="progressbar"><i></i></span></div>
 </div>
 
-<main class="lesson2">
+<main class="lesson2 reading-main-target" id="reading-main" tabindex="-1">
   <div class="reading2col">
 
     <nav class="toc" aria-label="On this page"></nav>
@@ -36,7 +37,7 @@
         <div class="meta">
           <span><b>Week 1</b> · Day 3 · Part 2</span>
           <span>FDE Situation · the synthesis move</span>
-          <span><b>~19 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" data-core-words="1182" title="Required path: measured reading, essential diagram, one objective-aligned interaction with feedback, and the six-question check. Optional details are outside the cap."><b>Core 30</b> · ~8 min read · 1 interaction · 6-Q check · ~20 min required</span>
         </div>
         <p class="summary">Part 1 assumed you already knew what you were building. In the field you almost never do — not
         at first. A stakeholder hands you a sentence ("can the AI just handle the intake forms?"), not a spec, and the
@@ -48,6 +49,12 @@
         <div class="ix-legend"></div>
       </div>
 
+      <section class="w1-core-brief" data-source-anchor="PDF p.1 · WED" aria-labelledby="w1-core-d3b">
+        <p class="w1-source-anchor">Authoritative v3 · PDF p.1 · Wednesday</p>
+        <h2 id="w1-core-d3b">FDE Situation: synthesize model requirements</h2>
+        <p>A stakeholder sentence is not a buildable requirement. Identify the user and decision, ask what must be structured, deterministic, and grounded, then write measurable acceptance criteria and explicit non-goals. The diagnosis below gives immediate feedback on the gap; the required synthesis turns the answers into a schema, model constraints, and an evaluation plan.</p>
+      </section>
+
       <section class="step" data-diagram="0" data-step="0">
         <div class="tag">FDE Situation · the ask</div>
         <h2>Clients hand you a sentence, not a spec</h2>
@@ -56,7 +63,7 @@
         contract solicitations. Can the AI just, you know, read them and pull out the important stuff?"</em> That's it.
         That's the requirements document. One sentence, three vague nouns ("the important stuff"), and an implied promise
         that you'll figure out the rest.</p>
-        <div class="ix-spot"
+        <div class="ix-spot" data-core-interaction data-interaction-kind="diagnosis-feedback"
           data-snippet="# client: &quot;can the AI read solicitations and pull
 #          out the important stuff?&quot;
 prompt = &quot;Summarize the important parts of this &quot; \
@@ -105,7 +112,9 @@ resp = model.call(prompt)"
         three questions you ask of every vague ask — and they map one-to-one onto the prompt decisions from Part 1.</p>
       </section>
 
-      <section class="step" data-diagram="0" data-step="2">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="2">
+        <summary>Deeper: What must be structured? · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Lens ① · structured</div>
         <h2>What must be structured?</h2>
         <p>Anything a downstream system consumes has to come back as data with a known shape, not prose. "Pull out the
@@ -132,9 +141,12 @@ resp = model.call(prompt)"
         Is "set-aside" one value or several?</em> Those discoveries are the whole point. The schema isn't paperwork you
         produce after the thinking; it <em>is</em> the thinking, written in a form a machine and a stakeholder can both
         check.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="3">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="3">
+        <summary>Deeper: What must be deterministic? · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Lens ② · deterministic</div>
         <h2>What must be deterministic?</h2>
         <p>Ask: if we run this twice on the same document, must we get the same answer? For extraction the answer is almost
@@ -152,9 +164,12 @@ resp = model.call(prompt)"
         wrong or missed <em>due date</em> can lose a bid worth millions, so it needs near-certainty, determinism, and human
         review; a slightly-off one-line <em>description</em> is a minor annoyance and can be best-effort. Accuracy
         requirements are <em>not uniform across fields</em>, and that asymmetry shapes both the schema and the eval set.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="4">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="4">
+        <summary>Deeper: What must be grounded? · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Lens ③ · grounded</div>
         <h2>What must be grounded?</h2>
         <p>Separate, ruthlessly, what the model can answer from general knowledge versus what it must answer from <em>this
@@ -181,7 +196,8 @@ resp = model.call(prompt)"
         or rules — never from memory. Drafting documents? <em>Structured:</em> the metadata and section headings.
         <em>Deterministic:</em> the legal boilerplate. <em>Grounded:</em> every factual claim. The three lenses are a
         portable instrument for converting any "can the AI just..." into a spec.</p>
-      </section>
+        </div>
+      </details>
 
       <section class="step" data-diagram="0" data-step="5">
         <div class="tag">FDE Situation · the synthesis</div>
@@ -193,10 +209,13 @@ resp = model.call(prompt)"
         <em>That</em> is the deliverable of the vague-ask conversation — and it's worth far more to the client than any
         single clever prompt, because it makes every subsequent prompt-engineering decision obvious. The clever prompt was
         never the hard part; the synthesis was.</p>
-        <div class="ix-predict"
+        <details class="deep" data-core="optional">
+          <summary>Deeper practice: test the synthesized spec · outside Core 30</summary>
+          <div class="ix-predict"
           data-q="A shipped extractor starts returning a hallucinated agency name on some documents. Using the three lenses as a triage tool, which gap is that — and what about a parse error, or a different answer every run?"
           data-a="A hallucinated fact is a <b>grounding</b> gap (answer from the document; allow 'not found'). A parse error is a <b>structure</b> gap (enforce the schema). A different answer each run is a <b>determinism</b> gap (lower temperature, tighten the schema). Most AI failures you're called in to fix are one of the three wearing a costume — naming which one is half the fix.">
         </div>
+        </details>
         <p>The three lenses double as a triage tool when something's already broken: a flaky output is usually a determinism
         gap, a hallucinated fact is a grounding gap, and a parse error is a structure gap. Most of the AI failures you'll be
         called in to fix at a client are one of those three wearing a costume, and naming which one is half the fix. Run the
@@ -207,7 +226,9 @@ resp = model.call(prompt)"
         <button class="code-cta" type="button" data-modal="code-w1d3b"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· solicitation_spec.py</span></button>
       </section>
 
-      <section class="step extra" data-diagram="0" data-step="5">
+      <details class="deep w1-optional step extra" data-core="optional" data-diagram="0" data-step="5">
+        <summary>Deeper: Claude Code is where you practice the loop · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Your tools</div>
         <h2>Claude Code is where you practice the loop</h2>
         <p>Everything across both halves of today has a home in <strong>Claude Code</strong>. Your system prompts, few-shot
@@ -229,14 +250,26 @@ resp = model.call(prompt)"
           What must be grounded?</strong> Answer those three and the prompt practically writes itself; skip them and the
           best prompt in the world solves the wrong problem. Synthesize the requirements before you engineer the prompt.</p>
         </div>
-      </section>
+        </div>
+      </details>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <noscript data-core="optional">
+        <section class="w1-nojs" aria-labelledby="nojs-d3b">
+          <h2 id="nojs-d3b">Static Core 30 fallback</h2>
+          <p><strong>Essential diagram — Requirements synthesis:</strong> Stakeholder ask → users/decision → structured/deterministic/grounded constraints → acceptance criteria and non-goals.</p>
+          <p><strong>Practice:</strong> The client asks for “the important stuff.” What must be clarified before prompting? Write your decision before revealing feedback.</p>
+          <details><summary>Compare with feedback</summary><p>Clarify the decision, required fields, consumer, error cost, grounding source, determinism, and measurable acceptance criteria.</p></details>
+          <p>The six-question interactive check needs JavaScript. Without it, use this prompt as the check and take your written evidence to the trainer session.</p>
+        </section>
+      </noscript>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://www.joelonsoftware.com/2000/10/02/painless-functional-specifications-part-1-why-bother/" target="_blank" rel="noopener">Joel Spolsky — Painless Functional Specifications, Part 1: Why Bother?</a> — the classic case that designing in human language (a spec) before code is the cheap place to resolve ambiguity, which is exactly the vague-ask-to-spec move this lesson teaches.</li>
           <li><a href="https://json-schema.org/learn/getting-started-step-by-step" target="_blank" rel="noopener">JSON Schema — Creating your first schema</a> — official walkthrough of typed fields and a <code>required</code> list, the concrete mechanism behind the "structured" lens and the schema-first design act.</li>
           <li><a href="https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations" target="_blank" rel="noopener">Anthropic — Reduce hallucinations</a> — official guidance to ground answers in the provided document, let the model say "I don't know," and restrict it to supplied context: the "grounded" lens and the nullable-field rule stated as technique.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html" target="_blank" rel="noopener">AWS — Claude Haiku 5.5 model card</a> — source for the <code>bedrock-runtime</code> US geo profile ID used in the static code example (accessed 2026-10-27; no account call).</li>
         </ul>
       </section>
 
@@ -245,7 +278,8 @@ resp = model.call(prompt)"
     <aside class="side">
       <div class="side-diagram">
         <div class="stage-title">Live diagram</div>
-        <svg id="diagram"></svg>
+        <svg id="diagram" aria-label="Interactive lesson diagram"></svg>
+        <noscript><p class="static-diagram" role="img" aria-label="Requirements synthesis: Stakeholder ask → users/decision → structured/deterministic/grounded constraints → acceptance criteria and non-goals."><strong>Requirements synthesis</strong><br>Stakeholder ask → users/decision → structured/deterministic/grounded constraints → acceptance criteria and non-goals.</p></noscript>
         <div class="stage-caption"></div>
       </div>
 
@@ -265,7 +299,7 @@ resp = model.call(prompt)"
       <div class="side-nav">
         <a class="snav-btn" href="d3a.html">◂ Back</a>
         <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
-        <a class="snav-btn snav-next"></a>
+        <a class="snav-btn snav-next" href="d4a.html">Day 4 · Optimization →</a>
       </div>
     </aside>
 
@@ -519,7 +553,7 @@ SYSTEM = (&quot;You are a solicitation-extraction assistant. Extract fields ONLY
 
 def extract(doc: str) -&gt; dict:
     resp = bedrock.converse(
-        modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,
+        modelId=&quot;us.anthropic.claude-haiku-5-5&quot;,
         system=[{&quot;text&quot;: SYSTEM}],
         messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: f&quot;&lt;document&gt;\n{doc}\n&lt;/document&gt;&quot;}]}],
         # DETERMINISTIC: temperature 0 so two analysts get the same extraction.
@@ -539,7 +573,7 @@ def extract(doc: str) -&gt; dict:
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
-<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive.js?v=20261030-a11y"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>

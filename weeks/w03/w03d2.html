@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w03d2">
 <meta name="fde-concepts" content="mcp-host-client-server,mcp-server-primitives,mcp-tool-invocation,mcp-transports,mcp-capability-negotiation,mcp-tool-safety-hitl">
 <title>W3·D2 — Tools &amp; MCP | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20261030-a11y">
 <link rel="stylesheet" href="../../assets/css/cloud-path.css?v=20261014-c2">
 <script src="../../assets/js/theme.js"></script>
 </head>
@@ -20,7 +20,7 @@
   <nav class="topbar-center">
     <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
     <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
-    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+    <a class="topnav" href="../../gauntlet.html">AI Interview</a>
   </nav>
   <div class="topbar-right">
     <span class="progressbar"><i></i></span></div>
@@ -37,8 +37,8 @@
         <div class="meta">
           <span><b>Week 3</b> · Day 2</span>
           <span>Agents &amp; Tool Use</span>
-          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~11 min read · 2 interactions · 6-Q check</span>
-          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 6-Q check</span>
+          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~12 min read · 2 interactions · 6-Q check</span>
+          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~12 min read · 2 interactions · 6-Q check</span>
         </div>
         <p class="summary">Yesterday a model could only <em>talk</em>. Today it can <em>act</em> — read a file, query a
         database, open a pull request — because something standard sits between the model and the outside world. That
@@ -49,7 +49,9 @@
         <strong>latest published revision is 2026-07-28</strong>; this lesson keeps <strong>2025-11-25 as a widely
         deployed, initialization-based baseline</strong> you will still encounter. The panel on the right builds up one
         MCP deployment piece by piece as you scroll.</p>
+        <aside class="callout mindset project-progress" aria-label="Solo insurance project progress"><b>Project 1 · solo insurance brownfield</b><p>Advance: define the tool schema, retry/idempotency rule, confidence band, human approval, and escalation target for one inert MCP capability.</p></aside>
         <div class="ix-legend"></div>
+        <noscript><section class="core30-fallback" aria-label="No-JavaScript practice and check"><h2>Offline practice</h2><p>Define an inert MCP tool's schema, confidence bands, approval, retry rule, and escalation.</p><details><summary>Check your reasoning</summary><p>Retry only transient idempotent work; validation, authorization, and low-confidence outcomes escalate without a side effect.</p></details></section></noscript>
       </div>
 
       <section class="step" data-diagram="0" data-step="0">
@@ -337,6 +339,9 @@
         <div class="ix-consent" data-core-interaction></div>
       </section>
 
+      <section class="source-bridge" aria-labelledby="w03-policy-lab"><div class="tag">Source lab · policy</div><h2 id="w03-policy-lab">Add confidence bands, escalation, and an inert Python MCP lab</h2><p>Write three policy bands before a tool is available: <strong>low confidence</strong> stops and requests human review; <strong>middle confidence</strong> creates a proposal for approval; only a policy-authorized <strong>high-confidence read</strong> may continue automatically. Choose and label scenario thresholds yourself—never present them as client policy. Validation, authorization, and policy failures escalate; retry only a transient, idempotent operation with the same idempotency key.</p><p>Use the read-only Python popup as the server-boundary lab: inspect the synthetic MCP result, preserve its typed error channel, and state what the host would log and escalate. Then sketch one tool schema for the insurance fixture and its structured result. The lab starts no server, opens no socket, reads no credential, and calls no provider.</p></section>
+
+      <details class="deep" data-core="optional"><summary>Optional depth: latest MCP revision compatibility notes</summary>
       <section class="step extra" data-diagram="0" data-step="8">
         <div class="tag">Latest published · 2026-07-28</div>
         <h2>The latest revision — and the baseline you still support</h2>
@@ -365,6 +370,8 @@
           order, until the task is done.</p>
         </div>
       </section>
+
+      </details>
 
       <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
@@ -489,6 +496,7 @@
       <li>Distinguish the three server primitives by <em>who controls them</em> — Tools (model), Resources (app), Prompts (user)</li>
       <li>Trace a tool call through <code>tools/list</code> → <code>tools/call</code>, and tell an <code>isError</code> result from a JSON-RPC protocol error</li>
       <li>Pick stdio vs Streamable HTTP, read a capability negotiation, and enforce human-in-the-loop consent</li>
+      <li>Define confidence bands, escalation paths, retry/idempotency policy, and an inert Python MCP boundary lab</li>
     </ul>
     <div class="ma-k">Deliverable — commit to your project repo</div>
     <ul class="deliv-list check">
@@ -496,6 +504,7 @@
       <li><b>①</b> one integration you'd expose as an MCP server instead of bespoke glue, and why</li>
       <li><b>②</b> one tool you'd gate with mandatory human consent, and the worst case if you didn't</li>
       <li><b>③</b> one place you'd use <code>isError</code> so the model can self-correct instead of failing</li>
+      <li><b>④</b> the low/propose/read confidence bands, escalation owner, and idempotency rule for that synthetic tool</li>
     </ul>
     <p class="goals-foot">Bring it to Day 3, where these tool-calling foundations become the agent <em>loop</em> — the
     control flow that decides which tools to call, in what order, until the task is done.</p>
@@ -536,7 +545,7 @@ assert fixture[&quot;toolResult&quot;][&quot;status&quot;] == &quot;error&quot;<
 </div>
 
 <script>
-window.FDE_NEXT = { label: "Day 3 · The agent loop →", href: "w03d3.html" };
+window.FDE_NEXT = { label: "Day 3 · Framework landscape →", href: "w03d3.html" };
 window.DIAGRAM = {
   title: "MCP · one protocol, many servers",
   width: 500, height: 660,
@@ -662,7 +671,7 @@ window.QUIZ = {
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20261014-c1"></script>
-<script src="../../assets/js/interactive.js?v=20260714-w3f"></script>
+<script src="../../assets/js/interactive.js?v=20261030-a11y"></script>
 <script src="../../assets/js/interactive-agents.js?v=20260714-w3f"></script>
 <script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 <script src="../../assets/js/cloud-path.js?v=20261014-c1"></script>

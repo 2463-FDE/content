@@ -6,3 +6,9 @@
 
 # Python bytecode from local test runs — never site content.
 __pycache__/
+
+# impeccable design-skill runtime artifacts (screenshots, configs)
+.impeccable/
+
+# Task-local isolated release-audit evidence (profiles, logs, screenshots) — never site content.
+.audit-release/

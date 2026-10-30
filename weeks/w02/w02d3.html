@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w02d3">
 <meta name="fde-concepts" content="dense-vs-sparse-retrieval,hybrid-retrieval,reciprocal-rank-fusion,cross-encoder-reranking,late-interaction-colbert">
 <title>W2·D3 — Retrieval Strategies: Dense, Sparse, Hybrid &amp; Re-ranking | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20261030-a11y">
 <link rel="stylesheet" href="../../assets/css/cloud-path.css?v=20261014-c2">
 <script src="../../assets/js/theme.js"></script>
 </head>
@@ -20,7 +20,7 @@
   <nav class="topbar-center">
     <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
     <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
-    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+    <a class="topnav" href="../../gauntlet.html">AI Interview</a>
   </nav>
   <div class="topbar-right">
     <span class="progressbar"><i></i></span></div>
@@ -37,8 +37,8 @@
         <div class="meta">
           <span><b>Week 2</b> · Day 3</span>
           <span>Foundation AI Engineering</span>
-          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~11 min read · 2 interactions · 7-Q check</span>
-          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 7-Q check</span>
+          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~12 min read · 2 interactions · 7-Q check</span>
+          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~12 min read · 2 interactions · 7-Q check</span>
         </div>
         <p class="summary">A RAG system is only as good as the slice of text it puts in the window — and the job of
         choosing that slice is <strong>retrieval</strong>. Today you learn the two ways a system can find relevant text
@@ -47,7 +47,9 @@
         <strong>re-ranker</strong> turns a wide, recall-heavy candidate set into a small, precise one. This is the
         machinery behind "why didn't it find the right document?" — the single most common RAG complaint you'll hear at a
         client. The panel on the right builds the production pipeline one stage at a time.</p>
+        <aside class="callout mindset project-progress" aria-label="Solo insurance project progress"><b>Project 1 · solo insurance brownfield</b><p>Advance: add a dense/sparse/hybrid retrieval plan, reranking boundary, selected-cloud placement, and one labeled data-comprehension question.</p></aside>
         <div class="ix-legend"></div>
+        <noscript><section class="core30-fallback" aria-label="No-JavaScript practice and check"><h2>Offline practice</h2><p>Choose dense, sparse, or hybrid retrieval and decide whether to rerank.</p><details><summary>Check your reasoning</summary><p>Hybrid improves the candidate net; reranking restores precision after retrieval. The selected cloud is primary.</p></details></section></noscript>
       </div>
 
       <section class="step" data-diagram="0" data-step="0">
@@ -657,7 +659,7 @@ def hybrid_search(q: str, k: int = 20, alpha: float = 0.5) -&gt; list[dict]:
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js"></script>
 <script src="../../assets/js/quiz.js?v=20261014-c1"></script>
-<script src="../../assets/js/interactive.js"></script>
+<script src="../../assets/js/interactive.js?v=20261030-a11y"></script>
 <script src="../../assets/js/glossary.js?v=20261014-c1"></script>
 <script src="../../assets/js/interactive-rag.js?v=20260706"></script>
 <script src="../../assets/js/codeviewer.js?v=20261014-c1"></script>

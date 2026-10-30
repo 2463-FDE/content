@@ -15,6 +15,7 @@
       storageKey: "fde_batch_context",
       queryParameter: "batch",
       label: "Batch",
+      next: Object.freeze({ id: null, label: "Next batch", status: "unconfigured" }),
       models: Object.freeze({
         "2567": Object.freeze({
           id: "ltm-2567",
@@ -23,10 +24,10 @@
       })
     }),
     cloudPath: Object.freeze({
-      status: "evidence-lane-pending",
-      label: "AWS/GCP evidence seam pending",
+      status: "evidence-lane-integrated",
+      label: "AWS/GCP evidence integrated",
       options: Object.freeze(["aws", "gcp", "both"]),
-      active: false
+      active: true
     })
   });
 });

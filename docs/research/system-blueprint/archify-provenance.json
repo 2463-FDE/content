@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "reviewed_date": "2026-10-29",
+  "scope": "system-blueprint.html — program-wide serving and operations figures",
+  "archify_source": {
+    "repository": "https://github.com/tt-a1i/archify",
+    "version": "v3.0.1",
+    "tag_object": "679f195584e4216fd582c073d8964b3a9f59107e",
+    "peeled_commit": "2ab3cae7ac2c2a55d7386ca789d03c4fcd31816c",
+    "commit_tree": "b33243ebe2bd6878a9ae58417ff8597c94d31e12",
+    "archify_subtree": "7dcd73a73672d5da4f85d4c612017b478547303b",
+    "release_zip_sha256": "b0b23bd28db314f04ca8ab9620fe20f8c1ac6474a3546bd8fe4679508aa1b7f5"
+  },
+  "tooling": {
+    "node": "v24.2.0",
+    "os": "macOS 26.7.1 (25G241) arm64",
+    "sanitizer_sha256": "266e2da15149921f0a95aa52e4a1837240ca9d171be8bd041553642fb1ba925c",
+    "sandbox_profile_sha256": "df0c27ef258404ca17a87431dcabfb4be9f132963dc46ed691bb17626262526d",
+    "sandbox_profile_template_sha256": "3bf681b76dd1e4517fb8f8b8800dfda83858b37851fe694b7c0059646afe5e91",
+    "sandbox_profile_note": "raw hash covers the generated profile with the absolute scratch path; template hash covers the same bytes with that path normalized to the literal $SCRATCH (template text reproduced in visual-plan.md)",
+    "presentation_style_scope": ".fde-diagram .fde-archify presentation block inlined in system-blueprint.html <head> (mirrors assets/css/style.css) plus the per-figure .c-grid shim",
+    "figure_grid_shim": ".fde-diagram .c-grid{fill:none}",
+    "figure_grid_shim_sha256": "b04c5adf24d46df60d3a96a9e2baaccf5f26195f65966160fa8ca7e3ce48aeba"
+  },
+  "controls": {
+    "network": "denied",
+    "user_files_outside_scratch": "denied",
+    "update_check": "disabled",
+    "npm": "unused",
+    "raw_outputs": "disposed",
+    "input_json": "disposed",
+    "brands_repository_sources": "absent",
+    "runtime_dependency": "none"
+  },
+  "figures": {
+    "serving-path": {
+      "type": "architecture",
+      "title": "Serving path of the ten-week delivery system",
+      "description": "A client question enters the agent orchestrator, which carries OpenTelemetry trace context and gathers evidence from a read-only retrieval scope holding a Chroma vector store and a Neo4j knowledge graph. Context assembly applies a token budget and grounding gate, sends one grounded prompt to the model API, and output guardrails check schema and policy before the checked answer returns to the client.",
+      "input_bytes": 2719,
+      "input_sha256": "1d4a0b848993b7e03e522da9b5a1e527f8cb944c430aec05e6d1180cd434c8a4",
+      "raw_render_1_bytes": 759409,
+      "raw_render_1_sha256": "0e1e789c7206e4e878304761a9ceb878e8cca95f9fa121bac3a3e46d18cc9ae3",
+      "raw_render_2_bytes": 759409,
+      "raw_render_2_sha256": "0e1e789c7206e4e878304761a9ceb878e8cca95f9fa121bac3a3e46d18cc9ae3",
+      "raw_cmp": "pass",
+      "sanitized_1_bytes": 16682,
+      "sanitized_1_sha256": "780d3fb406e7235a673636bb844474158b3f10cee67a4ed047df7d8ecc4d2343",
+      "sanitized_2_bytes": 16682,
+      "sanitized_2_sha256": "780d3fb406e7235a673636bb844474158b3f10cee67a4ed047df7d8ecc4d2343",
+      "sanitized_cmp": "pass",
+      "inline_svg_sha256": "780d3fb406e7235a673636bb844474158b3f10cee67a4ed047df7d8ecc4d2343",
+      "figure_fragment_bytes": 17488,
+      "figure_fragment_sha256": "e94b708a841724deaae0c7cc644df3e86765a60c05e302d2046f8d32a8ab5e20",
+      "forbidden_content_scan": "pass",
+      "xml_aria_id_checks": "pass",
+      "human_review": "pass"
+    },
+    "operations-path": {
+      "type": "architecture",
+      "title": "Operations path of the ten-week delivery system",
+      "description": "A proposed change leaves the delivery repository only through AI CI/CD gates with human approval, then a gated apply provisions the synthetic client environment with Terraform and Ansible. The deployed AI service produces to and consumes from a Kafka event backbone whose failures stay retained in a retry and dead-letter path. Service signals flow to observability, an SLO alert reaches the on-call engineer who can roll back through the gates, and gate decisions and apply receipts land in an audit trail. No live cloud account is involved.",
+      "input_bytes": 4447,
+      "input_sha256": "4128928e3a2e5f79915c3539023deefdc503324525b126b8ba0fadb6b314bb38",
+      "raw_render_1_bytes": 763944,
+      "raw_render_1_sha256": "1f4808cefa17be30024fc939c8a6322d3a519d703957c51066305f38a0b03957",
+      "raw_render_2_bytes": 763944,
+      "raw_render_2_sha256": "1f4808cefa17be30024fc939c8a6322d3a519d703957c51066305f38a0b03957",
+      "raw_cmp": "pass",
+      "sanitized_1_bytes": 19673,
+      "sanitized_1_sha256": "cca3dc0ca2a4283d5e3b93c2b3f448af6ca86d4e73cfa651fc792b5ac6767df8",
+      "sanitized_2_bytes": 19673,
+      "sanitized_2_sha256": "cca3dc0ca2a4283d5e3b93c2b3f448af6ca86d4e73cfa651fc792b5ac6767df8",
+      "sanitized_cmp": "pass",
+      "inline_svg_sha256": "cca3dc0ca2a4283d5e3b93c2b3f448af6ca86d4e73cfa651fc792b5ac6767df8",
+      "figure_fragment_bytes": 20611,
+      "figure_fragment_sha256": "52982d0f3fc5c1682095288e00e0245ba5e9b940526cca475e76e6bf2484bd36",
+      "forbidden_content_scan": "pass",
+      "xml_aria_id_checks": "pass",
+      "human_review": "pass"
+    }
+  }
+}

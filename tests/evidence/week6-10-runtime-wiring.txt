@@ -1,0 +1,34 @@
+Week 6–10 direct signed-out runtime-wiring evidence
+Date: 2026-10-29
+Audited base: 29416e09c66e5dfb15229a3aad3e80112c82d9d3
+Audited tree: 4ff2e03dd735de941fe18e52eae7ffeeb4a1da64
+
+Pre-fix reproduction
+- Fresh task-owned chrome-devtools-axi profile; first navigation was a loopback synthetic-only probe.
+- Browser-wide launch boundary: loopback deny proxy, explicit loopback bypass, non-loopback resolver failure, and background-network disablement.
+- Direct signed-out entry to weeks/w07/w07d1.html requested /assets/js/run-config.js and received 404.
+- window.FDE_RUN_URL was null. Submitting SYNTHETIC-LEARNER displayed the temporary-unavailable message, retained no identity, and sent zero /auth/login requests.
+
+Diagnosis and contract
+- Proven signed-out routes index.html and Week 5 load tracked assets/js/roster.js before auth.js.
+- Source history shows the Week 6–8 shell rewrites replaced roster.js with an untracked run-config.js reference; the Week 9–10 generator later preserved the same deployment-only reference.
+- The correction restores the tracked nonsecret roster.js source on all 25 Week 6–10 routes. It does not copy private run-config material, add credentials/endpoints, or change progress.js fallback policy.
+
+Browser-runner unblock
+- Initial executable-regression navigation failed before document load: Page.navigate returned net::ERR_NAME_NOT_RESOLVED, the document was chrome-error://chromewebdata/, candidate requests were zero, and no dialog or auth code had run.
+- Cause: the runner's `--host-resolver-rules=MAP * ~NOTFOUND` also NXDOMAINed 127.0.0.1.
+- Fix: retain the launch-time deny proxy and use the supported comma form with explicit exclusions: `MAP,*~NOTFOUND,EXCLUDE,127.0.0.1,EXCLUDE,localhost`.
+
+Post-fix manual proof
+- Tool/session: chrome-devtools-axi with task-owned MCP wrapper, extension, profile, logs, candidate server, fixture server, and deny proxy.
+- First navigation: http://127.0.0.1:8766/probe.html -> "synthetic only".
+- Under the same process and boundary, index.html and weeks/w06/w06d1.html both exposed the named signed-out dialog.
+- Week 6 loaded roster.js before progress.js/auth.js, set FDE_RUN_URL to the loopback fixture, and completed SYNTHETIC-LEARNER sign-in.
+- Result: identity {code: SYNTHETIC-LEARNER, name: Synthetic Learner, role: learner}; dialog absent; no error.
+- Fixture inventory included OPTIONS+POST /auth/login and only loopback progress requests.
+- Deny proxy intercepted 20 Chrome background attempts to Google-owned hosts. It recorded zero production FDE backend requests.
+
+Executable coverage
+- tests/test_week6_10_runtime_wiring.py parses all 25 route script contracts and launches a fresh isolated browser context per route.
+- The local server fulfills the requested roster.js source with deterministic synthetic loopback config; no document-start endpoint injection is used.
+- Every route begins with empty identity, requests roster.js, sends exactly one local /auth/login request, reloads signed in, and emits zero non-loopback page requests.

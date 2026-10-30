@@ -6,7 +6,7 @@
 <meta name="fde-day" content="w03d1">
 <meta name="fde-concepts" content="react-loop,augmented-llm,agent-complexity,tool-calling-loop,tool-use-contract,tool-choice">
 <title>W3·D1 — Agent Architectures & the ReAct Loop | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20260925-s5">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20261030-a11y">
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
@@ -19,7 +19,7 @@
   <nav class="topbar-center">
     <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
     <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
-    <a class="topnav" href="../../gauntlet.html">🎤 AI Interview</a>
+    <a class="topnav" href="../../gauntlet.html">AI Interview</a>
   </nav>
   <div class="topbar-right">
     <span class="progressbar"><i></i></span></div>
@@ -36,7 +36,7 @@
         <div class="meta">
           <span><b>Week 3</b> · Day 1</span>
           <span>Agent Architecture</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta"><b>Core 30</b> · ~10 min read · 1 interaction · 6-Q check</span>
         </div>
         <p class="summary">Last week you learned to fill a context window well. This week the model stops being a
         one-shot answer machine and becomes something that <em>acts</em>: it reasons, calls a tool, reads what came back,
@@ -44,7 +44,9 @@
         from two directions at once: the <strong>ReAct</strong> pattern that named it, and the <strong>provider-native
         tool-calling contract</strong> you'll actually write against at a client. The panel on the right assembles the
         loop one node at a time; the reading tells you why each node exists and where it breaks.</p>
+        <aside class="callout mindset project-progress" aria-label="Solo insurance project progress"><b>Project 1 · solo insurance brownfield</b><p>Advance: write an agent-pattern ADR for one synthetic workflow, comparing ReAct, Plan-and-Execute, Reflexion, and a deterministic workflow.</p></aside>
         <div class="ix-legend"></div>
+        <noscript><section class="core30-fallback" aria-label="No-JavaScript practice and check"><h2>Offline practice</h2><p>Pick ReAct, Plan-and-Execute, Reflexion, or a deterministic workflow for one synthetic task.</p><details><summary>Check your reasoning</summary><p>Base the choice on path uncertainty, plan verifiability, safe feedback, and a hard stop—not novelty.</p></details></section></noscript>
       </div>
 
       <section class="step" data-diagram="0" data-step="0">
@@ -112,7 +114,7 @@
         families — knowledge-intensive reasoning (HotpotQA multi-hop questions, FEVER fact verification) and interactive
         decision-making (ALFWorld, WebShop) — which is what established "reason + act" as a general pattern rather than a
         narrow trick. The loop is the point, not the domain.</p>
-        <div class="ix-agent" data-id="w03d1-react" data-steer="1"
+        <div class="ix-agent" data-core-interaction data-id="w03d1-react" data-steer="1"
           data-tools="lookup_order · lookup_customer · calculator"
           data-presets='[{"label":"Multi-hop question","goal":"What support tier is the customer who placed order A1002, and what did they order?","tool_choice":"auto"}]'></div>
       </section>
@@ -139,12 +141,19 @@
         as tool call results or code execution) to assess its progress." The FDE takeaway is blunt: a dynamic agent is
         not a prestige upgrade. Reach for the simplest thing that verifiably works, and let the task force you up the
         ladder — never your enthusiasm.</p>
-        <div class="ix-predict"
+        <details class="deep" data-core="optional"><summary>Optional practice: workflow or dynamic agent?</summary><div class="ix-predict"
           data-q="A client wants to 'add an AI agent' that reads a support ticket, classifies it into one of five categories, and drafts a reply from a template. They're excited about a fully autonomous multi-step agent. What do you recommend, and why?"
           data-a="Build a <b>workflow</b>, not an agent. The path here is fully known in advance — classify, then route to the matching template — so this is textbook <b>routing</b> (plus a little prompt chaining), with predictable, testable, cheap steps. Reserve a dynamic <b>agent</b> for tasks whose path you <em>can't</em> hardcode but whose progress you can still verify. 'Start simple; add agentic systems only when simpler solutions fall short.' Recommending an autonomous agent here buys you unpredictability you don't need and can't easily debug.">
-        </div>
+        </div></details>
       </section>
 
+      <section class="source-bridge" aria-labelledby="w03-patterns">
+        <div class="tag">Architecture comparison</div><h2 id="w03-patterns">Choose ReAct, Plan-and-Execute, Reflexion, or a workflow</h2>
+        <p><strong>ReAct</strong> chooses the next action after each observation. <strong>Plan-and-Execute</strong> writes a reviewable plan, executes its steps, and replans when evidence invalidates it. <strong>Reflexion</strong> turns evaluator or environment feedback into a concise lesson for the next safe trial. A <strong>deterministic workflow</strong> keeps the route in code when the path is already known.</p>
+        <p>For the synthetic insurance task, record the path uncertainty, the evidence available after each step, whether a plan can be checked before execution, whether a retry is safe, and the hard stop. Do not expose hidden chain-of-thought; retain tool calls, observations, plan decisions, and short failure reflections as reviewable evidence.</p>
+      </section>
+
+      <details class="deep" data-core="optional"><summary>Optional depth: provider-native tool loop &amp; steering controls</summary>
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">The contract</div>
         <h2>Tool use is a contract — the model never executes</h2>
@@ -256,7 +265,9 @@
         </div>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      </details>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao et al. — ReAct: Synergizing Reasoning and Acting in Language Models</a> — the paper that named the Thought → Action → Observation loop and showed grounding curbs hallucination and error propagation.</li>
@@ -526,7 +537,7 @@ window.QUIZ = {
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
-<script src="../../assets/js/interactive.js?v=20260714-w3f"></script>
+<script src="../../assets/js/interactive.js?v=20261030-a11y"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>

@@ -90,16 +90,16 @@ class CurriculumHubTransferTests(unittest.TestCase):
             "const b=n['[data-cloud-path-status]'][0];"
             "return {client:n['[data-client-name]'][0].textContent,badge:b.textContent,"
             "status:b.a['data-cloud-path-status'],classes:[...b.c].sort()};}"
-            "const active=Object.assign({},cfg,{cloudPath:{status:'evidence-lane-integrated',label:'AWS/GCP evidence integrated',active:true}});"
-            "console.log(JSON.stringify({pending:render(cfg),active:render(active)}));"
+            "const pending=Object.assign({},cfg,{cloudPath:{status:'evidence-lane-pending',label:'AWS/GCP evidence seam pending',active:false}});"
+            "console.log(JSON.stringify({integrated:render(cfg),pending:render(pending)}));"
         )
-        self.assertEqual(result["pending"]["client"], "LTM, formerly LTIMindtree")
+        self.assertEqual(result["integrated"]["client"], "LTM, formerly LTIMindtree")
+        self.assertEqual(result["integrated"]["badge"], "AWS/GCP evidence integrated")
+        self.assertEqual(result["integrated"]["status"], "evidence-lane-integrated")
+        self.assertEqual(result["integrated"]["classes"], ["is-ready"])
         self.assertEqual(result["pending"]["badge"], "AWS/GCP evidence seam pending")
         self.assertEqual(result["pending"]["status"], "evidence-lane-pending")
         self.assertEqual(result["pending"]["classes"], ["is-pending"])
-        self.assertEqual(result["active"]["badge"], "AWS/GCP evidence integrated")
-        self.assertEqual(result["active"]["status"], "evidence-lane-integrated")
-        self.assertEqual(result["active"]["classes"], ["is-ready"])
 
     def test_comprehension_checks_use_question_specific_distractors(self) -> None:
         questions = node_json(

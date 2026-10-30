@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trainer Dashboard | 2463-FDE</title>
-<link rel="stylesheet" href="assets/css/style.css?v=20261014-hub">
+<link rel="stylesheet" href="assets/css/style.css?v=20261030-a11y">
 <script src="assets/js/theme.js"></script>
 <style>
   /* ---- trainer page (reuses site design language) ---- */
@@ -14,12 +14,13 @@
   .tr-hero h1 b { color: var(--accent); }
   .tr-hero p { color: var(--ink-soft); font-size: 17px; max-width: 620px; margin: 0; }
 
-  .tr-card { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:24px 26px; box-shadow:0 6px 24px var(--shadow); margin:18px 0; }
+  .tr-card { min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:24px 26px; box-shadow:0 6px 24px var(--shadow); margin:18px 0; }
   .tr-card h2 { font-size:18px; margin:0 0 16px; }
   .tr-curriculum { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 20px; border-color:var(--accent-line); background:var(--accent-soft); }
   .tr-curriculum h2 { margin:0 0 3px; }
   .tr-curriculum p { margin:0; color:var(--ink-soft); font-size:14px; }
-  .tr-curriculum-actions { display:flex; flex-wrap:wrap; gap:8px; flex:0 0 auto; }
+  .tr-curriculum > div:first-child { flex:1 1 320px; min-width:min(100%, 320px); }
+  .tr-curriculum-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; flex:0 1 auto; min-width:0; }
   .tr-curriculum-actions a { min-height:44px; display:inline-flex; align-items:center; padding:8px 13px; border:1px solid var(--accent); border-radius:9px; color:var(--accent-ink); background:var(--surface); font-size:13px; font-weight:750; text-decoration:none; }
   @media (max-width:700px) { .tr-curriculum { align-items:flex-start; flex-direction:column; } }
 
@@ -28,6 +29,9 @@
   .tr-field label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color:var(--ink-soft); }
   .tr-field input, .tr-field select { font:inherit; font-size:15px; padding:9px 11px; border:1.5px solid var(--line); border-radius:9px; background:var(--surface); color:var(--ink); min-width:200px; }
   .tr-field input:focus, .tr-field select:focus { outline:none; border-color:var(--accent); }
+  .trainer-hub-link { display:inline-flex; align-items:center; min-height:32px; padding-inline:4px; }
+  .rep-learner-field { flex:1 1 240px; min-width:0; max-width:100%; }
+  #rep-name { width:100%; min-width:0; max-width:100%; }
 
   .tr-result { display:none; margin-top:16px; border:1px solid var(--accent-line); background:var(--accent-soft); border-radius:12px; padding:14px 16px; }
   .tr-result .lbl { font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color:var(--accent-ink); }
@@ -71,8 +75,8 @@
   .ov-weak { color:var(--ink-soft); font-size:13px; }
   .ov-na { color:var(--dim); }
   .tr-pill.mastered { background:var(--good-soft); color:var(--good-ink); }
-  .tr-pill.notmastered { background:var(--warn-soft); color:#e8590c; }
-  .rep-pick { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:8px; }
+  .tr-pill.notmastered { background:var(--warn-soft); color:var(--warn-ink); }
+  .rep-pick { min-width:0; display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:8px; }
   .rep-body { margin-top:16px; }
   .rep-meta { font-size:12px; color:var(--ink-soft); margin:0 0 12px; }
   .rep-sec { margin:0 0 14px; }
@@ -87,21 +91,32 @@
 <div class="topbar">
   <div class="topbar-left">
     <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
-    <a class="topnav" href="index.html">Curriculum Hub</a>
+    <a class="topnav trainer-hub-link" href="index.html">Curriculum Hub</a>
   </div>
   <nav class="topbar-center">
     <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
     <a class="topnav" href="client-delivery.html">Client Delivery</a>
     <a class="topnav" href="delivery-track.html">Delivery Track</a>
-    <a class="topnav" href="gauntlet.html">🎤 AI Interview</a>
+    <a class="topnav" href="gauntlet.html">AI Interview</a>
   </nav>
   <div class="topbar-right"></div>
 </div>
 
-<div id="tr-app"></div>
+<a class="skip-link" href="#tr-app">Skip to trainer dashboard</a>
+<main id="trainer-main">
+  <div id="tr-app" tabindex="-1"></div>
+  <noscript>
+    <section class="tr-wrap tr-denied" role="status" aria-labelledby="trainer-js-title">
+      <h2 id="trainer-js-title">JavaScript is required for the private trainer dashboard</h2>
+      <p>The dashboard stays closed because sign-in and roster authorization cannot be verified without JavaScript. Turn JavaScript on, then reload. Learner curriculum reading remains available from the static launchpad.</p>
+      <nav class="tr-card tr-curriculum-actions" aria-label="Curriculum demonstrations"><a href="weeks/w02/w02d5.html">Demo RAG evidence</a><a href="weeks/w03/w03d5.html">Demo traced agent</a><a href="weeks/w04/w04d5.html">Demo architecture defense</a><a href="index.html#trainer-start">Open curriculum launchpad</a></nav>
+    </section>
+  </noscript>
+</main>
 
 <script src="assets/js/roster.js?v=20260706"></script>
 <script src="assets/js/auth.js"></script>
+<script src="assets/js/trainer-ui.js"></script>
 <script>
 /* Trainer-only login management. auth.js gates the page (shows the access-code
    overlay if logged out); this script then checks the resolved role. Only a
@@ -150,15 +165,15 @@
           '<p>Cohort progress and weekly reports, plus login management — all in one place.</p>' +
         '</div>' +
         '<section class="tr-card tr-curriculum" data-curriculum-surface aria-labelledby="tr-run-title">' +
-          '<div><h2 id="tr-run-title">Run the accepted Week 1–10 map</h2><p><span data-client-name>Client curriculum</span> · Batch <b data-batch-value>loading</b> · Week 5 Neo4j/context engineering live · Week 7 Terraform + Ansible &amp; AI CI/CD · Week 8 AI Observability, SRE &amp; Reliability Guardrails</p></div>' +
-          '<div class="tr-curriculum-actions"><a href="index.html#trainer-start">Open launchpad</a><a href="weeks/w05/w05d1.html">Demo Neo4j</a><a href="weeks/w06/w06d1.html">Demo Kafka pipeline</a><a href="weeks/w07/w07d1.html">Demo IaC controls</a><a href="weeks/w08/w08d1.html">Demo reliability</a><a href="weeks/w09/w09d1.html">Demo hardening</a><a href="weeks/w10/w10d5.html">Demo showcase</a></div>' +
+          '<div><h2 id="tr-run-title">Run the accepted Week 1–10 map</h2><p><span data-client-name>Client curriculum</span> · Batch <b data-batch-value>loading</b> · Week 1 is launch-ready from the authoritative v3 source. The next-batch number is not provided and is not configured. Week 5 solo insurance Neo4j/context engineering · Week 6 banking/payments team handover + Kafka · Week 7 Terraform + Ansible &amp; AI CI/CD · Week 8 AI Observability, SRE &amp; Reliability Guardrails.</p></div>' +
+          '<div class="tr-curriculum-actions"><a href="index.html#trainer-start">Open launchpad</a><a href="weeks/w01/d1.html">Start Week 1</a><a href="weeks/w01/d2a.html">Tuesday</a><a href="weeks/w01/d3a.html">Wednesday</a><a href="weeks/w01/d4a.html">Thursday</a><a href="weeks/w01/d5.html">Friday readout</a><a href="weeks/w01/survey.html">Feedback form</a><a href="weeks/w02/w02d5.html">Demo RAG evidence</a><a href="weeks/w03/w03d5.html">Demo traced agent</a><a href="weeks/w04/w04d5.html">Demo architecture defense</a><a href="weeks/w05/w05d1.html">Demo Neo4j</a><a href="weeks/w06/w06d1.html">Demo team handover + Kafka</a><a href="weeks/w07/w07d1.html">Demo IaC controls</a><a href="weeks/w08/w08d1.html">Demo reliability</a><a href="weeks/w09/w09d1.html">Demo hardening</a><a href="weeks/w10/w10d5.html">Demo showcase</a></div>' +
         '</section>' +
-        '<div class="tr-tabs" role="tablist">' +
-          '<button class="tr-tab on" data-tab="reports" type="button">📊 Reports</button>' +
-          '<button class="tr-tab" data-tab="logins" type="button">🔑 Logins</button>' +
+        '<div class="tr-tabs" role="tablist" aria-label="Trainer dashboard sections">' +
+          '<button class="tr-tab on" id="tab-reports" role="tab" aria-selected="true" aria-controls="panel-reports" data-tab="reports" tabindex="0" type="button">Reports</button>' +
+          '<button class="tr-tab" id="tab-logins" role="tab" aria-selected="false" aria-controls="panel-logins" data-tab="logins" tabindex="-1" type="button">Logins</button>' +
         '</div>' +
         // ----- Reports panel -----
-        '<div class="tr-tabpanel" data-panel="reports">' +
+        '<div class="tr-tabpanel" id="panel-reports" role="tabpanel" aria-labelledby="tab-reports" data-panel="reports">' +
           '<div class="tr-card">' +
             '<h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px">Cohort overview ' +
               '<button class="btn secondary" id="ov-refresh" type="button" style="font-size:13px;padding:6px 12px">Refresh</button></h2>' +
@@ -176,7 +191,7 @@
           '<div class="tr-card">' +
             '<h2>Weekly report</h2>' +
             '<div class="rep-pick">' +
-              '<div class="tr-field"><label for="rep-name">Learner</label>' +
+              '<div class="tr-field rep-learner-field"><label for="rep-name">Learner</label>' +
                 '<select id="rep-name"><option value="">Select a learner…</option></select></div>' +
               '<button class="btn secondary" id="rep-view" type="button">View latest</button>' +
               '<button class="btn" id="rep-gen" type="button">Generate now</button>' +
@@ -186,7 +201,7 @@
           '</div>' +
         '</div>' +
         // ----- Logins panel -----
-        '<div class="tr-tabpanel" data-panel="logins" hidden>' +
+        '<div class="tr-tabpanel" id="panel-logins" role="tabpanel" aria-labelledby="tab-logins" data-panel="logins" hidden>' +
           '<div class="tr-card">' +
             '<h2>Cohorts</h2>' +
             '<p class="tr-sub">Add a cohort number first, then assign learners to it — when you generate a code or afterwards. Anyone not assigned to a registered cohort (and non-trainers) is treated as a <b>UAT</b> account.</p>' +
@@ -194,7 +209,7 @@
               '<div class="tr-field"><label for="c-num">Cohort number</label><input id="c-num" type="text" placeholder="e.g. 2463" autocomplete="off" spellcheck="false"></div>' +
               '<button class="btn" id="c-go" type="button">Add cohort</button>' +
             '</div>' +
-            '<div class="tr-err" id="c-err"></div>' +
+            '<div class="tr-err" id="c-err" role="status" aria-live="polite" aria-atomic="true"></div>' +
             '<div id="c-list" class="tr-msg" style="margin-top:14px">Loading…</div>' +
           '</div>' +
           '<div class="tr-card">' +
@@ -224,14 +239,16 @@
         '</div>' +
       '</div>';
 
-    // tab switching
-    app.querySelectorAll(".tr-tab").forEach(t => t.addEventListener("click", () => {
-      const which = t.getAttribute("data-tab");
-      app.querySelectorAll(".tr-tab").forEach(x => x.classList.toggle("on", x === t));
-      app.querySelectorAll(".tr-tabpanel").forEach(p => { p.hidden = p.getAttribute("data-panel") !== which; });
-    }));
+    // tab switching follows the ARIA tabs pattern: one tab stop, arrow/Home/End
+    // movement, and selection synchronized with the visible panel.
+    window.FDETrainerUI.bindTabs(app);
     document.getElementById("f-go").addEventListener("click", addLogin);
     document.getElementById("c-go").addEventListener("click", addCohort);
+    document.getElementById("c-num").addEventListener("input", event => {
+      if (event.currentTarget.value.trim()) {
+        window.FDETrainerUI.clearFieldError(event.currentTarget, document.getElementById("c-err"));
+      }
+    });
     document.getElementById("ov-refresh").addEventListener("click", loadOverview);
     document.getElementById("ov-cohort").addEventListener("change", renderOverview);
     document.getElementById("rep-view").addEventListener("click", () => viewReport(document.getElementById("rep-name").value));
@@ -280,8 +297,11 @@
     const err = document.getElementById("c-err");
     const inp = document.getElementById("c-num");
     const cohort = inp.value.trim();
-    err.textContent = "";
-    if (!cohort) { err.textContent = "Enter a cohort number."; return; }
+    window.FDETrainerUI.clearFieldError(inp, err);
+    if (!cohort) {
+      window.FDETrainerUI.setFieldError(inp, err, "Enter a cohort number.", true);
+      return;
+    }
     go.disabled = true;
     try {
       const r = await fetch(RUN + "/trainer/cohort/add", { method: "POST", headers: authHeaders(), body: JSON.stringify({ cohort }) });
@@ -294,7 +314,7 @@
       }
       else if (r.status === 403) err.textContent = "Trainer session required.";
       else err.textContent = "Could not add cohort (" + (data && data.error ? data.error : r.status) + ").";
-    } catch (e) { err.textContent = "Network error — is the backend reachable?"; }
+    } catch (e) { err.textContent = "Roster service is temporarily unavailable. Your changes were not saved. Check your connection and try again."; }
     go.disabled = false;
   }
 
@@ -309,7 +329,7 @@
         syncCohortUI(); loadList(); loadOverview();
       }
       else alert("Could not remove cohort (" + (data && data.error ? data.error : r.status) + ").");
-    } catch (e) { alert("Network error — is the backend reachable?"); }
+    } catch (e) { alert("Roster service is temporarily unavailable. Your changes were not saved. Check your connection and try again."); }
   }
 
   async function setLoginCohort(name, cohort) {
@@ -318,7 +338,7 @@
       const data = await r.json();
       if (!(r.ok && data && data.ok)) { alert("Could not set cohort (" + (data && data.error ? data.error : r.status) + ")."); loadList(); return; }
       loadOverview(); // reflect the new bucket in the reports table
-    } catch (e) { alert("Network error — is the backend reachable?"); }
+    } catch (e) { alert("Roster service is temporarily unavailable. Your changes were not saved. Check your connection and try again."); }
   }
 
   function fmtNum(v) { return v == null ? '<span class="ov-na">—</span>' : esc(String(v)); }
@@ -330,11 +350,11 @@
     try {
       const r = await fetch(RUN + "/trainer/overview", { headers: authHeaders() });
       const data = await r.json();
-      if (!(r.ok && data && data.ok)) { msg.textContent = r.status === 403 ? "Trainer session required." : "Could not load overview."; return; }
+      if (!(r.ok && data && data.ok)) { msg.textContent = r.status === 403 ? "Your trainer session has expired. Sign in again to view the roster." : "The roster could not be loaded. Your curriculum links still work; try Refresh again."; return; }
       OV_LEARNERS = data.learners || [];
       renderOverview();
     } catch (e) {
-      msg.textContent = "Network error — is the backend reachable?";
+      msg.textContent = "Roster service is temporarily unavailable. Your changes were not saved. Check your connection and try again.";
     }
   }
 
@@ -413,7 +433,7 @@
       const data = await r.json();
       if (!(r.ok && data && data.ok)) { err.textContent = "Could not load report."; document.getElementById("rep-body").innerHTML = ""; return; }
       renderReport(data.report);
-    } catch (e) { err.textContent = "Network error — is the backend reachable?"; }
+    } catch (e) { err.textContent = "Roster service is temporarily unavailable. Your changes were not saved. Check your connection and try again."; }
   }
 
   async function genReport(name) {
@@ -428,7 +448,7 @@
       const data = await r.json();
       if (!(r.ok && data && data.ok)) { err.textContent = r.status === 403 ? "Trainer session required." : "Could not generate report."; document.getElementById("rep-body").innerHTML = ""; return; }
       renderReport(data.report);
-    } catch (e) { err.textContent = "Network error — is the backend reachable?"; }
+    } catch (e) { err.textContent = "Roster service is temporarily unavailable. Your changes were not saved. Check your connection and try again."; }
     btn.disabled = false; btn.textContent = old;
   }
 
@@ -459,7 +479,7 @@
         err.textContent = "Could not add login (" + (data && data.error ? data.error : r.status) + ").";
       }
     } catch (e) {
-      err.textContent = "Network error — is the backend reachable?";
+      err.textContent = "Roster service is temporarily unavailable. Your changes were not saved. Check your connection and try again.";
     }
     go.disabled = false;
   }
@@ -471,7 +491,7 @@
     try {
       const r = await fetch(RUN + "/auth/list", { headers: authHeaders() });
       const data = await r.json();
-      if (!(r.ok && data && data.ok)) { msg.textContent = "Could not load logins."; return; }
+      if (!(r.ok && data && data.ok)) { msg.textContent = r.status === 403 ? "Your trainer session has expired. Sign in again to manage logins." : "The roster store could not load logins. Nothing was changed; try again."; return; }
       const logins = data.logins || [];
       if (!logins.length) { msg.textContent = "No logins yet."; return; }
       body.innerHTML = logins.map(l => {
@@ -499,7 +519,7 @@
       body.querySelectorAll(".tr-cohort[data-name]").forEach(s =>
         s.addEventListener("change", () => setLoginCohort(s.getAttribute("data-name"), s.value)));
     } catch (e) {
-      msg.textContent = "Network error — is the backend reachable?";
+      msg.textContent = "Roster service is temporarily unavailable. Your changes were not saved. Check your connection and try again.";
     }
   }
 
@@ -510,7 +530,7 @@
       const data = await r.json();
       if (r.ok && data && data.ok) loadList();
       else alert("Could not revoke (" + (data && data.error ? data.error : r.status) + ").");
-    } catch (e) { alert("Network error — is the backend reachable?"); }
+    } catch (e) { alert("Roster service is temporarily unavailable. Your changes were not saved. Check your connection and try again."); }
   }
 
   // Forgot/lost code: issue a fresh one (old stops working). Codes are one-way
@@ -524,7 +544,7 @@
         window.prompt("New code for " + name + " — copy + share it now (it won't be shown again):", data.code);
         loadList();
       } else alert("Could not reset (" + (data && data.error ? data.error : r.status) + ").");
-    } catch (e) { alert("Network error — is the backend reachable?"); }
+    } catch (e) { alert("Roster service is temporarily unavailable. Your changes were not saved. Check your connection and try again."); }
   }
 
   // auth.js gates login + reloads on success; gate on role once identity exists.

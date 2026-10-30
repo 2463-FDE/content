@@ -61,11 +61,14 @@
   function tempSlider(elist) {
     const logits = [3.2, 2.4, 1.9, 1.2, 0.6]; // fixed candidate "scores"
     const labels = ["approve", "review", "deny", "escalate", "defer"];
-    elist.forEach(el => {
+    elist.forEach((el, index) => {
+      const rangeId = `ix-temperature-${index + 1}`;
+      const valueId = `${rangeId}-value`;
       el.innerHTML =
         `<div class="ix-k">▶ Try it <span class="ix-sub">temperature · how the next token is picked</span></div>` +
-        `<input class="ix-range" type="range" min="0" max="150" value="20">` +
-        `<div class="ix-temp-val">temperature = <b>0.20</b> · <span class="ix-temp-desc"></span></div>` +
+        `<label class="ix-control-label" for="${rangeId}">Temperature</label>` +
+        `<input id="${rangeId}" class="ix-range" type="range" min="0" max="150" value="20" aria-describedby="${valueId}">` +
+        `<div class="ix-temp-val" id="${valueId}">temperature = <b>0.20</b> · <span class="ix-temp-desc"></span></div>` +
         `<div class="ix-bars"></div>`;
       const range = el.querySelector(".ix-range"), val = el.querySelector("b"), desc = el.querySelector(".ix-temp-desc"), bars = el.querySelector(".ix-bars");
       function softmax(t) {
@@ -95,18 +98,26 @@
         `<div class="ix-grid">` +
         `<label>Input tokens<input class="c-in" type="number" value="4800"></label>` +
         `<label>Output tokens<input class="c-out" type="number" value="400"></label>` +
-        `<label>$ / M input<input class="c-pin" type="number" step="0.1" value="3"></label>` +
-        `<label>$ / M output<input class="c-pout" type="number" step="0.1" value="15"></label>` +
+        `<label>$ / M input<input class="c-pin" type="number" step="0.1" value="2"></label>` +
+        `<label>$ / M output<input class="c-pout" type="number" step="0.1" value="10"></label>` +
         `<label>Calls / day<input class="c-n" type="number" value="50000"></label>` +
         `</div>` +
         `<div class="ix-out">Per call <b class="c-call">$0</b> · Per day <b class="c-day">$0</b> · Per month <b class="c-mo">$0</b></div>`;
       const g = (s) => parseFloat(el.querySelector(s).value) || 0;
+      function setMoney(selector, amount, digits) {
+        const output = el.querySelector(selector);
+        output.dataset.value = String(amount);
+        output.textContent = new Intl.NumberFormat(undefined, {
+          style: "currency", currency: "USD",
+          minimumFractionDigits: digits, maximumFractionDigits: digits,
+        }).format(amount);
+      }
       function upd() {
         const per = g(".c-in") / 1e6 * g(".c-pin") + g(".c-out") / 1e6 * g(".c-pout");
         const day = per * g(".c-n"); const mo = day * 30;
-        el.querySelector(".c-call").textContent = "$" + per.toFixed(4);
-        el.querySelector(".c-day").textContent = "$" + day.toLocaleString(undefined, { maximumFractionDigits: 0 });
-        el.querySelector(".c-mo").textContent = "$" + mo.toLocaleString(undefined, { maximumFractionDigits: 0 });
+        setMoney(".c-call", per, 4);
+        setMoney(".c-day", day, 0);
+        setMoney(".c-mo", mo, 0);
       }
       el.querySelectorAll("input").forEach(i => i.addEventListener("input", upd)); upd();
     });
@@ -167,16 +178,23 @@
         const note = mark >= 0 ? yourTurn.slice(mark).replace(/^✎\s*/, "").trim() : "";
         tabs.push({ label: yourTurnLabel, text: starter, note: note, edit: true, variant: "edit" });
       }
+      const controlId = `run-${id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
       el.innerHTML =
         `<div class="ix-k">▶ Try it · live <span class="ix-sub">calls Claude · <b class="run-left">3</b> edit-tries</span></div>` +
         `<p class="run-guide">Run the example${examples.length > 1 ? "s" : ""} (saved — revisit any time), then ${yourTurn ? "open <b>Your turn</b>, edit the prompt," : "tweak the prompt"} and run it — watch the answer change.</p>` +
         `<div class="run-tabs">${tabs.map((t, i) => `<button type="button" class="run-tab${i === 0 ? " on" : ""}" data-i="${i}">${t.label}</button>`).join("")}</div>` +
         `<div class="run-note" hidden></div>` +
-        `<textarea class="ix-ta run-in" rows="3"></textarea>` +
+        `<label class="ix-control-label run-preset-label" for="${controlId}-preset">Example prompt</label>` +
+        `<output class="ix-ta run-in run-preset" id="${controlId}-preset" tabindex="0"></output>` +
+        `<label class="ix-control-label run-edit-label" for="${controlId}-edit" hidden>Your prompt</label>` +
+        `<textarea class="ix-ta run-in run-edit" id="${controlId}-edit" rows="3" hidden></textarea>` +
         `<button type="button" class="btn run-go">Run ▸</button>` +
-        `<div class="run-out"></div>`;
-      const ta = el.querySelector(".run-in"), out = el.querySelector(".run-out"), go = el.querySelector(".run-go"), left = el.querySelector(".run-left");
+        `<output class="run-out" aria-label="Run result" aria-live="polite"></output>`;
+      const preset = el.querySelector(".run-preset"), ta = el.querySelector(".run-edit");
+      const presetLabel = el.querySelector(".run-preset-label"), editLabel = el.querySelector(".run-edit-label");
+      const out = el.querySelector(".run-out"), go = el.querySelector(".run-go"), left = el.querySelector(".run-left");
       const note = el.querySelector(".run-note");
+      let activePrompt = preset;
       const tabEls = Array.from(el.querySelectorAll(".run-tab"));
       const cache = {};   // variant -> last output (server-backed, loaded below)
       let cur = 0;
@@ -188,8 +206,13 @@
         cur = i;
         tabEls.forEach((t, j) => t.classList.toggle("on", j === i));
         const t = tabs[i] || { text: "", edit: false, variant: "e0" };
+        preset.textContent = t.text;
         ta.value = t.text;
-        ta.readOnly = !t.edit;                 // presets: executable, not editable
+        preset.hidden = t.edit;
+        presetLabel.hidden = t.edit;
+        ta.hidden = !t.edit;
+        editLabel.hidden = !t.edit;
+        activePrompt = t.edit ? ta : preset;
         el.classList.toggle("is-locked", !t.edit);
         if (note) {                            // visible "what to do" block (your-turn tab)
           if (t.note) { note.textContent = t.note; note.hidden = false; }
@@ -218,7 +241,7 @@
         const idt = window.FDE_getIdentity ? window.FDE_getIdentity() : null;
         const trainee = idt ? idt.code : "anon";
         const t = tabs[cur] || { variant: "edit", edit: true };
-        const prompt = ta.value.trim(); if (!prompt) return;
+        const prompt = (activePrompt.value || activePrompt.textContent || "").trim(); if (!prompt) return;
         go.disabled = true; out.className = "run-out"; out.textContent = "Running…";
         try {
           const r = await fetch(url + "/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ trainee, id, prompt, system: sys, variant: t.variant }) });
@@ -305,7 +328,7 @@
               `<div class="ce-ln"><span class="cek">from</span> langchain.agents <span class="cek">import</span> create_agent</div>` +
               `<div class="ce-ln"> </div>` +
               `<div class="ce-ln">agent = create_agent(</div>` +
-              `<div class="ce-ln ce-i">model=<span class="ces">"claude-haiku-4-5"</span>,</div>` +
+              `<div class="ce-ln ce-i">model=<span class="ces">"claude-haiku-5-5"</span>,</div>` +
               `<div class="ce-ln ce-i">system_prompt=<span class="ces">"</span><textarea class="ag-sys ce-ed" rows="1" spellcheck="false"></textarea><span class="ces">"</span>,</div>` +
               `<div class="ce-ln ce-i">tools=[<span class="ce-tools">${AGENT_TOOLS_UI.map(t => `<label class="ce-tool" title="${t.desc}"><input type="checkbox" class="ce-toolbox" value="${t.name}" checked><span>${t.name}</span></label>`).join('<span class="cep">, </span>')}</span>],</div>` +
               `<div class="ce-ln ce-i">tool_choice=<span class="ces">"</span><select class="ag-tc ce-ed ce-sel">${TC_CODE.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select><span class="ces">"</span>,</div>` +

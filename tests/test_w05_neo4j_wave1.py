@@ -416,7 +416,7 @@ load(Object.keys(pages), 0);
             route = urlparse(rendered_day["href"])
             self.assertTrue(route.path.endswith(f"/weeks/w05/w05d{day}.html"), route.path)
             self.assertEqual(parse_qs(route.query).get("batch"), ["2567"])
-        self.assertIn("Week 5 Neo4j/context engineering live", rendered["trainer"]["text"])
+        self.assertIn("Week 5 solo insurance Neo4j/context engineering", rendered["trainer"]["text"])
         trainer_route = urlparse(rendered["trainer"]["href"])
         self.assertTrue(trainer_route.path.endswith("/weeks/w05/w05d1.html"))
         self.assertEqual(parse_qs(trainer_route.query).get("batch"), ["2567"])
@@ -544,6 +544,10 @@ function run(i) {
   frame.style.cssText = 'width:' + widths[i] + 'px;height:900px;border:0';
   frame.onload = () => setTimeout(() => {
     const d = frame.contentDocument, w = frame.contentWindow;
+    // This harness measures lesson layout rather than the separately tested auth
+    // dialog. Remove that modal and its intentional inert background first.
+    d.querySelector('.login-overlay')?.remove();
+    [...d.body.children].forEach((node) => { node.inert = false; node.removeAttribute('aria-hidden'); });
     d.documentElement.setAttribute('data-theme','light');
     const light = getComputedStyle(d.documentElement).getPropertyValue('--bg').trim();
     d.documentElement.setAttribute('data-theme','dark');

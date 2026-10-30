@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Client Delivery | 2463-FDE</title>
-<link rel="stylesheet" href="assets/css/style.css?v=20260805-rc3">
+<link rel="stylesheet" href="assets/css/style.css?v=20261030-a11y">
 <script src="assets/js/theme.js"></script>
 <style>
   /* ---- client-delivery page-specific layout (reuses site design language) ---- */
@@ -41,6 +41,7 @@
   .cd-panel .cd-eyebrow { font-size:12px; text-transform:uppercase; letter-spacing:.12em; font-weight:700; color:var(--accent); }
   .cd-panel h2 { font-size:27px; margin:4px 0 4px; line-height:1.18; }
   .cd-panel .cd-tie { color:var(--ink-soft); font-size:15px; margin:0 0 18px; }
+  .cd-comms { display:inline-flex; margin:0 12px 18px 0; color:var(--accent-ink); font-size:14px; font-weight:700; text-underline-offset:3px; }
 
   .cd-sec { margin:22px 0 0; padding-top:20px; border-top:1px solid var(--line); }
   .cd-sec:first-of-type { border-top:none; padding-top:0; }
@@ -68,6 +69,8 @@
   .cc-proj .pj-k { font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--accent); }
   .cc-proj h3 { font-size:18px; margin:4px 0 6px; }
   .cc-proj p { font-size:14.5px; line-height:1.55; color:var(--ink-soft); margin:0; }
+  .cc-launch { display:inline-flex; align-items:center; gap:8px; margin:0 0 22px; padding:10px 16px; border-radius:9px; background:var(--accent-fill); color:#fff; font-size:14px; font-weight:700; text-decoration:none; }
+  .cc-launch:hover { filter:brightness(.96); }
   .cc-fig { margin:0 0 18px; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:18px 18px 10px; }
   .cc-fig svg { display:block; width:100%; height:auto; }
   .cc-fig svg text { font-family:inherit; }
@@ -83,13 +86,14 @@
   <nav class="topbar-center">
     <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
     <a class="topnav" href="client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="persona-communications.html">Persona Comms</a>
     <a class="topnav" href="delivery-track.html">Delivery Track</a>
-    <a class="topnav" href="gauntlet.html">🎤 AI Interview</a>
+    <a class="topnav" href="gauntlet.html">AI Interview</a>
   </nav>
   <div class="topbar-right"></div>
 </div>
 
-<div class="cd-wrap">
+<main class="cd-wrap">
   <div class="cd-hero">
     <h1>Client <b>Delivery</b></h1>
     <p>Per-week client material for the two brownfield projects. Each week the client sends you a casual ask —
@@ -111,11 +115,12 @@
 
   <!-- ============== Client cohort direction ============== -->
   <section class="cd-concept" aria-labelledby="ltm-concept-h" data-curriculum-surface>
-    <p class="cc-stage">Current ten-week cohort direction · trainer preview</p>
+    <p class="cc-stage">Current ten-week cohort direction · local simulation delivered</p>
     <h2 id="ltm-concept-h">How the client-work arc runs</h2>
     <p class="cc-lede">The healthcare and finance packets above are the proven pattern. For <span data-client-name>the current client</span>, the same
     pattern becomes a two-project arc with one shared storyline: learners modernize a legacy system solo, then a team
     inherits that system as a platform engagement. Domain choices remain trainer-owned and evidence-gated.</p>
+    <a class="cc-launch" href="persona-communications.html">Open the local persona communications simulation</a>
 
     <div class="cc-grid">
       <div class="cc-proj">
@@ -141,9 +146,9 @@
         property and casualty insurer, crosses a handover boundary at Week 6 and is inherited by Project 2, a team
         of two to three developers running a platform engagement for a fictional US regional banking and payments
         firm through Week 10. Both projects sit on one environment band, where each learner chooses AWS or GCP at
-        the start with a one-cloud focus expected, and one persona band: in-platform chat with the client's
-        technical lead, and an authenticated simulated stakeholder email inbox whose replies arrive in 15 to 30
-        minutes.</desc>
+        the start with a one-cloud focus expected, and one persona band: deterministic local chat with the client's
+        technical lead, and an authenticated local simulated stakeholder inbox whose replies reveal after 15 to 30
+        synthetic minutes.</desc>
         <!-- handover boundary -->
         <line x1="480" y1="46" x2="480" y2="196" stroke="var(--accent)" stroke-width="2" stroke-dasharray="7 6"/>
         <text x="480" y="30" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--accent-ink)">Week 6 · handover boundary</text>
@@ -181,15 +186,16 @@
         <g>
           <rect x="54" y="296" width="852" height="94" rx="12" fill="var(--accent-soft)" stroke="var(--accent-line)" stroke-width="1.6"/>
           <text x="74" y="322" font-size="12" font-weight="700" letter-spacing="1" fill="var(--accent-ink)">CLIENT PERSONAS · IN-PLATFORM · SPANS BOTH PROJECTS</text>
-          <text x="74" y="346" font-size="13.5" fill="var(--ink)">Chat — the client's technical lead, a live conversation in the platform.</text>
-          <text x="74" y="370" font-size="13.5" fill="var(--ink)">Simulated stakeholder email — an authenticated in-platform inbox; replies arrive in 15–30 minutes.</text>
+          <text x="74" y="346" font-size="13.5" fill="var(--ink)">Chat — deterministic local replies from the project's functional technical lead.</text>
+          <text x="74" y="370" font-size="13.5" fill="var(--ink)">Simulated stakeholder inbox — local threads; replies reveal after a 15–30-minute fixture delay.</text>
         </g>
       </svg>
       <figcaption>The two-project arc as a boundary map: solo legacy modernization (Weeks 1–5, fictional US P&amp;C
       insurer) crosses the Week 6 handover boundary into a 2–3-person platform engagement (Weeks 6–10, fictional US
       regional bank / payments). Both sit on a shared environment band — you pick AWS or GCP at the start, one-cloud
-      focus expected — and a shared persona band: in-platform technical-lead chat plus an authenticated simulated
-      stakeholder email inbox with 15–30-minute replies. Design-stage diagram; none of these systems exist yet.</figcaption>
+      focus expected — and a shared persona band. The delivered communication surface uses local deterministic fixtures,
+      the existing browser identity seam, and synthetic 15–30-minute reply delays. It does not call a model, scheduler,
+      backend, or email service.</figcaption>
     </figure>
 
     <ul class="cd-list">
@@ -197,11 +203,12 @@
       stay consistent across the handover, with negotiable asks separated from hard constraints.</li>
       <li><b>Cloud choice:</b> AWS, GCP, or both, chosen once at the top of the curriculum; the material expects
       most learners to focus on a single cloud.</li>
-      <li><b>Communication:</b> persona chat and the delayed stakeholder email are design-stage concepts — no
-      backend, scheduler, or email machinery exists; communication coaching is formative only, never graded.</li>
+      <li><b>Communication:</b> the learner-facing local simulation now provides deterministic technical-lead chat,
+      delayed stakeholder inbox threads, and formative coaching. It uses no model, backend scheduler, external email,
+      production access, or grading/progress integration.</li>
     </ul>
   </section>
-</div>
+</main>
 
 <footer class="foot">2463-FDE · Client Delivery — problem identification first, solutioning second</footer>
 
@@ -712,7 +719,7 @@ window.CLIENT = {
           "<b>Observability can widen regulated-data exposure</b> — safe correlation IDs and payload-free defaults are required."
         ],
         facilitator: "Carry forward former Week 7 tracing, evaluation, SLO, cost, and guardrail conclusions into Week 8. Keep Week 9 security/hardening separate. Prefer deterministic reconciliation and use semantic judges only where expert-labeled meaning requires them.",
-        deliverable: "A reliability evidence package for one payment/decision path: OTel trace/metric/log contract, model/agent/tool/Kafka/reconciliation correlation, dashboard and alert spec, latency/correctness/quality SLO and error-budget policy, evaluation/guardrail signals, incident timeline, runbook branch, rollback/degraded-mode evidence, cost/latency/reliability tradeoff, and two-audience readout."
+        deliverable: "SRE-08-01 through SRE-08-05: an owned reliability evidence package for one payment/decision path. Each artifact names a measurable acceptance rule and independent replay: OTel trace/metric/log contract, model/agent/tool/Kafka/reconciliation correlation, dashboard and alert spec, latency/correctness/quality SLO and error-budget policy, evaluation/guardrail signals, incident timeline, runbook branch, rollback/degraded-mode evidence, cost/latency/reliability tradeoff, and two-audience readout."
       },
       9: {
         title: "AI Security, Governance &amp; System Hardening",
@@ -721,7 +728,7 @@ window.CLIENT = {
         handover: [
           "The complete Weeks 1–8 system and reliability package; synthetic decisions still expose a generic adverse-action-reason gap and incomplete model/version evidence.",
           "A synthetic applicant corpus with untrusted free text/uploads, tokenized identities, deterministic reconciliation fixtures, and labeled reason-quality examples.",
-          "A provider-neutral prevent/contain/detect/recover matrix and safe prompt-injection/red-team fixtures. AWS/GCP certification and product cells remain pending.",
+          "A prevent/contain/detect/recover matrix, safe prompt-injection fixtures, and dated AWS/GCP evidence for federation, Bedrock Guardrails versus Model Armor normalization, and personal certification-path selection.",
           "Local tests only; no applicant data, credentials, production target, provider call, external send, decision, or deployment."
         ],
         dig: [
@@ -735,8 +742,8 @@ window.CLIENT = {
           "<b>Generic or irreproducible reasons make wider rollout indefensible</b> — model marketing is not governance evidence.",
           "<b>Applicant content plus private data, privilege, and an external sink creates a high-consequence path</b> — filters do not replace deterministic mediation and least privilege."
         ],
-        facilitator: "Start from the delivered system and preserved security sources. Run one threat path, one reason-governance decision, one least-privilege change, one safe peer red-team, and one executive/technical readout. Avoid legal conclusions and keep provider/certification claims in their owned evidence lane.",
-        deliverable: "A reproducible finance security/governance package: system/data boundary, threat path, tested reason-code/model-evidence gate, control map, one remediated least-privilege or sink control with positive and negative tests, local red-team evidence, residual-risk disposition, and two-audience readout."
+        facilitator: "Start from the delivered system and preserved security sources. Run one threat path, one reason-governance decision, one least-privilege change, one safe peer red-team, one selected-provider trust-boundary review, and one executive/technical readout. Avoid legal conclusions. Keep personal cloud/certification choice separate from the team's Week 6 primary-cloud ADR.",
+        deliverable: "SEC-09-01 through SEC-09-05 plus GOV-09-03: a reproducible finance security/governance package. Each artifact names an accountable role, measurable acceptance rule, and independent replay: system/data boundary, threat path, tested reason-code/model-evidence gate, federation/control ADR, one remediated least-privilege or sink control, normalized guardrail comparison, local red-team evidence, residual-risk disposition, certification study gap, and two-audience readout."
       },
 10: {
         title: "Production Rollout, Showcase &amp; Client Handoff",
@@ -745,7 +752,7 @@ window.CLIENT = {
         handover: [
           "The frozen candidate, full regression evidence, Week 9 audit disposition, decision index, and open-risk register.",
           "A reversible rollout plan with entry, pause, success, rollback, and ownership conditions — planning and local rehearsal only.",
-          "A two-cloud placement memo schema. Provider-specific facts and certification objectives remain pending the verified AWS/GCP lane."
+          "A two-cloud placement memo with dated public meter evidence, explicit BigQuery, Cloud Run, Agent Search, Vector Search, managed Kafka, graph, model, guardrail, observability and egress rows, plus visible client-specific unknowns."
         ],
         dig: [
           "Which observable condition pauses or reverses the rollout, and has the recovery path been rehearsed locally?",
@@ -754,9 +761,9 @@ window.CLIENT = {
           "Which workload-placement assumptions are evidence, which are unknown, and what would flip the recommendation?"
         ],
         stated: ["Wants an executive-ready proof of value.", "Wants a technically defensible package the client team can operate."],
-        hidden: ["<b>A showcase is not a handoff</b> — the receiving operator must run the path.", "<b>A provider conclusion with pending evidence is not defensible</b> — method, assumptions, and flip conditions can be shown without inventing facts."],
-        facilitator: "Hold the freeze, rehearse the executive and technical cuts, include a safe planned failure, and require explicit residual risks. Do not imply deployment, infrastructure, publication, or external sends occurred.",
-        deliverable: "A frozen local demo candidate; cutover/rollback rehearsal; README, runbook, ADR and evidence indexes; owner and risk registers; workload-placement memo with visible evidence gaps; client showcase script; and knowledge-transfer record."
+        hidden: ["<b>A showcase is not a handoff</b> — the receiving operator must run the path.", "<b>Dated public provider facts are not client facts</b> — volume, region, contract, discount, waiver eligibility, confidence, and flip conditions remain visible."],
+        facilitator: "Hold the freeze, rehearse the executive and technical cuts, include a safe planned failure, and require explicit residual risks. Defend dated provider inputs without implying a predetermined winner. Do not imply deployment, infrastructure, publication, or external sends occurred.",
+        deliverable: "REL-10-01/02/04, OPS-10-03, and HANDOFF-10-05: a frozen local demo candidate; cutover/rollback rehearsal; README, runbook, ADR and evidence indexes; owner and risk registers; workload-placement and conditional-exit-cost defense with visible client unknowns; client showcase script; and independently executed knowledge-transfer record."
       },
 }
   }
@@ -819,6 +826,7 @@ window.CLIENT = {
       `<div class="cd-eyebrow">${proj.label} · ${proj.short} · Week ${state.week}</div>` +
       `<h2>${wk.title}</h2>` +
       `<p class="cd-tie">Curriculum tie-in: ${wk.tie}</p>` +
+      `<a class="cd-comms" href="persona-communications.html?project=${state.proj === "healthcare" ? "riverbend" : "meridian"}">Practice this project's persona communications</a>` +
       (REPOS[state.proj] ? `<a class="cd-repo" href="${REPOS[state.proj]}" target="_blank" rel="noopener">📦 Open the codebase — ${REPOS[state.proj].replace("https://github.com/", "")}</a>` : "");
 
     // Client message (everyone)

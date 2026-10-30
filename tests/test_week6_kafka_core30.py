@@ -208,8 +208,12 @@ class Week6KafkaCore30Tests(unittest.TestCase):
                  "--dump-dom", route.as_uri()], text=True, capture_output=True, timeout=30,
             )
         self.assertEqual(result.returncode, 0, result.stderr[-1000:])
-        self.assertIn("accessible static export", result.stdout)
         self.assertIn(EXPECTED_TITLES["w06d4"], result.stdout)
+        self.assertIn("text alternative", result.stdout)
+        self.assertIn("Defensible response", result.stdout)
+        self.assertIn("Comprehension check", result.stdout)
+        self.assertIn("Project 2 · team of 2–3 · regional banking/payments", result.stdout)
+        self.assertNotIn("accessible static export", result.stdout)
 
 
 if __name__ == "__main__":
