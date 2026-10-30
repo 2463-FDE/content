@@ -14,7 +14,7 @@ function tokenFrom(blockPattern, name) {
 
 function darkToken(name) {
   return tokenFrom(/html\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/, name);
-} 
+}
 
 function rgb(hex) {
   assert.match(hex, /^#[0-9a-f]{6}$/i);
