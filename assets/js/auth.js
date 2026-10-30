@@ -60,7 +60,7 @@
     const a = document.createElement("a");
     a.className = "topnav trainer-nav";
     a.href = href;
-    a.textContent = "📊 Trainer Dashboard";
+    a.textContent = "Trainer Dashboard";
     center.appendChild(a);
   }
   function badge(idt) {

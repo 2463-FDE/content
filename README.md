@@ -16,7 +16,7 @@ trainer.html            cohort/report dashboard + curriculum launch routes
 weeks/                   daily reading pages (scrollytelling + diagram + quiz)
 atlas/                   FDE Mindset Atlas
 assets/
-  css/style.css          incumbent design system
+  css/style.css          design tokens + shared styles (contract: DESIGN.md)
   js/diagram.js          declarative SVG diagram engine
   js/scrolly.js          scroll position -> diagram step
   js/quiz.js             comprehension checks + tracking seam

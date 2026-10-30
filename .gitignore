@@ -6,3 +6,6 @@
 
 # Python bytecode from local test runs — never site content.
 __pycache__/
+
+# impeccable design-skill runtime artifacts (screenshots, configs)
+.impeccable/
