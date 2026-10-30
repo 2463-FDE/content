@@ -46,7 +46,7 @@
     evals: { label: "LangSmith evaluation concepts", href: "https://docs.langchain.com/langsmith/evaluation-concepts" }
   };
 
-  return {
+  var lessons = {
     w07d1: {
       week: 7, day: 1, phase: "Production AI Systems", title: "Terraform foundations and plan discipline",
       project: project,
@@ -332,4 +332,17 @@
       sources: evidence(8, 5, [src.incident, src.burn, src.slo])
     }
   };
+
+  var teamEvidence = {
+    w08d1: ["SRE-08-01 signal and SLO register", "Reliability owner", "The inherited synthetic banking/payments path has latency, correctness or quality, cost, population, window, threshold, budget action, and service owner.", "A teammate recomputes the synthetic SLI and reaches the recorded budget action."],
+    w08d2: ["SRE-08-02 telemetry and drift contract", "Telemetry owner", "Trace, metric, log, evaluation, drift, privacy, version, retention, and backend-portability rows each name evidence and owner.", "A reviewer reconstructs one operation without prompt, payment, credential, or client payload."],
+    w08d3: ["SRE-08-03 correlation and alert record", "Incident evidence owner", "HTTP, Kafka, agent, retrieval, model, tool, guardrail, and safe business correlation produce one causal chain and owned alert.", "A teammate traces the synthetic bad answer from symptom to changed retrieval evidence."],
+    w08d4: ["SRE-08-04 reliability-control ADR", "Reliability control owner", "Retry, circuit, guardrail, evaluation, degrade, and recovery rules name trigger, expected signal, stop condition, owner, and rollback.", "A peer runs one synthetic failure through the selected control and verifies the user outcome."],
+    w08d5: ["SRE-08-05 on-call and reliability package", "On-call owner", "Timeline, SLO/budget state, runbook branch, rollback/degrade decision, residual risk, and two-audience readout point to one evidence set.", "A non-author follows the runbook to choose and verify the synthetic response." ]
+  };
+  Object.keys(teamEvidence).forEach(function (id) {
+    var record = teamEvidence[id];
+    lessons[id].teamEvidence = { artifact: record[0], owner: record[1], acceptance: record[2], review: record[3] };
+  });
+  return lessons;
 });

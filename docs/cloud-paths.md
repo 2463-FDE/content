@@ -68,25 +68,26 @@ See the Core-30 section of `docs/week-fanout-plan.md`; the reference page is
 | Weeks 6–10, teams of 2–3, inheriting Project 1 | The team-primary cloud recorded in the Week 6 ADR is the primary implementation plane for the team's implementation, shared repository, deployment examples, and required Core-30 work; the other provider is the comparison substrate. Members keep their own reading view. | (same rule — a GCP-primary team does not inherit an AWS-primary topology) |
 | Cross-cloud judgement (event hop and egress measurement, the two-provider infrastructure design, identity federation, the workload-placement memo) | Shared and required on both paths | Shared and required on both paths |
 
-Weeks 6–7 are live as the Kafka and Terraform/Ansible/AI-CI/CD routes. Their
-source/day inventory and production boundary are recorded in
-`docs/research/w05-w07-production-inventory.md`. Provider-neutral fundamentals
-serve either personal path inside Core 30; provider-specific comparisons retain
-AWS/GCP evidence and do not override the team-primary cloud recorded in the Week
-6 ADR. The second provider remains comparison depth, and Terraform stays in its
-source-assigned Week 7.
+Weeks 6–10 use the team-primary cloud recorded in the Week 6 ADR as the primary
+implementation plane for shared evidence; the second provider remains the
+comparison substrate. The Weeks 5–7 source/day inventory and production boundary
+are recorded in `docs/research/w05-w07-production-inventory.md`, and the Weeks
+8–10 production evidence is recorded in `docs/research/w08-w10-production-wave.md`.
+Provider-neutral fundamentals serve either personal path inside Core 30;
+provider-specific comparisons retain AWS/GCP evidence without overriding the
+team decision. Terraform stays in its source-assigned Week 7.
 
 ## Shared integration seam
 
 - `cloud-path.js` mounts the picker into `#cloud-path-mount`, or directly above
   `#cal` when a mount is absent.
-- `assets/js/curriculum-config.js` is the shared status authority. Its integrated
-  state means the picker, certification targets, and dated provider evidence are
-  live; it does not mean every source-assigned provider exercise is complete.
+- `assets/js/curriculum-config.js` defines the live `cloudPath.options` and is the
+  shared integrated-status authority; `cloud-path.js` reads it at call time.
 - `assets/js/cert-objectives.js` and `docs/research/certifications/` own the AWS
   AIP-C01 and Google AI Professional Certificate facts. Week-owned provider claims
-  still require their matching dated research artifact.
-- The exact v3 source coverage and remaining week gaps are tracked in
+  require their matching dated research artifact; the W9–W10 artifacts are listed
+  in `docs/research/w08-w10-production-wave.md`.
+- The exact v3 source coverage and remaining gaps are tracked in
   `docs/research/fde-ltim-v3-source-reconciliation.md` and
   `docs/research/fde-ltim-v3-coverage.json`.
 

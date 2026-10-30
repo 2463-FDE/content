@@ -17,9 +17,11 @@
   }
   function requiredWords(lesson) {
     var projectWords = lesson.project ? wordCount(lesson.project.label) + wordCount(lesson.project.context) + wordCount(ADR_LINK_LABEL) : 0;
-    return projectWords + wordCount(lesson.summary) + lesson.sections.reduce(function (sum, item) {
+    var words = projectWords + wordCount(lesson.summary) + lesson.sections.reduce(function (sum, item) {
       return sum + wordCount(item[0]) + wordCount(item[1]);
     }, 0) + wordCount(lesson.drill.prompt) + lesson.drill.options.reduce(function (sum, item) { return sum + wordCount(item); }, 0);
+    if (lesson.teamEvidence) words += wordCount(Object.values(lesson.teamEvidence).join(" "));
+    return words;
   }
   function pacingFor(lesson) {
     var words = requiredWords(lesson);
@@ -100,6 +102,11 @@
     if (!lesson.project) return "";
     return '<aside class="project-context" aria-label="Project and cloud decision context"><strong>' + esc(lesson.project.label) + '</strong><p>' + esc(lesson.project.context) + '</p><a href="' + esc(lesson.project.adrHref) + '">' + ADR_LINK_LABEL + '</a></aside>';
   }
+  function teamEvidenceHtml(lesson) {
+    var item = lesson.teamEvidence;
+    if (!item) return "";
+    return '<section class="step team-evidence" aria-labelledby="team-evidence-title"><div class="tag">Team delivery evidence</div><h2 id="team-evidence-title">' + esc(item.artifact) + '</h2><dl><div><dt>Accountable role</dt><dd>' + esc(item.owner) + '</dd></div><div><dt>Acceptance rule</dt><dd>' + esc(item.acceptance) + '</dd></div><div><dt>Independent proof</dt><dd>' + esc(item.review) + '</dd></div></dl><p class="team-cloud-note"><b>Two separate decisions:</b> your personal AWS/GCP/Both reading view never rewrites the team’s single Week 6 primary-cloud ADR.</p></section>';
+  }
   function staticFallbackHtml(lesson, visualText) {
     var dayId = "w" + String(lesson.week).padStart(2, "0") + "d" + lesson.day;
     var pacing = pacingFor(lesson);
@@ -108,7 +115,7 @@
     var checks = lesson.checks.map(function (question, index) { return '<details><summary>' + (index + 1) + '. ' + esc(question.stem) + '</summary><p><b>Answer:</b> ' + esc(question.options[question.answer]) + '</p><p>' + esc(question.explain) + '</p></details>'; }).join("");
     var sources = lesson.sources.map(function (source) { return '<li><a href="' + esc(source.href) + '">' + esc(source.label) + '</a></li>'; }).join("");
     var boundary = lesson.week === 7 ? "Essential delivery-control boundary" : "Essential reliability-evidence boundary";
-    return '<noscript><style>#lesson-root{display:none}</style><main class="lesson2 nojs-lesson" data-curriculum-surface><article class="reading-col"><header class="lede"><h1>' + esc(lesson.title) + '</h1><div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + '</span><span><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div><p class="summary">' + esc(lesson.summary) + '</p>' + projectHtml(lesson) + '</header><section aria-labelledby="nojs-visual-' + dayId + '"><h2 id="nojs-visual-' + dayId + '">' + boundary + ' · text alternative</h2><p>' + esc(visualText || "The required diagram connects system evidence, control boundaries, failure behavior, and human ownership.") + '</p></section>' + sections + optionalHtml(lesson) + '<section><h2>Comprehension check</h2>' + checks + '</section><section class="reading-sources" data-core="optional" aria-label="Sources and evidence"><h2>Sources &amp; evidence trail</h2><ul>' + sources + '</ul></section><p><a href="../../index.html#curriculum">Return to the curriculum hub</a> · <a href="' + esc(route(dayId)) + '">' + esc(nextLabel(lesson)) + '</a></p></article></main></noscript>';
+    return '<noscript><style>#lesson-root{display:none}</style><main class="lesson2 nojs-lesson" data-curriculum-surface><article class="reading-col"><header class="lede"><h1>' + esc(lesson.title) + '</h1><div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + '</span><span><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div><p class="summary">' + esc(lesson.summary) + '</p>' + projectHtml(lesson) + '</header><section aria-labelledby="nojs-visual-' + dayId + '"><h2 id="nojs-visual-' + dayId + '">' + boundary + ' · text alternative</h2><p>' + esc(visualText || "The required diagram connects system evidence, control boundaries, failure behavior, and human ownership.") + '</p></section>' + sections + teamEvidenceHtml(lesson) + optionalHtml(lesson) + '<section><h2>Comprehension check</h2>' + checks + '</section><section class="reading-sources" data-core="optional" aria-label="Sources and evidence"><h2>Sources &amp; evidence trail</h2><ul>' + sources + '</ul></section><p><a href="../../index.html#curriculum">Return to the curriculum hub</a> · <a href="' + esc(route(dayId)) + '">' + esc(nextLabel(lesson)) + '</a></p></article></main></noscript>';
   }
   function render(doc, options) {
     var id = doc.body && doc.body.getAttribute("data-lesson");
@@ -143,7 +150,7 @@
       '<span class="core30-meta" title="Required reading is measured at 150 words per minute. Essential diagram dwell, one interaction, and the six-question check are included."><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div>' +
       '<p class="summary">' + esc(lesson.summary) + '</p>' + projectHtml(lesson) + '<div class="ix-legend"></div></div></header>' +
       '<section class="kafka-visual-breakout platform-visual-breakout" aria-label="' + visualTitle + '"><div class="stage-title">' + visualTitle + '</div>' + visualHtml + '</section>' +
-      '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav><article class="reading-col">' + sections + optionalHtml(lesson) +
+      '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav><article class="reading-col"><section class="capstone-context" aria-label="Project context"><b>Inherited team brownfield:</b> synthetic banking/payments evidence only. No client, learner, account, or provider fact is inferred.</section>' + sections + teamEvidenceHtml(lesson) + optionalHtml(lesson) +
       '<section class="reading-sources" data-core="optional" aria-label="Sources and evidence"><h2>Sources &amp; evidence trail</h2><p>Optional references outside the required path. Dated research records carry scope and currency notes.</p><ul>' + sources + '</ul></section></article>' +
       '<aside class="side kafka-side"><div class="side-cards"><button class="activity-card" type="button" data-modal="trainer-demo-modal"><div class="ac-k">Trainer cue</div><div class="ac-t">Facilitate the inert evidence exercise</div><div class="ac-meta">synthetic and review-only</div></button>' +
       '<button class="activity-card accent" type="button" data-modal="quiz-modal"><div class="ac-k">Comprehension check</div><div class="ac-t"><span class="quiz-count">6</span> questions on delivery judgement</div><div class="ac-meta">~5 min · practice</div></button></div>' +
@@ -160,5 +167,5 @@
     mountInteraction(doc, lesson);
     return true;
   }
-  return { esc: esc, wordCount: wordCount, requiredWords: requiredWords, pacingFor: pacingFor, route: route, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, projectHtml: projectHtml, staticFallbackHtml: staticFallbackHtml, render: render };
+  return { esc: esc, wordCount: wordCount, requiredWords: requiredWords, pacingFor: pacingFor, route: route, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, projectHtml: projectHtml, teamEvidenceHtml: teamEvidenceHtml, staticFallbackHtml: staticFallbackHtml, render: render };
 });

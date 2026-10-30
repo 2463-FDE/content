@@ -1,6 +1,6 @@
 # Week 9 evidence index — AI security, governance, and hardening
 
-- **Status:** approved curriculum transfer; provider-objective seam intentionally open
+- **Status:** approved curriculum transfer; provider-objective seam closed by the 2026-10-27 production wave ([`../w08-w10-production-wave.md`](../w08-w10-production-wave.md))
 - **Prepared:** 2026-10-14
 - **Primary curriculum record:** [`w09-source-excerpt.md`](w09-source-excerpt.md) — verbatim Week 9 section of the approved curriculum record
 - **Reconciliation record:** 2026-10-13 target-state scout report (program-owner record, not published). Findings used here: the derivative defines W9 as AI security & hardening and W10 as wrap-up, rollout & client showcase; W9–W10 had no reading pages; the client rebranded to "LTM Limited (Formerly LTIMindtree Limited)"; no provisioning, deployment, or external action is authorized.
@@ -22,4 +22,4 @@ The pages make no current provider-service, price, or certification-objective cl
 
 ## Exact evidence gap
 
-Verified current AWS/GCP certification objectives and provider-control mappings are absent from this lane. **Consequence:** trainers may coach learner goals and demonstrate the neutral control method, but must not claim objective coverage or provider equivalence until the parallel evidence is reviewed and integrated through `FDE_CURRICULUM_CONFIG.cloudPath`.
+Superseded 2026-10-27: dated provider-control and certification evidence for D3–D5 now lives in the `w09d3`–`w09d5` provider-path artifacts indexed by [`../w08-w10-production-wave.md`](../w08-w10-production-wave.md). Named regulations remain comparison topics, not legal conclusions.

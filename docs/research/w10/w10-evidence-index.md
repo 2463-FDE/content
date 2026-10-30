@@ -10,7 +10,7 @@
 
 | Day | Approved topic | Required artifact | Scope boundary |
 |---|---|---|---|
-| D1 | Production rollout planning, NFR verification, decision consolidation, risk, estimation | Reversible cutover plan and workload-placement memo schema | Planning/simulation only; provider facts remain evidence-gated |
+| D1 | Production rollout planning, NFR verification, decision consolidation, risk, estimation | Reversible cutover plan and workload-placement memo schema | Planning/simulation only; dated provider inputs in [`w10d1-provider-paths.md`](w10d1-provider-paths.md) |
 | D2 | Rollout execution, regression, performance, merge/integration, observability, security sign-off | Frozen-candidate release rehearsal | No real merge, deployment, accounts, or infrastructure |
 | D3 | Rollback, smoke tests, failure drills, documentation, runbooks, environment and access docs | Handoff package and locally rehearsed operating path | No credentials or external environments |
 | D4 | Freeze, readiness review, handoff narrative, capstone dry run, peer review | Frozen demo candidate and readiness record | Exceptions need defined authority and rerun evidence |
@@ -22,4 +22,4 @@ Week 10 teaches a production-shaped decision and handoff process without represe
 
 ## Exact evidence gap
 
-Current provider-specific workload facts and AWS/GCP certification objectives are owned by the parallel evidence lane. **Consequence:** the final showcase can defend the method, assumptions, unknowns, and flip conditions, but cannot present a final provider recommendation or objective-coverage claim from this implementation alone.
+Dated provider workload and exit-term evidence now lives in [`w10d1-provider-paths.md`](w10d1-provider-paths.md) and [`w10d5-provider-paths.md`](w10d5-provider-paths.md) (index: [`../w08-w10-production-wave.md`](../w08-w10-production-wave.md)). The showcase still defends method, assumptions, unknowns, and flip conditions; it never asserts a predetermined provider winner or invents client facts.
