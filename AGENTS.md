@@ -8,7 +8,8 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Read-only lesson code popups use `assets/js/codeviewer.js`, shared modal behavior in `assets/js/modals.js`, and the `.code-cta` / `.code-modal` styles in `assets/css/style.css`.
 - Week 6, Week 7–8, and Week 9–10 routes are thin shells over shared lesson data/renderers (`curriculum-lessons-w06.js` + `kafka-lesson.js`, `curriculum-lessons-w07-w08.js` + `platform-lesson.js`, then `curriculum-lessons-w09-w10.js` + `capstone-lesson.js` under `assets/js/`); supported batch-to-content-model, client, and cloud-lane presentation config is single-source in `assets/js/curriculum-config.js`, with URL/storage restoration in `assets/js/batch-context.js`.
 - Week 5 Archify SVGs and drift metadata live beside `docs/research/w05/archify-visual-brief.md`.
-- Archify source/tool/output provenance and drift rules live in each scope's visual plan/manifest (`docs/research/w06/archify-*` and `docs/research/w07-w08-archify-*`); keep authoring inputs, raw viewers, caches, source checkouts, and all Archify runtime files disposable.
+- Archify source/tool/output provenance and drift rules live in each scope's visual plan/manifest (`docs/research/w06/archify-*`, `docs/research/w07-w08-archify-*`, and `docs/research/system-blueprint/`); keep authoring inputs, raw viewers, caches, source checkouts, and all Archify runtime files disposable.
+- `system-blueprint.html` is a standalone optional-depth program map (two Archify figures + local drills, provider-neutral, outside Core 30); its week copy is keyword-coupled to `index.html`'s `window.WEEKS` by `tests/test_system_blueprint.py`, so a week retheme fails that suite and demands a copy review there, never a silent baseline update.
 
 ## Maintaining this file
 
