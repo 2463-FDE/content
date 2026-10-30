@@ -80,7 +80,7 @@
   width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; line-height: 1.45;
 }
 .pc-chat-row textarea { min-height: 48px; max-height: 150px; resize: vertical; }
-.pc-send { border: 0; border-radius: 10px; padding: 11px 17px; background: var(--accent); color: #fff; font: inherit; font-size: 14px; font-weight: 750; cursor: pointer; }
+.pc-send { border: 0; border-radius: 10px; padding: 11px 17px; background: var(--accent-fill); color: #fff; font: inherit; font-size: 14px; font-weight: 750; cursor: pointer; }
 .pc-send:hover { filter: brightness(.96); }
 
 .pc-inbox { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 650px; }
