@@ -11,7 +11,8 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Visual work follows `DESIGN.md` (normative tokens + named rules; "Dispatch Board" system). The token layer in `assets/css/style.css` `:root` (+ dark block) is the only propagation path for restyling the 50+ week pages — never restructure week HTML for visual change. `tests/design-system.test.cjs` pins the shell contracts (tokens in both themes, focus/reduced-motion/print, transform/opacity-only keyframes, the AA accent-fill rule, emoji-free chrome, hub anchors). After editing `style.css`, run `./bump-css.sh` so learners' caches pick it up.
 - Local synthetic Riverbend/Meridian communication practice is documented in `docs/persona-communications.md`; shared scenario truth lives in `assets/js/persona-communications-fixtures.js` and must remain network-, grading-, progress-, and assessment-independent.
 - Week 5 Archify SVGs and drift metadata live beside `docs/research/w05/archify-visual-brief.md`.
-- Archify source/tool/output provenance and drift rules live in each scope's visual plan/manifest (`docs/research/w06/archify-*` and `docs/research/w07-w08-archify-*`); keep authoring inputs, raw viewers, caches, source checkouts, and all Archify runtime files disposable.
+- Archify source/tool/output provenance and drift rules live in each scope's visual plan/manifest (`docs/research/w06/archify-*`, `docs/research/w07-w08-archify-*`, and `docs/research/system-blueprint/`); keep authoring inputs, raw viewers, caches, source checkouts, and all Archify runtime files disposable.
+- `system-blueprint.html` is a standalone optional-depth program map (two Archify figures + local drills, provider-neutral, outside Core 30); its week copy is keyword-coupled to `index.html`'s `window.WEEKS` by `tests/test_system_blueprint.py`, so a week retheme fails that suite and demands a copy review there, never a silent baseline update.
 
 ## Maintaining this file
 
