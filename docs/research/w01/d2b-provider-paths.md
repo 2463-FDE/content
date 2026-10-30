@@ -60,6 +60,15 @@ Source: https://docs.aws.amazon.com/bedrock/latest/userguide/prov-throughput.htm
 
 - "You can purchase Provisioned Throughput to provision a higher level of throughput for a model at a fixed cost." Billed hourly per Model Units (MUs); an MU specifies input and output tokens per minute. Lesson contrast: on-demand (shared, quota-limited) vs Provisioned Throughput (purchased capacity). No prices claimed.
 
+## AWS — current Claude endpoint IDs and routing
+
+Sources (accessed 2026-10-27):
+
+- https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html
+- https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-5-5.html
+
+Both model-card tables distinguish `bedrock-runtime` from `bedrock-mantle` and list bare in-Region model IDs, geographic inference-profile IDs, and global inference-profile IDs. The US profile examples are `us.anthropic.claude-haiku-5-5` and `us.anthropic.claude-sonnet-5-5`; they may route across US Regions and are not single-Region promises. Availability varies by Region and endpoint. Static review made no account call and cannot establish an organization's enabled or approved profile.
+
 ## GCP — Google Gen AI SDK call + streaming surface
 
 Source: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/sdks/overview (redirected from the former Vertex AI SDK overview URL; "Last updated 2026-10-13 UTC")

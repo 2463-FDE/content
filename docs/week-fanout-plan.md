@@ -122,7 +122,7 @@ related/current tech that looks missing. **Correct me where my read is wrong.**
 
 | Week | Topic (as written) | Likely-missing / currency flags |
 |------|--------------------|---------------------------------|
-| W1 | LLM Engineering for Production | Solid. Could name prompt caching + structured outputs explicitly. |
+| W1 | Production LLM Engineering on Bedrock & Claude Code | **Source-mapped 2026-10-27** to the LTIM FDE v3 Week 1 row (40 objectives, caching included); coverage and currency evidence in `docs/research/w01/`. |
 | W2 | RAG & Knowledge Retrieval | Pinecone/Chroma/pgvector stay — good teaching choices. Optional: rerankers (Cohere rerank / cross-encoders) + a nod to GraphRAG (ties to W4). |
 | W3 | Single-Agent Design & Memory | **LangChain v1.0** currency risk is highest here. **Add MCP (Model Context Protocol)** to the LangChain v1 material — it's the current standard tool/context interface. Prefer provider-native tool use over old LC tool wrappers. |
 | W4 | Multi-Agent & Knowledge Graphs | LangGraph persistence/checkpointers. Neo4j is the standard KG database to teach. |

@@ -8,6 +8,7 @@
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
+<a class="skip-link" href="#survey">Skip to feedback form</a>
 <div class="topbar">
   <div class="topbar-left">
     <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
@@ -21,9 +22,16 @@
   <div class="topbar-right"></div>
 </div>
 
-<div class="wrap">
-  <section class="survey" id="survey"></section>
-</div>
+<main class="wrap">
+  <section class="survey" id="survey" tabindex="-1"></section>
+  <noscript>
+    <section class="survey" aria-labelledby="survey-static-title">
+      <h2 id="survey-static-title">Week 1 feedback · static fallback</h2>
+      <p>The saved survey requires JavaScript. You can still complete the authoritative feedback workflow using the weekly feedback form.</p>
+      <p><a class="btn" href="https://forms.office.com/pages/responsepage.aspx?id=iuJja_motUeqQJfiMSFRZMU3bOO2vNdAiSFsti9sgKVUQkhYWEhIRzJSWjNOVVM5REFOU0tWT0JXQyQlQCN0PWcu&amp;route=shorturl" rel="noopener">Open feedback form</a></p>
+    </section>
+  </noscript>
+</main>
 
 <footer class="foot">2463-FDE · Week 1 weekly feedback — your numbers keep the program calibrated</footer>
 
@@ -36,7 +44,7 @@ window.SURVEY = {
     "Tue · Model selection + API integration patterns",
     "Wed · Prompt engineering + FDE Situation (model requirements)",
     "Thu · Token optimization + output guardrails",
-    "Fri · Code review + prompt library + LLM API Client milestone",
+    "Fri · Code review + cloud parity + prompt library + executive/technical readout",
     "Project work (your brownfield project)",
     "Weekly system-design challenge"
   ]

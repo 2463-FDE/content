@@ -10,6 +10,7 @@
 <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
+<a class="skip-link" id="reading-skip-link" href="#reading-main">Skip to reading</a>
 
 <div class="topbar">
   <div class="topbar-left">
@@ -25,7 +26,7 @@
     <span class="progressbar"><i></i></span></div>
 </div>
 
-<main class="lesson2">
+<main class="lesson2 reading-main-target" id="reading-main" tabindex="-1">
   <div class="reading2col">
 
     <nav class="toc" aria-label="On this page"></nav>
@@ -36,7 +37,7 @@
         <div class="meta">
           <span><b>Week 1</b> · Day 1</span>
           <span>Foundation AI Engineering</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta" data-core-words="1387" title="Required path: measured reading, essential diagram, one objective-aligned interaction with feedback, and the six-question check. Optional details are outside the cap."><b>Core 30</b> · ~9 min read · 1 interaction · 6-Q check · ~21 min required</span>
         </div>
         <p class="summary">Every superpower and every failure of an LLM traces back to one finite resource: the
         <strong>context window</strong>. Today you learn to think like the model's accountant — to work out what the
@@ -45,6 +46,18 @@
         real request into the window slice by slice, then shows what happens when it overflows.</p>
         <div class="ix-legend"></div>
       </div>
+
+      <section class="w1-core-brief" data-source-anchor="PDF p.1 · MON" aria-labelledby="w1-core-d1">
+        <p class="w1-source-anchor">Authoritative v3 · PDF p.1 · Monday</p>
+        <h2 id="w1-core-d1">Launch sequence</h2>
+        <p><strong>Orient, verify, then change.</strong> Week 1 uses reverse classroom: take the concise path before the session, bring evidence to practice, and use live time to compare decisions. Verify your own Claude Code install and authentication locally; this site never asks for a provider credential. Start one bounded session, create or review <code>CLAUDE.md</code> for durable project conventions, and write a short plan before touching code.</p>
+        <ol class="w1-launch-check">
+          <li>Record the command and repository boundary you verified; never paste tokens, keys, or client data.</li>
+          <li>Write one project-memory rule and a three-line spec-before-code plan for a tiny change.</li>
+          <li>Run the relevant local check. Keep the change only when the observed result matches the plan.</li>
+        </ol>
+        <p>This baseline calibrates an AI-assisted development workflow without grading model eloquence. The evidence is the bounded plan, changed artifact, and test result. The required technical exercise below asks you to diagnose the context window that governs the tool and every production LLM call.</p>
+      </section>
 
       <section class="step" data-diagram="0" data-step="0">
         <div class="tag">The whole game</div>
@@ -58,7 +71,11 @@
         window has a hard ceiling (say 8K, 128K, or 200K tokens depending on the model), and <em>nothing outside it
         exists</em> from the model's point of view. There is no "it sort of remembers" — either a fact is in the window
         for this call, or it is gone. See it for real — ask something answerable, then ask for a fact that was never placed in the window:</p>
-        <div class="ix-run"
+        <details class="deep" data-core="optional">
+
+          <summary>Optional live provider try-it · outside Core 30</summary>
+
+          <div class="ix-run"
              data-id="w01-d1-call"
              data-system="Answer in one sentence."
              data-examples='["What is the context window of a large language model?","What is the employee ID I gave you earlier in this conversation?"]'
@@ -66,6 +83,8 @@
              data-yourturn-label="✎ Try it: put a fact in, take it out"
              data-placeholder="Ask a normal question — then ask for a fact the model has no way to know."
              data-yourturn="My badge number is 7741 and my desk is on floor 3. What floor is my desk on?&#10;&#10;✎ Your turn — two runs. Run this as-is: it answers, because the fact is sitting right there in the window. Now delete the first sentence so only the question is left, and run again: same model, brand-new call, blank slate — it has no idea. That gap is the whole lesson. Capabilities and limits both come from the window."></div>
+
+        </details>
         <p>Here's the sentence to tattoo on your brain for the program: <strong>capabilities and limits both come from
         the window.</strong> "Can it summarize this contract?" "Why did it forget what I told it?" "Why did it
         confidently make something up?" — those feel like different problems, but they are the same question wearing
@@ -77,7 +96,9 @@
         you can reason about on a whiteboard in front of a client.</p>
       </section>
 
-      <section class="step" data-diagram="0" data-step="1">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="1">
+        <summary>Deeper: The system prompt always goes first · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Slice 1</div>
         <h2>The system prompt always goes first</h2>
         <p>The <strong>system prompt</strong> is the standing instruction set: the model's role, its rules, the output
@@ -95,9 +116,12 @@
         bloated prompt doesn't just cost money; it shrinks the room left for the work. So the first thing you'll do on
         many engagements is read the client's existing system prompt and ask, line by line, "does this earn its tokens?"
         Half of it is usually wishful repetition the model already follows.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="2">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="2">
+        <summary>Deeper: Few-shot examples buy quality with tokens · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Slice 2</div>
         <h2>Few-shot examples buy quality with tokens</h2>
         <p>One of the most reliable ways to improve output is to <strong>show, don't tell</strong>: include a few worked
@@ -109,9 +133,12 @@
         twelve usually isn't. So the FDE question is never "do examples help?" (they do) but <strong>"how few examples
         can I get away with and still hit the quality bar?"</strong> Buying quality deliberately against a budget, rather
         than spending freely, is the through-line of the whole day.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="step" data-diagram="0" data-step="3">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="3">
+        <summary>Deeper: Retrieved context can dominate · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Slice 3</div>
         <h2>Retrieved context can dominate</h2>
         <p>Now the big consumer. When you paste in documents, source files, database rows, or the results of a search,
@@ -130,7 +157,8 @@
         Keep this in your pocket: when a client's answer quality drops the moment they "give the AI more documents,"
         you're almost certainly watching precision collapse under volume, and the fix is better retrieval, not a bigger
         window.</p>
-      </section>
+        </div>
+      </details>
 
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Slice 4 · the silent leak</div>
@@ -143,7 +171,7 @@
         <p>And there's a failure mode hiding in it. When the accumulated history would overflow the window, something has
         to give — usually the <em>oldest</em> tokens get dropped off the front. Those oldest tokens are often your system
         prompt and the user's original instructions.</p>
-        <div class="ix-predict"
+        <div class="ix-predict" data-core-interaction data-interaction-kind="prediction-feedback"
           data-q="A client says: 'Your assistant is great at the start of a long chat, then halfway through it forgets our formatting rules and tone.' Before you touch the model, what's the most likely cause — and the fix?"
           data-a="<b>History eviction</b>, not a weak model. Every turn re-sends the whole conversation; once it overflows the window the <b>oldest</b> tokens drop off the front — and the oldest tokens are usually the <b>system prompt and original instructions</b>. The rules literally fell out of the window. The fix is <b>managing history</b> — summarize old turns, trim, or pin the system prompt so it can't be evicted — not buying a smarter model.">
         </div>
@@ -153,7 +181,9 @@
         bigger model.</p>
       </section>
 
-      <section class="step" data-diagram="0" data-step="5">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="5">
+        <summary>Deeper: The user&#x27;s question is just one more slice · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Slice 5</div>
         <h2>The user's question is just one more slice</h2>
         <p>Notice how late in the stack the user's <strong>actual question</strong> finally arrives. By the time real
@@ -168,7 +198,8 @@
         thin slice of the job; assembling the right system prompt, the right examples, and above all the right retrieved
         context around the question is the thick part. When two teams get wildly different results from "the same model,"
         the difference is almost always here, in what each team chose to put in the window beside the question.</p>
-      </section>
+        </div>
+      </details>
 
       <section class="step" data-diagram="0" data-step="6">
         <div class="tag">Token budget</div>
@@ -193,7 +224,9 @@
         <button class="code-cta" type="button" data-modal="code-w1d1"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· window.py</span></button>
       </section>
 
-      <section class="step" data-diagram="0" data-step="7">
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="7">
+        <summary>Deeper: Sampling decides how it answers · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Generation</div>
         <h2>Sampling decides how it answers</h2>
         <p>So far we've talked about what goes <em>in</em>. Now the output. The model doesn't write a whole answer at
@@ -211,7 +244,8 @@
         too hot for a task that needed determinism. (Caveat for later: even at temperature 0 you're not
         <em>guaranteed</em> bit-identical output across hardware and batching — "more deterministic", not "perfectly
         deterministic". Design your tests for that.)</p>
-      </section>
+        </div>
+      </details>
 
       <section class="step" data-diagram="0" data-step="8">
         <div class="tag">Failure mode</div>
@@ -234,7 +268,9 @@
         paying an FDE for.</p>
       </section>
 
-      <section class="step extra" data-diagram="0" data-step="8">
+      <details class="deep w1-optional step extra" data-core="optional" data-diagram="0" data-step="8">
+        <summary>Deeper: Claude Code is a window manager · outside Core 30</summary>
+        <div class="w1-optional-body">
         <div class="tag">Your tools · AI coding</div>
         <h2>Claude Code is a window manager</h2>
         <p>You'll work all program inside <strong>Claude Code</strong>, and here's the mental model that makes you good at
@@ -263,14 +299,27 @@ $ claude &quot;read every file in the whole repo, then find and fix the bug&quot
           You diagnose the window before you reach for the model. Hold onto that; it's the spine of the whole program, and
           tomorrow — once the window is second nature — we turn the model <em>choice</em> itself into a framework.</p>
         </div>
-      </section>
+        </div>
+      </details>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      <noscript data-core="optional">
+        <section class="w1-nojs" aria-labelledby="nojs-d1">
+          <h2 id="nojs-d1">Static Core 30 fallback</h2>
+          <p><strong>Essential diagram — Window budget:</strong> System + examples + retrieved context + history + question → reserved answer space.</p>
+          <p><strong>Practice:</strong> A long chat forgets its original rules. What do you inspect first? Write your decision before revealing feedback.</p>
+          <details><summary>Compare with feedback</summary><p>Inspect the context window and history policy: old instructions may have been evicted. Trim or summarize history and reserve answer space before changing models.</p></details>
+          <p>The six-question interactive check needs JavaScript. Without it, use this prompt as the check and take your written evidence to the trainer session.</p>
+        </section>
+      </noscript>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://platform.claude.com/docs/en/build-with-claude/context-windows" target="_blank" rel="noopener">Anthropic — Context windows</a> — how the window is structured and what counts against it (input + output).</li>
           <li><a href="https://platform.claude.com/docs/en/build-with-claude/token-counting" target="_blank" rel="noopener">Anthropic — Token counting</a> — measure tokens before you send, so you can budget a call instead of guessing.</li>
+          <li><a href="https://platform.claude.com/docs/en/about-claude/models/overview" target="_blank" rel="noopener">Anthropic — Models overview</a> — current model IDs and per-million-token prices used in the worked example (accessed 2026-10-27).</li>
           <li><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Vaswani et al. — Attention Is All You Need</a> — the original transformer paper; where "attention" as a finite, shared resource comes from.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html" target="_blank" rel="noopener">AWS — Claude Haiku 5.5 model card</a> — source for the <code>bedrock-runtime</code> US geo profile ID used in the static code example (accessed 2026-10-27; no account call).</li>
         </ul>
       </section>
 
@@ -279,7 +328,8 @@ $ claude &quot;read every file in the whole repo, then find and fix the bug&quot
     <aside class="side">
       <div class="side-diagram">
         <div class="stage-title">Live diagram</div>
-        <svg id="diagram"></svg>
+        <svg id="diagram" aria-label="Interactive lesson diagram"></svg>
+        <noscript><p class="static-diagram" role="img" aria-label="Window budget: System + examples + retrieved context + history + question → reserved answer space."><strong>Window budget</strong><br>System + examples + retrieved context + history + question → reserved answer space.</p></noscript>
         <div class="stage-caption"></div>
       </div>
 
@@ -299,7 +349,7 @@ $ claude &quot;read every file in the whole repo, then find and fix the bug&quot
       <div class="side-nav">
         <a class="snav-btn" href="../../index.html">◂ Back to Program</a>
         <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
-        <a class="snav-btn snav-next"></a>
+        <a class="snav-btn snav-next" href="d2a.html">Day 2 · Model selection →</a>
       </div>
     </aside>
 
@@ -317,9 +367,10 @@ $ claude &quot;read every file in the whole repo, then find and fix the bug&quot
     <p><strong>Tokens aren't words.</strong> Rule of thumb: 1 token ≈ 4 characters ≈ 0.75 English words. Common words are
     one token; rare or long words ("antidisestablishmentarianism") split into several; code and punctuation tokenize
     heavier than prose. When you size a budget, count tokens, not words.</p>
-    <p><strong>The cost formula.</strong> Providers bill input and output separately, per million tokens. Say a model
-    charges $3 / M input and $15 / M output (output is usually pricier). Cost of one call =
-    (input_tokens / 1e6 × $3) + (output_tokens / 1e6 × $15).</p>
+    <p><strong>The cost formula.</strong> Providers bill input and output separately, per million tokens. Using
+    Claude Sonnet 5.5's rate verified 2026-10-27 — $2 / M input and $10 / M output — one call costs
+    (input_tokens / 1e6 × $2) + (output_tokens / 1e6 × $10).
+    <span class="src">[source: Anthropic Models overview, accessed 2026-10-27]</span></p>
     <div class="model-answer show">
       <div class="ma-k">Worked example — one support-bot turn</div>
       <ul class="deliv-list">
@@ -329,9 +380,9 @@ $ claude &quot;read every file in the whole repo, then find and fix the bug&quot
         <li>User question: 100 tokens</li>
         <li>Answer (output): 400 tokens</li>
       </ul>
-      <p style="margin:8px 0 0">Input = 4,800 tokens → $0.0144. Output = 400 → $0.0060.
-      <strong>≈ $0.02 per turn.</strong> Trivial once — until you multiply by 50,000 turns/day = <strong>~$1,000/day</strong>,
-      and suddenly that 1,200-token history you never trimmed is a $250/day line item. Thursday's "context compression"
+      <p style="margin:8px 0 0">Input = 4,800 tokens → $0.0096. Output = 400 → $0.0040.
+      <strong>$0.0136 per turn.</strong> Trivial once — until you multiply by 50,000 turns/day = <strong>$680/day</strong>,
+      and suddenly that 1,200-token history you never trimmed is a $120/day line item. Thursday's "context compression"
       topic is, quite literally, a cost-savings project.</p>
     </div>
     <p style="margin-top:14px"><strong>Determinism caveat.</strong> Even at temperature 0, outputs are not guaranteed
@@ -494,7 +545,7 @@ messages = [{&quot;role&quot;: &quot;user&quot;,
              &quot;content&quot;: [{&quot;text&quot;: &quot;My badge is 7741, desk on floor 3. What floor?&quot;}]}]
 
 resp = bedrock.converse(
-    modelId=&quot;us.anthropic.claude-haiku-4-5-20251001-v1:0&quot;,  # current-gen needs the us. prefix
+    modelId=&quot;us.anthropic.claude-haiku-5-5&quot;,  # US geo profile; may route across US Regions
     system=system,
     messages=messages,
     inferenceConfig={&quot;maxTokens&quot;: 200, &quot;temperature&quot;: 0},   # temp 0 -&gt; repeatable
