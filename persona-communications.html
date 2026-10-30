@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persona Communications Simulation | 2463-FDE</title>
+<link rel="stylesheet" href="assets/css/style.css?v=20260805-rc3">
+<link rel="stylesheet" href="assets/css/persona-communications.css?v=20261029">
+<script src="assets/js/theme.js"></script>
+</head>
+<body class="pc-page">
+<a class="pc-skip" href="#pc-workspace">Skip to communication workspace</a>
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="index.html">Home</a>
+  </div>
+  <nav class="topbar-center" aria-label="Program">
+    <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="persona-communications.html" aria-current="page">Persona Comms</a>
+    <a class="topnav" href="delivery-track.html">Delivery Track</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="pc-identity">Signed-in browser identity: <strong id="pc-identity-name">checking…</strong></span>
+  </div>
+</div>
+
+<main class="pc-wrap" data-persona-app>
+  <header class="pc-intro">
+    <div>
+      <h1>Practice the conversation, <span>not a model call.</span></h1>
+      <p>Chat with a deterministic technical-lead simulation, send local stakeholder messages, and review formative communication coaching. Riverbend and Meridian each use one shared fixture truth across every channel.</p>
+    </div>
+    <div class="pc-sim-mark">Local synthetic simulation · no network authority</div>
+  </header>
+
+  <section class="pc-auth-gate" id="pc-auth-gate" hidden aria-labelledby="pc-auth-title">
+    <h2 id="pc-auth-title">Use your existing learner sign-in first</h2>
+    <p>This local inbox reads the platform's existing browser identity seam. It does not request a credential, validate a code, contact the FDE backend, or create a separate authentication system.</p>
+    <a class="pc-link-button" href="client-delivery.html">Return to Client Delivery to sign in</a>
+  </section>
+
+  <section class="pc-experience" id="pc-experience" hidden aria-label="Persona communication simulation">
+    <div class="pc-project-bar">
+      <div class="pc-project-tabs" role="tablist" aria-label="Project scenario">
+        <button class="pc-project-tab" type="button" role="tab" data-project-tab="riverbend" aria-selected="true" tabindex="0">
+          <strong>Riverbend</strong><span>Healthcare · legacy modernization</span>
+        </button>
+        <button class="pc-project-tab" type="button" role="tab" data-project-tab="meridian" aria-selected="false" tabindex="-1">
+          <strong>Meridian</strong><span>Lending and payments · platform engagement</span>
+        </button>
+      </div>
+      <div class="pc-reset-wrap">
+        <button class="pc-reset" id="pc-reset" type="button">Reset local simulation</button>
+        <span class="pc-reset-status" id="pc-reset-status" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="pc-workspace" id="pc-workspace">
+      <aside class="pc-context" aria-labelledby="pc-project-title">
+        <h2 id="pc-project-title">Riverbend Community Health</h2>
+        <p class="pc-project-phase" id="pc-project-phase"></p>
+        <p class="pc-project-intro" id="pc-project-intro"></p>
+        <h3>Shared scenario truth</h3>
+        <ul class="pc-facts" id="pc-facts"></ul>
+        <p class="pc-boundary"><strong>Simulation boundary.</strong> Responses come only from these repository-authored synthetic facts. The technical lead has no tools, model, credential, production access, or authority to act.</p>
+      </aside>
+
+      <div class="pc-main">
+        <div class="pc-clock-tools" id="pc-clock-tools" hidden role="status">
+          <strong>Accelerated test clock</strong>
+          <button type="button" data-clock-advance="15">Advance 15 min</button>
+          <button type="button" data-clock-advance="30">Advance 30 min</button>
+          <span>Enabled only by <code>?simClock=accelerated</code>.</span>
+        </div>
+        <div class="pc-channel-tabs" role="tablist" aria-label="Communication channel">
+          <button class="pc-channel-tab" type="button" role="tab" id="pc-tab-chat" aria-controls="pc-panel-chat" aria-selected="true" tabindex="0" data-channel-tab="chat">Technical-lead chat</button>
+          <button class="pc-channel-tab" type="button" role="tab" id="pc-tab-inbox" aria-controls="pc-panel-inbox" aria-selected="false" tabindex="-1" data-channel-tab="inbox">Stakeholder inbox</button>
+          <button class="pc-channel-tab" type="button" role="tab" id="pc-tab-coaching" aria-controls="pc-panel-coaching" aria-selected="false" tabindex="-1" data-channel-tab="coaching">Formative coaching</button>
+        </div>
+
+        <section class="pc-panel pc-chat" id="pc-panel-chat" role="tabpanel" aria-labelledby="pc-tab-chat" data-channel-panel="chat">
+          <header class="pc-panel-head">
+            <h2 id="pc-lead-label">Riverbend IT lead</h2>
+            <p>Ask for clarification, negotiate scope, or test respectful pushback. Replies are deterministic and scenario-grounded.</p>
+          </header>
+          <div class="pc-chat-log" id="pc-chat-log" aria-label="Technical-lead chat transcript"></div>
+          <p class="sr-only" id="pc-chat-announcer" role="status" aria-live="polite"></p>
+          <form class="pc-chat-compose" id="pc-chat-form">
+            <div class="pc-prompts" id="pc-chat-prompts" aria-label="Suggested prompts"></div>
+            <label class="sr-only" for="pc-chat-input">Message the technical lead</label>
+            <div class="pc-chat-row">
+              <textarea id="pc-chat-input" rows="2" required placeholder="Ask a question or propose how you would respond…"></textarea>
+              <button class="pc-send" type="submit">Send locally</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="pc-panel pc-inbox" id="pc-panel-inbox" role="tabpanel" aria-labelledby="pc-tab-inbox" data-channel-panel="inbox" hidden>
+          <aside class="pc-thread-list" aria-label="Synthetic stakeholder threads">
+            <h2>Inbox</h2>
+            <div id="pc-inbox-list"></div>
+          </aside>
+          <div class="pc-inbox-detail">
+            <div class="pc-thread-view" id="pc-thread-view"></div>
+            <p class="sr-only" id="pc-inbox-announcer" role="status" aria-live="polite"></p>
+            <div class="pc-compose">
+              <h3>Compose a local message</h3>
+              <form class="pc-compose-form" id="pc-compose-form">
+                <div class="pc-field">
+                  <label for="pc-compose-to">To</label>
+                  <input id="pc-compose-to" type="text" readonly>
+                </div>
+                <div class="pc-field">
+                  <label for="pc-compose-subject">Subject</label>
+                  <input id="pc-compose-subject" type="text" maxlength="140" required>
+                </div>
+                <div class="pc-field pc-field--body">
+                  <label for="pc-compose-body">Message</label>
+                  <textarea id="pc-compose-body" maxlength="3000" required placeholder="Set the expectation, evidence boundary, owner, and next step."></textarea>
+                </div>
+                <div class="pc-compose-actions">
+                  <button class="pc-send" type="submit">Send in simulation</button>
+                  <span class="pc-compose-status" id="pc-compose-status" role="status" aria-live="polite"></span>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section class="pc-panel pc-coaching" id="pc-panel-coaching" role="tabpanel" aria-labelledby="pc-tab-coaching" data-channel-panel="coaching" hidden>
+          <h2>Communication coaching</h2>
+          <p>Review your local chat and stakeholder messages for clarity, question quality, persuasion, respectful pushback, expectation-setting, and rapport. This is formative practice only.</p>
+          <div class="pc-coaching-action">
+            <button class="pc-send" id="pc-run-coaching" type="button">Review my communication</button>
+            <span class="pc-coaching-status" id="pc-coaching-status" role="status" aria-live="polite"></span>
+          </div>
+          <div class="pc-coaching-results" id="pc-coaching-results"></div>
+          <p><strong>Hard boundary:</strong> coaching does not determine, change, export, or feed grades, assessment results, progress completion, trainer manifests, or scored rubrics.</p>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">2463-FDE · Local synthetic persona communications · no external send</footer>
+<script src="assets/js/persona-communications-fixtures.js?v=20261029"></script>
+<script src="assets/js/persona-communications.js?v=20261029"></script>
+</body>
+</html>
