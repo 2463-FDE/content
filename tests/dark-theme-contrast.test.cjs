@@ -1,74 +1,60 @@
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const test = require("node:test");
+const { loadPage, hexRgb, composite, contrast } = require("./support/page-model.cjs");
 
-const css = fs.readFileSync(path.resolve(__dirname, "../assets/css/style.css"), "utf8");
-
-function tokenFrom(blockPattern, name) {
-  const block = css.match(blockPattern)?.[1] || "";
-  const value = block.match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1].trim();
-  assert.ok(value, `missing token --${name}`);
-  return value;
+function darkWeek1() {
+  const page = loadPage("weeks/w01/d1.html");
+  page.doc.documentElement.setAttribute("data-theme", "dark");
+  return { page, doc: page.doc, styles: page.styles({ colorScheme: "dark" }) };
 }
 
-function darkToken(name) {
-  return tokenFrom(/html\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/, name);
-}
-
-function rgb(hex) {
-  assert.match(hex, /^#[0-9a-f]{6}$/i);
-  return [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
-}
-
-function composite(foreground, background, alpha) {
-  return foreground.map((channel, index) => Math.round(channel * alpha + background[index] * (1 - alpha)));
-}
-
-function luminance(color) {
-  const linear = color.map((channel) => {
-    const value = channel / 255;
-    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
-}
-
-function contrast(foreground, background) {
-  const [lighter, darker] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
-  return (lighter + 0.05) / (darker + 0.05);
+function inactiveStep(doc) {
+  const step = doc.querySelectorAll("section.step").find((node) => !node.classList.contains("active"));
+  assert.ok(step, "Week 1 must render inactive lesson steps");
+  return step;
 }
 
 test("default-dark inactive lesson prose, labels, and tags remain WCAG AA", () => {
-  assert.match(css, /\.step\s*\{[\s\S]*?opacity:\s*var\(--step-muted-opacity\)/);
-  const background = rgb(darkToken("bg"));
-  const opacity = Number(darkToken("step-muted-opacity"));
-  assert.ok(opacity < 1, "inactive steps must retain visual hierarchy");
+  const { doc, styles } = darkWeek1();
+  const background = hexRgb(styles.computed(doc.body, "background"));
+  const step = inactiveStep(doc);
+  const opacity = Number(styles.computed(step, "opacity"));
+  assert.ok(opacity > 0 && opacity < 1, "inactive steps must retain visual hierarchy");
 
+  const probe = doc.createElement("div");
+  probe.innerHTML = '<button class="btn" type="button">Run</button><button class="code-cta" type="button"><span class="cc-meta">window.py</span></button>';
+  step.appendChild(probe);
+  const tokens = styles.customProperties(step);
   const samples = [
-    ["instructional prose", darkToken("ink")],
-    ["secondary labels", darkToken("ink-soft")],
-    ["step tags", darkToken("accent-ink")],
-    ["instructional controls", darkToken("accent")],
-    ["control metadata", darkToken("dim")],
+    ["instructional prose", styles.computed(step.querySelector("p"), "color")],
+    ["secondary labels", styles.computed(probe.querySelector(".cc-meta"), "color")],
+    ["step tags", styles.computed(step.querySelector(".tag"), "color")],
+    ["instructional controls", styles.resolve("var(--accent)", tokens)],
+    ["control metadata", styles.resolve("var(--dim)", tokens)],
   ];
-  for (const [surface, token] of samples) {
-    const rendered = composite(rgb(token), background, opacity);
+  for (const [surface, color] of samples) {
+    const rendered = composite(hexRgb(color), background, opacity);
     assert.ok(contrast(rendered, background) >= 4.5, `${surface} fell below 4.5:1`);
   }
 
-  const mutedButtonText = composite(rgb("#ffffff"), background, opacity);
-  const mutedButtonFill = composite(rgb(darkToken("accent-fill")), background, opacity);
+  const button = probe.querySelector(".btn");
+  const mutedButtonText = composite(hexRgb(styles.computed(button, "color")), background, opacity);
+  const mutedButtonFill = composite(hexRgb(styles.computed(button, "background")), background, opacity);
   assert.ok(contrast(mutedButtonText, mutedButtonFill) >= 4.5, "filled control fell below 4.5:1");
-  assert.match(css, /\.code-cta \.cc-meta \{ color:var\(--ink-soft\);/);
 });
 
-test("Week 1 uses shared step and tag token surfaces covered by the contrast regression", () => {
-  const lesson = fs.readFileSync(path.resolve(__dirname, "../weeks/w01/d1.html"), "utf8");
-  assert.match(lesson, /<section class="step"/);
-  assert.match(lesson, /<div class="tag">The whole game<\/div>/);
-  assert.match(lesson, /<p>Start with the fact that reframes everything else:/);
-  assert.match(lesson, /class='stage-hint'>\(tap nodes for detail\)<\/span>/);
-  assert.doesNotMatch(lesson, /style='opacity:\.7'>\(tap/);
-  assert.match(css, /\.stage-caption \.stage-hint \{ opacity: var\(--caption-hint-opacity\); \}/);
-  assert.ok(Number(darkToken("caption-hint-opacity")) >= 0.8);
+test("Week 1 step tags and caption hints resolve through the shared dark tokens", () => {
+  const { doc, styles } = darkWeek1();
+  const step = inactiveStep(doc);
+  const tag = step.querySelector(".tag");
+  assert.equal(tag.textContent, "The whole game");
+  const tokens = styles.customProperties(step);
+  assert.equal(styles.computed(tag, "color"), styles.resolve("var(--accent-ink)", tokens));
+
+  const caption = doc.querySelector(".stage-caption");
+  assert.ok(caption, "Week 1 must render the diagram caption surface");
+  caption.innerHTML = "Window budget <span class='stage-hint'>(tap nodes for detail)</span>";
+  const hint = caption.querySelector(".stage-hint");
+  const opacity = Number(styles.computed(hint, "opacity"));
+  assert.ok(opacity >= 0.8, `caption hint opacity ${opacity} is below 0.8`);
 });

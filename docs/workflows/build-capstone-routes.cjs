@@ -23,7 +23,7 @@ function page(id, lesson) {
 <meta name="fde-day" content="${id}">
 <meta name="fde-concepts" content="${concepts}">
 <title>W${lesson.week}·D${lesson.day} — ${renderer.esc(lesson.title)} | 2463-FDE</title>
-<link rel="stylesheet" href="../../assets/css/style.css?v=20261027-capstone">
+<link rel="stylesheet" href="../../assets/css/style.css?v=20261030-a11y">
 <link rel="stylesheet" href="../../assets/css/cloud-path.css?v=20261014-c2">
 <script src="../../assets/js/theme.js"></script>
 </head>

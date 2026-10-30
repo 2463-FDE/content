@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const fixtures = require("../assets/js/persona-communications-fixtures.js");
 const comms = require("../assets/js/persona-communications.js");
+const { loadPage, hexRgb, luminance, contrast, contrastFromLuminance } = require("./support/page-model.cjs");
 
 class MemoryStorage {
   constructor(initial = {}) { this.values = new Map(Object.entries(initial)); this.calls = []; }
@@ -109,48 +110,48 @@ class DomDocument {
 }
 
 const PAGE_HTML = fs.readFileSync(path.resolve(__dirname, "..", "persona-communications.html"), "utf8");
-const PERSONA_CSS = fs.readFileSync(path.resolve(__dirname, "../assets/css/persona-communications.css"), "utf8");
-const SHARED_CSS = fs.readFileSync(path.resolve(__dirname, "../assets/css/style.css"), "utf8");
-const CLIENT_DELIVERY_HTML = fs.readFileSync(path.resolve(__dirname, "../client-delivery.html"), "utf8");
 const LEARNER = { code: "SYN-LEARNER-01", name: "Synthetic Learner", role: "learner" };
 
-function hexRgb(hex) {
-  assert.match(hex, /^#[0-9a-f]{6}$/i);
-  return [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
+function brightened(color, factor) {
+  return luminance(color) * factor;
 }
 
-function relativeLuminance(color) {
-  const linear = color.map((channel) => {
-    const value = channel / 255;
-    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+function filterFactor(filter) {
+  const match = /^brightness\(\s*([\d.]+)(%?)\s*\)$/.exec(filter);
+  assert.ok(match, `expected a brightness() hover filter, got ${filter}`);
+  return Number(match[1]) / (match[2] ? 100 : 1);
 }
 
-function contrastRatio(foreground, background) {
-  const values = [relativeLuminance(foreground), relativeLuminance(background)].sort((a, b) => b - a);
-  return (values[0] + 0.05) / (values[1] + 0.05);
-}
+test("persona-owned filled CTAs keep AA contrast at rest, on hover, and with a visible focus ring in both themes", () => {
+  const surfaces = [
+    ["persona-communications.html", ".pc-send"],
+    ["client-delivery.html", ".cc-launch"],
+  ];
+  for (const [file, selector] of surfaces) {
+    const page = loadPage(file);
+    const ctas = page.doc.querySelectorAll(selector);
+    assert.ok(ctas.length > 0, `${file} must render ${selector}`);
+    for (const theme of ["light", "dark"]) {
+      if (theme === "dark") page.doc.documentElement.setAttribute("data-theme", "dark");
+      else page.doc.documentElement.removeAttribute("data-theme");
+      const styles = page.styles({ colorScheme: theme });
+      for (const cta of ctas) {
+        const label = `${file} ${selector} (${theme})`;
+        const text = hexRgb(styles.computed(cta, "color"));
+        const fill = hexRgb(styles.computed(cta, "background"));
+        assert.ok(parseFloat(styles.computed(cta, "font-size")) >= 14, `${label} keeps its 14px label`);
+        assert.ok(contrast(text, fill) >= 4.5, `${label} fell below 4.5:1 at rest`);
 
-function themeToken(blockPattern, name) {
-  const block = SHARED_CSS.match(blockPattern)?.[1] || "";
-  const value = block.match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1].trim();
-  assert.ok(value, `missing --${name}`);
-  return value;
-}
+        const factor = filterFactor(styles.computed(cta, "filter", { states: new Set(["hover"]) }));
+        assert.ok(contrastFromLuminance(brightened(text, factor), brightened(fill, factor)) >= 4.5, `${label} fell below 4.5:1 on hover`);
 
-const LIGHT_ACCENT_FILL = themeToken(/:root\s*\{([\s\S]*?)\n\}/, "accent-fill");
-const DARK_ACCENT_FILL = themeToken(/html\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/, "accent-fill");
-
-test("persona-owned filled CTAs use the existing AA-safe accent-fill role", () => {
-  assert.match(PERSONA_CSS, /\.pc-send\s*\{[^}]*background:\s*var\(--accent-fill\);[^}]*color:\s*#fff;[^}]*font-size:\s*14px;[^}]*font-weight:\s*750;/s);
-  assert.match(CLIENT_DELIVERY_HTML, /\.cc-launch\s*\{[^}]*background:var\(--accent-fill\);[^}]*color:#fff;[^}]*font-size:14px;[^}]*font-weight:700;/s);
-  for (const [theme, token] of [["light", LIGHT_ACCENT_FILL], ["dark", DARK_ACCENT_FILL]]) {
-    assert.ok(contrastRatio(hexRgb("#ffffff"), hexRgb(token)) >= 4.5, `${theme} accent-fill must keep 14px white CTA text at 4.5:1`);
+        const outline = styles.computed(cta, "outline", { states: new Set(["focus-visible"]) });
+        assert.ok(outline, `${label} must draw a focus-visible outline`);
+        const [width, style] = outline.split(/\s+/);
+        assert.ok(parseFloat(width) >= 3 && style === "solid", `${label} focus outline is ${outline}`);
+      }
+    }
   }
-  assert.match(PERSONA_CSS, /\.pc-send:hover\s*\{\s*filter:\s*brightness\(\.96\);\s*\}/);
-  assert.match(CLIENT_DELIVERY_HTML, /\.cc-launch:hover\s*\{\s*filter:brightness\(\.96\);\s*\}/);
-  assert.match(SHARED_CSS, /:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--accent\)/s);
 });
 
 function mountPage({ storage = new SpyStorage({ fde_identity: JSON.stringify(LEARNER) }), query = "?simClock=accelerated", clock } = {}) {

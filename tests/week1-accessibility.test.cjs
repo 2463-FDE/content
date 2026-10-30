@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
+const { loadPage } = require("./support/page-model.cjs");
 
 const ROOT = path.resolve(__dirname, "..");
 const source = fs.readFileSync(path.join(ROOT, "assets/js/interactive.js"), "utf8");
@@ -27,7 +28,22 @@ function node(overrides = {}) {
   };
 }
 
-function initializeWeek1Widgets() {
+const DEFAULT_RUN_DATASET = {
+  id: "w01-d1-call",
+  examples: JSON.stringify(["Answerable", "Not in the window"]),
+  labels: JSON.stringify(["First", "Second"]),
+  yourturn: "Editable prompt",
+};
+
+function datasetOf(element) {
+  const dataset = {};
+  for (const [name, value] of element.attributes) {
+    if (name.startsWith("data-")) dataset[name.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = value;
+  }
+  return dataset;
+}
+
+function initializeWeek1Widgets(runDataset = DEFAULT_RUN_DATASET) {
   const range = node({ value: "20" });
   const temperatureValue = node();
   const temperatureDescription = node();
@@ -50,12 +66,7 @@ function initializeWeek1Widgets() {
   const note = node();
   const tabs = [node(), node(), node()];
   const run = {
-    dataset: {
-      id: "w01-d1-call",
-      examples: JSON.stringify(["Answerable", "Not in the window"]),
-      labels: JSON.stringify(["First", "Second"]),
-      yourturn: "Editable prompt",
-    },
+    dataset: runDataset,
     classList: new Classes(),
     html: "",
     set innerHTML(value) { this.html = value; },
@@ -112,9 +123,16 @@ test("Week 1 live example and result use named output semantics", () => {
   assert.equal(edit.hidden, true);
 });
 
-test("representative Week 1 lesson retains the affected widgets and accepted copy", () => {
-  const lesson = fs.readFileSync(path.join(ROOT, "weeks/w01/d1.html"), "utf8");
-  assert.match(lesson, /<div class="ix-run"/);
-  assert.match(lesson, /<div class="ix-temp"><\/div>/);
-  assert.match(lesson, /6-Q check/);
+test("representative Week 1 lesson mounts its own widgets with the accepted names and copy", () => {
+  const { doc } = loadPage("weeks/w01/d1.html");
+  const runs = doc.querySelectorAll("div.ix-run");
+  assert.ok(runs.length >= 1, "Week 1 lesson must include a live example widget");
+  assert.ok(doc.querySelectorAll("div.ix-temp").length >= 1, "Week 1 lesson must include the temperature widget");
+  const dataset = datasetOf(runs[0]);
+  const { run, temp } = initializeWeek1Widgets(dataset);
+  assert.match(run.html, new RegExp(`<label class="ix-control-label run-preset-label" for="run-${dataset.id}-preset">Example prompt</label>`));
+  assert.match(run.html, new RegExp(`<output class="ix-ta run-in run-preset" id="run-${dataset.id}-preset"`));
+  assert.match(run.html, /<output class="run-out" aria-label="Run result" aria-live="polite"><\/output>/);
+  assert.match(temp.html, /<label class="ix-control-label" for="ix-temperature-\d+">Temperature<\/label>/);
+  assert.match(doc.body.textContent, /6-Q check/);
 });
