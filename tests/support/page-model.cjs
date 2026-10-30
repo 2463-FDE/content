@@ -46,6 +46,7 @@ class Node {
     this.value = "";
     this.disabled = false;
     this.classList = new ClassList(this);
+    this.style = {};
     const element = this;
     this.dataset = new Proxy({}, {
       get(_, key) { return typeof key === "string" ? element.getAttribute(`data-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`) ?? undefined : undefined; },
@@ -107,6 +108,8 @@ class Node {
   }
   click() { return this.dispatch("click"); }
   focus() { this.ownerDocument.activeElement = this; }
+  remove() { if (this.parentNode) this.parentNode.childNodes.splice(this.parentNode.childNodes.indexOf(this), 1); this.parentNode = null; }
+  getTotalLength() { return 0; }
 }
 
 class Document {
@@ -120,6 +123,7 @@ class Document {
   get documentElement() { return this.root.children.find((node) => node.localName === "html") || this.root; }
   get body() { return this.root.querySelector("body"); }
   createElement(tag) { return new Node(this, tag.toLowerCase()); }
+  createElementNS(_, tag) { return new Node(this, tag.toLowerCase()); }
   getElementById(id) { return this.root.getElementById(id); }
   querySelectorAll(selector) { return this.root.querySelectorAll(selector); }
   querySelector(selector) { return this.root.querySelector(selector); }

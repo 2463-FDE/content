@@ -5,7 +5,7 @@ const path = require("node:path");
 
 const fixtures = require("../assets/js/persona-communications-fixtures.js");
 const comms = require("../assets/js/persona-communications.js");
-const { loadPage, hexRgb, luminance, contrast, contrastFromLuminance } = require("./support/page-model.cjs");
+const { loadPage, hexRgb, contrast } = require("./support/page-model.cjs");
 
 class MemoryStorage {
   constructor(initial = {}) { this.values = new Map(Object.entries(initial)); this.calls = []; }
@@ -113,7 +113,7 @@ const PAGE_HTML = fs.readFileSync(path.resolve(__dirname, "..", "persona-communi
 const LEARNER = { code: "SYN-LEARNER-01", name: "Synthetic Learner", role: "learner" };
 
 function brightened(color, factor) {
-  return luminance(color) * factor;
+  return color.map((channel) => Math.min(255, channel * factor));
 }
 
 function filterFactor(filter) {
@@ -143,7 +143,7 @@ test("persona-owned filled CTAs keep AA contrast at rest, on hover, and with a v
         assert.ok(contrast(text, fill) >= 4.5, `${label} fell below 4.5:1 at rest`);
 
         const factor = filterFactor(styles.computed(cta, "filter", { states: new Set(["hover"]) }));
-        assert.ok(contrastFromLuminance(brightened(text, factor), brightened(fill, factor)) >= 4.5, `${label} fell below 4.5:1 on hover`);
+        assert.ok(contrast(brightened(text, factor), brightened(fill, factor)) >= 4.5, `${label} fell below 4.5:1 on hover`);
 
         const outline = styles.computed(cta, "outline", { states: new Set(["focus-visible"]) });
         assert.ok(outline, `${label} must draw a focus-visible outline`);

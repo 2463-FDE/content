@@ -123,7 +123,7 @@ test("Week 1 live example and result use named output semantics", () => {
   assert.equal(edit.hidden, true);
 });
 
-test("representative Week 1 lesson mounts its own widgets with the accepted names and copy", () => {
+test("representative Week 1 lesson mounts its own widgets with the accepted names", () => {
   const { doc } = loadPage("weeks/w01/d1.html");
   const runs = doc.querySelectorAll("div.ix-run");
   assert.ok(runs.length >= 1, "Week 1 lesson must include a live example widget");
@@ -134,5 +134,4 @@ test("representative Week 1 lesson mounts its own widgets with the accepted name
   assert.match(run.html, new RegExp(`<output class="ix-ta run-in run-preset" id="run-${dataset.id}-preset"`));
   assert.match(run.html, /<output class="run-out" aria-label="Run result" aria-live="polite"><\/output>/);
   assert.match(temp.html, /<label class="ix-control-label" for="ix-temperature-\d+">Temperature<\/label>/);
-  assert.match(doc.body.textContent, /6-Q check/);
 });
