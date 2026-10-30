@@ -78,7 +78,14 @@
   }
 
   /* Week strip: plain anchors without JS; with JS they also open the target
-     details entry and move focus to its summary. */
+     details entry and move focus to its summary. The anchor's default fragment
+     navigation runs after this handler and resets the document's focus, so an
+     immediate summary.focus() is not durable; when the view can schedule work
+     after that navigation, the focus move is deferred past it. */
+  function focusSummary(target) {
+    var summary = target.querySelector ? target.querySelector("summary") : null;
+    if (summary && summary.focus) summary.focus();
+  }
   function wireStrip(doc) {
     var stops = doc.querySelectorAll("a[data-week-stop]");
     for (var i = 0; i < stops.length; i += 1) {
@@ -88,8 +95,12 @@
           var target = id ? doc.getElementById(id) : null;
           if (!target) return;
           target.open = true;
-          var summary = target.querySelector("summary");
-          if (summary && summary.focus) summary.focus();
+          var view = doc.defaultView;
+          if (view && typeof view.requestAnimationFrame === "function") {
+            view.requestAnimationFrame(function () { focusSummary(target); });
+          } else {
+            focusSummary(target);
+          }
         });
       })(stops[i]);
     }

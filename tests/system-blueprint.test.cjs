@@ -128,6 +128,41 @@ test("init wires week stops to open and focus their target details", () => {
   assert.equal(summary.focusCount, 1);
 });
 
+test("week-stop focus survives the anchor's default fragment navigation", () => {
+  const doc = new FakeNode("document");
+  const stop = new FakeNode("a");
+  stop.setAttribute("data-week-stop", "");
+  stop.setAttribute("href", "#sb-w06");
+  const target = new FakeNode("details");
+  const summary = new FakeNode("summary");
+  target.selectors.set("summary", summary);
+  doc.selectorLists.set("fieldset[data-drill]", []);
+  doc.selectorLists.set("a[data-week-stop]", [stop]);
+  doc.getElementById = (id) => (id === "sb-w06" ? target : null);
+
+  // Browser-faithful ordering: the click handler runs first, then the anchor's
+  // default fragment navigation resets document focus, and only afterwards do
+  // scheduled animation frames run.
+  const frames = [];
+  let activeElement = null;
+  summary.focus = () => { summary.focusCount += 1; activeElement = summary; };
+  doc.defaultView = { requestAnimationFrame: (fn) => { frames.push(fn); } };
+
+  blueprint.init(doc);
+  stop.click();
+  assert.equal(target.open, true, "handler still opens the target details");
+
+  // Native anchor behavior must not be suppressed: nothing focused yet, and
+  // the fragment jump now moves document focus to <body>.
+  assert.equal(summary.focusCount, 0, "focus is deferred past default navigation");
+  activeElement = "BODY";
+
+  assert.equal(frames.length, 1);
+  frames.forEach((fn) => fn());
+  assert.equal(summary.focusCount, 1);
+  assert.equal(activeElement, summary, "summary holds focus after the fragment jump");
+});
+
 class GuardedNode extends FakeNode {
   constructor(tag, sinks) {
     super(tag);
