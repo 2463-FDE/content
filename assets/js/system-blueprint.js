@@ -95,8 +95,14 @@
     }
   }
 
+  function markEnhanced(doc) {
+    var html = doc.documentElement;
+    if (html && html.classList) html.classList.add("sb-js");
+  }
+
   function init(doc) {
     if (!doc || !doc.querySelectorAll) return;
+    markEnhanced(doc);
     var drills = doc.querySelectorAll("fieldset[data-drill]");
     for (var i = 0; i < drills.length; i += 1) wireDrill(doc, drills[i]);
     wireStrip(doc);
