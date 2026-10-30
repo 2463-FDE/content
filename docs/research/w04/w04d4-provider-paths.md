@@ -80,6 +80,29 @@ Source: https://docs.cloud.google.com/spanner/docs/graph/overview (page "Last up
 - Navigation includes "Spanner Graph reference for openCypher users" (supports "translating, not pasting"; the lesson does not claim Spanner Graph runs Neo4j Cypher).
 - Edition note ("available with the Spanner Enterprise edition and Enterprise Plus edition") not used on the page.
 
+## V3 production restoration — model-plane cache and provider seam
+
+The source-assigned Day 4 material was restored on 2026-10-27. These first-party
+provider pages were **accessed 2026-10-14** during the cloud-path evidence wave
+and re-used without adding prices, quotas, deployment, or account actions.
+
+Source: https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html
+
+- Amazon Bedrock prompt caching is a provider-specific optimization for repeated
+  prompt prefixes. The lesson asks learners to measure its effect rather than
+  assume cache behavior survives a provider swap.
+
+Source: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/context-cache/context-cache-overview
+
+- Vertex AI context caching is the corresponding provider-specific comparison.
+  The lesson keeps the adapter's message/tool contract portable while treating
+  cache configuration and telemetry as provider-bound acceptance tests.
+
+The literal `ChatBedrock` / `ChatAnthropicVertex` names come from the verified
+LTIM FDE v3 source. The lesson presents them as the seam to defend, not as a
+claim that the two implementations or their cache controls are drop-in
+identical.
+
 ## Not claimed / could not verify
 
 - **Self-managed Neo4j on Compute Engine** is not documented by name on a current first-party page (Neo4j's GCP page redirects to the generic cloud-deployments page, and its GCP self-managed link is a Terraform repository). The GCP block therefore says "deployed and run in your own project" without naming Compute Engine.

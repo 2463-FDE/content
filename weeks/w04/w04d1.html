@@ -37,7 +37,7 @@
         <div class="meta">
           <span><b>Week 4</b> · Day 1</span>
           <span>Multi-Agent Systems</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta"><b>Core 30</b> · ~9 min read · 1 interaction · 6-Q check</span>
         </div>
         <p class="summary">Last week you built a single production agent. This week the question changes: when is one
         agent <em>not enough</em> — and when you split the work, <strong>who decides who works next?</strong> Today you
@@ -46,7 +46,9 @@
         both: the <strong>handoff</strong>, which turns out to be nothing more exotic than a tool call. Scroll the
         reading; the panel on the right builds both architectures side by side, then shows why naive multi-agent
         systems fail and the one rule that makes them work.</p>
+        <aside class="callout mindset project-progress" aria-label="Solo insurance project progress"><b>Project 1 · solo insurance brownfield</b><p>Advance: add an orchestration ADR that names the split driver, handoff boundary, one write owner, and the simpler single-agent alternative.</p></aside>
         <div class="ix-legend"></div>
+        <noscript><section class="core30-fallback" aria-label="No-JavaScript practice and check"><h2>Offline practice</h2><p>Choose one agent, supervisor, swarm, or parallel workers for the synthetic workflow.</p><details><summary>Check your reasoning</summary><p>A split needs context, ownership, or parallelism evidence; shared writes retain one owner.</p></details></section></noscript>
       </div>
 
       <section class="step" data-diagram="0" data-step="0">
@@ -150,12 +152,14 @@
         boilerplate needed. And there is an opt-in beta that collapses the prior transcript into a summary block on
         transfer instead of forwarding it raw: the framework authors converging on the same window discipline you
         learned in Week 1.</p>
+        <div class="core-practice" data-core-interaction><fieldset><legend>Choose the boundary for the synthetic insurance workflow</legend><label><input type="radio" name="w04d1-pattern"> Supervisor: one coordinator owns routing and writes</label><label><input type="radio" name="w04d1-pattern"> Swarm: peers transfer control directly</label><label><input type="radio" name="w04d1-pattern"> Keep one agent: no split driver is present</label></fieldset><details><summary>Check your decision rule</summary><p>Keep one agent unless context isolation, separate ownership, or genuine parallel work earns a split. If a shared record changes, name one write owner regardless of topology.</p></details></div>
         <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: wire two OpenAI Agents SDK
         agents with a <code>transfer_to_refund_agent</code> handoff, send one message, and inspect the raw tool call —
         then re-run with an <code>input_filter</code> attached and diff exactly what history the receiving agent saw
         each time. Needs backend standup.</p></div>
       </section>
 
+      <details class="deep" data-core="optional"><summary>Optional depth: routing axis, economics, failure research &amp; tool mapping</summary>
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">The axis</div>
         <h2>Who routes: the LLM or your code?</h2>
@@ -284,7 +288,9 @@
         </div>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      </details>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://docs.langchain.com/oss/python/langchain/multi-agent" target="_blank" rel="noopener">LangChain — Multi-agent</a> — the five-pattern taxonomy (subagents, handoffs, skills, router, custom workflow), the single-agent-first caveat, and the three drivers.</li>

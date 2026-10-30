@@ -96,7 +96,7 @@
         <div class="meta">
           <span><b>Week 4</b> · Day 2</span>
           <span>Foundation AI Engineering</span>
-          <span><b>~18 min</b> · reading @150 wpm + diagram + check</span>
+          <span class="core30-meta"><b>Core 30</b> · ~10 min read · 1 interaction · 6-Q check</span>
         </div>
         <p class="summary">Yesterday you built your first LangGraph. Today you make it <strong>survivable</strong>. A real
         agent run at a client crosses process restarts, waits hours for a human approval, and occasionally crashes halfway
@@ -106,7 +106,9 @@
         <strong>interrupt/resume</strong> turns "pause for a human" from a hack into a first-class control-flow primitive.
         Scroll the reading; the panel on the right follows one refund-approval agent from state schema to crash, resume,
         and time-travel fork.</p>
+        <aside class="callout mindset project-progress" aria-label="Solo insurance project progress"><b>Project 1 · solo insurance brownfield</b><p>Advance: define durable state, reducers, handoff envelopes, conflict policy, approval gate, and crash-resume evidence for the synthetic workflow.</p></aside>
         <div class="ix-legend"></div>
+        <noscript><section class="core30-fallback" aria-label="No-JavaScript practice and check"><h2>Offline practice</h2><p>Predict the checkpoint, replayed work, and conflict result after a synthetic crash.</p><details><summary>Check your reasoning</summary><p>Resume from committed state, replay only uncommitted idempotent work, and reject stale conflicting writes.</p></details></section></noscript>
       </div>
 
       <section class="step" data-diagram="0" data-step="0">
@@ -178,7 +180,7 @@
         application-defined key-value data <em>across</em> threads. Checkpointer = the run's save file; Store = the
         agent's notebook. Today is entirely about the save file.</p>
         <button class="code-cta" type="button" data-modal="code-w04d2" aria-haspopup="dialog"><span class="cc-ico">&lt;/&gt;</span> See the read-only worked example <span class="cc-meta">· checkpoint_resume.py</span></button>
-        <div class="ix-checkpoint" data-checkpoint-sim data-keyboard-shortcuts="Alt+S Alt+C Alt+R Alt+0" tabindex="0" role="group" aria-label="Interactive synthetic checkpointer crash and resume simulator">
+        <div class="ix-checkpoint" data-core-interaction data-checkpoint-sim data-keyboard-shortcuts="Alt+S Alt+C Alt+R Alt+0" tabindex="0" role="group" aria-label="Interactive synthetic checkpointer crash and resume simulator">
           <p><strong>Interactive practice:</strong> JavaScript is required to step through the synthetic crash and resume state machine.</p>
         </div>
       </section>
@@ -210,6 +212,9 @@
         for spotting it.</p>
       </section>
 
+      <section class="source-bridge" aria-labelledby="w04-handoff-state"><div class="tag">Shared-state boundary</div><h2 id="w04-handoff-state">Make handoffs and conflicts explicit</h2><p>A subgraph or external agent receives a typed envelope: task and trace IDs, a versioned state reference, sanitized evidence references, requested output schema, deadline, and escalation target. Messages propose updates; they do not silently replace shared state. One coordinator validates the envelope and owns the committed transition.</p><p>Declare a merge policy per field: append immutable observations, reject stale version numbers, and route incompatible proposals to a human owner. Parallel branches may read the same checkpoint but must not both commit the same decision. Across frameworks, interoperate at the envelope and trace boundary rather than sharing framework-specific memory objects.</p></section>
+
+      <details class="deep" data-core="optional"><summary>Optional depth: durability modes, HITL edge cases &amp; time travel</summary>
       <section class="step" data-diagram="0" data-step="4">
         <div class="tag">Tuning</div>
         <h2>Durability modes: when the write happens</h2>
@@ -324,7 +329,9 @@
         </div>
       </section>
 
-      <section class="reading-sources" aria-label="Sources and deeper dive">
+      </details>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
           <li><a href="https://docs.langchain.com/oss/python/langgraph/graph-api" target="_blank" rel="noopener">LangChain Docs — Graph API</a> — state schemas, reducers, <code>add_messages</code>, edges, <code>Command</code>/<code>Send</code>, and the compile step.</li>

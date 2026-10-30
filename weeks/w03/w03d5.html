@@ -37,8 +37,8 @@
         <div class="meta">
           <span><b>Week 3</b> · Day 5</span>
           <span>Agents in Production</span>
-          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~11 min read · 2 interactions · 6-Q check</span>
-          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 6-Q check</span>
+          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~10 min read · 2 interactions · 6-Q check</span>
+          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, two interactions, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~10 min read · 2 interactions · 6-Q check</span>
         </div>
         <p class="summary">All week you've built up to this: a single agent a client would actually let near their
         systems. Today we assemble one end to end with <strong>LangChain 1.0</strong> — <code>create_agent</code> for the
@@ -46,7 +46,9 @@
         output, and <strong>MCP</strong> to bridge in real tools. The panel on the right builds that agent piece by piece,
         in the same order you'd build it at a client. By the end you can name every layer between a user's message and a
         governed, auditable answer — and defend why each one is there.</p>
+        <aside class="callout mindset project-progress" aria-label="Solo insurance project progress"><b>Project 1 · solo insurance brownfield</b><p>Advance: submit the instrumented single-agent fixture, walkthrough, hooks retro, failure-attribution evidence, and two-audience readout.</p></aside>
         <div class="ix-legend"></div>
+        <noscript><section class="core30-fallback" aria-label="No-JavaScript practice and check"><h2>Offline practice</h2><p>Attribute one synthetic failed run to retrieval, planning, model, tool, policy, or transport.</p><details><summary>Check your reasoning</summary><p>Use the trace and structured log to name the failing span, owner, evidence, and next safe action.</p></details></section></noscript>
       </div>
 
       <section class="step" data-diagram="0" data-step="0">
@@ -128,6 +130,7 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         </details>
       </section>
 
+      <details class="deep" data-core="optional"><summary>Optional depth: all six middleware hook points</summary>
       <section class="step" data-diagram="3" data-step="3">
         <div class="tag">The hooks</div>
         <h2>Six moments where you can intervene</h2>
@@ -157,6 +160,9 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         </details>
       </section>
 
+      </details>
+
+      <details class="deep" data-core="optional"><summary>Optional depth: built-in middleware catalog</summary>
       <section class="step" data-diagram="4" data-step="4">
         <div class="tag">Batteries included</div>
         <h2>The production middleware you didn't have to write</h2>
@@ -191,6 +197,8 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         </details>
       </section>
 
+      </details>
+
       <section class="step" data-diagram="5" data-step="5">
         <div class="tag">Shaping the output</div>
         <h2>response_format folds structure into the loop</h2>
@@ -221,6 +229,7 @@ result = agent.invoke({"messages": [{"role": "user", "content": "Where is order 
         </details>
       </section>
 
+      <details class="deep" data-core="optional"><summary>Optional depth: MCP client integration mechanics</summary>
       <section class="step" data-diagram="6" data-step="6">
         <div class="tag">Real tools</div>
         <h2>MCP bridges the agent into real systems</h2>
@@ -250,6 +259,8 @@ agent = create_agent(model, tools)         # drop them straight in</p>
         client's risk posture.</p>
         </details>
       </section>
+
+      </details>
 
       <section class="step" data-diagram="7" data-step="7">
         <div class="tag">The wire</div>
@@ -375,6 +386,8 @@ agent = create_agent(model, tools)         # drop them straight in</p>
         </div>
       </section>
 
+      <section class="source-bridge" aria-labelledby="w03-delivery-close"><div class="tag">Source milestone · traced delivery</div><h2 id="w03-delivery-close">Submit the completed agent and prove where it fails</h2><p>Define an eval suite before the walkthrough: task success, tool-selection accuracy, schema-valid output, approval compliance, escalation rate, latency, and token use. Each synthetic run carries one trace ID through agent, model, and tool spans plus structured logs with run, step, tool, outcome, and error category. Replay the fixture from recorded inputs; attribute failure to retrieval, planning, model, tool, policy, or transport instead of writing “agent failed.”</p><p>Close the Claude Code <strong>hooks retro</strong>: show which repository event the hook guarded, the evidence it produced, and one false positive or missed case. The selected cloud remains primary for OTLP placement—ADOT to CloudWatch/X-Ray on AWS or OTLP to Cloud Trace on GCP—while the other path is comparison depth.</p><p>Submit the completed inert agent, walkthrough checklist, eval results, trace/log evidence, failure-attribution table, and a live-demo script that contains no provider call. The executive readout states the synthetic outcome, confidence, risk, and decision needed; the technical readout shows loop, tools, memory, controls, traces, and known limits. Record feedback and one revision. Never claim deployment or client validation.</p></section>
+
       <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
         <ul>
@@ -482,13 +495,16 @@ agent = create_agent(model, tools)         # drop them straight in</p>
       <li>Explain middleware as the customization primitive, name the six lifecycle hooks, and pick the right one for a given concern</li>
       <li>Reach for the correct built-in middleware — HITL, summarization, PII, call limits, fallback, retry — for a stated production risk</li>
       <li>Return typed output via <code>response_format</code>, and bridge real tools in with <code>MultiServerMCPClient</code> over the right transport</li>
+      <li>Define success metrics, replay evidence, structured logs, and failure attribution for the walkthrough</li>
     </ul>
-    <div class="ma-k">Deliverable — commit to your project repo</div>
+    <div class="ma-k">Deliverable — solo insurance brownfield</div>
     <ul class="deliv-list check">
       <li>Add a <code>PRODUCTION_AGENT.md</code></li>
       <li><b>①</b> a <code>create_agent</code> sketch for your project's use case (model, tools, system prompt)</li>
       <li><b>②</b> the middleware stack you'd attach, with one sentence per piece on the risk it covers</li>
       <li><b>③</b> the Pydantic <code>response_format</code> your agent returns, and which MCP transport each tool server would use and why</li>
+      <li><b>④</b> eval suite, trace/log sample, failure-attribution table, Claude Code hooks retro, walkthrough, and executive/technical readouts</li>
+      <li><b>⑤</b> feedback plus one revision; state explicitly that no provider call or deployment occurred</li>
     </ul>
     <p class="goals-foot">This closes Week 3. You've gone from "what is an agent" to "here is a governed single agent I'd
     put in front of a client." Next week the loop becomes the building block for multi-agent systems — but the governance
