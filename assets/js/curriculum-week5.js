@@ -1,5 +1,8 @@
 /* curriculum-week5.js — Neo4j Week 5 diagrams, checks, and accessible decision labs.
-   The lesson prose is static HTML so the required path survives without JavaScript. */
+   Curriculum scope authority: exact LTIM FDE v3 PDF, SHA-256
+   1792ba5c20a62fdd1e83463d9032d129ee644e58b220129b2f736f5fb863ed7e;
+   inventory: docs/research/fde-ltim-v3-source-reconciliation.md. Lesson prose
+   is static HTML so the required path survives without JavaScript. */
 (function (root, factory) {
   var api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;

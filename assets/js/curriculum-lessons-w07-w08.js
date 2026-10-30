@@ -1,7 +1,9 @@
-/* Authoritative Week 7–8 transfer data.
-   W7: Terraform + Ansible & AI CI/CD. W8: AI Observability, SRE & Reliability
-   Guardrails. Grounded in docs/research/w07 and docs/research/w08. Exercises
-   are inert/local and use synthetic evidence only. No cloud or provider action. */
+/* Week 7–8 transfer data.
+   Curriculum scope authority: the exact 8-page LTIM FDE v3 PDF identified by
+   SHA-256 1792ba5c20a62fdd1e83463d9032d129ee644e58b220129b2f736f5fb863ed7e;
+   inventory: docs/research/fde-ltim-v3-source-reconciliation.md. Current
+   technical claims trace to docs/research/w07 and docs/research/w08. Exercises
+   are inert/local and synthetic; no cloud or provider action occurs. */
 (function (root, factory) {
   var data = factory();
   if (typeof module === "object" && module.exports) module.exports = data;

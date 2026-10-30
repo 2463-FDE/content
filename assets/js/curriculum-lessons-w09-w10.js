@@ -1,9 +1,9 @@
-/* Authoritative Week 9–10 transfer data.
-   Provenance: the captain-approved curriculum record excerpted in
-   docs/research/w09/w09-source-excerpt.md and docs/research/w10/w10-source-excerpt.md,
-   reconciled with the 2026-10-13 target-state report and preserved security research.
-   Provider certification objectives are intentionally absent: that evidence lane
-   integrates later through FDE_CURRICULUM_CONFIG.cloudPath. */
+/* Week 9–10 transfer data.
+   Curriculum scope authority: the exact 8-page LTIM FDE v3 PDF identified by
+   SHA-256 1792ba5c20a62fdd1e83463d9032d129ee644e58b220129b2f736f5fb863ed7e;
+   inventory: docs/research/fde-ltim-v3-source-reconciliation.md. Preserved
+   security research and dated week evidence support current claims. Verified
+   certification mapping is shared through FDE_CERT_OBJECTIVES. */
 (function (root, factory) {
   var data = factory();
   if (typeof module === "object" && module.exports) module.exports = data;
