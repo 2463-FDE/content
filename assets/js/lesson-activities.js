@@ -258,7 +258,7 @@
         return "<li><b>" + esc(option.label) + "</b> — " + esc(out) + ". " + esc(option.why) + "</li>";
       }).join("") + "</ul><p><b>Defensible choice:</b> " + esc(defensible ? defensible.label : "") + "</p>";
     }
-    return '<details class="deep activity-fallback" data-activity-fallback="' + esc(def.type) + '">' +
+    return '<details class="activity-fallback" data-core-interaction data-activity-fallback="' + esc(def.type) + '">' +
       "<summary>Required practice · " + esc(def.title) + " · static path</summary>" +
       (def.intro ? "<p>" + esc(def.intro) + "</p>" : "") + inner + "</details>";
   }
@@ -434,6 +434,7 @@
   var MOUNTS = { trace: mountTrace, params: mountParams, evidence: mountEvidence, order: mountOrder, fault: mountFault, tradeoff: mountTradeoff };
 
   function mount(doc) {
+    if (!doc || typeof doc.querySelectorAll !== "function") return 0;
     var hosts = Array.prototype.slice.call(doc.querySelectorAll("[data-activity]"));
     hosts.forEach(function (host) {
       if (host.getAttribute("data-activity-mounted")) return;

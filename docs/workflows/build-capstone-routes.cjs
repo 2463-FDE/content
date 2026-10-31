@@ -42,6 +42,7 @@ ${crumbs.crumbsHtml(crumbs.pageFor(routePath(id).split(path.sep).join("/")))}
 ${quizScript(id, lesson)}
 <script src="../../assets/js/roster.js?v=20260706"></script>
 <script src="../../assets/js/curriculum-lessons-w09-w10.js?v=20261027"></script>
+<script src="../../assets/js/lesson-activities.js?v=20261030-lx1"></script>
 <script src="../../assets/js/capstone-lesson.js?v=20261027"></script>
 <script src="../../assets/js/progress.js?v=20260630"></script>
 <script src="../../assets/js/day-summary.js?v=20260630-2"></script>

@@ -15,6 +15,23 @@
   function wordCount(text) {
     return (String(text || "").match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) || []).length;
   }
+  function activityLib() {
+    if (typeof globalThis !== "undefined" && globalThis.FDEActivities) return globalThis.FDEActivities;
+    if (typeof module === "object" && module.exports) { try { return require("./lesson-activities.js"); } catch (error) { return null; } }
+    return null;
+  }
+  function activityFallbacks(lesson, index) {
+    var lib = activityLib();
+    if (!lib) return "";
+    return (lesson.activities || []).filter(function (def) { return (def.at == null ? 1 : def.at) === index; })
+      .map(function (def) { return lib.fallbackHtml(def); }).join("");
+  }
+  function activityBlocks(lesson, dayId, index) {
+    var lib = activityLib();
+    if (!lib) return "";
+    return (lesson.activities || []).filter(function (def) { return (def.at == null ? 1 : def.at) === index; })
+      .map(function (def, defIndex) { return lib.html(def, dayId + "-a" + index + defIndex); }).join("");
+  }
   function providerRecord(lesson, selection) {
     return lesson.cloud && (selection === "aws" || selection === "gcp") ? lesson.cloud[selection] : null;
   }
@@ -53,8 +70,9 @@
   function pacingFor(lesson, selection) {
     var words = requiredWords(lesson, selection);
     var readMinutes = Math.round(words / 150);
-    var interactions = lesson.cloud && (selection === "aws" || selection === "gcp") ? 2 : 1;
-    var allowances = { diagram: 3, interaction: interactions === 2 ? 8 : 6, check: 5 };
+    var activityCount = (lesson.activities || []).length;
+    var interactions = (lesson.cloud && (selection === "aws" || selection === "gcp") ? 2 : 1) + activityCount;
+    var allowances = { diagram: 3, interaction: (lesson.cloud && (selection === "aws" || selection === "gcp") ? 8 : 6) + 4 * activityCount, check: 5 };
     return { words: words, readMinutes: readMinutes, interactions: interactions, allowances: allowances, requiredMinutes: readMinutes + allowances.diagram + allowances.interaction + allowances.check };
   }
   function route(id) {
@@ -121,7 +139,7 @@
         '<button class="ix-btn secondary" type="button" data-evidence-issue>Issue local receipt</button><output class="evidence-receipt" data-evidence-receipt aria-live="polite"></output></fieldset>' : '') + '</div>';
   }
   function staticInteractionHtml(lesson) {
-    return '<div class="capstone-drill" data-core-interaction><div class="ix-k">Required practice · decision and evidence gate</div><p>' + esc(lesson.drill.prompt) + '</p><ol>' +
+    return '<div class="capstone-drill" data-core-interaction data-activity-fallback="tradeoff"><div class="ix-k">Required practice · decision and evidence gate</div><p>' + esc(lesson.drill.prompt) + '</p><ol>' +
       lesson.drill.options.map(function (option) { return '<li>' + esc(option) + '</li>'; }).join("") + '</ol><details><summary>Defensible response and evidence receipt</summary><p><b>Answer:</b> ' + esc(lesson.drill.options[lesson.drill.answer]) + '</p><p>' + esc(lesson.drill.feedback) + '</p>' +
       (lesson.teamEvidence ? '<p><b>' + esc(lesson.teamEvidence.artifact) + ':</b> record ' + esc(lesson.teamEvidence.owner) + ', the acceptance rule, and the independent review result.</p>' : '') + '</details></div>';
   }
@@ -182,11 +200,11 @@
     pacing = pacing || pacingFor;
     if (!lesson.cloud) {
       var p = pacing(lesson);
-      return '<span class="core30-meta"><b>Core 30</b> · ~' + p.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + p.requiredMinutes + ' min required</span>';
+      return '<span class="core30-meta"><b>Core 30</b> · ~' + p.readMinutes + ' min read · ' + p.interactions + ' interaction' + (p.interactions === 1 ? '' : 's') + ' · 6-Q check · ~' + p.requiredMinutes + ' min required</span>';
     }
     return ["aws", "gcp"].map(function (selection) {
       var p = pacing(lesson, selection);
-      return '<span class="core30-meta" data-cloud="' + selection + '"><b>Core 30</b> · ' + selection.toUpperCase() + ' · ~' + p.readMinutes + ' min read · 2 interactions · 6-Q check · ~' + p.requiredMinutes + ' min required</span>';
+      return '<span class="core30-meta" data-cloud="' + selection + '"><b>Core 30</b> · ' + selection.toUpperCase() + ' · ~' + p.readMinutes + ' min read · ' + p.interactions + ' interactions · 6-Q check · ~' + p.requiredMinutes + ' min required</span>';
     }).join("");
   }
   function optionalHtml(lesson) {
@@ -217,7 +235,7 @@
   function articleHtml(lesson, pacing) {
     var dayId = "w" + String(lesson.week).padStart(2, "0") + "d" + lesson.day;
     var sections = lesson.sections.map(function (section, index) {
-      return '<section><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + (index === 3 ? staticInteractionHtml(lesson) : "") + '</section>';
+      return '<section><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + (index === 3 ? staticInteractionHtml(lesson) : "") + activityFallbacks(lesson, index) + '</section>';
     }).join("");
     return '<article class="reading-col"><header class="lede"><h1>' + esc(lesson.title) + '</h1><div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + '</span>' + coreLabelsHtml(lesson, pacing) + '</div><p class="summary">' + esc(lesson.summary) + '</p></header>' +
       '<section aria-labelledby="static-diagram-' + dayId + '"><h2 id="static-diagram-' + dayId + '">Decision and evidence path · text alternative</h2><p>Follow the seven required decisions in order. Each arrow advances from client consequence and evidence to an owned control, verification result, residual risk, and handoff.</p>' + diagramAlternativeHtml(lesson) + '</section>' +
@@ -238,7 +256,7 @@
     doc.title = "W" + lesson.week + "·D" + lesson.day + " — " + lesson.title + " | 2463-FDE";
     setMeta(doc, "fde-day", dayId); setMeta(doc, "fde-concepts", lesson.concepts.join(","));
     var sections = lesson.sections.map(function (section, index) {
-      return '<section class="step" data-diagram="0" data-step="' + index + '"><div class="tag">Required decision ' + (index + 1) + '</div><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + (index === 3 ? interactionHtml(lesson, dayId, order) : "") + '</section>';
+      return '<section class="step" data-diagram="0" data-step="' + index + '"><div class="tag">Required decision ' + (index + 1) + '</div><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + (index === 3 ? interactionHtml(lesson, dayId, order) : "") + '</section>' + activityBlocks(lesson, dayId, index);
     }).join("");
     root.innerHTML = '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav><article class="reading-col"><div class="lede"><h1>' + esc(lesson.title) + '</h1><div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + '</span><span>' + esc(lesson.phase) + '</span>' + coreLabelsHtml(lesson) + '</div><p class="summary">' + esc(lesson.summary) + '</p><div class="ix-legend"></div></div>' +
       '<section class="capstone-context" aria-label="Project context"><b>Inherited team brownfield:</b> Morrowfield Payment Control · synthetic payments evidence only. No client, learner, account, or provider fact is inferred.</section>' + sections + teamEvidenceHtml(lesson, { step: lesson.sections.length - 1 }) + cloudHtml(lesson) + diagramAlternativeHtml(lesson) + optionalHtml(lesson) + sourcesHtml(lesson) + '</article>' +
@@ -251,7 +269,9 @@
     browserRoot.QUIZ = { id: dayId + "-check", title: "Check your understanding", questions: lesson.checks };
     browserRoot.FDE_NEXT = { label: nextLabel(lesson), href: route(dayId) };
     mountInteraction(doc, lesson);
+    var lib = activityLib();
+    if (lib) lib.mount(doc);
     return true;
   }
-  return { esc: esc, wordCount: wordCount, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, staticInteractionHtml: staticInteractionHtml, requiredWords: requiredWords, requiredPathWords: requiredPathWords, pacingFor: pacingFor, teamEvidenceHtml: teamEvidenceHtml, diagramFor: diagramFor, staticArticleHtml: staticArticleHtml, render: render };
+  return { esc: esc, wordCount: wordCount, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, staticInteractionHtml: staticInteractionHtml, requiredWords: requiredWords, requiredPathWords: requiredPathWords, pacingFor: pacingFor, teamEvidenceHtml: teamEvidenceHtml, diagramFor: diagramFor, staticArticleHtml: staticArticleHtml, activityBlocks: activityBlocks, activityFallbacks: activityFallbacks, render: render };
 });
