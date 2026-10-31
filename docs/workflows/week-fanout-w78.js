@@ -228,7 +228,7 @@ const questionSets = await parallel(canonical.map(c => () => gated(
     `Interview-question author for canonical concept "${c.id}" (${c.label}), Week ${WEEK} day ${c.day}.\n`+
     `Read ${RDIR}/${c.day}.md for grounding. Author >=4 DISTINCT questions testing this concept (WEAK_TARGET=4: a weak learner must see 4 different questions before any repeat).\n`+
     `Each: prompt (spoken-interview, scenario-flavored like the FDE bank), tier ("both"|"senior"), concepts (include "${c.id}", plus other CANONICAL ids only), rubricHints (start "Judge-only."), strongAnswer (start "Judge-only.").\n`+
-    `At least ONE of the four must be posed as a client-facing question — the learner has to explain this concept to a non-technical stakeholder (Dr. Okonkwo, COO of Riverbend, or Dana, VP Lending Ops at Meridian) and the model answer must still require the technical fact.\n`+
+    `At least ONE of the four must be posed as a client-facing question — the learner has to explain this concept to a non-technical stakeholder (e.g., Priya Natarajan, VP Payment Operations at Morrowfield Payment Control) and the model answer must still require the technical fact.\n`+
     `Ground every question in CURRENT practice — no deprecated/stale patterns.\n`+
     `Return concept, questions (>=4), one-sentence summary.`+fix(cr),
     { schema: QUESTIONS_SCHEMA, label:`${c.id}:questions`, phase:'Questions' }),
