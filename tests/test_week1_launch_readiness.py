@@ -8,7 +8,9 @@ the consolidated route.
 
 from __future__ import annotations
 
+import json
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -36,6 +38,13 @@ EXPECTED_SHAPE = {
     "d4.html": {"interactions": 3, "questions": 7},
     "d5.html": {"interactions": 1, "questions": 6},
 }
+
+
+def node_json(script: str):
+    result = subprocess.run(["node", "-e", script], cwd=ROOT, capture_output=True, text=True, check=True)
+    return json.loads(result.stdout)
+
+
 # Advertised check minutes by question count (matches the authored labels).
 CHECK_MINUTES = {6: 5, 7: 5, 9: 6}
 
@@ -58,10 +67,16 @@ class Week1LaunchReadinessTests(unittest.TestCase):
 
     def test_week1_is_singular_topic_like_every_later_week(self) -> None:
         """One route per day, no multi-part presentation anywhere in the map."""
-        map_text = (ROOT / "assets/js/curriculum-map.js").read_text(encoding="utf-8")
-        self.assertNotIn("parts:", map_text, "the multi-part day format is retired")
-        w01_hrefs = re.findall(r'href: "(weeks/w01/[^"]+\.html)"', map_text)
-        self.assertEqual(w01_hrefs, [
+        shape = node_json(
+            "const map = require('./assets/js/curriculum-map.js');"
+            "const week1 = map.weeks.find((week) => week.w === 1);"
+            "console.log(JSON.stringify({"
+            " partDays: map.weeks.flatMap((week) => week.days.filter((day) => 'parts' in day).map((day) => week.w + ':' + day.t)),"
+            " hrefs: week1.days.map((day) => day.href)"
+            "}));"
+        )
+        self.assertEqual(shape["partDays"], [], "the multi-part day format is retired")
+        self.assertEqual(shape["hrefs"], [
             "weeks/w01/d1.html", "weeks/w01/d2.html", "weeks/w01/d3.html",
             "weeks/w01/d4.html", "weeks/w01/d5.html",
         ])
@@ -79,6 +94,24 @@ class Week1LaunchReadinessTests(unittest.TestCase):
                 self.assertIn(f'<a href="{target}"', html)
                 self.assertIn("index.html#curriculum", html, "a no-refresh return path exists")
                 self.assertIn("lesson moved", html.lower())
+
+    def test_old_part_deep_links_keep_query_and_hash(self) -> None:
+        """With JavaScript, the stub forwards batch/cloud query and anchor so
+        an old deep link opens the same view on the consolidated route."""
+        for stub, target in ALIAS_STUBS.items():
+            html = (ROOT / "weeks" / "w01" / stub).read_text(encoding="utf-8")
+            scripts = re.findall(r"<script>([\s\S]*?)</script>", html)
+            with self.subTest(stub=stub):
+                self.assertEqual(len(scripts), 1)
+                forwarded = node_json(
+                    "const vm = require('node:vm');"
+                    "const calls = [];"
+                    "const location = { search: '?batch=2567&cloud=aws', hash: '#retry',"
+                    " replace: (url) => calls.push(url) };"
+                    f"vm.runInNewContext({json.dumps(scripts[0])}, {{ location }});"
+                    "console.log(JSON.stringify(calls));"
+                )
+                self.assertEqual(forwarded, [f"{target}?batch=2567&cloud=aws#retry"])
 
     def test_all_five_routes_meet_complete_core30_contract(self) -> None:
         totals = []

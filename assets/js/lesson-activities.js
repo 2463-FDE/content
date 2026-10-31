@@ -24,7 +24,8 @@
                the dimensions that matter, against the defensible option.
 
    API: html(def, id) renders the interactive host; fallbackHtml(def) renders
-   the committed no-JS path; mount(doc) binds every [data-activity] host;
+   the committed no-JS path; blocksFor/fallbacksFor render a lesson section's
+   activities; startingOrder(def) is the never-solved initial arrangement; mount(doc) binds every [data-activity] host;
    assess.* are pure and unit-tested. */
 (function (root, factory) {
   var api = factory();
@@ -173,8 +174,18 @@
       checkResetButtons();
   }
 
+  function startingOrder(def) {
+    var indexById = {};
+    def.items.forEach(function (item, index) { indexById[item.id] = index; });
+    var sequence = def.correct.map(function (itemId) { return indexById[itemId]; });
+    def.items.forEach(function (_, index) { if (sequence.indexOf(index) === -1) sequence.push(index); });
+    if (sequence.length < 2) return sequence;
+    var shift = Math.max(1, Math.floor(sequence.length / 2));
+    return sequence.slice(shift).concat(sequence.slice(0, shift));
+  }
+
   function orderBody(def, id, orderIndexes) {
-    var sequence = orderIndexes || def.items.map(function (_, index) { return index; });
+    var sequence = orderIndexes || startingOrder(def);
     var items = sequence.map(function (itemIndex) {
       var item = def.items[itemIndex];
       return '<li class="order-item" data-id="' + esc(item.id) + '"><span class="order-label">' + esc(item.label) + "</span>" +
@@ -218,6 +229,14 @@
     else if (def.type === "tradeoff") body = tradeoffBody(def, id);
     else return "";
     return shell(def, id, body);
+  }
+
+  function sectionDefs(lesson, index) {
+    return ((lesson && lesson.activities) || []).filter(function (def) { return (def.at == null ? 1 : def.at) === index; });
+  }
+
+  function blocksFor(lesson, dayId, index) {
+    return sectionDefs(lesson, index).map(function (def, defIndex) { return html(def, dayId + "-a" + index + defIndex); }).join("");
   }
 
   /* ---------- committed no-JS path ---------- */
@@ -456,5 +475,9 @@
     return hosts.length;
   }
 
-  return { esc: esc, html: html, fallbackHtml: fallbackHtml, mount: mount, assess: assess, KIND_LABELS: KIND_LABELS };
+  function fallbacksFor(lesson, index) {
+    return sectionDefs(lesson, index).map(function (def) { return fallbackHtml(def); }).join("");
+  }
+
+  return { esc: esc, html: html, fallbackHtml: fallbackHtml, startingOrder: startingOrder, blocksFor: blocksFor, fallbacksFor: fallbacksFor, mount: mount, assess: assess, KIND_LABELS: KIND_LABELS };
 });

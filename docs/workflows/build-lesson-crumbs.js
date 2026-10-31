@@ -24,12 +24,11 @@ function relative(fromHref, toHref) {
 }
 
 function crumbsHtml(page) {
-  const partLabel = page.part ? ` · Part ${esc(page.part)}` : "";
   const prev = page.prev
-    ? `<a class="crumb-step" rel="prev" href="${relative(page.href, page.prev.href)}">◂ ${page.prev.week === page.week ? `Day ${page.prev.day}` : `Week ${page.prev.week}`}${page.prev.part ? " · " + esc(page.prev.part.split(" · ")[0]) : ""}</a>`
+    ? `<a class="crumb-step" rel="prev" href="${relative(page.href, page.prev.href)}">◂ ${page.prev.week === page.week ? `Day ${page.prev.day}` : `Week ${page.prev.week}`}</a>`
     : `<a class="crumb-step" href="../../index.html#curriculum">◂ Hub</a>`;
   const next = page.next
-    ? `<a class="crumb-step crumb-next" rel="next" href="${relative(page.href, page.next.href)}">${page.next.week === page.week ? `Day ${page.next.day}` : `Week ${page.next.week}`}${page.next.part ? " · " + esc(page.next.part.split(" · ")[0]) : ""} ▸</a>`
+    ? `<a class="crumb-step crumb-next" rel="next" href="${relative(page.href, page.next.href)}">${page.next.week === page.week ? `Day ${page.next.day}` : `Week ${page.next.week}`} ▸</a>`
     : `<a class="crumb-step crumb-next" href="../../index.html#curriculum">Program complete · hub ▸</a>`;
   return (
     `<nav class="lesson-crumbs" aria-label="You are here" data-day-position="${page.dayPosition} of 50">` +
@@ -38,7 +37,7 @@ function crumbsHtml(page) {
     `<span class="crumb-sep" aria-hidden="true">▸</span>` +
     `<span class="crumb-week">Week ${page.week} · ${esc(page.weekTitle)}</span>` +
     `<span class="crumb-sep" aria-hidden="true">▸</span>` +
-    `<span class="crumb-day" aria-current="page">Day ${page.day} · ${esc(page.dayTitle)}${partLabel}</span>` +
+    `<span class="crumb-day" aria-current="page">Day ${page.day} · ${esc(page.dayTitle)}</span>` +
     `</div>` +
     `<div class="crumb-meta">` +
     `<span class="crumb-pos">Day ${page.dayPosition} of 50</span>` +

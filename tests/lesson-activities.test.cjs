@@ -5,6 +5,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert");
+const fs = require("node:fs");
 const path = require("node:path");
 
 const activities = require(path.join(__dirname, "..", "assets", "js", "lesson-activities.js"));
@@ -154,4 +155,50 @@ test("fallback escapes authored content", () => {
   assert.doesNotMatch(fallback, /<img src=x/);
   const html = activities.html(hostile, "x");
   assert.doesNotMatch(html.replace(/<script type="application\/json">[\s\S]*?<\/script>/, ""), /<img src=x/);
+});
+
+function authoredOrderDefs() {
+  const root = path.join(__dirname, "..");
+  const defs = [];
+  for (const file of ["curriculum-lessons-w06.js", "curriculum-lessons-w07-w08.js", "curriculum-lessons-w09-w10.js"]) {
+    const lessons = require(path.join(root, "assets", "js", file));
+    for (const [dayId, lesson] of Object.entries(lessons)) {
+      for (const def of lesson.activities || []) if (def.type === "order") defs.push([dayId, def]);
+    }
+  }
+  for (const week of ["w04", "w05"]) {
+    const dir = path.join(root, "weeks", week);
+    for (const name of fs.readdirSync(dir).filter((entry) => entry.endsWith(".html"))) {
+      const html = fs.readFileSync(path.join(dir, name), "utf8");
+      const hosts = html.matchAll(/data-activity="order"[^>]*>\s*<script type="application\/json">([\s\S]*?)<\/script>/g);
+      for (const match of hosts) defs.push([name, JSON.parse(match[1])]);
+    }
+  }
+  return defs;
+}
+
+function renderedOrder(markup) {
+  return [...markup.matchAll(/<li class="order-item" data-id="([^"]+)"/g)].map((match) => match[1]);
+}
+
+test("order activities never start in the defensible order", () => {
+  const defs = [["fixture", orderDef], ...authoredOrderDefs()];
+  assert.ok(defs.length >= 19, `expected the authored order activities, found ${defs.length}`);
+  for (const [where, def] of defs) {
+    const start = renderedOrder(activities.html(def, "t-order"));
+    assert.deepEqual([...start].sort(), def.items.map((item) => item.id).sort(), `${where}: every item rendered once`);
+    assert.equal(activities.assess.order(def, start).correct, false, `${where}: starting arrangement is already solved`);
+    assert.deepEqual(renderedOrder(activities.html(def, "t-order")), start, `${where}: starting arrangement is deterministic`);
+  }
+});
+
+test("lesson section helpers place activities by their authored section", () => {
+  const lesson = { activities: [{ ...orderDef, at: 2 }, { ...evidenceDef }, { ...faultDef, at: 2 }] };
+  const section2 = activities.blocksFor(lesson, "w06d1", 2);
+  assert.match(section2, /data-activity-id="w06d1-a20"/);
+  assert.match(section2, /data-activity-id="w06d1-a21"/);
+  assert.match(activities.blocksFor(lesson, "w06d1", 1), /data-activity="evidence"/);
+  assert.equal(activities.blocksFor(lesson, "w06d1", 0), "");
+  assert.match(activities.fallbacksFor(lesson, 2), /data-activity-fallback="order"[\s\S]*data-activity-fallback="fault"/);
+  assert.equal(activities.fallbacksFor({}, 1), "");
 });

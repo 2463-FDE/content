@@ -19,15 +19,11 @@
   }
   function activityFallbacks(lesson, index) {
     var lib = activityLib();
-    if (!lib) return "";
-    return (lesson.activities || []).filter(function (def) { return (def.at == null ? 1 : def.at) === index; })
-      .map(function (def) { return lib.fallbackHtml(def); }).join("");
+    return lib ? lib.fallbacksFor(lesson, index) : "";
   }
   function activityBlocks(lesson, dayId, index) {
     var lib = activityLib();
-    if (!lib) return "";
-    return (lesson.activities || []).filter(function (def) { return (def.at == null ? 1 : def.at) === index; })
-      .map(function (def, defIndex) { return lib.html(def, dayId + "-a" + index + defIndex); }).join("");
+    return lib ? lib.blocksFor(lesson, dayId, index) : "";
   }
   function wordCount(text) {
     return (String(text || "").match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) || []).length;

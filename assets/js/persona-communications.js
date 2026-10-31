@@ -201,18 +201,15 @@
     } catch (error) { return null; }
   }
 
-  function storageKeyForIdentity(identity, scope) {
+  function storageKeyForIdentity(identity, scope, prefix) {
     var seam = identity && (String(identity.code || "") + "|" + String(identity.role || "learner"));
-    var key = STORAGE_PREFIX + "local-" + hashText(seam || "missing");
+    var key = (prefix || STORAGE_PREFIX) + "local-" + hashText(seam || "missing");
     return scope ? key + ":" + String(scope).replace(/[^a-z0-9-]/gi, "") : key;
   }
 
   function hasLegacyState(storage, identity, scope) {
     try {
-      var seam = identity && (String(identity.code || "") + "|" + String(identity.role || "learner"));
-      var key = LEGACY_STORAGE_PREFIX + "local-" + hashText(seam || "missing");
-      if (scope) key += ":" + String(scope).replace(/[^a-z0-9-]/gi, "");
-      return !!(storage && storage.getItem(key));
+      return !!(storage && storage.getItem(storageKeyForIdentity(identity, scope, LEGACY_STORAGE_PREFIX)));
     } catch (error) { return false; }
   }
 

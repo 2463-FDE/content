@@ -22,15 +22,11 @@
   }
   function activityFallbacks(lesson, index) {
     var lib = activityLib();
-    if (!lib) return "";
-    return (lesson.activities || []).filter(function (def) { return (def.at == null ? 1 : def.at) === index; })
-      .map(function (def) { return lib.fallbackHtml(def); }).join("");
+    return lib ? lib.fallbacksFor(lesson, index) : "";
   }
   function activityBlocks(lesson, dayId, index) {
     var lib = activityLib();
-    if (!lib) return "";
-    return (lesson.activities || []).filter(function (def) { return (def.at == null ? 1 : def.at) === index; })
-      .map(function (def, defIndex) { return lib.html(def, dayId + "-a" + index + defIndex); }).join("");
+    return lib ? lib.blocksFor(lesson, dayId, index) : "";
   }
   function providerRecord(lesson, selection) {
     return lesson.cloud && (selection === "aws" || selection === "gcp") ? lesson.cloud[selection] : null;

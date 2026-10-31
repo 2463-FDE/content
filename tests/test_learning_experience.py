@@ -14,13 +14,15 @@ gates can no longer mask them:
    (crumbs, day position, previous/next) that works without JavaScript.
 4. The only active client personas are the two new brownfields: Juniper Vale
    Mutual Loss Desk (Weeks 1-5) and Morrowfield Payment Control (Weeks 6-10).
-   Retired Riverbend/Meridian material may survive only as explicitly marked
-   legacy-state compatibility labels for learner-authored history.
+   Retired Riverbend/Meridian material may surface only as the legacy-state
+   disclosure for stored learner-authored v1 history.
 """
 
 from __future__ import annotations
 
+import json
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -44,19 +46,26 @@ FALLBACK_ACTIVITY_RE = re.compile(r'data-activity-fallback="([a-z-]+)"')
 INSURANCE_PROJECT = "Juniper Vale Mutual"
 PAYMENTS_PROJECT = "Morrowfield Payment Control"
 RETIRED_PERSONAS = re.compile(r"Riverbend|Meridian")
-LEGACY_MARKER = "LEGACY-STATE"
 
 
-MAP_HREF_RE = re.compile(r'href: "(weeks/w\d\d/[^"]+\.html)"')
+def node_json(script: str):
+    result = subprocess.run(
+        ["node", "-e", script], cwd=ROOT, capture_output=True, text=True, check=True
+    )
+    return json.loads(result.stdout)
 
 
 def required_pages():
-    """The 50 required day routes, from the authoritative curriculum map.
+    """The 50 required day routes, from the authoritative curriculum map's
+    pages() index.
 
     Week 1's former a/b part pages remain on disk only as moved-lesson alias
     stubs for old deep links; they are not day routes."""
-    map_text = (ROOT / "assets/js/curriculum-map.js").read_text(encoding="utf-8")
-    return [ROOT / href for href in MAP_HREF_RE.findall(map_text)]
+    hrefs = node_json(
+        "const map = require('./assets/js/curriculum-map.js');"
+        "console.log(JSON.stringify(map.pages().map((page) => page.href)));"
+    )
+    return [ROOT / href for href in hrefs]
 
 
 def week_number(path: Path) -> int:
@@ -197,7 +206,6 @@ class PersonaBinding(unittest.TestCase):
     ACTIVE_SURFACES = (
         "persona-communications.html",
         "client-delivery.html",
-        "assets/js/persona-communications-fixtures.js",
     )
 
     def test_retired_personas_absent_from_week_routes(self):
@@ -215,16 +223,43 @@ class PersonaBinding(unittest.TestCase):
                 offenders.append(rel)
         self.assertEqual(offenders, [])
 
-    def test_legacy_state_labels_are_marked(self):
-        """Learner-authored history for retired scenarios may keep its honest
-        old name, but only on lines explicitly marked as legacy-state
-        compatibility, and only in the communication runtime."""
-        runtime = (ROOT / "assets/js/persona-communications.js").read_text(
-            encoding="utf-8"
+    def test_persona_scenarios_are_the_two_active_engagements(self):
+        """The executed fixture book exposes only the active engagements, and
+        nothing it can render to a learner names a retired client."""
+        book = node_json(
+            "const fixtures = require('./assets/js/persona-communications-fixtures.js');"
+            "console.log(JSON.stringify(fixtures));"
         )
-        for line in runtime.splitlines():
-            if RETIRED_PERSONAS.search(line) and LEGACY_MARKER not in line:
-                self.fail(f"unmarked retired persona reference: {line.strip()}")
+        self.assertEqual(sorted(book["scenarios"]), ["juniper-vale", "morrowfield"])
+        self.assertIsNone(RETIRED_PERSONAS.search(json.dumps(book["scenarios"])))
+
+    def test_legacy_disclosure_requires_stored_v1_history(self):
+        """Retired-scenario history keeps its honest old name only through the
+        legacy-state lookup: it is detected solely by a stored v1 key for the
+        same identity/scope, and active state never uses the v1 prefix."""
+        probe = node_json(
+            "const comms = require('./assets/js/persona-communications.js');"
+            "const identity = { code: 'L-1', name: 'Learner', role: 'learner' };"
+            "const store = (entries) => ({ getItem: (key) => (key in entries ? entries[key] : null) });"
+            "const v2 = comms.storageKeyForIdentity(identity, 'accelerated');"
+            "const v1 = comms.storageKeyForIdentity(identity, 'accelerated', 'fde_local_synthetic_persona_v1:');"
+            "console.log(JSON.stringify({"
+            " v2, v1,"
+            " empty: comms.hasLegacyState(store({}), identity, 'accelerated'),"
+            " activeOnly: comms.hasLegacyState(store({ [v2]: '{}' }), identity, 'accelerated'),"
+            " legacy: comms.hasLegacyState(store({ [v1]: '{}' }), identity, 'accelerated'),"
+            " otherScope: comms.hasLegacyState(store({ [v1]: '{}' }), identity, ''),"
+            " noStorage: comms.hasLegacyState(null, identity, 'accelerated')"
+            "}));"
+        )
+        self.assertNotEqual(probe["v1"], probe["v2"])
+        self.assertTrue(probe["v1"].startswith("fde_local_synthetic_persona_v1:"))
+        self.assertFalse(probe["v2"].startswith("fde_local_synthetic_persona_v1:"))
+        self.assertFalse(probe["empty"])
+        self.assertFalse(probe["activeOnly"])
+        self.assertTrue(probe["legacy"])
+        self.assertFalse(probe["otherScope"])
+        self.assertFalse(probe["noStorage"])
 
     def test_week_routes_bind_to_active_projects(self):
         failures = []

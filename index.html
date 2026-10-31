@@ -184,7 +184,7 @@
       + ICONS[name] + "</svg>";
   }
   function dayId(week, di) { return "w" + String(week.w).padStart(2, "0") + "d" + (di + 1); }
-  function firstHref(day) { return day.href || (day.parts && day.parts[0] && day.parts[0].href) || null; }
+  function firstHref(day) { return day.href || null; }
   function render() {
   const DOW = ["Mon","Tue","Wed","Thu","Fri"];
   const legend = document.querySelector(".legend");
@@ -239,9 +239,6 @@
       if (week.w <= 8 && di === 4) rituals += `<a class="ritual sd" href="system-design.html?w=${week.w}" title="System Design due: open this week's challenge">${icon("target")}Sys-design · due</a>`;
       // Alt Research presentation is due Friday — reminder badge (researched Wed).
       if (week.w <= 8 && di === 4) rituals += `<a class="ritual ar" href="alt-research.html?w=${week.w}" title="Alt Research presentation due: present this week's findings">${icon("flask")}Alt research · due</a>`;
-      const partsHtml = day.parts
-        ? `<div class="cell-parts">` + day.parts.map(p => `<a href="${p.href}">${p.t}</a>`).join("") + `</div>`
-        : "";
       // Per-learner Start / Resume / Completed (server-backed via progress.js).
       // A day flips to Completed when the learner records the end-of-day STT summary.
       // Only days with reading pages get a button; future "soon" days don't.
@@ -254,18 +251,17 @@
         progHtml = `<a class="${cls}" href="${startHref}">${label}</a>`;
       }
       const el = document.createElement("div");
-      const inBuild = !!week.build && !day.href && !day.parts;
-      el.className = "cal-cell" + (day.href ? " live" : (day.parts ? " parts" : " soon")) + (inBuild ? " inbuild" : "");
+      const inBuild = !!week.build && !day.href;
+      el.className = "cal-cell" + (day.href ? " live" : " soon") + (inBuild ? " inbuild" : "");
       el.style.setProperty("--pc", ph.c);
-      // Layout contract: head (title+subtitle) at top, parts list in the body
-      // expanding downward, foot pinned to the bottom so Start + rituals land in
-      // the same spot on every card regardless of title-wrap / part count. Marks
+      // Layout contract: head (title+subtitle) at top, foot pinned to the
+      // bottom so Start + rituals land in the same spot on every card
+      // regardless of title-wrap. Marks
       // (FDE Situation / Milestone) are chips folded into the foot's tag row.
       const buildTag = inBuild ? `<span class="mk build-tag">In build · ${week.build.slice(0, 3)}</span>` : "";
       const tags = buildTag + marks + rituals;
       el.innerHTML =
         `<div class="ct">${title}</div><div class="cs">${day.s || ""}</div>` +
-        partsHtml +
         `<div class="cell-foot">` +
           (progHtml ? `<div class="day-actions">${progHtml}</div>` : "") +
           (tags ? `<div class="ritual-row">${tags}</div>` : "") +
