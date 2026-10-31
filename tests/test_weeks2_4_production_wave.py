@@ -50,7 +50,8 @@ class WeeksTwoToFourProductionWave(unittest.TestCase):
                     measured = core30.measure(page, selection)
                     self.assertGreaterEqual(measured["words"], 500)
                     self.assertLessEqual(measured["words"], core30.WORD_BUDGET)
-                    self.assertIn(measured["interactions"], (1, 2))
+                    # 2026-10-30 correction: up to two shipped activities join the base practice.
+                    self.assertIn(measured["interactions"], (1, 2, 3, 4))
                     self.assertGreaterEqual(measured["questions"], 5)
                     self.assertEqual([], measured["stray_widgets"])
                     label = measured["label"]

@@ -83,6 +83,7 @@ class ParsedPage:
             script.text()
             for script in self.root.find_all("script")
             if not script.attrs.get("src")
+            and script.attrs.get("type") != "application/json"
         )
 
     @property
@@ -179,12 +180,16 @@ process.stdin.on('end', () => {
                 self.assertGreater(contract["captions"], 0)
                 self.assertEqual(6, contract["questions"])
 
-    def test_week_four_keeps_deferred_items_except_the_shipped_d2_simulator(self) -> None:
+    def test_week_four_ships_live_practice_instead_of_deferred_placeholders(self) -> None:
+        # 2026-10-30 learning-experience correction: the W4 .ix-future
+        # placeholders were replaced with shipped lesson activities
+        # (assets/js/lesson-activities.js); each page carries at least two.
         for path in W4_PAGES:
             with self.subTest(page=path.name):
                 page = ParsedPage(path)
-                expected = 2 if path.name == "w04d2.html" else 3
-                self.assertEqual(expected, len(page.root.find_all("div", "ix-future")))
+                self.assertEqual(0, len(page.root.find_all("div", "ix-future")))
+                hosts = page.root.find_all("div", "lesson-activity-host")
+                self.assertGreaterEqual(len(hosts), 2)
                 simulators = page.root.find_all("div", "ix-checkpoint")
                 self.assertEqual(1 if path.name == "w04d2.html" else 0, len(simulators))
 

@@ -40,40 +40,40 @@ before they become functional `ix-run` blocks. Tracked here per the fan-out plan
 
 ## W3–W8 current inventory
 
-**Status: deferred, not live.** The shipped pages contain 14 `.ix-future` placeholders, all in W4. W3 has implemented client-side agent widgets. W5–W6 replaced their old placeholders with required local decision labs. Source-remapped W7–W8 each ship one required local decision interaction per route and no deferred placeholders. The entries below inventory only placeholder copy still present in shipped reading pages; they do not promise a backend, launch date, or live provider connection.
+**Status: no deferred placeholders remain.** The 2026-10-30 learning-experience correction replaced all 14 W4 `.ix-future` placeholders with shipped, client-side lesson activities (`assets/js/lesson-activities.js`; trace / params / evidence / order / fault / tradeoff with committed static fallbacks). W3 has implemented client-side agent widgets. W5–W10 ship required local practices per route. The W4 entries below are retained as the design record, matching the W2 convention. The entries below inventory only placeholder copy still present in shipped reading pages; they do not promise a backend, launch date, or live provider connection.
 
 ### Week 4
 
-#### w04d1 — Multi-Agent Orchestration Patterns (3)
+#### w04d1 — Multi-Agent Orchestration Patterns (0)
 
-- **Swarm: peers hand off directly, no manager** — Planned: run the same three-agent support team as a supervisor and as a swarm on the same conversation, and diff the message traffic — every result round-tripping through the hub versus direct peer handoffs with the sticky active agent picking up turn two. Needs backend standup.
-- **A handoff is just a tool call** — Planned: wire two OpenAI Agents SDK agents with a `transfer_to_refund_agent` handoff, send one message, and inspect the raw tool call — then re-run with an `input_filter` attached and diff exactly what history the receiving agent saw each time. Needs backend standup.
-- **Orchestrator-worker: parallelism with a price tag** — Planned: fan a research question out to 1 vs 4 parallel subagents and watch a live token meter climb toward the ~15× multiple alongside the coverage gain — feel the economics, not just read them. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — Swarm: peers hand off directly, no manager: Planned: run the same three-agent support team as a supervisor and as a swarm on the same conversation, and diff the message traffic — every result round-tripping through the hub versus direct peer handoffs with the sticky active agent picking up turn two. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — A handoff is just a tool call: Planned: wire two OpenAI Agents SDK agents with a `transfer_to_refund_agent` handoff, send one message, and inspect the raw tool call — then re-run with an `input_filter` attached and diff exactly what history the receiving agent saw each time. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — Orchestrator-worker: parallelism with a price tag: Planned: fan a research question out to 1 vs 4 parallel subagents and watch a live token meter climb toward the ~15× multiple alongside the coverage gain — feel the economics, not just read them. Needs backend standup.
 
-#### w04d2 — Durable Agents: State, Checkpointers & the Art of Not Losing Your Place (2)
+#### w04d2 — Durable Agents: State, Checkpointers & the Art of Not Losing Your Place (0)
 
-- **interrupt(): pausing is just a checkpoint** — Planned: an approval-gate console — the refund agent hits `interrupt()` and its payload appears as a real approve/reject card; click approve and watch `Command(resume=True)` re-enter the node, or reject and watch the conditional edge route to a revision loop. Needs backend standup.
-- **Replay and fork: the history is a data structure** — Planned: a time-travel explorer — scrub through a real thread's checkpoint history on a timeline, pick a `checkpoint_id` to replay (and watch the re-executed LLM step come back different ), then `update_state` a fork and see both branches side by side. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — interrupt(): pausing is just a checkpoint: Planned: an approval-gate console — the refund agent hits `interrupt()` and its payload appears as a real approve/reject card; click approve and watch `Command(resume=True)` re-enter the node, or reject and watch the conditional edge route to a revision loop. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — Replay and fork: the history is a data structure: Planned: a time-travel explorer — scrub through a real thread's checkpoint history on a timeline, pick a `checkpoint_id` to replay (and watch the re-executed LLM step come back different ), then `update_state` a fork and see both branches side by side. Needs backend standup.
 
-#### w04d3 — Alt Research: CrewAI & AutoGen vs LangGraph (3)
+#### w04d3 — Alt Research: CrewAI & AutoGen vs LangGraph (0)
 
-- **Handoffs are tools that return a Command** — Planned: a Command-handoff tracer — step through a two-agent LangGraph run, watch the handoff tool emit `Command(goto="billing_agent", graph=Command.PARENT)` with its state update, and toggle the paired `ToolMessage` off to see the malformed-history failure the docs warn about. Needs backend standup.
-- **CrewAI: orchestration is an enum and a manager** — Planned: a crew-run inspector — define a three-agent crew, toggle between the sequential and hierarchical processes with a manager model, and watch the task-allocation decisions the manager makes, and re-makes, on the same input. Needs backend standup.
-- **One axis, three positions — making the call like an FDE** — Planned: a pattern-translation board — describe a client workflow in one sentence and see it mapped side-by-side into all three stacks (LangGraph supervisor/swarm code sketch, CrewAI Process + delegation flags, MAF orchestration choice), with the explicitness tradeoff annotated on each. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — Handoffs are tools that return a Command: Planned: a Command-handoff tracer — step through a two-agent LangGraph run, watch the handoff tool emit `Command(goto="billing_agent", graph=Command.PARENT)` with its state update, and toggle the paired `ToolMessage` off to see the malformed-history failure the docs warn about. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — CrewAI: orchestration is an enum and a manager: Planned: a crew-run inspector — define a three-agent crew, toggle between the sequential and hierarchical processes with a manager model, and watch the task-allocation decisions the manager makes, and re-makes, on the same input. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — One axis, three positions — making the call like an FDE: Planned: a pattern-translation board — describe a client workflow in one sentence and see it mapped side-by-side into all three stacks (LangGraph supervisor/swarm code sketch, CrewAI Process + delegation flags, MAF orchestration choice), with the explicitness tradeoff annotated on each. Needs backend standup.
 
-#### w04d4 — Knowledge Graphs & Cypher, optional Week 5 history (3)
+#### w04d4 — Knowledge Graphs & Cypher, optional Week 5 history (0)
 
-- **Nouns become labels, verbs become relationships** — Planned: a schema-builder panel — paste three sentences describing a client domain, highlight the nouns and verbs, and watch them assemble into a labeled property-graph schema you can then test against sample use-case questions. Needs backend standup.
-- **Neo4j's vector index: semantic search and traversal in one store** — Planned: a live Cypher console against a small seeded movie graph — create the vector index, run `db.index.vector.queryNodes` with a real embedded question, and inspect the returned nodes and similarity scores. Needs backend standup.
-- **Text2Cypher: retrieval by writing the query** — Planned: a Text2Cypher playground — type a natural-language question, see the LLM-generated Cypher and the executed results side by side, then vandalize the schema (rename `ACTED_IN` to `RELATED_TO`) and watch the generated query degrade. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — Nouns become labels, verbs become relationships: Planned: a schema-builder panel — paste three sentences describing a client domain, highlight the nouns and verbs, and watch them assemble into a labeled property-graph schema you can then test against sample use-case questions. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — Neo4j's vector index: semantic search and traversal in one store: Planned: a live Cypher console against a small seeded movie graph — create the vector index, run `db.index.vector.queryNodes` with a real embedded question, and inspect the returned nodes and similarity scores. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — Text2Cypher: retrieval by writing the query: Planned: a Text2Cypher playground — type a natural-language question, see the LLM-generated Cypher and the executed results side by side, then vandalize the schema (rename `ACTED_IN` to `RELATED_TO`) and watch the generated query degrade. Needs backend standup.
 
-#### w04d5 — GraphRAG End-to-End, optional Week 5 history (3)
+#### w04d5 — GraphRAG End-to-End, optional Week 5 history (0)
 
-- **SimpleKGPipeline: docs in, graph out** — Planned: paste a short incident report and run a live `SimpleKGPipeline` pass — watch the splitter, embedder, and extractor stages fire and the extracted entity graph render node by node. Needs backend standup.
-- **The retriever ladder: vector entry, graph expansion** — Planned: fire the same question at a `VectorRetriever` and a `VectorCypherRetriever` side by side and diff the retrieved context — see exactly what the graph hop added. Needs backend standup.
-- **Local vs global search: match the mode to the question's shape** — Planned: ask one entity question and one "top themes" question against the same indexed corpus, toggling local vs global mode — watch local fan out from entities while global map-reduces over community summaries. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — SimpleKGPipeline: docs in, graph out: Planned: paste a short incident report and run a live `SimpleKGPipeline` pass — watch the splitter, embedder, and extractor stages fire and the extracted entity graph render node by node. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — The retriever ladder: vector entry, graph expansion: Planned: fire the same question at a `VectorRetriever` and a `VectorCypherRetriever` side by side and diff the retrieved context — see exactly what the graph hop added. Needs backend standup.
+- Shipped 2026-10-30 as a lesson activity. Design record — Local vs global search: match the mode to the question's shape: Planned: ask one entity question and one "top themes" question against the same indexed corpus, toggling local vs global mode — watch local fan out from entities while global map-reduces over community summaries. Needs backend standup.
 
-_Week 4 subtotal: 14 deferred placeholders._
+_Week 4 subtotal: 0 deferred placeholders._
 
 ### Week 5
 
@@ -143,7 +143,7 @@ The AI Observability, SRE & Reliability Guardrails replacement retires the forme
 
 _Week 8 subtotal: 0 deferred placeholders._
 
-**Inventory total: 14 deferred placeholders.**
+**Inventory total: 0 deferred placeholders.**
 
 ### Setup, expected output, and troubleshooting metadata gap
 

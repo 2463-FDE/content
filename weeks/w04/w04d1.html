@@ -38,7 +38,7 @@
         <div class="meta">
           <span><b>Week 4</b> · Day 1</span>
           <span>Multi-Agent Systems</span>
-          <span class="core30-meta"><b>Core 30</b> · ~9 min read · 1 interaction · 6-Q check</span>
+          <span class="core30-meta"><b>Core 30</b> · ~9 min read · 3 interactions · 6-Q check</span>
         </div>
         <p class="summary">Last week you built a single production agent. This week the question changes: when is one
         agent <em>not enough</em> — and when you split the work, <strong>who decides who works next?</strong> Today you
@@ -76,6 +76,10 @@
         client's first instinct is "let's have twelve agents," your first instinct is to ask which of the three drivers
         is actually present.</p>
       </section>
+<div class="lesson-activity-host" data-activity="tradeoff" data-activity-id="w04d1-tradeoff">
+<script type="application/json">{"type":"tradeoff","title":"Does this ask earn multi-agent?","intro":"Juniper Vale wants claims intake triage plus a policy-lookup answer in one flow. Choose the orchestration.","prompt":"Which design do you defend for this ask?","dims":["Coordination overhead","Debuggability","Token cost"],"options":[{"label":"One well-tooled single agent","outcome":{"Coordination overhead":"none — one context, one loop","Debuggability":"one trajectory to read","Token cost":"baseline"},"defensible":true,"why":"one agent is the default — multi-agent has to earn it, and this ask has no independent parallel work or specialist boundary yet"},{"label":"Supervisor with three specialists","outcome":{"Coordination overhead":"every result round-trips through the hub","Debuggability":"handoff traffic to reconstruct","Token cost":"multiplied by routing turns"},"defensible":false,"why":"a supervisor buys parallelism and specialist isolation this ask does not need — the price arrives immediately, the benefit never does"},{"label":"Swarm of peer agents","outcome":{"Coordination overhead":"direct handoffs, sticky active agent","Debuggability":"control flow lives in conversation state","Token cost":"lower than hub routing, above single agent"},"defensible":false,"why":"peer handoffs shine when stages genuinely differ; here they add moving parts to a one-lane task"}]}</script>
+<details class="activity-fallback" data-core-interaction data-activity-fallback="tradeoff"><summary>Required practice · Does this ask earn multi-agent? · static path</summary><p>Juniper Vale wants claims intake triage plus a policy-lookup answer in one flow. Choose the orchestration.</p><p>Which design do you defend for this ask?</p><ul><li><b>One well-tooled single agent</b> — Coordination overhead: none — one context, one loop; Debuggability: one trajectory to read; Token cost: baseline. one agent is the default — multi-agent has to earn it, and this ask has no independent parallel work or specialist boundary yet</li><li><b>Supervisor with three specialists</b> — Coordination overhead: every result round-trips through the hub; Debuggability: handoff traffic to reconstruct; Token cost: multiplied by routing turns. a supervisor buys parallelism and specialist isolation this ask does not need — the price arrives immediately, the benefit never does</li><li><b>Swarm of peer agents</b> — Coordination overhead: direct handoffs, sticky active agent; Debuggability: control flow lives in conversation state; Token cost: lower than hub routing, above single agent. peer handoffs shine when stages genuinely differ; here they add moving parts to a one-lane task</li></ul><p><b>Defensible choice:</b> One well-tooled single agent</p></details>
+</div>
 
       <section class="step" data-diagram="0" data-step="1">
         <div class="tag">Pattern 1</div>
@@ -122,10 +126,6 @@
         instead of concentrated in one place, so answering "why did the wrong agent take this?" means auditing N prompts
         instead of one. Supervisor when you want central control and auditable routing; swarm when the conversation
         should follow specialization fluidly and you can tolerate distributed routing logic.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: run the same three-agent
-        support team as a supervisor and as a swarm on the same conversation, and diff the message traffic — every
-        result round-tripping through the hub versus direct peer handoffs with the sticky active agent picking up turn
-        two. Needs backend standup.</p></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -154,11 +154,11 @@
         transfer instead of forwarding it raw: the framework authors converging on the same window discipline you
         learned in Week 1.</p>
         <div class="core-practice" data-core-interaction><fieldset><legend>Choose the boundary for the synthetic insurance workflow</legend><label><input type="radio" name="w04d1-pattern"> Supervisor: one coordinator owns routing and writes</label><label><input type="radio" name="w04d1-pattern"> Swarm: peers transfer control directly</label><label><input type="radio" name="w04d1-pattern"> Keep one agent: no split driver is present</label></fieldset><details><summary>Check your decision rule</summary><p>Keep one agent unless context isolation, separate ownership, or genuine parallel work earns a split. If a shared record changes, name one write owner regardless of topology.</p></details></div>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: wire two OpenAI Agents SDK
-        agents with a <code>transfer_to_refund_agent</code> handoff, send one message, and inspect the raw tool call —
-        then re-run with an <code>input_filter</code> attached and diff exactly what history the receiving agent saw
-        each time. Needs backend standup.</p></div>
       </section>
+<div class="lesson-activity-host" data-activity="trace" data-activity-id="w04d1-trace">
+<script type="application/json">{"type":"trace","title":"Watch one handoff happen","intro":"Step through a refund handoff and see that the 'magic' is a tool call plus code-owned routing and a single-threaded write.","steps":[{"label":"The triage agent decides to hand off","state":[["decision","transfer_to_refund_agent"],["mechanism","tool call emitted by the LLM"],["state write","none yet"]],"note":"A handoff is just a tool call: the model proposes, it does not teleport."},{"label":"Your code routes the transfer","state":[["router","application code receives the tool call"],["target","refund agent"],["history passed","filtered envelope, not the whole chat dump"]],"note":"Who routes — the LLM or your code? The tool call is a request; the routing decision is yours."},{"label":"The refund agent works in its own context","state":[["context","envelope: claim id, policy ref, task"],["parallel writes","none — single-threaded writes"],["result","refund recommendation"]],"note":"2026's rule: single-threaded writes, extra intelligence — parallel readers are cheap, parallel writers are chaos."},{"label":"The result lands once","state":[["write","one owner applies the outcome"],["trace","handoff visible as an ordinary tool span"],["failure mode avoided","no double-apply, no divergent state"]],"note":"Naive multi-agent systems fail at exactly this seam; the discipline is the design."}]}</script>
+<details class="activity-fallback" data-core-interaction data-activity-fallback="trace"><summary>Required practice · Watch one handoff happen · static path</summary><p>Step through a refund handoff and see that the &#39;magic&#39; is a tool call plus code-owned routing and a single-threaded write.</p><ol><li><b>The triage agent decides to hand off</b> — decision = transfer_to_refund_agent · mechanism = tool call emitted by the LLM · state write = none yet<br>A handoff is just a tool call: the model proposes, it does not teleport.</li><li><b>Your code routes the transfer</b> — router = application code receives the tool call · target = refund agent · history passed = filtered envelope, not the whole chat dump<br>Who routes — the LLM or your code? The tool call is a request; the routing decision is yours.</li><li><b>The refund agent works in its own context</b> — context = envelope: claim id, policy ref, task · parallel writes = none — single-threaded writes · result = refund recommendation<br>2026&#39;s rule: single-threaded writes, extra intelligence — parallel readers are cheap, parallel writers are chaos.</li><li><b>The result lands once</b> — write = one owner applies the outcome · trace = handoff visible as an ordinary tool span · failure mode avoided = no double-apply, no divergent state<br>Naive multi-agent systems fail at exactly this seam; the discipline is the design.</li></ol></details>
+</div>
 
       <details class="deep" data-core="optional"><summary>Optional depth: routing axis, economics, failure research &amp; tool mapping</summary>
       <section class="step" data-diagram="0" data-step="4">
@@ -210,9 +210,6 @@
         boundaries. And the lead is taught <strong>scaling rules</strong> so effort matches complexity: a simple query
         gets one agent; a complex investigation fans out to ten-plus subagents with divided responsibilities. Delegation
         quality, not agent count, is what separates a research team from an expensive mob.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: fan a research question out to
-        1 vs 4 parallel subagents and watch a live token meter climb toward the ~15× multiple alongside the coverage
-        gain — feel the economics, not just read them. Needs backend standup.</p></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="6">
@@ -575,6 +572,7 @@ window.QUIZ = {
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/lesson-activities.js?v=20261030-lx1"></script>
 <script src="../../assets/js/interactive.js?v=20261030-a11y"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>

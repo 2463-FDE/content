@@ -59,6 +59,9 @@ def optional(element: Element) -> bool:
         element.tag in EXCLUDED_TAGS
         or bool(classes(element) & EXCLUDED_CLASSES)
         or element.attrs.get("data-core") == "optional"
+        # Required practices (and their static fallbacks) are budgeted as
+        # interaction minutes, not reading words.
+        or "data-core-interaction" in element.attrs
     )
 
 
@@ -184,9 +187,12 @@ load(Object.entries(routes), 0);
                 self.assertIsNotNone(advertised)
                 self.assertIsNotNone(total)
                 self.assertEqual(round(words / WPM), int(advertised.group(1)))
-                self.assertEqual(round(words / WPM) + 3 + 6 + 5, int(total.group(1)))
+                # 2026-10-30 correction: the decision lab plus two shipped
+                # lesson activities (4 min each) are required practice.
+                self.assertEqual(round(words / WPM) + 3 + 6 + 5 + 8, int(total.group(1)))
+                self.assertLessEqual(int(total.group(1)), 30)
                 self.assertIn("3 min diagram", meta)
-                self.assertIn("1 interaction", meta)
+                self.assertIn("3 interactions", meta)
                 self.assertIn("6-Q check", meta)
                 self.assertLessEqual(int(total.group(1)), 30)
 

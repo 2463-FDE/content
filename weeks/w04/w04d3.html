@@ -39,8 +39,8 @@
         <div class="meta">
           <span><b>Week 4</b> · Day 3</span>
           <span>Multi-Agent Systems with LangGraph</span>
-          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, one interaction, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~12 min read · 1 interaction · 6-Q check</span>
-          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, one interaction, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~12 min read · 1 interaction · 6-Q check</span>
+          <span class="core30-meta" data-cloud="aws" title="Core 30 on the AWS path: the required path — reading, diagram, the required practices, and the check — fits a 30-minute day. Marked details blocks and the GCP comparison are optional depth outside the cap."><b>Core 30</b> · AWS · ~12 min read · 3 interactions · 6-Q check</span>
+          <span class="core30-meta" data-cloud="gcp" title="Core 30 on the GCP path: the required path — reading, diagram, the required practices, and the check — fits a 30-minute day. Marked details blocks and the AWS comparison are optional depth outside the cap."><b>Core 30</b> · GCP · ~12 min read · 3 interactions · 6-Q check</span>
         </div>
         <p class="summary">This week you're building multi-agent systems on <strong>LangGraph</strong> — but a client
         will absolutely ask "why not CrewAI?" or "isn't Microsoft's thing the enterprise answer?", and an FDE who can
@@ -131,11 +131,6 @@
         retrieval loop. The most graph-native framework on the market telling you <em>not</em> to reach for
         multi-subgraph builds by default is a data point worth carrying into every architecture review this week.</p>
         </details>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a Command-handoff tracer —
-        step through a two-agent LangGraph run, watch the handoff tool emit
-        <code>Command(goto="billing_agent", graph=Command.PARENT)</code> with its state update, and toggle the paired
-        <code>ToolMessage</code> off to see the malformed-history failure the docs warn about. Needs backend
-        standup.</p></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="3">
@@ -185,9 +180,6 @@
         the sharpest single contrast with LangGraph's explicit node/edge control, and it cuts both ways: dramatically
         less code to get a working team, dramatically less to point at when the manager delegates somewhere strange.</p>
         </details>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a crew-run inspector — define a three-agent crew, toggle between the sequential and hierarchical
-        processes with a manager model, and watch the task-allocation decisions the manager makes, and re-makes, on
-        the same input. Needs backend standup.</p></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="5">
@@ -243,6 +235,10 @@
         build-it-from-substrate, not CrewAI's two-value enum, but a <strong>catalog of named, prebuilt patterns</strong>
         you select and configure.</p>
       </section>
+<div class="lesson-activity-host" data-activity="evidence" data-activity-id="w04d3-evidence">
+<script type="application/json">{"type":"evidence","title":"Is this framework advice current?","intro":"A teammate pastes four sources into the channel. Select the ones that establish current framework truth.","claim":"The team's framework comparison is grounded in current, dated sources.","why":"A dated first-party migration notice and current orchestration docs are evidence; an undated 2023 tutorial and star counts are the stale-advice minefield the day warns about.","artifacts":[{"id":"notice","label":"First-party status note","body":"AutoGen docs: maintenance mode — new work targets Agent Framework (retrieved 2026-10)","probative":true,"why":"a dated first-party statement of the legacy boundary"},{"id":"orch","label":"Current orchestration docs","body":"Agent Framework: five orchestrations incl. Magentic (manager + ledger + stall detector), retrieved 2026-10","probative":true,"why":"the shipped orchestration list, dated — comparable against LangGraph and CrewAI claims"},{"id":"tut","label":"Blog tutorial","body":"How we built a GroupChat with AutoGen (no date, screenshots from 0.2)","probative":false,"why":"undated AutoGen-era advice is exactly the minefield"},{"id":"stars","label":"Stars screenshot","body":"repo A: 41k ★ vs repo B: 18k ★","probative":false,"why":"popularity is not an orchestration contract"}]}</script>
+<details class="activity-fallback" data-core-interaction data-activity-fallback="evidence"><summary>Required practice · Is this framework advice current? · static path</summary><p>A teammate pastes four sources into the channel. Select the ones that establish current framework truth.</p><p><b>Claim:</b> The team&#39;s framework comparison is grounded in current, dated sources.</p><ul><li><b>First-party status note</b> — supports the claim: a dated first-party statement of the legacy boundary</li><li><b>Current orchestration docs</b> — supports the claim: the shipped orchestration list, dated — comparable against LangGraph and CrewAI claims</li><li><b>Blog tutorial</b> — does not support the claim: undated AutoGen-era advice is exactly the minefield</li><li><b>Stars screenshot</b> — does not support the claim: popularity is not an orchestration contract</li></ul><p>A dated first-party migration notice and current orchestration docs are evidence; an undated 2023 tutorial and star counts are the stale-advice minefield the day warns about.</p></details>
+</div>
 
       <section class="step" data-diagram="0" data-step="7">
         <div class="tag">The interesting one</div>
@@ -293,10 +289,6 @@
         competitors' own vocabulary. Weekend-speed prototype with clean role separation? CrewAI's enum gets a team
         standing in an afternoon. Microsoft-committed enterprise wanting supported, named patterns with HITL gates?
         Agent Framework is purpose-built — just make sure nobody's greenfielding on AutoGen.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a pattern-translation board —
-        describe a client workflow in one sentence and see it mapped side-by-side into all three stacks (LangGraph
-        supervisor/swarm code sketch, CrewAI Process + delegation flags, MAF orchestration choice), with the
-        explicitness tradeoff annotated on each. Needs backend standup.</p></div>
 
         <p>One more question before you defend a framework: <strong>what does the client's cloud already offer?</strong>
         Both clouds ship their own multi-agent layer and a managed runtime that hosts open-source frameworks, so "LangGraph
@@ -373,6 +365,10 @@
           graph — Neo4j and GraphRAG.</p>
         </div>
       </section>
+<div class="lesson-activity-host" data-activity="params" data-activity-id="w04d3-params">
+<script type="application/json">{"type":"params","title":"One workflow, three frameworks","intro":"Pick the framework; compare how the same two-specialist claims workflow is expressed and where the stale-advice risk hides.","controls":[{"key":"fw","label":"Framework","options":[{"label":"LangGraph","value":"lg"},{"label":"CrewAI","value":"crew"},{"label":"Agent Framework","value":"maf"}]}],"cases":[{"when":{"fw":"lg"},"out":{"orchestration expressed as":"an explicit StateGraph; handoffs are tools returning Command(goto=…)","where control lives":"your graph — every edge is visible","stale-advice risk":"older supervisor/swarm snippets predate the Command handoff idiom"},"note":"Five patterns, one design concern: explicitness is the product."},{"when":{"fw":"crew"},"out":{"orchestration expressed as":"a Process enum (sequential or hierarchical) plus a manager model","where control lives":"the crew config; peer collaboration is a flag, not a graph","stale-advice risk":"tutorials written before the manager-model behavior settled"},"note":"Orchestration is an enum and a manager — less surface, less control."},{"when":{"fw":"maf"},"out":{"orchestration expressed as":"five shipped orchestrations, including Magentic's ledger-and-stall-detector manager","where control lives":"the chosen orchestration's contract","stale-advice risk":"highest: AutoGen-era advice describes a legacy stack"},"note":"AutoGen is legacy; Agent Framework ships the orchestrations — check the date on everything."}]}</script>
+<details class="activity-fallback" data-core-interaction data-activity-fallback="params"><summary>Required practice · One workflow, three frameworks · static path</summary><p>Pick the framework; compare how the same two-specialist claims workflow is expressed and where the stale-advice risk hides.</p><ul><li><b>fw: lg</b> — orchestration expressed as → an explicit StateGraph; handoffs are tools returning Command(goto=…); where control lives → your graph — every edge is visible; stale-advice risk → older supervisor/swarm snippets predate the Command handoff idiom. Five patterns, one design concern: explicitness is the product.</li><li><b>fw: crew</b> — orchestration expressed as → a Process enum (sequential or hierarchical) plus a manager model; where control lives → the crew config; peer collaboration is a flag, not a graph; stale-advice risk → tutorials written before the manager-model behavior settled. Orchestration is an enum and a manager — less surface, less control.</li><li><b>fw: maf</b> — orchestration expressed as → five shipped orchestrations, including Magentic&#39;s ledger-and-stall-detector manager; where control lives → the chosen orchestration&#39;s contract; stale-advice risk → highest: AutoGen-era advice describes a legacy stack. AutoGen is legacy; Agent Framework ships the orchestrations — check the date on everything.</li></ul></details>
+</div>
 
       <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
         <h2>Sources &amp; deeper dive</h2>
@@ -662,6 +658,7 @@ window.QUIZ = {
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20261014-c1"></script>
+<script src="../../assets/js/lesson-activities.js?v=20261030-lx1"></script>
 <script src="../../assets/js/interactive.js?v=20261030-a11y"></script>
 <script src="../../assets/js/glossary.js?v=20261014-c1"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>

@@ -85,7 +85,7 @@ class ParsedPage:
 
     @property
     def embedded_javascript(self) -> str:
-        return "\n".join(script.text() for script in self.root.find_all("script") if not script.attrs.get("src"))
+        return "\n".join(script.text() for script in self.root.find_all("script") if not script.attrs.get("src") and script.attrs.get("type") != "application/json")
 
 
 def published_example(path: Path) -> tuple[str, str]:
@@ -843,13 +843,14 @@ process.stdout.write(JSON.stringify(log));
         with self.assertRaises(AssertionError):
             validate_responsive_motion_css(css + "\n.cp-mutation { transition: opacity .2s; }")
 
-    def test_w4d2_replaces_one_placeholder_with_the_real_simulator(self) -> None:
+    def test_w4_ships_the_simulator_and_live_activities_without_placeholders(self) -> None:
+        # 2026-10-30 learning-experience correction: all W4 .ix-future
+        # placeholders were replaced with shipped lesson activities.
         counts: dict[str, int] = {}
         for path in W4_PAGES:
             page = ParsedPage(path)
             counts[path.name] = len(page.root.find_all("div", "ix-future"))
-        self.assertEqual(2, counts["w04d2.html"])
-        self.assertEqual(14, sum(counts.values()))
+        self.assertEqual(0, sum(counts.values()))
         self.assertEqual(1, len(ParsedPage(ROOT / "weeks" / "w04" / "w04d2.html").root.find_all("div", "ix-checkpoint")))
 
 
