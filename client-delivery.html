@@ -426,6 +426,7 @@ window.CLIENT = {
           "Incident memo MP-312: a prod incident traced to a config value staging never had; fix was applied by SSH and never recorded.",
           "A contractor's Terraform fragment: one root module, one state file, credentials inline as variables with defaults.",
           "Ansible attempt: a playbook whose shell task appends the same config line every run — 'it works, run it once only'.",
+          "Handover carry-over from the solo engagement: the prior client-system idempotency gap is still open in the payments estate — the append-every-run playbook repeats the same mistake at the configuration layer.",
           "Change-control note: payment-infrastructure changes require a named human approver; the audit team reads the trail quarterly."
         ],
         dig: [
@@ -566,7 +567,12 @@ window.CLIENT = {
       `<div class="pj-t">${p.label}</div>` +
       `<div class="pj-s">${p.short}</div>` +
       `<div class="pj-persona">${p.persona}</div>`;
-    btn.addEventListener("click", () => { state.proj = key; render(); });
+    btn.addEventListener("click", () => {
+      state.proj = key;
+      // Follow the selected engagement: jump into its week range if needed.
+      if (!p.weeks[state.week]) state.week = Math.min(...Object.keys(p.weeks).map(Number));
+      render();
+    });
     projtabs.appendChild(btn);
   });
 

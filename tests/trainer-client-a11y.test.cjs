@@ -200,7 +200,7 @@ test('Client Delivery has exactly one main landmark around both rendered persona
   assert.ok(tabs.closest('main') === main && panel.closest('main') === main);
 
   const projects = tabs.querySelectorAll('.cd-proj');
-  assert.deepEqual(projects.map((button) => button.dataset.proj), ['healthcare', 'finance']);
+  assert.deepEqual(projects.map((button) => button.dataset.proj), ['insurance', 'payments']);
   for (const button of projects) {
     button.click();
     assert.ok(button.classList.contains('on'));

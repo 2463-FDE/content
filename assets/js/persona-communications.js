@@ -13,9 +13,14 @@
 
   if (!fixtureBook || !fixtureBook.scenarios) throw new Error("Persona communication fixtures are unavailable.");
 
-  var STORAGE_PREFIX = "fde_local_synthetic_persona_v1:";
+  var STORAGE_PREFIX = "fde_local_synthetic_persona_v2:";
+  // Retired-scenario practice state stays stored untouched under the v1 prefix;
+  // it is never deleted, migrated, or relabeled as a new client. LEGACY-STATE
+  var LEGACY_STORAGE_PREFIX = "fde_local_synthetic_persona_v1:";
   var CHANNELS = ["chat", "inbox", "coaching"];
   var PROJECTS = Object.keys(fixtureBook.scenarios);
+  // Old deep links keep working; the active scenarios are the only ones rendered.
+  var LEGACY_PROJECT_PARAMS = { riverbend: "juniper-vale", meridian: "morrowfield" };
 
   function hashText(value) {
     var text = String(value == null ? "" : value);
@@ -202,6 +207,15 @@
     return scope ? key + ":" + String(scope).replace(/[^a-z0-9-]/gi, "") : key;
   }
 
+  function hasLegacyState(storage, identity, scope) {
+    try {
+      var seam = identity && (String(identity.code || "") + "|" + String(identity.role || "learner"));
+      var key = LEGACY_STORAGE_PREFIX + "local-" + hashText(seam || "missing");
+      if (scope) key += ":" + String(scope).replace(/[^a-z0-9-]/gi, "");
+      return !!(storage && storage.getItem(key));
+    } catch (error) { return false; }
+  }
+
   function initialProjectState(projectId) {
     var scenario = getScenario(projectId);
     return {
@@ -275,7 +289,7 @@
     var lower = source.toLowerCase();
     var hasQuestion = /\?/.test(source) || /\b(what|why|how|which|who)\b/.test(lower);
     var hasEvidence = /\b(evidence|because|shows|trace|test|fixture|data|risk)\b/.test(lower);
-    var hasOutcome = /\b(outcome|impact|patient|front desk|finance|applicant|customer|staff|business)\b/.test(lower);
+    var hasOutcome = /\b(outcome|impact|claimant|adjuster|merchant|finance|customer|staff|business)\b/.test(lower);
     var hasPushback = /\b(push back|cannot|can't|would not|risk|instead|alternative|smaller|narrower)\b/.test(lower) && /\b(because|so that|evidence|risk)\b/.test(lower);
     var hasExpectation = /\b(by |before |after |next |owner|pending|included|scope|deadline|review|follow up)\b/.test(lower);
     var hasRapport = /\b(thank|appreciate|understand|agree|hear|help|works for me)\b/.test(lower);
@@ -287,7 +301,7 @@
       criteria: Object.freeze([
         coachingItem("clarity", "Clarity", hasConcrete, "You anchor the message in a concrete scenario detail.", "Name the exact decision, evidence, or scenario condition instead of referring to “the issue.”"),
         coachingItem("questions", "Question quality", hasQuestion, "You ask for information that can change the next step.", "Add one open question about ownership, evidence, audience, or the condition that changes the plan."),
-        coachingItem("persuasion", "Persuasion", hasEvidence && hasOutcome, "You connect evidence to an outcome the stakeholder cares about.", "Link the technical evidence to a patient, applicant, staff, trust, or money-correctness outcome."),
+        coachingItem("persuasion", "Persuasion", hasEvidence && hasOutcome, "You connect evidence to an outcome the stakeholder cares about.", "Link the technical evidence to a claimant, merchant, staff, trust, or money-correctness outcome."),
         coachingItem("pushback", "Respectful pushback", hasPushback, "You pair a boundary with a reason or alternative.", "State the risk, then offer the smallest defensible alternative rather than giving a bare refusal."),
         coachingItem("expectations", "Expectation-setting", hasExpectation, "You make scope, ownership, or the next checkpoint visible.", "Say what is included, what is pending, who owns the decision, and when it will be reviewed."),
         coachingItem("rapport", "Rapport", hasRapport, "You acknowledge the other person before redirecting the work.", "Acknowledge the request or pressure in one sentence before clarifying or challenging it.")
@@ -359,8 +373,8 @@
     var clock = options.clock || (accelerated ? createInjectedClock(fixtureBook.fixtureEpoch) : createSystemClock());
     var store = createStore(storage, identity, accelerated ? "accelerated" : "");
     var state = store.load();
-    var requestedProject = query.match(/[?&]project=(riverbend|meridian)(?:&|$)/);
-    if (requestedProject) state.selectedProject = requestedProject[1];
+    var requestedProject = query.match(/[?&]project=(juniper-vale|morrowfield|riverbend|meridian)(?:&|$)/);
+    if (requestedProject) state.selectedProject = LEGACY_PROJECT_PARAMS[requestedProject[1]] || requestedProject[1];
     state.selectedProject = normalizeProject(state.selectedProject);
     state.activeChannel = CHANNELS.indexOf(state.activeChannel) >= 0 ? state.activeChannel : "chat";
     var selectedThreadId = null;
@@ -396,6 +410,12 @@
     var coachingStatus = doc.getElementById("pc-coaching-status");
     var resetButton = doc.getElementById("pc-reset");
     var resetStatus = doc.getElementById("pc-reset-status");
+    var legacyNote = doc.getElementById("pc-legacy-note");
+
+    if (legacyNote && hasLegacyState(storage, identity, accelerated ? "accelerated" : "")) {
+      legacyNote.textContent = "Your earlier practice history from the retired Riverbend/Meridian scenarios remains stored in this browser, untouched; this lab now hosts only the two active engagements."; // LEGACY-STATE compatibility notice
+      legacyNote.hidden = false;
+    }
 
     function projectState() { return state.projects[state.selectedProject]; }
 
@@ -617,7 +637,7 @@
     resetButton.addEventListener("click", function () {
       state = store.reset();
       selectedThreadId = null;
-      resetStatus.textContent = "This browser's synthetic Riverbend/Meridian chat and inbox state was reset. No curriculum progress or assessment data was touched.";
+      resetStatus.textContent = "This browser's synthetic chat and inbox practice state was reset. No curriculum progress or assessment data was touched.";
       renderAll();
     });
 
@@ -666,6 +686,7 @@
     createSystemClock: createSystemClock,
     readExistingIdentity: readExistingIdentity,
     storageKeyForIdentity: storageKeyForIdentity,
+    hasLegacyState: hasLegacyState,
     initialState: initialState,
     createStore: createStore,
     transcriptText: transcriptText,

@@ -395,8 +395,13 @@ load(Object.entries(pages), 0);
             self.assertIn("AI Observability", rendered[surface]["text"], surface)
         self.assertNotIn("Week 7 Observability, SRE & Guardrails", rendered["hub"]["text"])
         self.assertNotIn("Week 8 Security, Governance & Responsible AI", rendered["hub"]["text"])
-        self.assertIn("Safe-Harbor", rendered["client9h"]["text"])
-        self.assertIn("adverse-action-reason gap", rendered["client9f"]["text"])
+        # Old healthcare/finance deep links must land honestly on the active
+        # Week 9 engagement (Morrowfield owns Weeks 6-10) with its governance
+        # evidence anchors, not on a retired client case.
+        for legacy in ("client9h", "client9f"):
+            self.assertIn("Morrowfield Payment Control", rendered[legacy]["text"], legacy)
+            self.assertIn("GOV-09-03", rendered[legacy]["text"], legacy)
+            self.assertIn("SEC-09-01", rendered[legacy]["text"], legacy)
         self.assertIn("Security, Governance & Responsible AI", rendered["alt9"]["text"])
         self.assertIn("Week 8 made the inherited system operable", rendered["week9"]["text"])
         links = [urlparse(link).path for link in rendered["week9"]["links"]]
