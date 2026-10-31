@@ -105,7 +105,7 @@
     <div style="flex:1">
       <div class="b-everyone"><b>Log in with your code</b> (top right) to see your project's material. The client
       message, handover artifacts, questions to dig into, and known problems are visible to everyone.</div>
-      <div class="trainer-only">🔑 You're in <b>trainer view</b> — the hidden problems learners should surface and facilitator notes are shown below. Don't lecture them; steer with questions.</div>
+      <div class="trainer-only">You're in <b>trainer view</b> — the hidden problems learners should surface and facilitator notes are shown below. Don't lecture them; steer with questions.</div>
     </div>
   </div>
 
@@ -654,7 +654,7 @@ window.CLIENT = {
     // Hidden problems + facilitator notes (TRAINER ONLY)
     html +=
       `<div class="cd-sec trainer-only">` +
-        `<div class="cd-h" style="color:#c2410c">🔑 Hidden problems learners should surface</div>` +
+        `<div class="cd-h" style="color:#c2410c">Hidden problems learners should surface</div>` +
         ul(wk.hidden) +
         `<div class="trainer-note"><div class="k">Facilitator note</div><p style="margin:0">${wk.facilitator}</p></div>` +
       `</div>`;

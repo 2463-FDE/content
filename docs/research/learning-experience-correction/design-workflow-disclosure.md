@@ -6,45 +6,51 @@ claimed from detector scores alone.
 
 ## Hallmark (Nutlope/hallmark @ 6033bab2, MIT)
 
-- Authority used: the existing FDE research report
+- **Original phase — research only.** Authoring used the existing FDE research report
   (`kun-agent-workspace data/fde-hallmark-anti-ai-slop-research/report.md`, research
-  date 2026-10-27, exact-SHA bound). Per its accepted decision, Hallmark was **not**
-  installed, vendored, themed from, or used as a blocking gate; the npm package named
-  `hallmark` is unrelated and was not used.
-- The FDE-relevant transferable checks were applied as project-scoped design inputs,
-  and already exist as committed FDE-native contracts rather than Hallmark rules:
-  1. Preserve-before-redesign: week HTML was never restructured for visual change; the
-     token layer in `assets/css/style.css` is the only propagation path (DESIGN.md
-     norm, pinned by `tests/design-system.test.cjs`).
+  date 2026-10-27, exact-SHA bound). Hallmark was not installed, vendored, or executed
+  during that phase; the npm package named `hallmark` is unrelated and was not used.
+- **Later validation phase — pinned static execution.** Hallmark source was pinned to
+  `6033bab2` and its static checks were executed against the exact PR 39 candidate head
+  `b9b7d23df44f3eeeb3705bf6e203785c2cd029bf`. That source-bound run was static only:
+  it was not a full Hallmark pass, did not run a Hallmark render tier, and did not make
+  Hallmark a blocking gate or impose its house style.
+- The FDE-relevant transferable checks remain project-scoped contracts rather than
+  Hallmark rules:
+  1. Preserve product truth and shared shell contracts while allowing objective-driven
+     lesson structure to improve orientation, teaching, and practice; token-only
+     restyling still propagates through `assets/css/style.css`.
   2. Objective checks for reduced-motion fallback, focus visibility,
      transform/opacity-only keyframes, AA accent fill, print, and both-theme tokens:
      `tests/design-system.test.cjs`.
-  3. Browser checks at FDE's own 320/390/768/desktop and zoom matrix: the committed
-     accessibility/narrow-safe suites plus the batched browser pass in
-     `behavioral-evidence.md`.
+  3. Bounded route and width checks recorded in `behavioral-evidence.md` plus the
+     committed accessibility/narrow-safe suites. These are not claimed as a complete
+     browser matrix or as native-200% acceptance for a changed surface.
   4. Fresh-context question ("does this screen express the learner/trainer job?"):
-     answered by the behavioral pass — program/week/day orientation, project binding
-     and next actions are visible on every route class inspected.
+     answered only for the route classes inspected — program/week/day orientation,
+     project binding, and next actions were visible there.
   5. Advisory waiver ledger: below, with reasons, instead of mandatory style stamps.
 - Hallmark's house style (forced typography/palette/themes, no-eyebrow rules, hero/fold
-  budgets, CSS stamps, image routes, global hook) was not adopted, as the accepted
-  research directs.
+  budgets, CSS stamps, image routes, global hook) was not adopted.
 
 ## Impeccable (v4.1.1, `~/.pi/agent/skills/impeccable`)
 
-- `scripts/context.mjs` was run **once** in this isolated project with
+- During authoring, `scripts/context.mjs` was run **once** in the isolated project with
   `--target weeks/w01/d2.html`. It loaded the committed PRODUCT.md and DESIGN.md
-  ("Dispatch Board" system) and confirmed Operate/Read posture; incumbent design
-  evidence (`assets/css/style.css` tokens and named rules) was read alongside it.
-  Marketing hero/photo/scroll-cinema defaults were not applied.
+  ("Dispatch Board" system); incumbent design evidence (`assets/css/style.css` tokens
+  and named rules) was read alongside it. Marketing hero/photo/scroll-cinema defaults
+  were not applied.
 - Per its `MANUAL_DETECTOR_REQUIRED` directive, the mechanical detector
-  (`scripts/detect.mjs --json`) was run once over all 62 branch-changed HTML/CSS
-  files after UI work finished.
-- Adaptations under the Firstmate supervision contract (disclosed up front, as the
-  contract requires skill defaults to yield): no interactive interview/decision page
-  (autonomous worker; the accepted brief and contracts supplied the direction), no
-  untracked subagents, no auto-opened decision browser, no new image service, and
-  visual inspection bounded to one desktop+mobile batch plus one confirmation batch.
+  (`scripts/detect.mjs --json`) was run once over all 62 branch-changed HTML/CSS files
+  after UI work finished. Detector output is advisory evidence, not an accepted
+  learning outcome.
+- Later validation added one bounded Impeccable critique in a single task-owned context
+  against exact candidate head `b9b7d23df44f3eeeb3705bf6e203785c2cd029bf`.
+  It was not a dual-agent critique, a complete browser matrix, or a claim that the
+  learner outcome was accepted.
+- Adaptations under the Firstmate supervision contract: no interactive
+  interview/decision page, no untracked subagents, no auto-opened decision browser,
+  no new image service, and no open-ended polish loop.
 
 ## Detector results and waiver ledger
 
