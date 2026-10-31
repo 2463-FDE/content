@@ -5,6 +5,7 @@ const path = require("node:path");
 const ROOT = path.resolve(__dirname, "../..");
 const lessons = require(path.join(ROOT, "assets/js/curriculum-lessons-w09-w10.js"));
 const renderer = require(path.join(ROOT, "assets/js/capstone-lesson.js"));
+const crumbs = require(path.join(__dirname, "build-lesson-crumbs.js"));
 
 function quizScript(id, lesson) {
   const json = JSON.stringify({ id: `${id}-check`, title: "Check your understanding", questions: lesson.checks })
@@ -33,6 +34,7 @@ function page(id, lesson) {
   <nav class="topbar-center" aria-label="Program"><a class="topnav" href="../../atlas/">FDE Mindset Atlas</a><a class="topnav" href="../../client-delivery.html?w=${lesson.week}&amp;p=finance">Team delivery</a><a class="topnav" href="../../gauntlet.html">AI Interview</a></nav>
   <div class="topbar-right"><span class="progressbar" aria-hidden="true"><i></i></span></div>
 </div>
+${crumbs.crumbsHtml(crumbs.pageFor(routePath(id).split(path.sep).join("/")))}
 <main id="lesson-root" class="lesson2"><section class="lesson-loading" role="status"><h1>${renderer.esc(lesson.title)}</h1><p>Loading the interactive route. The complete static lesson follows when JavaScript is unavailable.</p></section></main>
 <noscript><style>#lesson-root{display:none}</style><main class="lesson2 nojs-lesson">${staticArticle}</main></noscript>
 <footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week ${lesson.week} Day ${lesson.day} · <span data-client-name>Client curriculum</span> · Batch <span data-batch-value>loading</span></footer>

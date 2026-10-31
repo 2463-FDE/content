@@ -57,7 +57,7 @@ load(Object.entries(pages), 0);
             encoding="utf-8",
         )
         result = subprocess.run(
-            [chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+            [chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
              "--no-default-browser-check", "--allow-file-access-from-files",
              f"--user-data-dir={Path(tmp) / 'profile'}", f"--virtual-time-budget={budget}",
              "--dump-dom", harness.as_uri()],
@@ -310,7 +310,7 @@ class PlatformCore30Test(unittest.TestCase):
         for route, mode, flags in cases:
             with self.subTest(route=route.stem, mode=mode), tempfile.TemporaryDirectory() as profile:
                 result = subprocess.run(
-                    [chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    [chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                      "--no-default-browser-check", f"--user-data-dir={profile}",
                      "--allow-file-access-from-files", "--virtual-time-budget=2000",
                      *flags, "--dump-dom", route.as_uri()],
@@ -328,7 +328,7 @@ class PlatformCore30Test(unittest.TestCase):
         with tempfile.TemporaryDirectory() as profile:
             route = ROOT / "weeks/w08/w08d5.html"
             result = subprocess.run(
-                [chrome, "--headless=new", "--disable-gpu", "--disable-javascript",
+                [chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--disable-javascript",
                  "--no-first-run", "--no-default-browser-check", f"--user-data-dir={profile}",
                  "--allow-file-access-from-files", "--dump-dom", route.as_uri()],
                 text=True, capture_output=True, timeout=40,
@@ -379,7 +379,7 @@ load(Object.entries(pages), 0);
                 encoding="utf-8",
             )
             result = subprocess.run(
-                [chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                [chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                  "--no-default-browser-check", "--allow-file-access-from-files",
                  f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=9000",
                  "--dump-dom", harness.as_uri()],

@@ -93,6 +93,40 @@ body {
 .progressbar { height: 3px; background: var(--line); border-radius: 2px; flex: 0 0 160px; overflow: hidden; }
 .progressbar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s ease; }
 
+/* ---------- lesson crumbs — static program -> week -> day orientation ----------
+   Generated into every lesson route by docs/workflows/build-lesson-crumbs.js
+   from assets/js/curriculum-map.js; works without JavaScript. */
+.lesson-crumbs {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: 4px 18px; padding: 9px 22px; font-size: 13.5px;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.crumb-path { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; color: var(--ink-soft); }
+.crumb-hub { color: var(--accent-ink); font-weight: 650; text-decoration: none; }
+.crumb-hub:hover { text-decoration: underline; text-underline-offset: 3px; }
+.crumb-sep { color: var(--dim); }
+.crumb-week { color: var(--ink-soft); }
+.crumb-day { color: var(--ink); font-weight: 650; }
+.crumb-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.crumb-pos, .crumb-project {
+  font-size: var(--label-size); letter-spacing: var(--label-track); text-transform: uppercase;
+  font-weight: 700; color: var(--dim); min-width: 0;
+}
+.crumb-project { color: var(--accent-ink); background: var(--accent-soft); border-radius: var(--r-ctl); padding: 3px 9px; }
+.crumb-steps { display: flex; gap: 8px; }
+.crumb-steps .crumb-step {
+  color: var(--ink); font-weight: 650; font-size: 13px; text-decoration: none;
+  border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 4px 10px;
+  background: var(--surface);
+}
+.crumb-steps .crumb-step:hover { border-color: var(--accent); color: var(--accent-ink); }
+@media (max-width: 700px) {
+  .lesson-crumbs { padding: 8px 12px; }
+  .crumb-week { display: none; }
+  .crumb-path > .crumb-sep:first-of-type { display: none; }
+}
+@media print { .crumb-steps { display: none; } }
+
 /* ---------- reading layout ---------- */
 .wrap { max-width: 1300px; margin: 0 auto; padding: 0 20px; }
 .lede { max-width: var(--maxprose); margin: 38px auto 10px; }

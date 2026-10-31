@@ -170,7 +170,7 @@ class Week6KafkaCore30Tests(unittest.TestCase):
         for name, flags in modes:
             with self.subTest(mode=name), tempfile.TemporaryDirectory() as profile:
                 result = subprocess.run(
-                    [chrome, "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
+                    [chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
                      f"--user-data-dir={profile}", "--allow-file-access-from-files", "--virtual-time-budget=3000",
                      *flags, "--dump-dom", route.as_uri()],
                     text=True, capture_output=True, timeout=40,
@@ -190,7 +190,7 @@ class Week6KafkaCore30Tests(unittest.TestCase):
         for lesson_id, title in EXPECTED_TITLES.items():
             with self.subTest(route=lesson_id), tempfile.TemporaryDirectory() as profile:
                 result = subprocess.run(
-                    [chrome, "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
+                    [chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
                      f"--user-data-dir={profile}", "--allow-file-access-from-files", "--virtual-time-budget=3000",
                      "--dump-dom", (WEEK_DIR / f"{lesson_id}.html").as_uri()],
                     text=True, capture_output=True, timeout=40,
@@ -203,7 +203,7 @@ class Week6KafkaCore30Tests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as profile:
             result = subprocess.run(
-                [chrome, "--headless=new", "--disable-gpu", "--disable-javascript", "--no-first-run",
+                [chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--disable-javascript", "--no-first-run",
                  "--no-default-browser-check", f"--user-data-dir={profile}", "--allow-file-access-from-files",
                  "--dump-dom", route.as_uri()], text=True, capture_output=True, timeout=30,
             )

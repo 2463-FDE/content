@@ -146,7 +146,7 @@ load(Object.entries(routes), 0);
             )
             result = subprocess.run(
                 [
-                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                     "--no-default-browser-check", "--allow-file-access-from-files",
                     f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=7000",
                     "--dump-dom", harness.as_uri(),
@@ -389,7 +389,7 @@ load(Object.keys(pages), 0);
             )
             result = subprocess.run(
                 [
-                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                     "--no-default-browser-check", "--allow-file-access-from-files",
                     f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=9000",
                     "--dump-dom", harness.as_uri(),
@@ -461,7 +461,7 @@ load(Object.entries(pages), 0);
             )
             result = subprocess.run(
                 [
-                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                     "--no-default-browser-check", "--allow-file-access-from-files",
                     f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=5000",
                     "--dump-dom", harness.as_uri(),
@@ -483,7 +483,7 @@ load(Object.entries(pages), 0);
             self.skipTest("Chrome/Chromium is unavailable")
         route = ROOT / "weeks/w05/w05d3.html"
         base_args = [
-            chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+            chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
             "--no-default-browser-check", "--allow-file-access-from-files",
             "--window-size=390,844", "--virtual-time-budget=2500", "--dump-dom",
         ]
@@ -514,7 +514,7 @@ load(Object.entries(pages), 0);
             pdf = Path(tmp) / "w05d3.pdf"
             printed = subprocess.run(
                 [
-                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                     "--no-default-browser-check", "--allow-file-access-from-files",
                     f"--user-data-dir={Path(tmp) / 'profile'}",
                     f"--print-to-pdf={pdf}", "--no-pdf-header-footer", route.as_uri(),
@@ -590,7 +590,7 @@ run(0);
             )
             result = subprocess.run(
                 [
-                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                     "--no-default-browser-check", "--allow-file-access-from-files",
                     "--force-prefers-reduced-motion", f"--user-data-dir={Path(tmp) / 'profile'}",
                     "--window-size=1500,1000", "--virtual-time-budget=12000", "--dump-dom",

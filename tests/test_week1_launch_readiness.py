@@ -117,7 +117,8 @@ class Week1LaunchReadinessTests(unittest.TestCase):
                         if "weeks/w01/" in node.attrs.get("href", "")]
 
         self.assertIn("Next batch: number not provided", hub_text)
-        self.assertIn("Week 1 static launchpad", hub_text)
+        # The static launchpad now covers the full program (all ten weeks).
+        self.assertIn("Full program static launchpad", hub_text)
         self.assertTrue(all("batch=2567" in href for href in static_links if "?" in href))
         self.assertIn("JavaScript is required for the private trainer dashboard", trainer_text)
         self.assertIn("authorization cannot be verified", trainer_text)
@@ -134,7 +135,12 @@ class Week1LaunchReadinessTests(unittest.TestCase):
         self.assertIn("Amazon Bedrock", d5)
         self.assertIn("Gemini/Model Garden", d5)
         self.assertNotIn("Terraform", "\n".join(core30.text_of(core30.parse(page)) for page in WEEK1))
-        self.assertIn("Production LLM Engineering on Bedrock & Claude Code", hub)
+        # Week titles live in the shared curriculum map consumed by the hub.
+        self.assertIn(
+            "Production LLM Engineering on Bedrock & Claude Code",
+            (ROOT / "assets/js/curriculum-map.js").read_text(encoding="utf-8"),
+        )
+        self.assertIn("Production LLM Engineering on Bedrock &amp; Claude Code", hub)
 
 
 if __name__ == "__main__":
