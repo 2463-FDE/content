@@ -223,8 +223,8 @@ do the work; the organizer terminal only tracks status.
 - **Deploy gate:** auto-deploy (git push + wrangler) ONLY if the run finishes with
   zero flagged items; if anything hit the 3-pass flag, stop before deploy for
   human review.
-- **Day structure:** single reading page per day by default, but authors MAY split
-  a dense day into a/b parts (like W1's d2a/d2b) where the topic warrants it.
+- **Day structure:** exactly one singular-topic reading page per day in every week
+  (Week 1 consolidated its former a/b parts; see `tests/test_week1_launch_readiness.py`).
 - **Question volume:** per-concept, not per-day (see Interview question bank model).
 
 ### Interview question bank model

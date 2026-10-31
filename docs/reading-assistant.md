@@ -172,7 +172,7 @@ node backend/tools/reading-index/gen_reading_index.js
 ```
 
 Ids follow the page path: the filename stem, prefixed with its week directory when the stem doesn't
-already carry one (`w01/d2a.html` → `w01d2a`; `w05/w05d3.html` → `w05d3`). The client derives the
+already carry one (`w01/d2.html` → `w01d2`; `w05/w05d3.html` → `w05d3`). The client derives the
 same id from `location.pathname`, so the two can't drift.
 
 ## Budget reminders (zero cost)
