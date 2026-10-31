@@ -6,8 +6,8 @@ const data = require("../assets/js/cert-objectives.js");
 const map = require("../assets/js/cloud-map.js");
 
 test("lesson labels read like the curriculum calendar", () => {
-  assert.equal(page.lessonLabel("w01/d4b"), "Week 1 · Day 4 (Part 2)");
-  assert.equal(page.lessonLabel("w01/d2a"), "Week 1 · Day 2 (Part 1)");
+  assert.equal(page.lessonLabel("w01/d4"), "Week 1 · Day 4");
+  assert.equal(page.lessonLabel("w01/d2"), "Week 1 · Day 2");
   assert.equal(page.lessonLabel("w02/w02d3"), "Week 2 · Day 3");
   assert.equal(page.lessonLabel("w10/w10d5"), "Week 10 · Day 5");
 });
@@ -28,7 +28,7 @@ test("objectives carry resolvable lesson anchors and an honest coverage count", 
   assert.equal(aip.coverage.covered, 20);
   const safety = aip.domains[2].objectives[0];
   assert.equal(safety.id, "3.1");
-  assert.ok(safety.anchors.some((a) => a.href === "weeks/w01/d4b.html" && a.via === "provider"));
+  assert.ok(safety.anchors.some((a) => a.href === "weeks/w01/d4.html" && a.via === "provider"));
   const cert = model.gcp.cert;
   assert.equal(cert.coverage.total, 8, "one entry per listed course");
   assert.ok(cert.domains.every((d) => d.objectives.length === 1 && d.objectives[0].domainLevel), "courses map at course level");

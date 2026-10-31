@@ -13,14 +13,14 @@ export const meta = {
 
 const THIN = [
   { id:'context-window',        label:'Context window',        day:'w01d1', reading:'content/weeks/w01/d1.html',                                  need:3 },
-  { id:'model-selection',       label:'Model selection',       day:'w01d2', reading:'content/weeks/w01/d2a.html + content/weeks/w01/d2b.html',     need:2 },
-  { id:'api-integration',       label:'API integration',       day:'w01d2', reading:'content/weeks/w01/d2a.html + content/weeks/w01/d2b.html',     need:2 },
-  { id:'idempotency',           label:'Idempotency',           day:'w01d2', reading:'content/weeks/w01/d2a.html + content/weeks/w01/d2b.html',     need:2 },
-  { id:'prompt-engineering',    label:'Prompt engineering',    day:'w01d3', reading:'content/weeks/w01/d3a.html + content/weeks/w01/d3b.html',     need:2 },
-  { id:'structured-output',     label:'Structured output',     day:'w01d3', reading:'content/weeks/w01/d3a.html + content/weeks/w01/d3b.html',     need:2 },
-  { id:'token-optimization',    label:'Token optimization',    day:'w01d4', reading:'content/weeks/w01/d4a.html + content/weeks/w01/d4b.html',     need:2 },
-  { id:'output-guardrails',     label:'Output guardrails',     day:'w01d4', reading:'content/weeks/w01/d4a.html + content/weeks/w01/d4b.html',     need:2 },
-  { id:'hallucination-grounding',label:'Hallucination grounding',day:'w01d4',reading:'content/weeks/w01/d4a.html + content/weeks/w01/d4b.html',    need:1 },
+  { id:'model-selection',       label:'Model selection',       day:'w01d2', reading:'content/weeks/w01/d2.html',     need:2 },
+  { id:'api-integration',       label:'API integration',       day:'w01d2', reading:'content/weeks/w01/d2.html',     need:2 },
+  { id:'idempotency',           label:'Idempotency',           day:'w01d2', reading:'content/weeks/w01/d2.html',     need:2 },
+  { id:'prompt-engineering',    label:'Prompt engineering',    day:'w01d3', reading:'content/weeks/w01/d3.html',     need:2 },
+  { id:'structured-output',     label:'Structured output',     day:'w01d3', reading:'content/weeks/w01/d3.html',     need:2 },
+  { id:'token-optimization',    label:'Token optimization',    day:'w01d4', reading:'content/weeks/w01/d4.html',     need:2 },
+  { id:'output-guardrails',     label:'Output guardrails',     day:'w01d4', reading:'content/weeks/w01/d4.html',     need:2 },
+  { id:'hallucination-grounding',label:'Hallucination grounding',day:'w01d4',reading:'content/weeks/w01/d4.html',    need:1 },
 ]
 
 const VERDICT = { type:'object', additionalProperties:false, properties:{ pass:{type:'boolean'}, critiques:{type:'array', items:{type:'string'}}, summary:{type:'string'} }, required:['pass','critiques','summary'] }

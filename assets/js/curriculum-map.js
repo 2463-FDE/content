@@ -44,9 +44,9 @@
   var weeks = [
     { w: 1, phase: "found", title: "Production LLM Engineering on Bedrock & Claude Code", days: [
       { t: "LLM fundamentals", s: "context windows · tokens · sampling · hallucination · AI coding", href: "weeks/w01/d1.html" },
-      { t: "Model selection & API patterns", s: "Claude/GPT/Gemini · streaming · retries", parts: [{ t: "1 · Model selection", href: "weeks/w01/d2a.html" }, { t: "2 · API patterns", href: "weeks/w01/d2b.html" }] },
-      { t: "Prompt engineering & FDE Situation", s: "prompting · requirements synthesis", parts: [{ t: "1 · Prompt engineering", href: "weeks/w01/d3a.html" }, { t: "2 · Requirements synthesis", href: "weeks/w01/d3b.html" }] },
-      { t: "Token optimization & guardrails", s: "caching · compression · validation", parts: [{ t: "1 · Token optimization", href: "weeks/w01/d4a.html" }, { t: "2 · Output guardrails", href: "weeks/w01/d4b.html" }] },
+      { t: "Model selection & API patterns", s: "Claude/GPT/Gemini · streaming · retries", href: "weeks/w01/d2.html" },
+      { t: "Prompt engineering & FDE Situation", s: "prompting · requirements synthesis", href: "weeks/w01/d3.html" },
+      { t: "Token optimization & guardrails", s: "caching · compression · validation", href: "weeks/w01/d4.html" },
       { t: "Code review + LLM API Client", s: "prompt library · project milestone", star: true, href: "weeks/w01/d5.html" } ] },
     { w: 2, phase: "found", title: "RAG & Knowledge Retrieval", days: [
       { t: "RAG fundamentals + chunking", s: "retrieval vs fine-tuning · ingestion", href: "weeks/w02/w02d1.html" },
@@ -108,28 +108,22 @@
     return weekNumber <= 5 ? projects.insurance : projects.payments;
   }
 
-  /* Flattened per-page index in program order. dayPosition counts program
-     days 1..50; part pages share their day's position. */
+  /* Flattened per-page index in program order: one single-topic route per
+     day, dayPosition counting program days 1..50. */
   function pages() {
     var list = [];
     var position = 0;
     weeks.forEach(function (week) {
       week.days.forEach(function (day, dayIndex) {
         position += 1;
-        var entries = day.parts
-          ? day.parts.map(function (part) { return { href: part.href, part: part.t }; })
-          : [{ href: day.href, part: null }];
-        entries.forEach(function (entry) {
-          list.push({
-            href: entry.href,
-            week: week.w,
-            weekTitle: week.title,
-            day: dayIndex + 1,
-            dayTitle: day.t,
-            part: entry.part,
-            dayPosition: position,
-            project: projectFor(week.w)
-          });
+        list.push({
+          href: day.href,
+          week: week.w,
+          weekTitle: week.title,
+          day: dayIndex + 1,
+          dayTitle: day.t,
+          dayPosition: position,
+          project: projectFor(week.w)
         });
       });
     });

@@ -47,13 +47,16 @@ RETIRED_PERSONAS = re.compile(r"Riverbend|Meridian")
 LEGACY_MARKER = "LEGACY-STATE"
 
 
+MAP_HREF_RE = re.compile(r'href: "(weeks/w\d\d/[^"]+\.html)"')
+
+
 def required_pages():
-    pages = []
-    for path in sorted(WEEKS_DIR.glob("w*/*.html")):
-        if path.name == "survey.html":
-            continue
-        pages.append(path)
-    return pages
+    """The 50 required day routes, from the authoritative curriculum map.
+
+    Week 1's former a/b part pages remain on disk only as moved-lesson alias
+    stubs for old deep links; they are not day routes."""
+    map_text = (ROOT / "assets/js/curriculum-map.js").read_text(encoding="utf-8")
+    return [ROOT / href for href in MAP_HREF_RE.findall(map_text)]
 
 
 def week_number(path: Path) -> int:
@@ -74,7 +77,9 @@ class InteractionDepth(unittest.TestCase):
 
     def test_pages_discovered(self):
         pages = required_pages()
-        self.assertEqual(len(pages), 53, sorted(p.name for p in pages))
+        self.assertEqual(len(pages), 50, sorted(p.name for p in pages))
+        for page in pages:
+            self.assertTrue(page.is_file(), page)
 
     def test_every_route_has_two_varied_interactions(self):
         failures = []
@@ -169,7 +174,7 @@ class ProgramOrientation(unittest.TestCase):
                 ("day position", 'data-day-position="' in block),
                 ("next action", 'rel="next"' in block or "showcase" in block),
             ]
-            if week > 1 or page.name not in ("d1.html",):
+            if week > 1 or page.name != "d1.html":
                 checks.append(("previous link", 'rel="prev"' in block))
             for name, ok in checks:
                 if not ok:

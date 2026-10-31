@@ -13,13 +13,11 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  /* "w01/d4b" → "Week 1 · Day 4 (Part 2)"; "w02/w02d3" → "Week 2 · Day 3". */
+  /* "w01/d4" → "Week 1 · Day 4"; "w02/w02d3" → "Week 2 · Day 3". */
   function lessonLabel(page) {
-    var match = /^w(\d+)\/(?:w\d+)?d(\d)([ab])?$/.exec(page);
+    var match = /^w(\d+)\/(?:w\d+)?d(\d)$/.exec(page);
     if (!match) return page;
-    var label = "Week " + Number(match[1]) + " · Day " + match[2];
-    if (match[3]) label += " (Part " + (match[3] === "a" ? 1 : 2) + ")";
-    return label;
+    return "Week " + Number(match[1]) + " · Day " + match[2];
   }
 
   function anchorsFor(map, certId, objectiveId) {

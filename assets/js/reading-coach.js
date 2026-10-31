@@ -43,7 +43,7 @@
 
   var S = {
     mode: "reading", // "reading" (a day's page) or "week" (the curriculum page)
-    id: "",          // reading id, e.g. "w05d3" / "w01d2a"
+    id: "",          // reading id, e.g. "w05d3" / "w01d2"
     week: "",        // week id in week mode, e.g. "w05"
     title: "",
     concepts: [],
@@ -84,7 +84,7 @@
   // ---- page identity ---------------------------------------------------------
   // Mirrors the id rule in the Worker's reading-index generator: the filename
   // stem, prefixed with its week directory when the stem doesn't already carry
-  // one (w01 pages are d1.html / d2a.html; every later week is w0Nd1.html).
+  // one (w01 pages are d1.html / d2.html; every later week is w0Nd1.html).
   function readingIdFromPath() {
     var parts = location.pathname.split("/").filter(Boolean);
     var stem = (parts.pop() || "").replace(/\.html$/, "");

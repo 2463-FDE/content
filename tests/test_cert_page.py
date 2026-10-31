@@ -70,7 +70,7 @@ class CertPageStaticContract(unittest.TestCase):
         hrefs = [a.attrs.get("href", "") for a in section.find_all("a")]
         self.assertIn("docs/templates/team-primary-cloud-adr.md", hrefs)
         self.assertTrue((ROOT / "docs" / "templates" / "team-primary-cloud-adr.md").is_file())
-        for lesson in ("weeks/w05/w05d2.html", "weeks/w01/d3b.html"):
+        for lesson in ("weeks/w05/w05d2.html", "weeks/w01/d3.html"):
             self.assertIn(lesson, hrefs, "the exercise ties back to curriculum lessons")
             self.assertTrue((ROOT / lesson).is_file())
 

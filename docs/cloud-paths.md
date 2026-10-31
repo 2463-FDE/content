@@ -36,7 +36,7 @@ or paid provider calls. Provider "labs" are in-page simulations and read-only co
 ## Authoring contract
 
 See the Core-30 section of `docs/week-fanout-plan.md`; the reference page is
-`weeks/w01/d4b.html` and the validator is `tests/core30.py`.
+`weeks/w01/d4.html` and the validator is `tests/core30.py`.
 
 ```html
 <span class="core30-meta" data-cloud="aws"><b>Core 30</b> · AWS · ~N min read · K interactions · Q-Q check</span>

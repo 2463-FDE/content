@@ -1,7 +1,7 @@
-# W1·D4·Part 2 — provider-path evidence (AWS / GCP)
+# W1·D4 — provider-path evidence (AWS / GCP)
 
 Scope: the claims made in the AWS and GCP provider blocks, the provider decision
-checks, the provider quiz questions, and the GCP code tab on `weeks/w01/d4b.html`.
+checks, the provider quiz questions, and the GCP code tab on `weeks/w01/d4.html` (the consolidated single-topic Day 4 route; this material formerly lived on `d4b.html`).
 All sources first-party; **accessed 2026-10-14** with `curl` (HTML → text).
 
 ## AWS — Amazon Bedrock Guardrails

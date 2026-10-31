@@ -1,7 +1,7 @@
-# W1·D2·Part 2 — provider-path evidence (AWS / GCP)
+# W1·D2 — provider-path evidence (AWS / GCP)
 
 Scope: the claims made in the AWS and GCP provider blocks, the provider decision
-checks, the provider quiz questions, and the GCP code tab on `weeks/w01/d2b.html`.
+checks, the provider quiz questions, and the GCP code tab on `weeks/w01/d2.html` (the consolidated single-topic Day 2 route; this material formerly lived on `d2b.html`).
 All sources first-party; **accessed 2026-10-14** with `curl` (HTML → text).
 
 Shared lead-in claim: the provider call surface, throttling errors and SDK retry

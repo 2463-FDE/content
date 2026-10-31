@@ -95,3 +95,36 @@ Persona rebinding to the two new brownfields was never part of any shipped wave.
    Control (W6–10) exclusively, preserving learner-authored state honestly.
 5. Behavioral regression coverage for all four classes lives in
    `tests/test_learning_experience.py` so green gates can no longer mask this regression.
+
+## 7. Folded-in addition (2026-10-30): Week 1 multi-part topic structure
+
+Captain's exact words (relayed via the shared contract): "Also, week one being the only
+week with multi-part topics is odd, we should correct this as well to match the rest
+being singular topics as this should be the way."
+
+**Observed distinction.** Week 1 was the only week whose days split into part routes:
+Tue–Thu each shipped as two pages (`d2a`/`d2b`, `d3a`/`d3b`, `d4a`/`d4b`) carried by a
+`parts:` array in `assets/js/curriculum-map.js`, surfaced as "1 · …" / "2 · …" split
+links on the hub launchpad, dual next-hops in the side nav, and two source-anchor
+sections per program day. Every later week is one route per day. Progress identity was
+already day-level (`w01d2`…`w01d4` in `assets/js/progress.js` ORDER), so the split was
+purely presentational.
+
+**Normalization.** Tue–Thu now ship as single-topic routes `d2.html`/`d3.html`/`d4.html`
+carrying both halves' full required concepts, interactions, provider blocks, and the
+merged comprehension checks; the `parts:` format is removed from the map and hub; day
+chaining (`rel=prev/next`, side nav, `FDE_NEXT`) runs d1→d2→d3→d4→d5 like any other
+week. Old part URLs remain as moved-lesson alias stubs (meta refresh + canonical +
+visible link) so existing deep links keep working without pretending the old pages still
+exist. Provider research artifacts were renamed with their routes
+(`docs/research/w01/d2-provider-paths.md`, `d4-provider-paths.md`); Core-30 labels were
+re-measured per selection after consolidation. No PDF objective, Core-30 requirement,
+or technical depth was removed; the 40/40 source-coverage record is unchanged.
+
+**Behavioral demonstration.** `tests/test_week1_launch_readiness.py` now pins the
+singular-topic contract: one route per day in the map and hub, alias-stub forwarding
+for all six old deep links, d1→d5 prev/next chaining with no route navigating to a
+retired part page, per-selection Core-30 measurement with true labels, and the
+unchanged authoritative-source denominator. `tests/test_learning_experience.py`
+derives the 50 required day routes from the curriculum map, so Week 1 is exercised by
+the same orientation/interaction/persona checks as every later week.

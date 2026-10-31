@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="fde-day" content="w01d2">
+<meta name="fde-concepts" content="model-selection,api-integration,idempotency">
+<title>W1·D2 — Model Selection & API Patterns | 2463-FDE</title>
+<link rel="stylesheet" href="../../assets/css/style.css?v=20261030-a11y">
+<script src="../../assets/js/theme.js"></script>
+</head>
+<body>
+<a class="skip-link" id="reading-skip-link" href="#reading-main">Skip to reading</a>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="../../index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="../../index.html">Home</a>
+  </div>
+  <nav class="topbar-center">
+    <a class="topnav" href="../../atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="../../client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="../../gauntlet.html">AI Interview</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="progressbar"><i></i></span></div>
+</div>
+<nav class="lesson-crumbs" aria-label="You are here" data-day-position="2 of 50"><div class="crumb-path"><a class="crumb-hub" href="../../index.html#curriculum">Curriculum hub</a><span class="crumb-sep" aria-hidden="true">▸</span><span class="crumb-week">Week 1 · Production LLM Engineering on Bedrock &amp; Claude Code</span><span class="crumb-sep" aria-hidden="true">▸</span><span class="crumb-day" aria-current="page">Day 2 · Model selection &amp; API patterns</span></div><div class="crumb-meta"><span class="crumb-pos">Day 2 of 50</span><span class="crumb-project">Juniper Vale Mutual · Loss Desk · solo · Weeks 1–5</span><span class="crumb-steps"><a class="crumb-step" rel="prev" href="d1.html">◂ Day 1</a><a class="crumb-step crumb-next" rel="next" href="d3.html">Day 3 ▸</a></span></div></nav>
+
+<main class="lesson2 reading-main-target" id="reading-main" tabindex="-1">
+  <div class="reading2col">
+
+    <nav class="toc" aria-label="On this page"></nav>
+
+    <article class="reading-col">
+      <div class="lede">
+        <h1>Model Selection & API Patterns</h1>
+        <div class="meta">
+          <span><b>Week 1</b> · Day 2</span>
+          <span>Choosing a model, then calling it reliably</span>
+          <span class="core30-meta" data-cloud="aws" data-core-words="1792" title="Required path: measured reading, essential diagrams, two objective-aligned interactions with feedback, and the selected-provider check. Optional details and the other provider are outside the cap."><b>Core 30</b> · AWS · ~12 min read · 2 interactions · 9-Q check · ~29 min required</span>
+          <span class="core30-meta" data-cloud="gcp" data-core-words="1696" title="Required path: measured reading, essential diagrams, two objective-aligned interactions with feedback, and the selected-provider check. Optional details and the other provider are outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 9-Q check · ~28 min required</span>
+        </div>
+        <p class="summary">Today is the first decision every Forward Deployed Engineer makes on an engagement — <strong>which foundation
+        model do you build on, and how do you defend that choice to a client?</strong> — and the discipline that makes the
+        choice survive production. The first half builds the six-axis selection framework around one concrete task
+        (<em>summarize a 40-page RFP, return JSON, 50,000 calls a day</em>); the second half takes the model you picked and
+        wraps the call in streaming, retries, idempotency, timeouts, and graceful failure on your selected cloud. One topic,
+        one thread: pick defensibly, then call reliably.</p>
+        <div class="ix-legend"></div>
+      </div>
+
+<section class="w1-core-brief" data-source-anchor="PDF p.1 · TUE" aria-labelledby="w1-core-d2a">
+        <p class="w1-source-anchor">Authoritative v3 · PDF p.1 · Tuesday</p>
+        <h2 id="w1-core-d2a">Begin the brownfield engagement</h2>
+        <p>Before recommending a model, establish what already exists. In one unfamiliar subsystem, use Claude Code only as a reading assistant: identify the system boundary, trace one business rule to a file and symbol, and label every inference that lacks evidence. Then compare Claude, GPT, Gemini, and an open-weight option on capability, cost, latency, context, ecosystem, and data boundary. The exercise below gives immediate feedback on whether your tier choice matches the workload rather than a leaderboard.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="0">
+        <div class="tag">The whole game</div>
+        <h2>"Which model should we use?" is a framework, not a leaderboard</h2>
+        <p>The first question a client asks an FDE is almost always "which AI should we use?" — and they usually expect a
+        one-word answer, the way "which database?" resolves to a name. The amateur answer names whatever model topped a
+        benchmark last week. The professional answer is: <strong>it depends on what you're building, and here's how I'll
+        decide.</strong> Model selection isn't a contest with a single winner. It's a constrained optimization across six
+        axes that pull against each other, and the right model is the one that fits <em>this</em> task, <em>this</em>
+        budget, and <em>this</em> client's rules — frequently <em>not</em> the most capable model on the market.</p>
+        <p>The landscape verified <span class="nowrap">2026-10-27</span> still has four broad options. <strong>Anthropic's
+        Claude</strong> family currently spans Fable, Opus, Sonnet, and Haiku tiers. <strong>OpenAI's GPT</strong> family
+        currently spans GPT-6 Astra, GPT-6.1 Sol/Terra, and GPT-6 Luna. <strong>Google's Gemini</strong> family includes
+        Gemini 3.8 Flash. And the <strong>open-weight / self-hosted</strong> world — Llama, Mistral, DeepSeek, Qwen — lets
+        you run inference on hardware you control. <span class="src">[sources: first-party Anthropic, OpenAI, and Google
+        model/pricing pages, accessed 2026-10-27]</span> Those names will move again; that is exactly why you learn the
+        <em>axes</em>, not the names.</p>
+        <p>The six axes: <strong>capability</strong>, <strong>cost</strong>, <strong>latency</strong>, <strong>context
+        window</strong>, <strong>tooling &amp; ecosystem</strong>, and <strong>data residency / compliance</strong>. The
+        diagram is the funnel: a task and its constraints enter at the top, each axis narrows the field, and a defensible
+        pick falls out the bottom — with one rule attached. Walk the axes one at a time.</p>
+      </section>
+
+      <section class="step" data-diagram="0" data-step="1">
+        <div class="tag">Axis 1 · Capability</div>
+        <h2>Capability: fit to the task, not the top of the chart</h2>
+        <p>Capability is the axis everyone over-weights. The instinct is to grab the smartest model and stop thinking. But
+        "smartest" is expensive and slow, and most production tasks don't need it. The discipline is to match the model's
+        capability tier to the <em>hardest thing the task actually requires</em> — and no higher. Every major vendor ships
+        a <strong>tiered family</strong> precisely so you can: Anthropic's Opus / Sonnet / Haiku, Google's Pro / Flash /
+        Flash-Lite, and OpenAI's Astra / Sol / Terra / Luna. The vendor is telling you, in pricing, not to run
+        everything on the flagship.</p>
+        <p>The FDE move is to <strong>decompose the workload</strong>. A support feature might use a small cheap model to
+        classify an inbound message ("billing, shipping, or technical?") and escalate only the genuinely hard
+        conversations to a top tier. A document pipeline extracts structured fields with a mid-tier model and reserves the
+        flagship for the final summary a human reads. This cheap-first, expensive-only-when-needed pattern is a
+        <strong>model router</strong> or <strong>cascade</strong>, and you'll build a primitive version into nearly every
+        engagement.</p>
+        <div class="ix-predict" data-core-interaction data-interaction-kind="prediction-feedback"
+          data-q="A support inbox classifies every message as billing / shipping / technical — 200,000 messages a day, simple labels. Which capability tier do you reach for, and why?"
+          data-a="The <b>smallest, cheapest tier</b> (Haiku / Flash-Lite class). Classification into three known buckets is an easy task; a flagship would be correct <i>and</i> 10–20× more expensive and slower, for no quality gain at this volume. Match the tier to the hardest thing the task needs — here, almost nothing. Save the flagship for the rare hard escalations.">
+        </div>
+        <p>How do you judge capability for <em>your</em> task? Not from a public leaderboard — those measure generic
+        benchmarks that may have nothing to do with the client's domain. You judge it with a small <strong>eval
+        set</strong>: ten or twenty real examples from the client's actual data, with known-good answers, run against two
+        or three candidates. The model that gets <em>your</em> examples right is more capable for you than whatever won an
+        abstract benchmark. Capability is the first axis, but the one you measure last and most concretely.</p>
+      </section>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="2">
+        <summary>Deeper: Cost: input and output are priced differently, and it compounds · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">Axis 2 · Cost</div>
+        <h2>Cost: input and output are priced differently, and it compounds</h2>
+        <p>Day 1's equation returns: <strong>cost ≈ (input tokens + output tokens) × price-per-token</strong> — but input
+        and output bill at <em>different</em> rates, and output is usually more expensive. This 2026-10-27 snapshot is a
+        comparison input, not a permanent recommendation:</p>
+        <div class="w1-table-wrap" role="region" aria-label="Current model price comparison; scroll horizontally if needed" tabindex="0">
+          <table class="w1-model-table">
+            <caption>Standard API price per million input / output tokens (USD)</caption>
+            <thead><tr><th scope="col">Provider</th><th scope="col">Current tier</th><th scope="col">Input</th><th scope="col">Output</th><th scope="col">Time qualifier</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Anthropic</th><td>Fable 5.1</td><td>$10</td><td>$50</td><td>current</td></tr>
+              <tr><th scope="row">Anthropic</th><td>Opus 5.5</td><td>$4</td><td>$20</td><td>current</td></tr>
+              <tr><th scope="row">Anthropic</th><td>Sonnet 5.5</td><td>$2</td><td>$10</td><td>current</td></tr>
+              <tr><th scope="row">Anthropic</th><td>Haiku 5.5</td><td>from $0.10</td><td>from $0.50</td><td>current</td></tr>
+              <tr><th scope="row">OpenAI</th><td>GPT-6 Astra</td><td>$10</td><td>$50</td><td>standard</td></tr>
+              <tr><th scope="row">OpenAI</th><td>GPT-6.1 Sol</td><td>$2</td><td>$10</td><td>standard</td></tr>
+              <tr><th scope="row">OpenAI</th><td>GPT-6.1 Terra</td><td>$1</td><td>$5</td><td>standard</td></tr>
+              <tr><th scope="row">OpenAI</th><td>GPT-6 Luna</td><td>$0.10</td><td>$0.50</td><td>standard</td></tr>
+              <tr><th scope="row">Google</th><td>Gemini 3.8 Flash</td><td>$0.75</td><td>$3.75</td><td>through 2026-12-31</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><span class="src">[sources: Anthropic Models overview; OpenAI Models and Pricing; Google Gemini API pricing;
+        accessed 2026-10-27]</span> Prices, service modes, and promotions drift; re-check before making a client estimate.
+        The durable shape is tiering: the cheapest suitable model can be far below the flagship.</p>
+        <p>That asymmetry drives design. A feature that reads a lot and answers briefly (classify, extract, label) is
+        dominated by <em>input</em> cost — a cheap-input, big-context model wins. A feature that generates long output
+        (write the report, draft the email) is dominated by <em>output</em> cost, where one step down the tier ladder
+        saves real money. Two features both labeled "AI" can differ 20× in cost profile. And it
+        <strong>compounds with volume</strong> — which is where prototypes lie to you. Run the numbers for the RFP task
+        on the right yourself:</p>
+        <div class="ix-cost"></div>
+        <p>A feature that costs two cents a call is free in a demo that runs it ten times; at 50,000 calls a day it's a
+        line item with a year's worth of zeros behind it — and the gap between Opus and Haiku becomes the gap between a
+        viable product and a deal-breaker. The FDE who can say "this endpoint costs $0.02 a call, runs 50,000 times a day,
+        and we cut it 70% by moving the classification step to Haiku" is the one who keeps the engagement. For high-volume
+        features, cost isn't a footnote to the model choice — it often <em>is</em> the model choice.</p>
+        </div>
+      </details>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="3">
+        <summary>Deeper: Latency: how fast does the answer need to arrive? · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">Axis 3 · Latency</div>
+        <h2>Latency: how fast does the answer need to arrive?</h2>
+        <p>Capability and cost get the headlines; latency quietly decides whether users tolerate the feature at all. A
+        brilliant answer that arrives in nineteen seconds is the wrong answer for a chat box where the user expects two.
+        Latency is a first-class axis, and like cost it splits the world cleanly in two.</p>
+        <p><strong>Interactive</strong> workloads — a chatbot, an autocomplete, a "summarize this page" button — live or
+        die on perceived speed, and the metric that matters is <strong>time-to-first-token</strong> (TTFT): how long
+        until <em>something</em> appears. Part 2 shows streaming is the lever that turns a slow total response into a
+        fast-feeling one, but the tier still sets the floor — smaller models (Haiku, Flash) aren't just cheaper, they're
+        <em>faster</em>, often dramatically. For interactive features, the smallest model that's <em>capable enough</em>
+        usually wins on latency and cost at once. <strong>Batch / asynchronous</strong> workloads — overnight processing
+        of ten thousand documents, a nightly report — invert the priority: nobody's watching a spinner, so per-call
+        latency barely matters and throughput plus cost dominate (Part 2's batch API does the same work at roughly half
+        price for results in hours, not seconds).</p>
+        <p>The FDE habit is to <strong>ask "who is waiting, and for how long?"</strong> before anything else about the
+        model. That sort eliminates whole columns of the options table before you've compared a single benchmark. The
+        classic expensive mistake: a flagship model on a synchronous user-facing path "because it's the best," then a
+        feature that feels broken because every interaction takes eight seconds. The best model that arrives too late is
+        the wrong model.</p>
+        </div>
+      </details>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="4">
+        <summary>Deeper: Context window: how much can you hand it, and what does that cost? · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">Axis 4 · Context window</div>
+        <h2>Context window: how much can you hand it, and what does that cost?</h2>
+        <p>The context window — Day 1's central idea — is also a selection axis, because models differ in window size and
+        the size you need is set by the task. As verified <span class="nowrap">2026-10-27</span>, Anthropic lists a
+        <strong>1-million-token context window</strong> for all four current Claude tiers.
+        <span class="src">[source: Anthropic Models overview, accessed 2026-10-27]</span> A million
+        tokens is a few thousand pages — an entire codebase, a long contract, a quarter of support transcripts in one
+        call.</p>
+        <p>But a bigger window is not automatically better, and treating "1M context" as a pure win is a beginner error.
+        Two costs ride along. First, <strong>dollars</strong>: you pay per token for everything in the window, so stuffing
+        the whole document set into every call means paying for tens of thousands of tokens you don't need — Day 1's
+        lesson that <em>more retrieved text is not more intelligence; it's more budget spent.</em> Second,
+        <strong>attention</strong>: models can lose precision on facts buried in the middle of an enormous context, so a
+        smaller, well-chosen window often produces a <em>more</em> accurate answer than a giant noisy one.</p>
+        <p>So the context question is really two. <strong>Does the model's max window comfortably exceed the largest input
+        this task will realistically send?</strong> If the task is "answer questions about a 300-page manual," you need
+        room for the manual plus the conversation plus the answer — and if no single model fits, that's a strong signal
+        you need retrieval (RAG, all of Week 2), not a bigger model. And <strong>what will it cost to fill the window you
+        actually use?</strong> A huge window with expensive input can lose to a smaller window with cheap input, if your
+        real inputs fit the smaller one. Size the window to the task, then price the tokens you'll really send.</p>
+        </div>
+      </details>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="5">
+        <summary>Deeper: Tooling &amp; ecosystem: the model is half of what you&#x27;re buying · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">Axis 5 · Tooling &amp; ecosystem</div>
+        <h2>Tooling &amp; ecosystem: the model is half of what you're buying</h2>
+        <p>Here's the axis junior engineers forget entirely: you're not just choosing a model, you're choosing the
+        <strong>platform around it</strong>. Two equally capable models can be worlds apart in how much engineering it
+        takes to ship a reliable feature, because the surrounding tooling differs — and for an FDE on a deadline, that
+        tooling is often the deciding factor.</p>
+        <p>What's in the ecosystem? <strong>Structured output</strong> — can you say "return JSON matching this exact
+        schema" and have it guaranteed, rather than parse-and-pray? <strong>Tool / function calling</strong> — how cleanly
+        the model calls out to your code and APIs, the entire foundation of the agentic systems you build in Week 3.
+        <strong>Prompt caching</strong> — reusing a stable prefix at a fraction of the price (Anthropic prices cache reads
+        at roughly a tenth of normal input). <strong>Batch APIs</strong> for async work. The maturity of the
+        <strong>SDKs</strong> in your client's language. And whether mainstream <strong>agent frameworks</strong> and
+        observability tools support the model first-class. Anthropic's standard cache-read multiplier is 0.1×, but the
+        current Fable, Opus, and Sonnet pages document lower model-specific multipliers; verify the selected model instead
+        of treating one discount as universal. <span class="src">[source: Anthropic prompt-caching docs, accessed
+        2026-10-27]</span></p>
+        <p>This is where the biggest vendors earn their keep beyond raw model quality. A model with mediocre benchmarks but
+        a rock-solid SDK, native structured output, reliable tool calling, and prompt caching can get a working,
+        affordable feature into production a week faster than a marginally smarter model with a thinner ecosystem — and a
+        week is the entire budget on many FDE engagements. When you evaluate candidates, build a tiny end-to-end slice on
+        each (one structured call, one tool call) and notice <em>how much friction</em> there was. That friction,
+        multiplied across a project, is real cost the benchmark never shows. The model is maybe half of what you're
+        buying; the ecosystem is the other half.</p>
+        </div>
+      </details>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="0" data-step="6">
+        <summary>Deeper: Data residency, BAA &amp; self-hosting: the axis that overrules the rest · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">Axis 6 · Data residency &amp; compliance</div>
+        <h2>Data residency, BAA &amp; self-hosting: the axis that overrules the rest</h2>
+        <p>The final axis frequently <strong>vetoes every other axis at once</strong>. It doesn't matter that a model is
+        smartest, cheapest, and fastest if the client is legally forbidden from sending it their data. For a
+        federal-acquisitions client — or healthcare, financial, or defense anywhere — "where does our data go, and who can
+        see it?" comes <em>before</em> "which model is best," and it eliminates options the leaderboard ranked first.</p>
+        <div class="ix-predict"
+          data-q="A federal-acquisitions client says their data legally cannot leave their own network boundary. Which axis decides the choice — and what option does it point to?"
+          data-a="<b>Data residency / compliance</b> — and it can overrule the other five at once. When even a compliant public API isn't allowed, it points to an <b>open-weight, self-hosted model</b> (Llama, Mistral, DeepSeek, Qwen) running inside the client's boundary, where no data ever leaves. You trade some raw capability for absolute data control — on this engagement, the only acceptable answer.">
+        </div>
+        <p>The compliance vocabulary you need: a <strong>BAA</strong> (Business Associate Agreement) is the contract that
+        lets a vendor process protected health information under HIPAA — no BAA, no PHI, full stop. <strong>Data
+        residency</strong> guarantees data is processed and stored in a specific geography (a US region for federal work).
+        <strong>FedRAMP</strong> authorization and government-cloud regions are what let a vendor touch federal systems at
+        all. And "<strong>no training on your data</strong>" is the baseline that your client's proprietary content won't
+        leak into a future model.</p>
+        <p>The major API vendors have responded to exactly this pressure. Anthropic offers BAAs and runs Claude through
+        enterprise channels including Amazon Bedrock and Google Cloud. Those channels expose different regional and
+        routing choices; a provider name alone is not a residency guarantee. Confirm the selected endpoint, region,
+        contract, and organization policy before claiming compliance. <span class="src">[sources: Anthropic platform
+        and AWS Bedrock model docs, accessed 2026-10-27]</span> And when even a compliant public API is
+        off-limits — air-gapped networks, classified systems, FedRAMP-High and beyond — this axis is the entire reason
+        <strong>open-weight, self-hosted models</strong> are in your toolkit. For a Karsun federal engagement, this isn't
+        a tiebreaker; it's often the first filter, settling the decision before capability, cost, or latency get a vote.</p>
+        </div>
+      </details>
+
+      <section class="step" data-diagram="0" data-step="7">
+        <div class="tag">Putting it together</div>
+        <h2>Walk the funnel — and never marry one model</h2>
+        <p>Now run the funnel top to bottom. A <strong>task with its constraints</strong> enters. Compliance and data
+        residency usually filter first and hardest — knocking out whole vendors before anything else. What survives gets
+        sorted by <strong>latency</strong> (who's waiting?) into interactive or batch, pruning tiers. <strong>Context
+        window</strong> checks the model holds the real inputs. Then you weigh <strong>capability</strong> against
+        <strong>cost</strong> on the survivors — with a small eval set on real client data, not a benchmark — and confirm
+        the <strong>tooling</strong> won't fight you. A defensible pick falls out: not "the best model," but <em>the right
+        model for this task, this budget, and this client's rules,</em> with the reasoning written down beside it.</p>
+        <p>That written reasoning is half the deliverable. Clients don't just want a recommendation — they want to
+        understand the trade-off: what you gave up and why. An FDE who can produce a one-page model-selection rationale
+        (the scorecard in today's deep-dive is a template) is doing the consulting half of the job, not just the coding
+        half.</p>
+        <details class="deep" data-core="optional">
+
+          <summary>Deeper practice: test the model seam · outside Core 30</summary>
+
+          <div class="ix-spot"
+          data-snippet="# called from 12 places across the codebase
+resp = openai.chat.completions.create(
+    model=&quot;gpt-6.1-sol&quot;,
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}],
+)
+answer = resp.choices[0].message.content"
+          data-q="The model aced the scorecard. Six weeks in, the client mandates a self-hosted model for compliance. What does this code cost you — and what was the real mistake?"
+          data-a="The vendor's SDK shape (<code>openai.chat...</code>, <code>resp.choices[0]...</code>) is hard-coded at <b>12 call sites</b>, so a model swap is a hunt-and-replace across the codebase plus a re-test of every one. The pick was never the risk — the missing <b>seam</b> was. The fix is the rule attached to every pick: put the model behind <b>one thin interface</b> (build request → send → parse) so swapping is a config change and a re-run of your eval set, not a rewrite.">
+        </div>
+        </details>
+        <button class="code-cta" type="button" data-modal="code-w1d2a"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· llm.py</span></button>
+        <div class="callout mindset">
+          <div class="k">FDE mindset</div>
+          <p>Attach one rule to every pick: <strong>keep it swappable.</strong> Models leapfrog each other every few
+          months, prices fall, a new compliance region opens, a client's needs shift mid-engagement. If your code
+          hard-codes one vendor's SDK and prompt quirks into every corner, switching means a rewrite. Put the model behind
+          a thin internal interface — one place that builds the request, sends it, and parses the response — and switching
+          is a config change plus a re-run of your eval set. The deliverable is never "we chose Model X." It's "we chose
+          Model X for these reasons, and here's how cheaply we can change our minds." That portability is what Part 2 makes
+          concrete: the resilient call you build there is the seam you swap models behind.</p>
+        </div>
+      </section>
+
+      
+<section class="w1-core-brief" aria-labelledby="w1-core-d2b">
+        <h2 id="w1-core-d2b">Make the selected model survivable</h2>
+        <p>The production call surface follows the source order: model access and inference profiles, Converse/streaming, quotas and cross-region inference, provisioned versus on-demand capacity, then bounded retry/backoff, batching, and the cost/latency trade. The required path keeps one shared retry simulation and one provider-specific diagnosis. Capacity details and the unselected provider comparison remain optional; no paid call or cloud provisioning is required.</p>
+      </section>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="1" data-step="0">
+        <summary>Deeper: Picking the model was the easy part — now you have to call it · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">The whole game, again</div>
+        <h2>Picking the model was the easy part — now you have to call it</h2>
+        <p>The mental shift for Part 2: <strong>an LLM API call is a network request to a shared, metered, fallible
+        service — treat it like one.</strong> Everything you know about resilient distributed systems applies. The
+        patterns aren't AI-specific; they're the same disciplines that make any third-party integration survive
+        production — streaming for responsiveness, batching for throughput, respecting rate limits, retrying transient
+        failures correctly, making retries safe, bounding how long you'll wait, and failing gracefully. LLM calls just
+        make each matter <em>more</em>, because they're slower, pricier, and flakier than the average REST call.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: why the notebook call breaks, and the call you'll build</summary>
+        <p>You've chosen a model and put it behind a clean interface. Now your code has to call it, over the network,
+        thousands of times a day, against a service you don't control. The prototype made one call in a notebook, it
+        worked, everyone clapped. Production makes that call forty thousand times against a rate-limited,
+        occasionally-overloaded, sometimes-slow remote API — and every weakness the notebook hid becomes a user-facing
+        outage.</p>
+        <p>The diagram on the right is a single resilient call and everything around it. We'll build it piece by piece:
+        how the response comes back (stream or batch), the gate in front of the call (rate limiting), the call itself with
+        its safety equipment (timeout, retry with backoff and jitter, idempotency), and the two ways it can end (ship the
+        result, or fall back safely). Master it once and you reuse it on every engagement, behind whatever model you
+        picked in Part 1. <span class="src">[example payload card on the diagram: a real <code>POST /v1/messages</code>
+        request]</span></p>
+        </details>
+      </div>
+      </details>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="1" data-step="1">
+        <summary>Deeper: Streaming: don&#x27;t make the user wait for the last token · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">Pattern 1 · Streaming</div>
+        <h2>Streaming: don't make the user wait for the last token</h2>
+        <p>An LLM generates its answer one token at a time, left to right. By default the API waits until the
+        <em>entire</em> answer is finished, then sends it back in one lump — so for a long response the user stares at a
+        spinner for the full generation time, maybe ten or twenty seconds, before anything appears.
+        <strong>Streaming</strong> changes the delivery: the API sends each token as it's produced, so text starts
+        appearing almost immediately. Total generation time is unchanged, but <em>perceived</em> latency collapses,
+        because <strong>time-to-first-token</strong> — not total time — is what the user feels.</p>
+        <details class="deep" data-core="optional">
+          <summary>Practice (optional): which feels faster?</summary>
+        <div class="ix-predict"
+          data-q="A summary takes 12 seconds to fully generate. With streaming, the first words appear in ~0.4s; without it, nothing until 12s. The total generation time is identical. Which feels faster to the user, and why does that matter more than the total?"
+          data-a="<b>Streaming feels dramatically faster</b> — the user starts reading at 0.4s instead of staring at a spinner for 12. The metric users actually feel is <b>time-to-first-token</b>, not total completion time. The work isn't any quicker, but the experience goes from 'is this broken?' to 'it's already answering.' This is the single highest-leverage UX move on any interactive AI feature.">
+        </div>
+        </details>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: what streaming costs you — open connections and partial answers</summary>
+        <p>This is why every "the AI feels slow" complaint should first be met with "are we streaming?" The familiar
+        typewriter effect in every chat interface is streaming; without it those products would feel broken. It does cost
+        some engineering: a streamed response arrives as a sequence of events over a long-lived connection rather than one
+        JSON object, so your code consumes a stream and assembles the pieces. Two consequences to internalize. First,
+        because the connection stays open for the whole generation, streaming is also how you <em>avoid request
+        timeouts</em> on long outputs — a large non-streaming response can exceed a client's HTTP timeout and get killed
+        mid-flight, which is why SDKs often <em>require</em> streaming above a certain output size. Second, streaming
+        complicates error handling: a failure can happen <em>after</em> some tokens have reached the user, so "the request
+        failed" is no longer a clean before-or-after — you may have a partial answer on screen. Hold that thought; it
+        returns at error handling.</p>
+        </details>
+        <button class="code-cta" type="button" data-modal="code-w1d2b"><span class="cc-ico">&lt;/&gt;</span> See the production code <span class="cc-meta">· stream.py</span></button>
+        </div>
+      </details>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="1" data-step="2">
+        <summary>Deeper: Batching: the opposite trade for work nobody is watching · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">Pattern 2 · Batching</div>
+        <h2>Batching: the opposite trade for work nobody is watching</h2>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: why a synchronous loop is the wrong tool for bulk work</summary>
+        <p>Streaming optimizes the case where a human is waiting. <strong>Batching</strong> optimizes the case where
+        nobody is. When you have a large volume of <em>independent</em> calls that don't need to finish right now —
+        classify ten thousand support tickets, summarize last quarter's documents, enrich a database overnight — sending
+        them one at a time through the synchronous API is the wrong tool. You'll fight rate limits, pay full price, and
+        babysit a long sequential loop.</p>
+        </details>
+        <p>The major providers offer a dedicated <strong>batch API</strong> for exactly this: you submit a big set of
+        requests as one job, the provider processes them asynchronously over a window (typically up to 24 hours), and you
+        collect the results when it's done — at a substantial discount, commonly around <strong>50% off</strong> the
+        normal per-token price. <span class="src">[source: provider batch-API docs — Anthropic Message Batches / OpenAI
+        Batch API, accessed 2026-10-27]</span> You trade immediacy for throughput and cost: results in hours instead of
+        seconds, for roughly half the money and none of the rate-limit juggling.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: matching the mechanism to the true deadline</summary>
+        <p>The FDE judgment is matching the mechanism to the workload's <em>true</em> deadline. The instinct to make
+        everything synchronous and instant is expensive and often pointless — if a report is read tomorrow morning,
+        generating it in a 2 a.m. batch run for half the price is strictly better. Conversely, batching a request a user
+        is actively waiting on would be absurd. Two practical notes carry forward. First, batch results come back keyed by
+        an ID <em>in no guaranteed order</em>, so you match each result to its request by the custom ID you assigned —
+        never by position. Second, batching sidesteps the live rate-limit dance we're about to discuss, which is half its
+        appeal: you hand the provider the whole pile and let them pace it. Ask of every bulk job: does anyone need this in
+        the next few seconds? If not, batch it.</p>
+        </details>
+        </div>
+      </details>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="1" data-step="3">
+        <summary>Deeper: Rate limits: you are sharing a metered service · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">Pattern 3 · Rate limiting</div>
+        <h2>Rate limits: you are sharing a metered service</h2>
+        <p>An LLM API is a shared resource, and the provider caps how much any one account can consume. The caps come in
+        three flavors you'll see constantly: <strong>RPM</strong> (requests per minute), <strong>TPM</strong> (tokens per
+        minute), and sometimes <strong>TPD</strong> (tokens per day). Exceed any of them and the API stops serving you and
+        returns an <strong>HTTP 429, "Too Many Requests."</strong></p>
+        <p>You handle rate limits from both sides. <strong>Reactively</strong>, when a 429 comes back, you back off and
+        retry — and the provider usually tells you exactly how long to wait, in a <code>Retry-After</code> header.
+        Respecting that header is the single most important thing you can do; it's the difference between recovering in one
+        polite pause and flailing against the wall. (The retry mechanics are the next pattern.)
+        <strong>Proactively</strong>, you throttle <em>yourself</em> so you mostly don't hit the limit in the first place —
+        a client-side rate limiter (a token-bucket, or a simple semaphore capping concurrent requests) that paces your
+        outbound calls under the known ceiling. The diagram puts this throttle as a gate <em>in front of</em> the call for
+        a reason: it's cheaper to not send a doomed request than to send it and handle the 429.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: why a 429 isn't a bug, and how limits connect back to model choice</summary>
+        <p>A 429 is not a bug in your code and not an error in the
+        usual sense — it's the provider saying "slow down, you've hit your share." Treating it as fatal, or worse,
+        hammering harder when you see one, is the classic way to turn a brief throttle into a sustained outage.</p>
+        <p>This is also where Part 1 and Part 2 connect. Rate limits are <em>per account and per model tier</em>, so the
+        model you chose shapes your headroom — a smaller tier may have a roomier limit, and spreading load across tiers
+        (cheap model for the bulk, flagship for the hard cases) spreads load across limit pools too. For an FDE, "we're
+        getting rate-limited" should trigger a design conversation — throttle, batch, cache, or upgrade the tier — not a
+        frantic retry loop.</p>
+        </details>
+        </div>
+      </details>
+
+      <section class="step" data-diagram="1" data-step="4">
+        <div class="tag">Pattern 4 · Retries with backoff + jitter</div>
+        <h2>Retries: the right way to handle transient failure</h2>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: what makes a failure transient</summary>
+        <p>Networks are unreliable and shared services have bad moments. Over thousands of calls you <em>will</em> hit
+        transient failures: a 429 rate limit, a 500 or 503 when the provider is briefly overloaded, a dropped connection.
+        The defining property is that they're <strong>temporary</strong> — the exact same request, sent again a moment
+        later, usually succeeds. So the correct response is to retry. But <em>how</em> you retry separates a resilient
+        system from one that makes outages worse.</p>
+        </details>
+        <p>The wrong way is to retry immediately, in a tight loop. If the service is overloaded, a flood of instant retries
+        from every client at once is precisely what keeps it overloaded — a self-inflicted denial-of-service called a
+        "retry storm." The right way has three parts. <strong>Exponential backoff</strong>: wait longer between attempts —
+        1s, then 2, then 4, then 8 — giving the service room to recover. <strong>Jitter</strong>: add a small random
+        amount to each wait, so thousands of clients that failed at the same instant don't all retry at the same instant
+        and re-create the spike. And a <strong>bounded cap</strong>: retry a fixed, small number of times — three, maybe
+        five — then give up and treat it as a real failure, because an unbounded loop burns money and stalls the user
+        forever. Run the loop and watch the waits spread:</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper practice: run the retry simulator · outside Core 30</summary>
+          <div class="ix-retry" data-interaction-kind="retry-simulation"></div>
+        </details>
+        <p>One crucial distinction makes retries correct rather than dangerous: <strong>retry only the failures that are
+        actually transient.</strong> A 429 or a 5xx is worth retrying — the request was fine, the service just couldn't
+        serve it yet. A 400 (malformed request) or a 401 (bad credentials) is <em>not</em> — retrying a request the server
+        already rejected as invalid will fail identically every time and just waste attempts. The retry logic has to
+        branch on the error type. The good news: mature SDKs implement backoff-with-jitter on the right error classes for
+        you — but you must know what they're doing, because you'll tune it, and because the next pattern is what makes any
+        retry safe. The worked implementation is in today's deep-dive.</p>
+      </section>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="1" data-step="5">
+        <summary>Deeper: Idempotency: making it safe to retry at all · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">Pattern 5 · Idempotency</div>
+        <h2>Idempotency: making it safe to retry at all</h2>
+        <p>Retries introduce a subtle, dangerous question you must answer before you turn them on: <strong>what if the
+        request actually succeeded, but the response got lost on the way back?</strong> The server did the work and
+        charged you; the acknowledgment never arrived; your retry logic sees "no response" and sends the request again.
+        Now the work has happened <em>twice</em>. For a read-only LLM call that's merely wasteful — you paid for two
+        generations. For anything with a side effect — an agent that placed an order, sent an email, wrote a record,
+        kicked off a payment — doing it twice is a real incident.</p>
+        <p><strong>Idempotency</strong> is the property that doing an operation twice has the same effect as doing it once.
+        The standard mechanism is an <strong>idempotency key</strong>: you generate a unique ID for the logical operation
+        and attach it to the request. The first time the server sees that key it does the work and remembers the result;
+        if a retry arrives carrying the <em>same</em> key, the server recognizes a duplicate and returns the original
+        result instead of doing the work again. The retry becomes safe — at most one real execution, no matter how many
+        times the network makes you resend.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: retry and idempotency are a pair</summary>
+        <p>This is why idempotency sits in the diagram <em>attached to the call</em>, right beside retry: they're a pair.
+        Retry without idempotency is a loaded gun pointed at your client's data — every backoff attempt risks a duplicate
+        side effect. Many LLM APIs support an idempotency key directly on the request for exactly this reason, and where
+        the model is one step in a larger workflow, you carry the same discipline through your own services: assign each
+        logical operation an ID, dedupe on it, and design every step so replaying it is harmless. The FDE rule is blunt:
+        <strong>before you enable retries, make the thing being retried idempotent.</strong> Retries assume the operation
+        is safe to repeat; idempotency is how you make that assumption true.</p>
+        </details>
+        </div>
+      </details>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="1" data-step="6">
+        <summary>Deeper: Timeouts: decide in advance how long you&#x27;ll wait · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">Pattern 6 · Timeouts</div>
+        <h2>Timeouts: decide in advance how long you'll wait</h2>
+        <p>Every call needs a deadline. Without one, a single slow or hung request can tie up a connection, a thread, or a
+        user's patience indefinitely — and under load, a pile of stuck requests with no timeout is how one slow dependency
+        takes down an entire service. A <strong>timeout</strong> is your explicit decision: if this call hasn't returned
+        in N seconds, stop waiting and handle it as a failure. LLM calls make timeouts especially important because
+        they're <em>slow and variable</em> — a response can legitimately take many seconds, the spread between fast and
+        slow is wide, and the naïve defaults that work for a quick REST call are wrong here.</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: tuning the deadline, the streaming gotcha, and the true worst case</summary>
+        <p>Setting the timeout is a judgment call you tune to the workload. Too short and you'll kill legitimate slow
+        responses, turning a working call into a failure and a wasted retry. Too long and a genuinely hung request blocks
+        resources far past usefulness. An interactive feature wants a tighter deadline (a user won't wait 60 seconds
+        anyway); a batch or long-generation job can afford a generous one. The key is that it's a deliberate number, not
+        whatever the library defaulted to.</p>
+        <p>Two LLM-specific traps. First, the <strong>streaming gotcha</strong> from Pattern 1: many HTTP clients implement
+        "timeout" as a <em>per-chunk</em> read timeout that resets every time a byte arrives, not a total wall-clock cap.
+        On a streamed response that trickles tokens slowly, such a timeout may never fire even though the call has dragged
+        on for minutes — so for a hard overall deadline you often track elapsed time yourself at the loop level, not trust
+        a single setting. Second, timeouts compose with retries: <strong>your true worst-case wait is the timeout
+        multiplied by the number of attempts</strong> (plus the backoff delays). A 30-second timeout with three retries
+        can mean a user waiting well over a minute — so set both numbers together, with the total experience in mind.</p>
+        </details>
+        </div>
+      </details>
+
+      <details class="deep w1-optional step" data-core="optional" data-diagram="1" data-step="7">
+        <summary>Deeper: Graceful failure: never let a broken call reach the user raw · outside Core 30</summary>
+        <div class="w1-optional-body">
+        <div class="tag">Pattern 7 · Graceful error handling</div>
+        <h2>Graceful failure: never let a broken call reach the user raw</h2>
+        <details class="deep" data-core="optional">
+          <summary>Practice (optional): the catch-all wrapper that isn't resilient</summary>
+        <p>Everything so far reduces how often calls fail and how safely you retry. The last pattern decides what happens
+        when, despite all of it, a call <em>still</em> fails — because at scale, some will. The amateur integration lets
+        the exception bubble up and the user sees a stack trace, a spinner that never resolves, or a blank screen. The
+        professional integration has decided, in advance, <strong>what failure looks like to the user</strong>, and it's
+        never raw. It starts with a <strong>taxonomy</strong>, because each class is handled differently — but the
+        instinct to wrap everything in one catch-all is exactly the trap:</p>
+        <div class="ix-spot"
+          data-snippet="try:
+    resp = model.call(request)
+    return resp.text
+except Exception:
+    return model.call(request)   # just try again"
+          data-q="This 'resilient' wrapper has at least three serious bugs. What are they?"
+          data-a="<b>(1) It retries everything</b> — a 400/401 will fail identically forever; only 429/5xx are transient. <b>(2) No backoff, no jitter, no bound</b> — one immediate blind retry, and if it became a loop it'd be a retry storm. <b>(3) No idempotency key</b> — if the first call actually succeeded but the response dropped, the retry duplicates the work (and any side effect). Plus there's no timeout and no real fallback: a second failure throws raw to the user. Branch on the error <i>type</i>; back off with jitter on transient errors only; carry an idempotency key; and end in a chosen fallback, never an exception.">
+        </div>
+        </details>
+        <p>Start with a taxonomy, because each class of failure is handled differently: a <em>transient</em> error (429, 5xx, dropped connection) → retry with backoff (Pattern 4); a
+        <em>client</em> error (400, 401) → don't retry, fix the request or fail fast; a <em>timeout</em> → treat as
+        failure after the deadline (Pattern 6); a <em>content</em> outcome like a safety refusal → a real, expected
+        response type to branch on, not a crash; and <em>still-failing-after-retries</em> → the genuine dead end this
+        pattern exists for. For that dead end, you define a <strong>fallback</strong> — the deliberate "what we do when
+        nothing worked": a graceful message ("the assistant is unavailable — here's how to reach a human"), a handoff to a
+        deterministic non-AI path, a cached or default result, or <em>falling back to a different model</em> (the Part 1
+        portability seam paying off — a clean interface lets you retry on a backup model).</p>
+        <details class="deep" data-core="optional">
+          <summary>Deeper: circuit breakers, partial streams, and why "cleanly handled" wins</summary>
+        <p>Two refinements for systems that call a lot: a <strong>circuit breaker</strong> that, after repeated failures,
+        stops sending requests for a cooldown instead of retrying into a wall — protecting both you and the struggling
+        provider; and, recalling Pattern 1, a plan for <strong>partial streamed output</strong>, since a failure
+        mid-stream may leave half an answer on screen that you must either complete or cleanly retract. The unifying
+        principle is Day 4's, restated for the network layer: <strong>"no answer, cleanly handled" always beats "a wrong
+        answer or a crash, delivered raw."</strong> A user told the feature is briefly unavailable is mildly annoyed; a
+        user shown a traceback, or left on a dead spinner, has lost trust in the product — and your client has lost trust
+        in you. The resilient call in the diagram ends in exactly two places: a result you ship, or a fallback you chose.
+        It never ends in an exception the user sees.</p>
+        </details>
+        </div>
+      </details>
+
+      <section class="step" data-diagram="1" data-step="7">
+        <div class="tag">On your cloud · the call surface</div>
+        <h2>Same pattern, different surface: calling the model on your cloud</h2>
+        <p>Everything above is provider-neutral, and it stays that way. What changes on your cloud is the
+        <strong>call surface</strong> — the streaming operation, the name of the throttling error, the knobs on the SDK's
+        built-in retry, and where extra capacity comes from. The pattern doesn't change: stream, throttle, retry only
+        transient errors with bounded backoff and jitter, carry an idempotency key, set a deadline, fall back. Open your
+        path; the other cloud stays as an optional comparison.</p>
+
+        <details class="cloud-block" data-cloud="aws" open>
+          <summary><span class="cloud-tag">AWS</span>Amazon Bedrock: Converse, throttling, and capacity<span class="cloud-role"></span></summary>
+          <p>On Bedrock you call <strong>Converse</strong>, or <strong>ConverseStream</strong> to stream — one consistent
+          API across the Bedrock models that support messages. The stream arrives as events (<code>contentBlockDelta</code>
+          pieces, then <code>metadata</code>), and errors can arrive <em>inside</em> it: a
+          <code>throttlingException</code> or a <code>modelStreamErrorException</code> after tokens are already on
+          screen — Pattern 7's partial answer, made concrete. Branch on the error: <strong>ThrottlingException</strong>
+          (HTTP 429) means you exceeded your account quotas; <strong>ServiceUnavailableException</strong> (503) means
+          the service is short of capacity, not that you are over quota; <strong>ValidationException</strong> (400) is
+          your request, so don't retry. AWS's fix for both 429 and 503 is exponential backoff with random jitter, and the
+          AWS SDKs do it for you: <strong>standard</strong> retry mode backs off with jitter and stops early when its
+          retry quota runs out; <strong>adaptive</strong> mode adds a client-side rate limiter — Pattern 3's throttle.
+          For capacity, a <strong>cross-Region inference profile</strong> as the <code>modelId</code> lets Bedrock route
+          to other Regions, and <strong>Provisioned Throughput</strong> buys dedicated model units. None of it gives you
+          idempotency, a deadline, or a fallback; those stay in your wrapper.</p>
+          <p><strong>Route the ID you mean.</strong> In the 2026-10-27 Haiku 5.5 and Sonnet 5.5 model cards,
+          <code>us.anthropic.claude-haiku-5-5</code> and <code>us.anthropic.claude-sonnet-5-5</code> are US geo inference
+          profiles for <code>bedrock-runtime</code>; they can route across US Regions and are not single-Region promises.
+          The same endpoint also lists bare in-Region IDs where regional availability permits, while
+          <code>global.</code> profiles may route worldwide. The separate <code>bedrock-mantle</code> endpoint also uses
+          bare IDs, so validate the endpoint, target Region, model card, and organization policy together. Do not guess a
+          prefix. This static lesson made no AWS account call and cannot assert organization-specific enablement.</p>
+          <div class="ix-cloud" data-core-interaction data-interaction-kind="provider-decision-feedback" data-cloud="aws">
+            <div class="ix-k">✓ Practice · read the error</div>
+            <p class="ix-cloud-q">During a busy hour, a Bedrock-backed chat feature starts returning
+            ServiceUnavailableException (HTTP 503). Your account quotas are fine. Beyond retrying with backoff and jitter,
+            which change does AWS's guidance point to?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="A quota increase answers 429 ThrottlingException. AWS says a 503 is service-side capacity, not your account quotas.">Request a Bedrock quota increase</li>
+              <li data-correct data-why="AWS's 503 guidance names cross-Region inference: an inference profile lets Bedrock route the request to capacity in other Regions.">Call the model through a cross-Region inference profile</li>
+              <li data-why="Setting max attempts to 1 turns retries off. A 503 is transient, so you want bounded retries, not none.">Set the SDK's max attempts to 1 so failures surface faster</li>
+              <li data-why="A 503 is transient and retryable. Treating it like a 400 throws away calls that would have worked a moment later.">Treat 503 as non-retryable, like a ValidationException</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p>Use a <strong>cross-Region inference profile</strong>. A 429 means your quota; a 503 means Bedrock's
+              capacity, so the fix is to reach more capacity, not to ask for more quota.</p>
+            </details>
+          </div>
+        </details>
+
+        <details class="cloud-block" data-cloud="gcp" open>
+          <summary><span class="cloud-tag">GCP</span>Gemini on Agent Platform: Gen AI SDK, location, and 429s<span class="cloud-role"></span></summary>
+          <p>On Gemini Enterprise Agent Platform you call Gemini through the <strong>Google Gen AI SDK</strong>:
+          <code>client.models.generate_content</code>, or <code>generate_content_stream</code> to iterate over chunks as
+          they arrive. The <strong>location</strong> you set on the client is a resilience decision. The
+          <strong>global</strong> endpoint routes traffic dynamically and is Google's recommendation for availability and
+          fewer 429s, but you can't control which region processes the request, so a processing-location requirement
+          means a regional or multi-region (<code>us</code>, <code>eu</code>) endpoint instead. On pay-as-you-go a 429
+          reads "Resource exhausted": shared capacity, no assured throughput. Google's guidance is the global endpoint,
+          truncated exponential backoff, and smoothing sharp spikes — bursts can throttle even when your per-minute
+          average is fine. The SDK already retries timeouts, 429s and 5xx errors with exponential backoff, tuned through
+          <code>HttpRetryOptions</code> (attempts, delays, jitter, status codes) plus a client timeout.
+          <strong>Provisioned Throughput</strong> reserves capacity; once you exceed it, more retries won't help.
+          Google calls <code>generate_content</code> safe to retry because it changes no server-side state; your side
+          effects still need idempotency keys and a fallback.</p>
+          <div class="ix-cloud" data-core-interaction data-interaction-kind="provider-decision-feedback" data-cloud="gcp">
+            <div class="ix-k">✓ Practice · read the error</div>
+            <p class="ix-cloud-q">A Gemini-backed chat feature on Standard pay-as-you-go is pinned to one regional
+            endpoint and gets bursts of 429 "Resource exhausted" at the top of each minute. No processing-location
+            requirement applies. What does Google's 429 guidance point to first?</p>
+            <ol class="ix-cloud-options">
+              <li data-why="A 429 here is transient shared-capacity pressure. Google's guidance is to retry with backoff, not to give up.">Treat the 429 as permanent and stop retrying</li>
+              <li data-why="Immediate retries with no delay are the anti-pattern Google lists: they pile onto the spike that caused the 429.">Retry immediately, with no delay, until the call succeeds</li>
+              <li data-correct data-why="Google's pay-as-you-go 429 fixes are the global endpoint, truncated exponential backoff, and smoothing spikes. Nothing stops you using global here.">Move to the global endpoint, keep backoff with jitter, and smooth the bursts</li>
+              <li data-why="Multi-region endpoints draw on separate pools and don't share the global endpoint's worldwide capacity. Choose them for a jurisdiction requirement, not for headroom.">Move to the <code>us</code> multi-region endpoint for more headroom than global</li>
+            </ol>
+            <details class="ix-cloud-answer"><summary>Show the answer</summary>
+              <p>Use the <strong>global endpoint</strong>, keep backoff with jitter, and smooth the bursts. One regional
+              endpoint has the least headroom, and spikes inside a minute can throttle even when your average is fine.</p>
+            </details>
+          </div>
+        </details>
+
+        <details class="deep" data-core="optional">
+          <summary>Deeper: your tooling is your first resilient-integration test</summary>
+        <p>Both halves of today are things you're already living. You've already made a model-selection decision under
+        constraints, and Part 2's patterns show up every day. Every time Claude Code streams a long answer you read it as
+        it arrives instead of waiting (streaming). Every time you hit a usage limit you pace yourself instead of hammering
+        retries (rate limits + backoff). Every time a long agentic run times out you decide whether to retry the whole
+        thing or fall back to doing the step by hand (timeouts + fallback). Working like an engineer — choosing the right
+        model and calling it resiliently — makes your tooling last; working carelessly — flagship
+        on everything, re-running giant loops on every transient blip — burns through it fast.</p>
+        </details>
+        <div class="callout mindset" data-core="optional">
+          <div class="k">FDE mindset</div>
+          <p>A client will ask two questions that sound separate: "which AI should we use?" and "why does the AI feature
+          keep breaking?" They're the two halves of Day 2. The first (Part 1) is a six-axis trade-off you decide and
+          <em>document</em>. The second is almost never the model's fault — it's a missing timeout, an unbounded retry, a
+          non-idempotent side effect, an un-throttled rate limit, or an error that reached the user raw. The FDE who can
+          pick the right model <em>and</em> wrap it in a call that survives production is delivering the whole job — the
+          consulting decision and the engineering that makes it hold.</p>
+        </div>
+      </section>
+
+      
+      <noscript data-core="optional">
+        <section class="w1-nojs" aria-labelledby="nojs-d2">
+          <h2 id="nojs-d2">Static Core 30 fallback</h2>
+          
+        
+          
+          <p><strong>Essential diagram — Model decision funnel:</strong> Data boundary → latency → context fit → capability/cost on real evals → tooling → swappable choice.</p>
+          <p><strong>Practice:</strong> A three-label classifier runs 200,000 times daily. Which tier starts the evaluation? Write your decision before revealing feedback.</p>
+          <details><summary>Compare with feedback</summary><p>Start with the smallest tier that passes the real eval set; flagship capability adds cost and latency without value for a simple label task.</p></details>
+          <p>The six-question interactive check needs JavaScript. Without it, use this prompt as the check and take your written evidence to the trainer session.</p>
+        
+      
+          
+        
+          
+          <p><strong>Essential diagram — Resilient call:</strong> Request → timeout → classify error → bounded retry with backoff/jitter → validate → result or fallback.</p>
+          <p><strong>Practice:</strong> A call returns 429. What happens before the next attempt? Write your decision before revealing feedback.</p>
+          <details><summary>Compare with feedback</summary><p>Wait with exponential backoff and jitter, stay within the attempt budget, and preserve idempotency. Do not retry permanent 4xx errors.</p></details>
+          <p>The six-question interactive check needs JavaScript. Without it, use this prompt as the check and take your written evidence to the trainer session.</p>
+        
+      
+        </section>
+      </noscript>
+
+      <section class="reading-sources" data-core="optional" aria-label="Sources and deeper dive">
+        <h2>Sources &amp; deeper dive</h2>
+        <ul>
+          <li><a href="https://platform.claude.com/docs/en/about-claude/models/overview" target="_blank" rel="noopener">Anthropic — Models overview</a> — current Claude tiers, IDs, context windows, and prices in the 2026-10-27 snapshot.</li>
+          <li><a href="https://developers.openai.com/api/docs/models" target="_blank" rel="noopener">OpenAI — Models</a> and <a href="https://developers.openai.com/api/docs/pricing" target="_blank" rel="noopener">Pricing</a> — current GPT-6 tier names, IDs, and standard prices in the snapshot.</li>
+          <li><a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" rel="noopener">Google — Gemini API pricing</a> — Gemini 3.8 Flash's time-bounded introductory and later rates.</li>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic — Prompt caching</a> — prefix matching, write multipliers, and current per-model cache-read exceptions.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html" target="_blank" rel="noopener">AWS — Claude Haiku 5.5 model card</a> — source for the <code>bedrock-runtime</code> US geo profile ID used in the static code example (accessed 2026-10-27; no account call).</li>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/streaming" target="_blank" rel="noopener">Anthropic — Streaming Messages</a> — official docs for server-sent-event streaming, the mechanism behind Pattern 1 (low time-to-first-token, and why long outputs need streaming to dodge HTTP timeouts).</li>
+          <li><a href="https://platform.claude.com/docs/en/build-with-claude/batch-processing" target="_blank" rel="noopener">Anthropic — Message Batches API</a> — primary source for Pattern 2: asynchronous bulk processing at ~50% off, with results returned by your <code>custom_id</code> in no guaranteed order.</li>
+          <li><a href="https://platform.claude.com/docs/en/api/errors" target="_blank" rel="noopener">Anthropic — API Errors</a> — the error taxonomy the lesson branches on (400/401 vs 429/5xx, 504 timeout) and the warning that a streamed response can error <em>after</em> a 200 — Patterns 4, 6, and 7.</li>
+          <li><a href="https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/" target="_blank" rel="noopener">AWS Architecture Blog — Exponential Backoff And Jitter</a> — the canonical reference for Pattern 4: why bare exponential backoff still produces retry storms and how jitter spreads the herd.</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html" target="_blank" rel="noopener">AWS — Inference using the Converse API</a> — Converse and ConverseStream as one consistent call surface across Bedrock models (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_ConverseStream.html" target="_blank" rel="noopener">AWS — ConverseStream API reference</a> — stream events, inference-profile model IDs, and the throttling and stream errors that can arrive mid-stream (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/troubleshooting-api-error-codes.html" target="_blank" rel="noopener">AWS — Troubleshooting Amazon Bedrock API error codes</a> — ThrottlingException (429, account quotas) vs ServiceUnavailable (503, capacity), and backoff with jitter (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/sdkref/latest/guide/feature-retry-behavior.html" target="_blank" rel="noopener">AWS — SDKs and Tools: Retry behavior</a> — standard and adaptive retry modes, retry quota, max attempts, and which errors are retried (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/cross-region-inference.html" target="_blank" rel="noopener">AWS — Cross-Region inference</a> — geographic and global inference profiles that route requests across Regions (accessed 2026-10-14).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html" target="_blank" rel="noopener">AWS — Claude Haiku 5.5 model card</a> and <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-5-5.html" target="_blank" rel="noopener">Sonnet 5.5 model card</a> — endpoint-specific bare, geo, and global IDs plus regional availability (accessed 2026-10-27).</li>
+          <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/prov-throughput.html" target="_blank" rel="noopener">AWS — Provisioned Throughput</a> — purchased model units for a higher, fixed level of throughput (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/sdks/overview" target="_blank" rel="noopener">Google Cloud — Google Gen AI SDK</a> — the unified SDK and client setup for Gemini on Gemini Enterprise Agent Platform (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/vertex-ai/generative-ai/docs/samples/googlegenaisdk-textgen-with-txt-stream" target="_blank" rel="noopener">Google Cloud — Generate streaming text (sample)</a> — the <code>generate_content_stream</code> sample the GCP code tab adapts (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/retry-strategy" target="_blank" rel="noopener">Google Cloud — Retry strategy</a> — the SDK's built-in retries, <code>HttpRetryOptions</code>, retryable codes, endpoint and payment-model guidance, and idempotency (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/deploy/error-code-429" target="_blank" rel="noopener">Google Cloud — Error code 429</a> — "Resource exhausted" and the pay-as-you-go and Provisioned Throughput remedies (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/locations" target="_blank" rel="noopener">Google Cloud — Deployments and endpoints</a> — global vs regional vs multi-region endpoints and the processing-location trade-off (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/standard-paygo" target="_blank" rel="noopener">Google Cloud — Standard PayGo</a> — shared capacity without assured throughput, and why to smooth sub-minute spikes (accessed 2026-10-14).</li>
+          <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/provisioned-throughput" target="_blank" rel="noopener">Google Cloud — Provisioned Throughput overview</a> — a fixed-term subscription that reserves throughput (accessed 2026-10-14).</li>
+        </ul>
+      </section>
+
+    </article>
+
+    <aside class="side">
+      <div class="side-diagram">
+        <div class="stage-title">Live diagram</div>
+        <svg id="diagram" aria-label="Interactive lesson diagram"></svg>
+        <noscript><p class="static-diagram" role="img" aria-label="Model decision funnel: Data boundary → latency → context fit → capability/cost on real evals → tooling → swappable choice. Part 2 — Resilient call: Request → timeout → classify error → bounded retry with backoff/jitter → validate → result or fallback."><strong>Essential diagrams (text form)</strong><br>Model decision funnel: Data boundary → latency → context fit → capability/cost on real evals → tooling → swappable choice. Part 2 — Resilient call: Request → timeout → classify error → bounded retry with backoff/jitter → validate → result or fallback.</p></noscript>
+        <div class="stage-caption"></div>
+      </div>
+
+      <div class="side-cards">
+        <button class="activity-card" type="button" data-modal="deep-modal">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">A model-selection scorecard you can hand a client</div>
+          <div class="ac-meta">optional · +6 min</div>
+        </button>
+        <button class="activity-card" type="button" data-modal="deep-modal-b">
+          <div class="ac-k">⌖ Deep dive</div>
+          <div class="ac-t">A production-grade backoff-retry loop, annotated</div>
+          <div class="ac-meta">optional · +6 min</div>
+        </button>
+        <button class="activity-card accent" type="button" data-modal="quiz-modal">
+          <div class="ac-k">✓ Comprehension check</div>
+          <div class="ac-t">10 questions across both halves of the topic</div>
+          <div class="ac-meta">~6 min · practice, not graded</div>
+        </button>
+      </div>
+
+      <div class="side-nav">
+        <a class="snav-btn" href="d1.html">◂ Day 1</a>
+        <button class="snav-btn goals" type="button" data-modal="goals-modal">◎ Daily goals</button>
+        <a class="snav-btn snav-next" href="d3.html">Day 3 — Prompt engineering →</a>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · Week 1 Day 2</footer>
+
+<div id="deep-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: a model-selection scorecard</h2>
+    <p class="quiz-sub">Optional. ~6 minutes. The one-page artifact behind Part 1 — the thing you actually hand a client.</p>
+
+    <p>Score each candidate 1–5 on every axis, weight the axes for <em>this</em> task, and the choice — plus the
+    reasoning — is on the page. Scores below are illustrative, not current product claims; attach a dated price sheet and
+    re-verify it before you ship one.</p>
+
+    <div class="model-answer show">
+      <div class="ma-k">Worked scorecard — a federal-acquisitions document-summarization feature</div>
+      <div class="w1-table-wrap" role="region" aria-label="Worked model selection scorecard; scroll horizontally if needed" tabindex="0">
+        <table class="w1-model-table w1-scorecard">
+          <caption>Illustrative scores (1–5); arrows show the resulting fit score</caption>
+          <thead><tr><th scope="col">Axis (weight)</th><th scope="col">Flagship API</th><th scope="col">Mid-tier API</th><th scope="col">Open-weight, self-hosted</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Capability (×2)</th><td>5</td><td>4</td><td>3</td></tr>
+            <tr><th scope="row">Cost (×2)</th><td>2</td><td>4</td><td>4 · infrastructure only</td></tr>
+            <tr><th scope="row">Latency (×1)</th><td>3</td><td>4</td><td>4 · you size hardware</td></tr>
+            <tr><th scope="row">Context fit (×1)</th><td>5</td><td>5</td><td>3 · varies</td></tr>
+            <tr><th scope="row">Tooling (×1)</th><td>5</td><td>5</td><td>3 · DIY</td></tr>
+            <tr><th scope="row">Residency (×3)</th><td>4 · approved region</td><td>4 · approved region</td><td>5 · full control</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="w1-table-note">If “data never leaves our boundary” is mandatory, the ×3 residency weight can make
+      open-weight win even when it scores lower on capability.</p>
+      <p style="margin:8px 0 0">The point isn't the exact cells — it's the <em>method</em>: explicit axes, a weight that
+      encodes <em>this</em> client's priorities, and a defensible total. For a regulated client the data-residency weight
+      is often so high it decides the table before capability gets a vote. Pair the scorecard with a 10–20 example eval
+      set on the client's real data to ground the capability row in fact, not vibes.</p>
+    </div>
+
+    <p style="margin-top:14px"><strong>Then keep it swappable.</strong> The scorecard is a snapshot; the prices and tiers
+    will move within the engagement. Put the winner behind a thin model interface so re-running the table next quarter is
+    a config change, not a rewrite — that interface is exactly the resilient call you build in Part 2.</p>
+  </div>
+</div>
+<div id="deep-modal-b" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Deep dive: the resilient-call loop</h2>
+    <p class="quiz-sub">Optional. ~6 minutes. Part 2's seven patterns, assembled into one function.</p>
+
+    <p>Backoff + jitter on transient errors only, bounded attempts, an idempotency key so a retry can't double a side
+    effect, a deliberate timeout, and a fallback so failure never reaches the user raw:</p>
+    <pre style="background:#f1efe9; border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.5; margin:10px 0 0;"><code>def call_model(request, *, max_tries=4, base=1.0, cap=30.0, timeout=20.0):
+    idem_key = request.idempotency_key or new_uuid()   # safe to retry
+    for attempt in range(max_tries):
+        try:
+            return model.call(request, key=idem_key,    # one logical op
+                              timeout=timeout)           # bounded wait
+        except RateLimited as e:                         # 429
+            delay = e.retry_after or backoff(attempt, base, cap)
+        except (ServerError, ConnectionDropped):         # 5xx / network
+            delay = backoff(attempt, base, cap)          # transient → retry
+        except (BadRequest, Unauthorized):               # 400 / 401
+            raise                                        # NOT transient → stop
+        sleep(delay)
+    return fallback(request)        # exhausted → fail safe, never crash
+
+def backoff(attempt, base, cap):
+    raw = min(cap, base * (2 ** attempt))    # exponential: 1,2,4,8...
+    return random.uniform(0, raw)            # full jitter — spread the herd</code></pre>
+    <p style="margin:8px 0 0">Five things make it production-grade: it retries <strong>only transient</strong> errors,
+    so client errors fall straight through; it honours the server's <code>Retry-After</code> header when one is given;
+    backoff is <strong>exponential with jitter</strong>, so simultaneous failures do not re-spike together; the same
+    <strong>idempotency key</strong> rides every attempt, so at most one real execution happens; and every path that
+    is not a clean result lands in the fallback. Worst-case wait is roughly the timeout times the retry count, plus
+    the backoff delays — set those two numbers together, with the user's experience in mind. This is the seam from
+    Part 1: swap the model inside the call and the whole resilient wrapper keeps working.</p>
+  </div>
+</div>
+<div id="quiz-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <section id="quiz"></section>
+    <div class="modal-next"></div>
+  </div>
+</div>
+
+<div id="goals-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Day 2 — goals &amp; deliverable</h2>
+    <div class="ma-k">By the end of today you can</div>
+    <ul class="goals-list">
+      <li>Frame model selection as a six-axis trade-off — capability, cost, latency, context window, tooling, and data residency — instead of naming a leaderboard winner</li>
+      <li>Match a model tier to the hardest thing a task actually requires, and decompose a workload into a cheap-first / flagship-only-when-needed cascade</li>
+      <li>Explain why output costs more than input, why cost compounds with volume, and why the compliance axis often overrules the rest</li>
+      <li>Defend a pick to a client with a weighted scorecard — and keep the choice swappable behind a thin interface</li>
+    </ul>
+    <ul class="goals-list">
+      <li>Treat an LLM API call as a network request to a shared, metered, fallible service — and name the patterns that make it survive production</li>
+      <li>Choose streaming vs batching by asking "who is waiting, and for how long?"</li>
+      <li>Explain HTTP 429 and handle it both reactively (back off, honor Retry-After) and proactively (client-side throttle)</li>
+      <li>Retry only transient errors with exponential backoff + jitter and a bounded cap — and explain why retries are unsafe without idempotency</li>
+      <li>Pair a deliberate timeout with the retry count to bound the worst-case wait, and define a fallback so failure never reaches the user raw</li>
+    </ul>
+    <div class="ma-k">Deliverable — add to your <code>NOTES.md</code></div>
+    <ul class="deliv-list check">
+      <li><b>①</b> a 3-candidate model scorecard for one realistic feature, with the axis weights you'd defend to a client and the pick that falls out the bottom</li>
+    </ul>
+    <ul class="deliv-list check">
+      <li><b>①</b> one feature sorted into interactive-vs-batch, with the delivery mode (stream / batch) that follows from it</li>
+      <li><b>②</b> the resilient-call checklist you'd apply to one untrusted API call — timeout, retry policy (which errors, how many, backoff+jitter), idempotency, and fallback</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+window.FDE_NEXT = {
+  "href": "d3.html",
+  "label": "Day 3 — Prompt engineering →"
+};
+window.DIAGRAMS = [
+{
+  "title": "Model selection · scorecard",
+  "width": 720,
+  "height": 512,
+  "nodes": [
+    {
+      "id": "task",
+      "step": 0,
+      "kind": "example",
+      "x": 14,
+      "y": 14,
+      "w": 680,
+      "h": 70,
+      "label": "TASK  Summarize a 40-page RFP  →  JSON {summary, risks[]}\nCONSTRAINTS  ~50k calls/day  ·  US-only data residency"
+    },
+    {
+      "id": "hl",
+      "step": 0,
+      "x": 14,
+      "y": 96,
+      "w": 122,
+      "h": 46,
+      "label": "score for\nTHIS task ↓"
+    },
+    {
+      "id": "hc1",
+      "step": 0,
+      "x": 146,
+      "y": 96,
+      "w": 176,
+      "h": 46,
+      "label": "Flagship API\nOpus-class · US"
+    },
+    {
+      "id": "hc2",
+      "step": 0,
+      "x": 332,
+      "y": 96,
+      "w": 176,
+      "h": 46,
+      "label": "Open-weight\nself-host (Llama)"
+    },
+    {
+      "id": "hc3",
+      "step": 0,
+      "x": 518,
+      "y": 96,
+      "w": 176,
+      "h": 46,
+      "label": "Mid-tier API\nSonnet/Flash · US"
+    },
+    {
+      "id": "capL",
+      "step": 1,
+      "x": 14,
+      "y": 156,
+      "w": 122,
+      "h": 38,
+      "label": "① Capability"
+    },
+    {
+      "id": "cap1",
+      "step": 1,
+      "x": 146,
+      "y": 156,
+      "w": 176,
+      "h": 38,
+      "label": "✓ overkill"
+    },
+    {
+      "id": "cap2",
+      "step": 1,
+      "x": 332,
+      "y": 156,
+      "w": 176,
+      "h": 38,
+      "label": "~ good enough"
+    },
+    {
+      "id": "cap3",
+      "step": 1,
+      "x": 518,
+      "y": 156,
+      "w": 176,
+      "h": 38,
+      "label": "✓ enough"
+    },
+    {
+      "id": "costL",
+      "step": 2,
+      "x": 14,
+      "y": 204,
+      "w": 122,
+      "h": 38,
+      "label": "② Cost @vol",
+      "detail": "cost = input tokens × input rate + output tokens × output rate. At ~50k calls/day summarizing 40 pages, the current flagship premium can dominate the bill even when a mid-tier clears the eval bar. Price the measured token shape with a dated rate sheet; do not reuse a demo's per-call guess."
+    },
+    {
+      "id": "cost1",
+      "step": 2,
+      "x": 146,
+      "y": 204,
+      "w": 176,
+      "h": 38,
+      "label": "✗ premium at volume"
+    },
+    {
+      "id": "cost2",
+      "step": 2,
+      "x": 332,
+      "y": 204,
+      "w": 176,
+      "h": 38,
+      "label": "✓ infra-only"
+    },
+    {
+      "id": "cost3",
+      "step": 2,
+      "x": 518,
+      "y": 204,
+      "w": 176,
+      "h": 38,
+      "label": "✓ cheapest"
+    },
+    {
+      "id": "latL",
+      "step": 3,
+      "x": 14,
+      "y": 252,
+      "w": 122,
+      "h": 38,
+      "label": "③ Latency"
+    },
+    {
+      "id": "lat1",
+      "step": 3,
+      "x": 146,
+      "y": 252,
+      "w": 176,
+      "h": 38,
+      "label": "~ slower"
+    },
+    {
+      "id": "lat2",
+      "step": 3,
+      "x": 332,
+      "y": 252,
+      "w": 176,
+      "h": 38,
+      "label": "~ you size HW"
+    },
+    {
+      "id": "lat3",
+      "step": 3,
+      "x": 518,
+      "y": 252,
+      "w": 176,
+      "h": 38,
+      "label": "✓ fast tier"
+    },
+    {
+      "id": "ctxL",
+      "step": 4,
+      "x": 14,
+      "y": 300,
+      "w": 122,
+      "h": 38,
+      "label": "④ Context"
+    },
+    {
+      "id": "ctx1",
+      "step": 4,
+      "x": 146,
+      "y": 300,
+      "w": 176,
+      "h": 38,
+      "label": "✓ 1M"
+    },
+    {
+      "id": "ctx2",
+      "step": 4,
+      "x": 332,
+      "y": 300,
+      "w": 176,
+      "h": 38,
+      "label": "✓ fits 40pg"
+    },
+    {
+      "id": "ctx3",
+      "step": 4,
+      "x": 518,
+      "y": 300,
+      "w": 176,
+      "h": 38,
+      "label": "✓ 200K+"
+    },
+    {
+      "id": "toolL",
+      "step": 5,
+      "x": 14,
+      "y": 348,
+      "w": 122,
+      "h": 38,
+      "label": "⑤ Tooling"
+    },
+    {
+      "id": "tool1",
+      "step": 5,
+      "x": 146,
+      "y": 348,
+      "w": 176,
+      "h": 38,
+      "label": "✓ native JSON"
+    },
+    {
+      "id": "tool2",
+      "step": 5,
+      "x": 332,
+      "y": 348,
+      "w": 176,
+      "h": 38,
+      "label": "~ DIY parse"
+    },
+    {
+      "id": "tool3",
+      "step": 5,
+      "x": 518,
+      "y": 348,
+      "w": 176,
+      "h": 38,
+      "label": "✓ native JSON"
+    },
+    {
+      "id": "dataL",
+      "step": 6,
+      "x": 14,
+      "y": 396,
+      "w": 122,
+      "h": 38,
+      "label": "⑥ Residency",
+      "detail": "The constraint is US-only — NOT 'data can never leave our boundary'. A US-region enterprise API under a BAA satisfies it: Claude via Amazon Bedrock, Gemini via Vertex, in a US region. So self-host's full control is more than THIS task needs. Contrast the harder federal case — air-gapped / 'data can't leave the network' — where only an open-weight model running inside the boundary qualifies, and this same axis would pick the self-host column instead."
+    },
+    {
+      "id": "data1",
+      "step": 6,
+      "x": 146,
+      "y": 396,
+      "w": 176,
+      "h": 38,
+      "label": "✓ BAA + US"
+    },
+    {
+      "id": "data2",
+      "step": 6,
+      "x": 332,
+      "y": 396,
+      "w": 176,
+      "h": 38,
+      "label": "✓ full control"
+    },
+    {
+      "id": "data3",
+      "step": 6,
+      "x": 518,
+      "y": 396,
+      "w": 176,
+      "h": 38,
+      "label": "✓ BAA + US"
+    },
+    {
+      "id": "vL",
+      "step": 7,
+      "x": 14,
+      "y": 446,
+      "w": 122,
+      "h": 52,
+      "label": "Verdict"
+    },
+    {
+      "id": "v1",
+      "step": 7,
+      "x": 146,
+      "y": 446,
+      "w": 176,
+      "h": 52,
+      "label": "✗ cost\nkills it"
+    },
+    {
+      "id": "v2",
+      "step": 7,
+      "x": 332,
+      "y": 446,
+      "w": 176,
+      "h": 52,
+      "label": "~ ops you\ndon't need"
+    },
+    {
+      "id": "v3",
+      "step": 7,
+      "x": 518,
+      "y": 446,
+      "w": 176,
+      "h": 52,
+      "label": "✓ PICK",
+      "detail": "The mid-tier API wins the whole column: capable enough for summarize→JSON, the cheapest at 50k/day, native structured JSON, and US residency via Bedrock under a BAA. The flagship died on cost; self-host was ops you don't need once a US-region API already satisfies residency. Rule attached to every pick: keep it behind one thin interface so re-running this table when prices move is a config change, not a rewrite."
+    }
+  ],
+  "edges": [
+    {
+      "id": "f1",
+      "step": 0,
+      "from": "task",
+      "to": "hc1"
+    },
+    {
+      "id": "f2",
+      "step": 0,
+      "from": "task",
+      "to": "hc2"
+    },
+    {
+      "id": "f3",
+      "step": 0,
+      "from": "task",
+      "to": "hc3"
+    },
+    {
+      "id": "ve1",
+      "step": 7,
+      "from": "data1",
+      "to": "v1"
+    },
+    {
+      "id": "ve2",
+      "step": 7,
+      "from": "data2",
+      "to": "v2"
+    },
+    {
+      "id": "ve3",
+      "step": 7,
+      "from": "data3",
+      "to": "v3",
+      "label": "pick ✓",
+      "ly": 2
+    }
+  ],
+  "captions": [
+    "One concrete task, three real candidates. The pick falls out of \u003ci>this\u003c/i> task's constraints — \u003cb>50k calls/day, US-only residency\u003c/b> — not a leaderboard. \u003cspan style='opacity:.7'>(tap a row label for detail)\u003c/span>",
+    "\u003cb>① Capability\u003c/b>: all three clear the bar — summarize→JSON isn't frontier-hard, so the flagship is \u003ci>overkill\u003c/i>. Capability rarely decides; match the tier to the hardest thing the task needs.",
+    "\u003cb>② Cost @volume\u003c/b>: price the measured input/output shape using a dated rate sheet. At 50k calls/day, a flagship premium can eliminate the 'best' model even when every candidate clears the eval bar. \u003cspan style='opacity:.7'>(tap)\u003c/span>",
+    "\u003cb>③ Latency\u003c/b>: a smaller tier is faster, and the flagship is already out. Mid-tier and self-host are both serviceable here.",
+    "\u003cb>④ Context\u003c/b>: a 40-page RFP (~35k tokens) fits every option — even the 200K tier. Not a differentiator for this task.",
+    "\u003cb>⑤ Tooling\u003c/b>: the task needs guaranteed JSON. The API tiers do it natively; self-host means DIY parsing \u003ci>and\u003c/i> running the hardware — friction you'd take on for nothing.",
+    "\u003cb>⑥ Residency: US-only\u003c/b> — the twist: a US-region API under a BAA (Bedrock / Vertex) \u003ci>satisfies\u003c/i> it, so self-host's full control is more than this task needs. \u003cspan style='opacity:.7'>(tap)\u003c/span>",
+    "\u003cb>Verdict\u003c/b>: the \u003cb>mid-tier API\u003c/b> wins the column — capable enough, cheapest at volume, native JSON, US residency. Flagship died on cost; self-host was needless ops. Rule: \u003cb>keep it swappable.\u003c/b> \u003cspan style='opacity:.7'>(tap PICK)\u003c/span>"
+  ]
+},
+{
+  "title": "Reliable calls · failure ladder",
+  "width": 650,
+  "height": 560,
+  "nodes": [
+    {
+      "id": "client",
+      "step": 0,
+      "kind": "example",
+      "x": 30,
+      "y": 22,
+      "w": 330,
+      "h": 104,
+      "label": "POST /v1/messages\n{\"model\":\"claude-...\",\n \"stream\": true,\n \"messages\":[{\"role\":\"user\",\n  \"content\":\"Summarize the RFP\"}]}"
+    },
+    {
+      "id": "stream",
+      "step": 1,
+      "x": 45,
+      "y": 156,
+      "w": 300,
+      "h": 42,
+      "label": "① Stream tokens — low TTFT",
+      "detail": "Tokens arrive as generated, so the user reads at ~0.4s instead of waiting 12s. Time-to-first-token is what they feel. Also avoids HTTP timeouts on long outputs."
+    },
+    {
+      "id": "batch",
+      "step": 2,
+      "x": 410,
+      "y": 150,
+      "w": 200,
+      "h": 46,
+      "label": "or BATCH — async · −50%",
+      "detail": "Work nobody's waiting on: submit one job, collect results within ~24h at ~half price. Results keyed by your custom ID, no guaranteed order. Sidesteps the live rate-limit dance."
+    },
+    {
+      "id": "throt",
+      "step": 3,
+      "x": 45,
+      "y": 224,
+      "w": 300,
+      "h": 42,
+      "label": "② Throttle ≤ RPM / TPM",
+      "detail": "A gate in front of the call (token-bucket / semaphore) keeps you under the provider's RPM/TPM caps. Cheaper to not send a doomed request than to send it and handle the 429."
+    },
+    {
+      "id": "call",
+      "step": 4,
+      "x": 45,
+      "y": 298,
+      "w": 300,
+      "h": 54,
+      "label": "③ API CALL · timeout set"
+    },
+    {
+      "id": "retry",
+      "step": 5,
+      "x": 410,
+      "y": 296,
+      "w": 200,
+      "h": 58,
+      "label": "④ Retry — backoff + jitter\n(429 / 5xx only)",
+      "detail": "Exponential backoff (1,2,4,8s) gives the service room; jitter spreads simultaneous failures so they don't re-spike; bounded to ~3-5 tries. 400/401 are NOT retried — they'd fail identically."
+    },
+    {
+      "id": "idem",
+      "step": 6,
+      "x": 290,
+      "y": 388,
+      "w": 190,
+      "h": 52,
+      "label": "⑤ Idempotency key\nsafe to repeat",
+      "detail": "A unique key per logical op. If the first call succeeded but the response dropped, the retry carries the same key and the server returns the original result — at most one real execution. Retry + idempotency are a pair."
+    },
+    {
+      "id": "done",
+      "step": 7,
+      "x": 45,
+      "y": 472,
+      "w": 260,
+      "h": 58,
+      "label": "✓ 200 → ship result"
+    },
+    {
+      "id": "fb",
+      "step": 7,
+      "x": 350,
+      "y": 472,
+      "w": 260,
+      "h": 58,
+      "label": "exhausted / 4xx →\nsafe fallback"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_cs",
+      "step": 1,
+      "from": "client",
+      "to": "stream",
+      "label": "response",
+      "ly": -1
+    },
+    {
+      "id": "e_b",
+      "step": 2,
+      "from": "client",
+      "to": "batch",
+      "label": "bulk",
+      "ly": -4
+    },
+    {
+      "id": "e_st",
+      "step": 3,
+      "from": "stream",
+      "to": "throt"
+    },
+    {
+      "id": "e_tc",
+      "step": 4,
+      "from": "throt",
+      "to": "call"
+    },
+    {
+      "id": "e_rt",
+      "step": 5,
+      "from": "call",
+      "to": "retry",
+      "label": "429 / 5xx",
+      "bend": 22,
+      "ly": 14
+    },
+    {
+      "id": "e_rc",
+      "step": 5,
+      "from": "retry",
+      "to": "call",
+      "label": "re-try",
+      "bend": -22,
+      "ly": -10
+    },
+    {
+      "id": "e_ik",
+      "step": 6,
+      "from": "idem",
+      "to": "call",
+      "label": "safe to retry",
+      "dir": "-",
+      "lx": 18,
+      "ly": 6
+    },
+    {
+      "id": "e_ok",
+      "step": 7,
+      "from": "call",
+      "to": "done",
+      "label": "200 ✓",
+      "lx": -4
+    },
+    {
+      "id": "e_fb",
+      "step": 7,
+      "from": "retry",
+      "to": "fb",
+      "label": "give up",
+      "lx": 22
+    }
+  ],
+  "captions": [
+    "A real \u003cb>client request\u003c/b> — JSON over the network to a shared, metered, fallible service. \u003ccode>stream:true\u003c/code> already sets up Pattern 1. \u003cspan style='opacity:.7'>(tap nodes for detail)\u003c/span>",
+    "\u003cb>Stream\u003c/b> the response so the user sees tokens immediately. Time-to-first-token, not total time, is what they feel.",
+    "Work nobody's waiting on? \u003cb>Batch\u003c/b> it — async, often ~50% cheaper, and it sidesteps the live rate-limit dance entirely.",
+    "\u003cb>Throttle\u003c/b> yourself under the provider's RPM/TPM caps — a gate in front of the call. Cheaper to not send a doomed request than to handle the 429.",
+    "Make the \u003cb>call\u003c/b> with a deliberate \u003cb>timeout\u003c/b> — LLM calls are slow and variable, so the library default is wrong.",
+    "Transient failure (429 / 5xx)? \u003cb>Retry\u003c/b> on a side-branch: exponential backoff + jitter, bounded, then loop back. 4xx is NOT retried.",
+    "An \u003cb>idempotency key\u003c/b> on every attempt means a retry can't double a side effect. Retry + idempotency are a pair — note it on the call.",
+    "Ends in exactly two places: a \u003cb>result you ship\u003c/b> (200), or a \u003cb>fallback you chose\u003c/b> (exhausted / 4xx). Never an exception the user sees."
+  ]
+}
+];
+window.QUIZ = {
+  "id": "w01-d2",
+  "title": "Check your understanding · Day 2",
+  "questions": [
+    {
+      "type": "scq",
+      "stem": "A federal-acquisitions client says their data legally cannot leave their own network boundary. Which model-selection axis decides this, and what option does it point to?",
+      "options": [
+        "Capability — pick whichever model scores highest on benchmarks",
+        "Cost — pick the cheapest per-token API",
+        "Data residency / compliance — it can overrule the other axes and points toward an open-weight, self-hosted model",
+        "Latency — pick the fastest model regardless of where it runs"
+      ],
+      "answer": 2,
+      "explain": "For regulated/federal work the data-residency axis often filters first and hardest — it doesn't matter that a model is smartest or cheapest if the client can't legally send it the data. When even a compliant public API isn't allowed, a self-hosted open-weight model (running inside the client's boundary) is the answer, trading some capability for absolute data control."
+    },
+    {
+      "type": "scq",
+      "stem": "Two features both get the 'AI' label: (A) classify 200k inbound messages/day into 3 buckets, (B) draft a long report a handful of times a day. What does the cost axis say about model choice?",
+      "options": [
+        "Use the same flagship model for both — consistency matters more than cost",
+        "A is dominated by high-volume input cost → a cheap small tier; B is dominated by output cost but low volume → a capable tier is affordable. Match the tier to each feature's cost shape.",
+        "Both should use the cheapest possible model since cost always wins",
+        "Cost is the same for both because they both call an LLM"
+      ],
+      "answer": 1,
+      "explain": "Cost ≈ (input + output tokens) × price, with output billed higher and the total compounding with volume. A is huge volume of cheap classification — a small tier saves enormous money. B generates expensive output but runs rarely, so a capable tier is affordable. Two 'AI' features can differ 20× in cost profile; you size the model to each feature's shape."
+    },
+    {
+      "type": "match",
+      "stem": "Match each client situation to the model choice it points toward.",
+      "pairs": [
+        {
+          "l": "Data legally can't leave their network",
+          "r": "self-host an open-weight model"
+        },
+        {
+          "l": "200k cheap classifications / day",
+          "r": "small, cheap tier"
+        },
+        {
+          "l": "Rare long-report drafting",
+          "r": "capable tier (affordable at low volume)"
+        },
+        {
+          "l": "Avoid getting locked to one vendor",
+          "r": "thin, swappable interface"
+        }
+      ],
+      "explain": "Residency forces self-host; high-volume-cheap work wants a small tier; low-volume-expensive output can afford a capable tier; and every pick rides behind a swappable interface because models and prices move mid-engagement."
+    },
+    {
+      "type": "scq",
+      "stem": "Your service retries failed model calls with a tight immediate loop and no idempotency key. Two things are wrong. Which pair fixes them?",
+      "options": [
+        "Use a bigger model, and add more retries",
+        "Add exponential backoff with jitter (so retries don't re-spike the overloaded service), and attach an idempotency key (so a retried call that already succeeded can't double a side effect)",
+        "Stream the response, and increase the timeout",
+        "Switch to a batch API, and remove the retries entirely"
+      ],
+      "answer": 1,
+      "explain": "Immediate tight-loop retries cause retry storms — exponential backoff spaces attempts out and jitter stops thousands of clients retrying in lockstep. And retries are unsafe without idempotency: if the original request actually succeeded but the response was lost, a blind retry repeats the work (and any side effect). An idempotency key makes the server dedupe the retry to a single execution."
+    },
+    {
+      "type": "scq",
+      "stem": "You get an HTTP 429 from the model API. What is it, and how should resilient code respond?",
+      "options": [
+        "A bug in your code — log it and crash",
+        "A rate limit ('too many requests') — back off and retry, ideally honoring the Retry-After header, and throttle proactively to avoid it",
+        "A malformed request — fix the JSON and do not retry",
+        "A safety refusal — route to a human"
+      ],
+      "answer": 1,
+      "explain": "429 means you've hit your share of a metered, shared service — it's transient, not a code bug. Respect the Retry-After header when present, retry with bounded backoff, and proactively throttle yourself (client-side rate limiting) so you mostly stay under the cap. Contrast a 400, which is a malformed request and should NOT be retried."
+    },
+    {
+      "type": "mcq",
+      "stem": "Which of these belong in a resilient LLM API call? (select all that apply)",
+      "options": [
+        "A timeout on every call",
+        "Exponential backoff with jitter on retries",
+        "Retry every error type the same way",
+        "An idempotency key for retried side-effecting calls",
+        "One broad try/except that swallows all errors silently"
+      ],
+      "answer": [
+        0,
+        1,
+        3
+      ],
+      "explain": "Timeout (bound the wait), backoff+jitter (avoid retry storms), and idempotency keys (safe retries of writes) are core. Retrying every error type the same way retries un-retryable 4xx; a catch-all that swallows errors hides the failures you need to see and route to a fallback."
+    },
+    {
+      "type": "match",
+      "stem": "Match each failure to the right response.",
+      "pairs": [
+        {
+          "l": "429 rate limit",
+          "r": "back off + retry (honor Retry-After)"
+        },
+        {
+          "l": "400 bad request",
+          "r": "fix the request, do not retry"
+        },
+        {
+          "l": "timeout fires",
+          "r": "cancel, then retry or fall back"
+        },
+        {
+          "l": "retries exhausted",
+          "r": "graceful fallback, never a raw error"
+        }
+      ],
+      "explain": "Transient (429/timeout) → retry with limits; client error (400) → fix, don't retry; exhausted → a fallback the user can live with, never a stack trace."
+    },
+    {
+      "type": "scq",
+      "cloud": "aws",
+      "stem": "On the AWS path, which statement about Amazon Bedrock errors and retries is accurate?",
+      "options": [
+        "ThrottlingException means the Bedrock service is out of capacity, so a quota increase can't help",
+        "ThrottlingException (HTTP 429) means you exceeded your account quotas; the AWS SDK's standard retry mode retries it with exponential backoff and jitter, and ValidationException is not retried",
+        "Once ConverseStream has sent the first token, the call can no longer fail",
+        "Provisioned Throughput is purchased through a cross-Region inference profile"
+      ],
+      "answer": 1,
+      "explain": "AWS documents ThrottlingException as exceeding account quotas (503 ServiceUnavailable is the capacity case). The SDK's standard mode retries throttling and transient errors with backoff and jitter and returns non-retryable errors such as ValidationException immediately. ConverseStream can deliver a throttling or stream error mid-stream, and inference profiles don't support Provisioned Throughput."
+    },
+    {
+      "type": "scq",
+      "cloud": "gcp",
+      "stem": "On the GCP path, which statement about 429 errors on Gemini Enterprise Agent Platform is accurate?",
+      "options": [
+        "The Gen AI SDK never retries, so every 429 must be handled by hand",
+        "On Provisioned Throughput, frequent 429s are best fixed by adding more retries",
+        "On pay-as-you-go, Google's guidance is to prefer the global endpoint, retry with truncated exponential backoff, and smooth traffic spikes",
+        "The global endpoint is the right choice when ML processing must stay in a specific region"
+      ],
+      "answer": 2,
+      "explain": "A pay-as-you-go 429 ('Resource exhausted') is shared-capacity pressure: use the global endpoint where you can, back off exponentially, and smooth spikes. The Gen AI SDK already retries 429 and 5xx errors with backoff. On Provisioned Throughput, frequent 429s mean you've exceeded purchased capacity, so retries may not help. The global endpoint can't guarantee where processing happens."
+    },
+    {
+      "type": "open",
+      "stem": "In two or three sentences: a client says 'the AI feature keeps breaking.' It's almost never the model. Name three integration patterns you'd check first, and what each prevents.",
+      "hint": "Think about the call's safety equipment: timeout, retry policy, idempotency, fallback.",
+      "model": "The breakage is almost always the integration, not the model. I'd check: (1) a deliberate timeout paired with the retry count — without it a hung call ties up resources and the worst-case wait is unbounded; (2) retries that branch on error type with exponential backoff + jitter and an idempotency key — so transient 429/5xx recover without retry storms or duplicated side effects, and 4xx isn't retried pointlessly; and (3) a defined fallback so an exhausted call ends in a graceful message or a backup model, never a raw exception on the user's screen."
+    }
+  ]
+};
+</script>
+<div id="code-w1d2a" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: the model seam</h2>
+    <p class="cv-cap">The whole vendor choice lives behind one function and one config string — so swapping Haiku for Sonnet (or a self-hosted model later) is a one-line change, not a codebase-wide rewrite.</p>
+    <div class="cv" data-file="llm.py" data-lang="python"><pre class="cv-raw"># One seam every model call goes through -- swapping models is a config change, not a rewrite.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import boto3
+
+_bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+# The pick lives in ONE place. Change this string, not 12 call sites.
+DEFAULT_MODEL = &quot;us.anthropic.claude-haiku-5-5&quot;   # US geo profile; verify routing policy
+
+def answer(prompt: str, *, model: str = DEFAULT_MODEL, system: str | None = None) -&gt; str:
+    resp = _bedrock.converse(
+        modelId=model,
+        system=[{&quot;text&quot;: system}] if system else [],
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: prompt}]}],
+        inferenceConfig={&quot;maxTokens&quot;: 512, &quot;temperature&quot;: 0},
+    )
+    return resp[&quot;output&quot;][&quot;message&quot;][&quot;content&quot;][0][&quot;text&quot;]
+
+# Callers never name a vendor -- they call the seam:
+label = answer(&quot;Classify: &#x27;my card was declined&#x27;  -&gt;  billing | shipping | technical&quot;)
+
+# Size up only where it earns its cost -- same interface, one argument:
+summary = answer(long_rfp, model=&quot;us.anthropic.claude-sonnet-5-5&quot;)</pre></div>
+    <p class="cv-foot">Every caller talks to answer(), never a vendor SDK directly — that is the seam Part 2 wraps in timeouts and retries.</p>
+  </div>
+</div>
+<div id="code-w1d2b" class="modal-overlay" hidden>
+  <div class="modal-card code-modal">
+    <button class="modal-close" type="button" aria-label="Close">✕</button>
+    <h2>Production code: streaming the response</h2>
+    <p class="cv-cap">A streamed answer arrives as a sequence of pieces, not one JSON blob — you print each token for low time-to-first-token and buffer the pieces for later. On AWS that is ConverseStream; on GCP it is generate_content_stream, with the SDK's retry and timeout set on the client.</p>
+    <div class="cv" data-file="stream.py" data-lang="python"><pre class="cv-raw" data-cloud="aws" data-file="aws · stream.py"># Stream tokens as they generate -- the user reads at ~0.4s instead of staring for 12s.
+# Auth: Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it; no IAM role).
+import boto3
+
+bedrock = boto3.client(&quot;bedrock-runtime&quot;, region_name=&quot;us-east-1&quot;)
+
+resp = bedrock.converse_stream(
+    modelId=&quot;us.anthropic.claude-haiku-5-5&quot;,
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{&quot;text&quot;: &quot;Summarize the RFP in 3 bullets.&quot;}]}],
+    inferenceConfig={&quot;maxTokens&quot;: 1024},
+)
+
+# The response is a sequence of events, not one JSON blob -- assemble the pieces.
+chunks = []
+for event in resp[&quot;stream&quot;]:
+    if &quot;contentBlockDelta&quot; in event:
+        piece = event[&quot;contentBlockDelta&quot;][&quot;delta&quot;][&quot;text&quot;]
+        print(piece, end=&quot;&quot;, flush=True)     # first token shows immediately -&gt; low TTFT
+        chunks.append(piece)
+    elif &quot;metadata&quot; in event:
+        u = event[&quot;metadata&quot;][&quot;usage&quot;]        # usage arrives at the END of the stream
+        print(f&quot;\n[in={u[&#x27;inputTokens&#x27;]} out={u[&#x27;outputTokens&#x27;]}]&quot;)
+
+full_text = &quot;&quot;.join(chunks)   # buffer the complete answer for validation / storage</pre><pre class="cv-raw" data-cloud="gcp" data-file="gcp · stream.py"># Stream tokens as they generate -- the user reads at ~0.4s instead of staring for 12s.
+# Setup: pip install --upgrade google-genai
+#   GOOGLE_CLOUD_PROJECT=&lt;project&gt;  GOOGLE_CLOUD_LOCATION=global  GOOGLE_GENAI_USE_ENTERPRISE=True
+from google import genai
+from google.genai import types
+
+# Bound the SDK's built-in retries (exponential backoff on these codes) and set a deadline.
+client = genai.Client(
+    http_options=types.HttpOptions(
+        api_version=&quot;v1&quot;,
+        retry_options=types.HttpRetryOptions(
+            initial_delay=1.0,
+            attempts=5,
+            http_status_codes=[408, 429, 500, 502, 503, 504],
+        ),
+        timeout=120 * 1000,   # milliseconds
+    ),
+)
+
+# The response is a sequence of chunks, not one JSON blob -- assemble the pieces.
+chunks = []
+for chunk in client.models.generate_content_stream(
+    model=&quot;gemini-3.5-flash&quot;,
+    contents=&quot;Summarize the RFP in 3 bullets.&quot;,
+):
+    piece = chunk.text or &quot;&quot;
+    print(piece, end=&quot;&quot;, flush=True)     # first token shows immediately -&gt; low TTFT
+    chunks.append(piece)
+
+full_text = &quot;&quot;.join(chunks)   # buffer the complete answer for validation / storage</pre></div>
+    <p class="cv-foot">On AWS, usage lands in the final metadata event. On either cloud, the buffered full_text is what you hand on to validation and storage — and a failure can still arrive mid-stream, so keep the fallback.</p>
+  </div>
+</div>
+
+<script src="../../assets/js/roster.js?v=20260706"></script>
+<script src="../../assets/js/progress.js?v=20260630-2"></script>
+<script src="../../assets/js/day-summary.js?v=20260630-2"></script>
+<script src="../../assets/js/auth.js"></script>
+<script src="../../assets/js/diagram.js?v=20260630-3"></script>
+<script src="../../assets/js/scrolly.js"></script>
+<script src="../../assets/js/modals.js"></script>
+<script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/interactive.js?v=20261030-a11y"></script>
+<script src="../../assets/js/glossary.js?v=20260730-g4"></script>
+<script src="../../assets/js/codeviewer.js?v=20260706-4"></script>
+<script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>
+<script src="../../assets/js/learning-chrome.js?v=20260925-s5"></script>
+<script src="../../assets/js/reading-coach.js?v=20260805-r4"></script>
+</body>
+</html>

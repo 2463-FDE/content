@@ -24,8 +24,8 @@
   return freeze({
     // Live pages that carry AWS/GCP provider blocks, with their LTM day.
     providerPages: {
-      "w01/d2b": { ltm: "W1 · TUE", title: "API integration patterns" },
-      "w01/d4b": { ltm: "W1 · THU", title: "Output guardrails" },
+      "w01/d2": { ltm: "W1 · TUE", title: "Model selection & API patterns" },
+      "w01/d4": { ltm: "W1 · THU", title: "Token optimization & guardrails" },
       "w02/w02d2": { ltm: "W2 · TUE", title: "Embeddings & vector stores" },
       "w02/w02d3": { ltm: "W2 · WED", title: "Retrieval strategies" },
       "w03/w03d2": { ltm: "W3 · MON/WED", title: "Tools & MCP" },
@@ -49,23 +49,23 @@
     },
     objectives: {
       "aip-c01": {
-        "1.1": [L("w01/d3b")],
-        "1.2": [L("w01/d2a"), L("w01/d1"), P("w02/w02d2")],
+        "1.1": [L("w01/d3")],
+        "1.2": [L("w01/d2"), L("w01/d1"), P("w02/w02d2")],
         "1.3": [L("w02/w02d1")],
         "1.4": [L("w02/w02d2"), L("w02/w02d5"), P("w02/w02d2")],
         "1.5": [L("w02/w02d1"), L("w02/w02d2"), L("w02/w02d3"), P("w02/w02d3")],
-        "1.6": [L("w01/d3a"), L("w01/d4a")],
+        "1.6": [L("w01/d3"), L("w01/d4")],
         "2.1": [L("w03/w03d1"), L("w03/w03d2"), L("w03/w03d5"), P("w03/w03d2"), P("w03/w03d3"), P("w03/w03d4"), P("w04/w04d3")],
-        "2.2": [L("w01/d2a"), P("w01/d2b"), P("w04/w04d3"), P("w10/w10d1")],
+        "2.2": [L("w01/d2"), P("w01/d2"), P("w04/w04d3"), P("w10/w10d1")],
         "2.3": [L("w03/w03d2"), L("w06/w06d1"), L("w06/w06d4"), P("w03/w03d2"), P("w04/w04d4")],
-        "2.4": [L("w01/d2b"), P("w01/d2b"), L("w01/d5")],
+        "2.4": [L("w01/d2"), P("w01/d2"), L("w01/d5")],
         "2.5": [L("w01/d1"), P("w03/w03d3")],
-        "3.1": [L("w01/d4b"), P("w01/d4b"), L("w08/w08d2"), P("w09/w09d4")],
+        "3.1": [L("w01/d4"), P("w01/d4"), L("w08/w08d2"), P("w09/w09d4")],
         "3.2": [L("w08/w08d4"), P("w03/w03d4"), P("w04/w04d4"), P("w09/w09d3"), P("w09/w09d4")],
         "3.3": [L("w08/w08d4"), P("w09/w09d3"), P("w09/w09d5")],
         "3.4": [L("w08/w08d4"), P("w09/w09d5")],
-        "4.1": [L("w01/d4a"), P("w10/w10d1"), P("w10/w10d5")],
-        "4.2": [L("w01/d2b"), P("w01/d2b")],
+        "4.1": [L("w01/d4"), P("w10/w10d1"), P("w10/w10d5")],
+        "4.2": [L("w01/d2"), P("w01/d2")],
         "4.3": [L("w07/w07d1"), L("w07/w07d4"), P("w03/w03d5")],
         "5.1": [L("w02/w02d4"), L("w07/w07d2")],
         "5.2": [L("w02/w02d4"), L("w07/w07d1")]
@@ -74,10 +74,10 @@
       // objectives or weights are published). Anchors are shared lessons that
       // teach the course's theme at engineering depth; empty = not taught.
       "gaipc": {
-        "1": [L("w01/d1"), L("w01/d3a")],
-        "2": [L("w01/d3b")],
+        "1": [L("w01/d1"), L("w01/d3")],
+        "2": [L("w01/d3")],
         "3": [L("w02/w02d1"), L("w04/w04d3")],
-        "4": [L("w01/d3b"), L("w06/w06d5")],
+        "4": [L("w01/d3"), L("w06/w06d5")],
         "5": [],
         "6": [],
         "7": [L("w01/d1")],

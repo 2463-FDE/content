@@ -28,7 +28,7 @@ class Week1CurrencyTests(unittest.TestCase):
         ):
             self.assertIn(current, contract)
 
-        page = core30.parse(ROOT / "weeks" / "w01" / "d2a.html")
+        page = core30.parse(ROOT / "weeks" / "w01" / "d2.html")
         tables = [node for node in page.find_all("table") if "w1-model-table" in node.classes()]
         self.assertEqual(2, len(tables))
         rendered_rows = {
@@ -51,7 +51,7 @@ class Week1CurrencyTests(unittest.TestCase):
 
     def test_worked_costs_and_cache_math_are_internally_consistent(self) -> None:
         d1 = (ROOT / "weeks" / "w01" / "d1.html").read_text(encoding="utf-8")
-        d4 = (ROOT / "weeks" / "w01" / "d4a.html").read_text(encoding="utf-8")
+        d4 = (ROOT / "weeks" / "w01" / "d4.html").read_text(encoding="utf-8")
         input_rate, output_rate = 2 / 1_000_000, 10 / 1_000_000
 
         d1_call = 4_800 * input_rate + 400 * output_rate
@@ -80,24 +80,24 @@ class Week1CurrencyTests(unittest.TestCase):
         self.assertIn("new Intl.NumberFormat(undefined", script)
 
     def test_bedrock_ids_are_endpoint_scoped_and_not_overclaimed(self) -> None:
-        d2b = (ROOT / "weeks" / "w01" / "d2b.html").read_text(encoding="utf-8")
+        d2 = (ROOT / "weeks" / "w01" / "d2.html").read_text(encoding="utf-8")
         all_w1 = "\n".join(path.read_text(encoding="utf-8") for path in W1)
         self.assertIn("us.anthropic.claude-haiku-5-5", all_w1)
         self.assertIn("us.anthropic.claude-sonnet-5-5", all_w1)
-        self.assertIn("can route across US Regions", d2b)
-        self.assertIn("not single-Region promises", d2b)
-        self.assertIn("bare in-Region IDs", d2b)
-        self.assertIn("bedrock-mantle", d2b)
-        self.assertIn("Do not guess a", d2b)
-        self.assertIn("made no AWS account call", d2b)
-        self.assertIn("model-card-anthropic-claude-haiku-5-5.html", d2b)
-        self.assertIn("model-card-anthropic-claude-sonnet-5-5.html", d2b)
+        self.assertIn("can route across US Regions", d2)
+        self.assertIn("not single-Region promises", d2)
+        self.assertIn("bare in-Region IDs", d2)
+        self.assertIn("bedrock-mantle", d2)
+        self.assertIn("Do not guess a", d2)
+        self.assertIn("made no AWS account call", d2)
+        self.assertIn("model-card-anthropic-claude-haiku-5-5.html", d2)
+        self.assertIn("model-card-anthropic-claude-sonnet-5-5.html", d2)
 
     def test_price_and_scorecard_tables_and_topbar_are_narrow_safe(self) -> None:
-        d2a = (ROOT / "weeks" / "w01" / "d2a.html").read_text(encoding="utf-8")
+        d2 = (ROOT / "weeks" / "w01" / "d2.html").read_text(encoding="utf-8")
         css = (ROOT / "assets" / "css" / "style.css").read_text(encoding="utf-8")
-        self.assertEqual(2, d2a.count('class="w1-table-wrap"'))
-        self.assertNotIn("AXIS (weight)", d2a)
+        self.assertEqual(2, d2.count('class="w1-table-wrap"'))
+        self.assertNotIn("AXIS (weight)", d2)
         self.assertRegex(css, r"\.w1-table-wrap\s*\{[^}]*overflow-x:auto")
         self.assertRegex(css, r"@media \(max-width:380px\)\s*\{[^}]*\.topbar-right")
         self.assertRegex(css, r"@media print\s*\{\s*\.w1-table-wrap\s*\{[^}]*overflow:visible")

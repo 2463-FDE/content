@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   function firstHref(day) {
-    return day && (day.href || (day.parts && day.parts[0] && day.parts[0].href)) || "";
+    return (day && day.href) || "";
   }
   function init() {
     var weeks = Array.isArray(window.WEEKS) ? window.WEEKS : [];
