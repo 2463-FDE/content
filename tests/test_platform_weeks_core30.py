@@ -244,7 +244,7 @@ class PlatformCore30Test(unittest.TestCase):
                 self.assertFalse(page["unavailable"])
                 lesson = self.lessons[day_id]
                 self.assertIn("Core 30", page["meta"])
-                self.assertIn("1 interaction", page["meta"])
+                self.assertIn(f"{lesson['_pacing']['interactions']} interactions", page["meta"])
                 self.assertIn("6-Q check", page["meta"])
                 self.assertIn(f"~{lesson['_pacing']['requiredMinutes']} min required", page["meta"])
                 self.assertEqual(page["drills"], 1)

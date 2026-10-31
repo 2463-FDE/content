@@ -154,7 +154,7 @@
     w09d5: {
       week: 9, day: 5, phase: "AI Security, Governance & System Hardening", title: "Security audit, remediation, and client readout",
       concepts: ["security-audit-package", "compliance-traceability", "residual-risk", "executive-readout", "evidence-gated-certification-seam"],
-      summary: "Close the hardening week with one reproducible audit package, one verified remediation, a scoped compliance map, certification-path selection, and a two-audience readout for the inherited banking/payments brownfield.",
+      summary: "Close the hardening week with one reproducible audit package, one verified remediation, a scoped compliance map, certification-path selection, and a two-audience readout for the inherited Morrowfield Payment Control brownfield.",
       sections: [
         ["Assemble the audit package", "Package the system boundary, attack path, test case, evidence, consequence, control, retest result, residual risk, owner, and date. Every item points to a repository artifact or generated report. The package should survive the author leaving the room."],
         ["Separate fixed, accepted, and deferred", "Fixed means the control changed and the test passed. Accepted means an authorized stakeholder recorded the residual risk and review date. Deferred means a named owner and dated condition exist. ‘Known issue’ without one of those states is not a decision."],
@@ -315,7 +315,7 @@
   };
 
   var teamEvidence = {
-    w09d1: ["SEC-09-01 threat-path record", "Security owner", "One inherited banking/payments path links asset, untrusted source, capability, sink, changed boundary, negative test, and residual risk.", "A teammate reproduces the synthetic path and denial from the artifact."],
+    w09d1: ["SEC-09-01 threat-path record", "Security owner", "One inherited Morrowfield payments path links asset, untrusted source, capability, sink, changed boundary, negative test, and residual risk.", "A teammate reproduces the synthetic path and denial from the artifact."],
     w09d2: ["SEC-09-02 capability-and-denial matrix", "Identity/control owner", "Every model-facing operation names caller, resource, credential class, destination, approval rule, and at least four denied cases.", "A reviewer reruns allowed-read and forbidden cross-scope/write/secret-output fixtures."],
     w09d3: ["GOV-09-03 control and federation ADR", "Governance owner", "Each obligation row has applicability owner; federation records issuer, audience, subject, target, lifetime, audit event, denial tests, and fallback.", "Security reviewer marks each row evidenced, blocked, or not applicable with date."],
     w09d4: ["SEC-09-04 audit and red-team report", "Security test owner", "One scoped finding moves from synthetic reproduction to changed control and passing repeat test; provider costs use one normalized workload.", "Peer reviewer signs scope, stop condition, retest identity, and residual-risk owner."],

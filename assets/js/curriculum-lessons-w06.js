@@ -48,8 +48,8 @@
   }
 
   var project = Object.freeze({
-    label: "Project 2 · team of 2–3 · regional banking/payments",
-    context: "Week 6 is the handover: your team inherits the solo insurance system's service, RAG, agent, graph, evaluation, and decision evidence for a fictional regional banking/payments engagement. Record one shared team-primary cloud in ADR-P2-001. Your personal AWS, GCP, or Both reading view remains separate and never changes the team's one implementation lane.",
+    label: "Project 2 · Morrowfield Payment Control · team of 2–3 · fde-payments-service-platform",
+    context: "Week 6 is the handover: your team inherits the solo Juniper Vale Mutual Loss Desk evidence — service, RAG, agent, graph, evaluation, and decision records — and begins the fictional Morrowfield Payment Control payments-services engagement (payment initiation, reservations, balanced ledger posting, reconciliation). The starter is trainer-provided and runs locally. Record one shared team-primary cloud in ADR-P2-001. Your personal AWS, GCP, or Both reading view remains separate and never changes the team's one implementation lane.",
     adrHref: "../../docs/templates/team-primary-cloud-adr.md"
   });
 
@@ -58,7 +58,7 @@
       week: 6, day: 1, phase: "Production AI Systems", title: "Kafka foundations and event-driven judgement",
       project: project,
       concepts: ["event-driven-architecture", "kafka-topics-partitions-offsets", "kafka-kraft", "kafka-producers-consumers", "kafka-cli-literacy"],
-      summary: "Form the Project 2 banking/payments team, record its one team-primary-cloud ADR, and stand up an inert local Kafka learning environment. Explain when an event stream fits, how records move through topics and partitions, and what evidence proves producer and consumer behavior without confusing a learner's cloud view with the team's shared lane.",
+      summary: "Form the Morrowfield Payment Control team, record its one team-primary-cloud ADR, and stand up an inert local Kafka learning environment. Explain when an event stream fits, how records move through topics and partitions, and what evidence proves producer and consumer behavior without confusing a learner's cloud view with the team's shared lane.",
       sections: [
         ["Choose events for the right reason", "Event-driven architecture separates the fact that something happened from the work that follows. A queue usually emphasizes handing work to one processor; publish-subscribe emphasizes independent subscribers; a durable event stream keeps an ordered record that consumers can replay. Kafka is useful when several capabilities need the same facts at different speeds, when replay matters, or when producers must not wait for every downstream system. It adds brokers, schemas, lag, ordering boundaries, and operational ownership, so a direct request or scheduled batch remains the better answer when those properties are unnecessary. Start every design by naming the business event, retention need, replay need, ordering scope, and failure response."],
         ["Read topics, partitions, and offsets together", "A topic is a named stream. Partitions divide that stream into ordered logs and create the unit of parallelism. Kafka orders records within one partition, not across an entire multi-partition topic. An offset is a record's position inside a partition; a consumer's committed offset records progress, not a global message ID. A key can route related records to the same partition, preserving their relative order while limiting their processing parallelism to that partition. More partitions can raise throughput and consumer concurrency, but they also increase coordination and can make later partition-count changes affect key distribution. The design question is therefore: which events must be ordered together, and how much parallel work must the system support?"],
@@ -72,10 +72,39 @@
         ["Optional depth — plan-first setup review", "Before running the local sample, review the compose file and scripts as brownfield code: identify ports, persistent volumes, image pins, teardown behavior, and any unexpected network or credential access. Use AI assistance only to summarize and propose tests; a human verifies every command."],
         ["Optional depth — CLI worksheet", "Record topic, partition count, key, observed partition, consumer group, start offset, end offset, and teardown result. This preserves the old week's evidence-over-assertion habit without turning Kafka learning into API recall."]
       ],
-      drill: { prompt: "A client needs three independent services to replay the same order events, while preserving order per order ID. Which first design is most defensible?", options: ["One shared work queue with all services competing for each message", "A partitioned event topic keyed by order ID, with one consumer group per service", "A nightly file export sorted by producer timestamp"], answer: 1, feedback: "Independent groups provide fan-out and replay; the order ID key keeps each order's records in one partition. Global ordering is neither promised nor needed." },
+      drill: { prompt: "Morrowfield needs three independent services to replay the same payment events, while preserving order per payment ID. Which first design is most defensible?", options: ["One shared work queue with all services competing for each message", "A partitioned event topic keyed by payment ID, with one consumer group per service", "A nightly file export sorted by producer timestamp"], answer: 1, feedback: "Independent groups provide fan-out and replay; the payment ID key keeps each payment's records in one partition. Global ordering is neither promised nor needed." },
+      visualLede: "Trace the keyed payment record below through producer, partitioned topic, consumer group, duplicate-safe outcome, and retained retry path before the CLI exercise.",
+      activities: [
+        { at: 1, type: "trace", title: "Follow one keyed payment event through the log",
+          intro: "Step through a synthetic Morrowfield payment event and watch which facts change: the partition is chosen by key, the offset is partition-local, and the committed offset is the group's progress record.",
+          steps: [
+            { label: "Producer sends pay-1042 (key = payment ID)", state: [["key", "pay-1042"], ["partition", "chosen by key hash → P1"], ["P1 log-end offset", "41"], ["group committed offset (P1)", "40"]], note: "The key routes every record for this payment to the same partition, so their relative order is preserved." },
+            { label: "Broker appends the record", state: [["key", "pay-1042"], ["partition", "P1"], ["P1 log-end offset", "42"], ["group committed offset (P1)", "40"]], note: "An offset is a position inside one partition — not a global message ID." },
+            { label: "Group member polls and completes the work", state: [["delivered to", "reservations consumer (group: ledger-posting)"], ["partition", "P1"], ["P1 log-end offset", "42"], ["group committed offset (P1)", "41"]], note: "Only one member of a group owns P1 at a time; the commit records completed work, not mere receipt." },
+            { label: "Second record for pay-1042 arrives", state: [["key", "pay-1042"], ["partition", "P1 (same key → same partition)"], ["P1 log-end offset", "43"], ["group committed offset (P1)", "42"]], note: "Per-key ordering holds inside P1. Other payments on other partitions proceed in parallel." },
+            { label: "A new reconciliation group starts from the beginning", state: [["group", "reconciliation (new)"], ["its committed offset (P1)", "0 → replaying"], ["ledger-posting committed offset (P1)", "42"]], note: "Different groups read the same retained stream independently — this is the replay and fan-out property that justified Kafka." }
+          ] },
+        { at: 4, type: "params", title: "Partitions, consumers, and real parallelism",
+          intro: "Change the topic's partition count and the ledger-posting group's size, then compare outcomes. The capacity rule comes from the lesson: one group member owns a partition at a time.",
+          controls: [
+            { key: "partitions", label: "Partitions", options: [{ label: "1", value: "1" }, { label: "3", value: "3" }, { label: "6", value: "6" }] },
+            { key: "consumers", label: "Consumers in the group", options: [{ label: "1", value: "1" }, { label: "3", value: "3" }, { label: "8", value: "8" }] }
+          ],
+          cases: [
+            { when: { partitions: "1", consumers: "1" }, out: { "active consumers": "1", "idle consumers": "0", "ordering scope": "every record (single partition)" }, note: "One partition serializes the whole topic: strongest ordering, lowest parallelism." },
+            { when: { partitions: "1", consumers: "3" }, out: { "active consumers": "1", "idle consumers": "2", "ordering scope": "every record (single partition)" }, note: "Extra members beyond the partition count add no active parallelism — they wait." },
+            { when: { partitions: "1", consumers: "8" }, out: { "active consumers": "1", "idle consumers": "7", "ordering scope": "every record (single partition)" }, note: "Scaling the group cannot outrun the partition count." },
+            { when: { partitions: "3", consumers: "1" }, out: { "active consumers": "1 (owns all 3)", "idle consumers": "0", "ordering scope": "per payment ID (per partition)" }, note: "One member can own several partitions; throughput is capped by that one process." },
+            { when: { partitions: "3", consumers: "3" }, out: { "active consumers": "3", "idle consumers": "0", "ordering scope": "per payment ID (per partition)" }, note: "Balanced ownership: each member owns one partition." },
+            { when: { partitions: "3", consumers: "8" }, out: { "active consumers": "3", "idle consumers": "5", "ordering scope": "per payment ID (per partition)" }, note: "Five members idle. Adding consumers past the partition count is not capacity." },
+            { when: { partitions: "6", consumers: "1" }, out: { "active consumers": "1 (owns all 6)", "idle consumers": "0", "ordering scope": "per payment ID (per partition)" }, note: "More partitions raise the ceiling but do not create workers." },
+            { when: { partitions: "6", consumers: "3" }, out: { "active consumers": "3 (2 partitions each)", "idle consumers": "0", "ordering scope": "per payment ID (per partition)" }, note: "Partition count also shapes later key distribution — changing it later can move keys." },
+            { when: { partitions: "6", consumers: "8" }, out: { "active consumers": "6", "idle consumers": "2", "ordering scope": "per payment ID (per partition)" }, note: "The design question stands: which events must stay ordered together, and how much parallel work is needed?" }
+          ] }
+      ],
       demoNote: "Keep the exercise local. Ask learners to defend Kafka versus queue or batch before showing the partitioned log diagram; commands are evidence, not the learning objective.",
-      goals: ["Establish the inherited banking/payments team and record one team-primary cloud without changing any member's AWS/GCP/Both view.", "Choose stream, queue, or batch from replay, fan-out, ordering, and operating needs.", "Explain topics, partitions, offsets, brokers, KRaft, producers, consumers, and groups as one system.", "Use a local container and CLI evidence without provisioning cloud infrastructure."],
-      deliverable: "Commit ADR-P2-001 plus a local-only banking/payment-event architecture note and synthetic CLI transcript: inherited evidence, team-primary decision, event key, topic/partition reasoning, observed offsets, and teardown evidence.",
+      goals: ["Establish the Morrowfield Payment Control team and record one team-primary cloud without changing any member's AWS/GCP/Both view.", "Choose stream, queue, or batch from replay, fan-out, ordering, and operating needs.", "Explain topics, partitions, offsets, brokers, KRaft, producers, consumers, and groups as one system.", "Use a local container and CLI evidence without provisioning cloud infrastructure."],
+      deliverable: "Commit ADR-P2-001 plus a local-only Morrowfield payment-event architecture note and synthetic CLI transcript: inherited evidence, team-primary decision, event key, topic/partition reasoning, observed offsets, and teardown evidence.",
       checks: [
         check("Which guarantee is native to a Kafka partition?", "Records in that partition have an ordered offset sequence.", "Kafka's ordering boundary is the partition, not the whole topic.", ["All records in the topic are globally ordered.", "Every consumer group sees records at the same wall-clock time.", "A record is processed exactly once by every downstream side effect."], 2),
         check("Why key related events by order ID?", "To route one order's events consistently so their relative order can be preserved.", "The key defines the ordering and distribution boundary.", ["To encrypt the order identifier before storage.", "To let every partition receive a copy of the event.", "To make offsets comparable across partitions."], 1),
@@ -106,6 +135,29 @@
         ["Optional depth — pricing worksheet", "Create variable rows for broker or DCU time, storage, ingress, egress, zones, connectivity, retention, and support. Leave currency cells blank until the trainer supplies a dated scenario; do not normalize a DCU into an MSK broker as though they were equivalent units."]
       ],
       drill: { prompt: "One malformed event is retried immediately on the same partition and blocks every later record. What should the team change first?", options: ["Increase the consumer poll frequency", "Quarantine it with failure metadata and an owned replay path after bounded retries", "Enable producer transactions on the upstream service"], answer: 1, feedback: "A permanent validation failure needs bounded retry, quarantine, ownership, and safe replay. Faster polling and producer transactions do not remove the poison record." },
+      visualLede: "The delivery contract below shows where semantics, schema checks, retries, and the dead-letter path sit between producer and consumers.",
+      activities: [
+        { at: 0, type: "evidence", title: "Prove the duplicate-safety requirement",
+          intro: "Morrowfield's ledger-posting consumer runs under at-least-once delivery. Which artifacts actually prove that duplicate-safe handling is required at the side-effect boundary?",
+          claim: "Redelivery can reach the ledger side effect, so posting must be duplicate-safe.",
+          why: "The redelivered offset in the consumer log and the double-posting risk in the ledger table together show work can arrive twice at the side effect; neither the lag graph nor the compatibility report says anything about redelivery.",
+          artifacts: [
+            { id: "clog", label: "Consumer log around a rebalance", body: "assign P1 → poll offset=87 handled\nrebalance: membership changed\nassign P1 → poll offset=87 handled (again)", probative: true, why: "the same offset is handled twice around the rebalance — redelivery is real, not theoretical" },
+            { id: "ledger", label: "Ledger rows for one payment", body: "post  pay-2201  +120.00  entry=ea41\npost  pay-2201  +120.00  entry=eb07", probative: true, why: "two postings for one payment show the side effect is not yet idempotent — exactly what redelivery would corrupt" },
+            { id: "lag", label: "Consumer lag graph", body: "lag(P1): 14 → 9 → 3 → 0", probative: false, why: "falling lag measures unfinished work, not whether redelivered work is safe" },
+            { id: "schema", label: "Schema compatibility report", body: "payment.initiated v3: BACKWARD compatible with v2", probative: false, why: "compatibility protects the contract's shape, not delivery semantics" }
+          ] },
+        { at: 3, type: "order", title: "Arrange the retry and dead-letter workflow",
+          intro: "Put the malformed-event workflow from this lesson into a defensible order.",
+          why: "Validation classifies first, retries stay bounded, quarantine carries evidence, and replay has an owner — resilience is a workflow, not a loop.",
+          items: [
+            { id: "validate", label: "Validate the event against its schema and classify the failure", why: "without classification, transient and permanent failures get the same (wrong) treatment" },
+            { id: "retry", label: "Retry transient failures with backoff and an attempt ceiling", why: "immediate unlimited retries block the partition and amplify the outage" },
+            { id: "quarantine", label: "Move the exhausted event to the dead-letter topic with failure metadata", why: "quarantine must preserve the original event, category, attempts, and trace context" },
+            { id: "replay", label: "An owner corrects the cause and replays from the DLQ", why: "a DLQ without an owner and replay instructions is disposal, not recovery" }
+          ],
+          correct: ["validate", "retry", "quarantine", "replay"] }
+      ],
       demoNote: "Ask for the business consequence before naming a semantic. In the economics section, keep Pub/Sub visibly labeled as a non-Kafka alternative and prohibit invented dollar comparisons.",
       goals: ["Choose delivery semantics from loss, duplication, replay, and side-effect consequences.", "Design schemas, retry/DLQ, lag, rebalance, idempotence, and transaction boundaries.", "Compare managed Kafka using elicited requirements and dated pricing dimensions."],
       deliverable: "Commit a synthetic Python-client test plan, event schema, retry/DLQ contract, and provider-neutral managed-Kafka requirements and cost worksheet.",
@@ -139,6 +191,37 @@
         ["Optional depth — store repair matrix", "For every partial state, document safe retry, idempotency key, expected existing data, repair command, and owner. Include Chroma-success/Neo4j-failure and the inverse; do not claim a distributed transaction exists."]
       ],
       drill: { prompt: "Arrival rate is steady, model latency doubles, token quota is nearly exhausted, and lag age is rising. What is the safest immediate response?", options: ["Double consumer concurrency until lag disappears", "Pause or reduce intake, preserve events, and resume under a bounded token/concurrency policy", "Commit offsets before model calls so Kafka reports no lag"], answer: 1, feedback: "Backpressure protects the quota and preserves recoverable work. Hiding lag with early commits loses the true progress signal; unbounded concurrency worsens saturation." },
+      visualLede: "The pipeline below marks where intake, bounded model workers, and the two non-transactional stores meet — the seams this day's decisions protect.",
+      activities: [
+        { at: 2, type: "params", title: "Backpressure under model pressure",
+          intro: "Use the deterministic simulator's policy table. Change model latency and remaining token quota, then compare what a bounded intake policy does to lag age and risk.",
+          controls: [
+            { key: "latency", label: "Model latency", options: [{ label: "Normal", value: "normal" }, { label: "Doubled", value: "double" }] },
+            { key: "quota", label: "Token quota remaining", options: [{ label: "Ample", value: "ample" }, { label: "Nearly exhausted", value: "low" }] }
+          ],
+          cases: [
+            { when: { latency: "normal", quota: "ample" }, out: { "intake policy": "consume normally", "lag age": "stable inside SLO", "principal risk": "none — capacity matches arrival" }, note: "Workers keep up; no intervention needed." },
+            { when: { latency: "normal", quota: "low" }, out: { "intake policy": "reduce per-interval token budget; defer low-priority events", "lag age": "rises slowly, bounded", "principal risk": "budget exhaustion before reset" }, note: "A token budget is policy: defer, summarize, or route — not silent drops." },
+            { when: { latency: "double", quota: "ample" }, out: { "intake policy": "reduce intake to worker capacity; keep events retained", "lag age": "rises, drains after recovery", "principal risk": "group instability if calls run inline" }, note: "Bound concurrency and keep polling separate from model calls so partition ownership survives." },
+            { when: { latency: "double", quota: "low" }, out: { "intake policy": "pause intake; preserve events; resume under bounded policy", "lag age": "rises while retention buys recovery time", "principal risk": "cost surge + saturation if intake continues" }, note: "This is the drill scenario: retention is recovery time, not infinite capacity — and hidden lag (early commits) would destroy the true progress signal." }
+          ] },
+        { at: 5, type: "fault", title: "Repair a partial side effect",
+          intro: "A payment-document event finished its agent step but never finalized. Reveal only the probes you need, then name the failing boundary.",
+          symptom: "Event evt-77 shows finalized = false; the search index already returns its document.",
+          probes: [
+            { id: "state", label: "Side-effect state record", result: "evt-77: validated ✓ · agent-completed ✓ · chroma-written ✓ · neo4j-written ✗ · finalized ✗" },
+            { id: "chroma", label: "Chroma collection", result: "doc pay-docs/evt-77@v3 present (upsert by stable event version)" },
+            { id: "neo4j", label: "Neo4j driver log", result: "TransientError: connection reset during MERGE transaction — retryable" },
+            { id: "broker", label: "Broker/partition health", result: "leader online; no under-replicated partitions; consumer group stable" }
+          ],
+          suspects: [
+            { id: "broker-b", label: "Kafka broker / partition availability", why: "the broker is healthy and the group stable — intake is not the failing seam" },
+            { id: "chroma-b", label: "Chroma write path", why: "the versioned upsert already completed; replaying it is duplicate-safe, not broken" },
+            { id: "neo4j-b", label: "Neo4j write path", why: "the transient MERGE failure left neo4j-written false — replay reads the state record and performs only the missing graph write with the same event identity" },
+            { id: "machine", label: "The state machine itself", why: "the state record is exactly what makes targeted repair possible — it recorded the partial progress correctly" }
+          ],
+          culprit: "neo4j-b" }
+      ],
       demoNote: "Keep framework discussion at the pattern level. Use the simulator to show that broker intake, model capacity, and two non-transactional stores need separate state and measurements.",
       goals: ["Defend MSK versus self-managed Kafka with a responsibility map.", "Design event-triggered LangGraph or CrewAI work with bounded asynchronous model processing.", "Make Chroma and Neo4j side effects replay-safe and observable."],
       deliverable: "Commit a static pipeline design, deterministic capacity simulation, side-effect state machine, and lag/throughput/token-budget dashboard specification.",
@@ -172,6 +255,31 @@
         ["Optional depth — static identity and egress worksheet", "Draw caller, token issuer, trust configuration, short-lived credential, broker boundary, encryption, byte meter, rate source, retrieval date, and failure fallback. Every cloud cell may remain 'trainer confirmation required'; no account or IAM action is permitted."]
       ],
       drill: { prompt: "After a broker failure, an in-flight event is delivered again and Chroma already contains its document version. What should the runbook direct?", options: ["Delete the topic and recreate it from the last backup", "Use the stable event/document version to recognize the completed Chroma side effect and continue only missing work", "Commit the latest log-end offset for every partition"], answer: 1, feedback: "The side-effect state and stable identity make recovery selective. Skipping offsets or recreating the topic destroys evidence and may lose unrelated work." },
+      visualLede: "Keep the full pipeline below in view while predicting the failure drill: leadership movement, group rebalance, and the retained retry path are all on it.",
+      activities: [
+        { at: 1, type: "fault", title: "Broker-failure drill: predict before reveal",
+          intro: "The static topology card: topic payments.initiated, 3 partitions, replication factor 3. Broker B carries the P2 leader. Broker B fails. Probe only what you need, then name what actually happened to P2.",
+          symptom: "Writes to P2 pause briefly; the ledger-posting group reports a rebalance; one in-flight event is later delivered again.",
+          probes: [
+            { id: "topology", label: "Topology card after failure", result: "P2 leader: moved B → C (eligible replica) · P2 followers: A · under-replicated until B returns" },
+            { id: "offsets", label: "Committed offsets", result: "ledger-posting P2: 118 committed; log-end 121 — three records retained, none lost" },
+            { id: "handler", label: "Handler evidence", result: "offset 119 was in flight at failure; redelivered after reassignment; outcome table shows no entry for evt at 119" }
+          ],
+          suspects: [
+            { id: "loss", label: "The partition lost committed records", why: "replication kept the log: committed offsets and retained records survived the leader" },
+            { id: "move", label: "Leadership moved and the group rebalanced — redelivery is expected recovery", why: "an eligible replica took leadership, consumers refetched metadata, and the in-flight record was redelivered — exactly the behavior handlers must tolerate" },
+            { id: "registry", label: "The schema registry rewrote records", why: "the registry manages contracts; it never mutates stored records" }
+          ],
+          culprit: "move" },
+        { at: 3, type: "trace", title: "Carry trace context across the async boundary",
+          intro: "Step one event's W3C trace context from producer to consumer to DLQ and watch which identifiers travel in headers versus payload.",
+          steps: [
+            { label: "Producer publishes with injected headers", state: [["header traceparent", "00-4bf9…-00f0…-01"], ["header event-id", "evt-301"], ["payload", "payment document (no secrets in spans)"]], note: "Trace context is injected into Kafka record headers at publish time; business IDs stay separate from tracing headers." },
+            { label: "Broker stores the record", state: [["header traceparent", "unchanged"], ["record offset", "P1/88"], ["consumer span", "none yet"]], note: "Messaging spans are not one synchronous call stack — the producer span ended before any consumer ran." },
+            { label: "Consumer extracts context and processes", state: [["extracted parent", "00-4bf9…"], ["consumer span", "payments.initiated process (linked)"], ["outcome", "agent work + sink writes traceable"]], note: "Extraction at consume time creates the causal path across the asynchronous boundary." },
+            { label: "Processing fails; record moves to the retry/DLQ topic", state: [["DLQ record headers", "trace context + original event-id + failure category"], ["new attempt span", "separate, linked to the original"], ["lineage", "preserved"]], note: "Retries and DLQ movement stay traceable without pretending they are the same processing attempt." }
+          ] }
+      ],
       demoNote: "Use a static topology card and synthetic bytes. Make learners predict failure and cost before reveal; repeat that no cloud, IAM, billing, or live infrastructure action is authorized.",
       goals: ["Defend the complete Kafka → agent → Chroma/Neo4j contract and failure behavior.", "Design lag alerts, trace propagation, and executable runbooks.", "Compare streaming, batch, identity, and cross-cloud egress with explicit assumptions."],
       deliverable: "Commit an end-to-end static design, broker-failure worksheet, lag alert, OTel header map, runbook, and measured synthetic egress recommendation.",
@@ -195,7 +303,7 @@
         ["Defend decisions from the client ask", "An architecture defense is a chain from requirement to mechanism to evidence to residual risk. Explain why the work is event-driven, why the chosen key and partition count match ordering and concurrency, what delivery semantic protects, where schema compatibility is enforced, how agent work is bounded, how Chroma and Neo4j side effects survive replay, and what alerts and runbooks protect the freshness SLO. Name rejected alternatives: direct request, simple queue, scheduled batch, self-managed Kafka, managed Kafka, or single-cloud placement. Avoid API recall. The strongest answer includes the condition that would reverse each major choice."],
         ["Read throughput and lag honestly", "Report arrival and completion throughput over the same interval, lag by partition, oldest-record age, processing latency, retries, DLQ volume, rebalances, and model-token estimates. Show distribution rather than only averages so one hot partition cannot disappear inside a healthy total. Mark warm-up, injected failures, and synthetic values. Explain whether the pipeline is stable: if completion equals arrival after recovery and oldest age returns inside the SLO, the backlog is draining; if arrival remains higher, lag will continue to grow. A screenshot is not the readout. The learner must interpret what changed, why, and what action follows."],
         ["Present measured egress without invented precision", "The authoritative Friday readout uses measured egress as the week's number. In this bounded implementation, measured means serialized synthetic bytes counted at the proposed cross-cloud boundary, multiplied by a trainer-supplied, dated rate in a worksheet. Report payload size, event count, replication or retry multiplier, direction, zone and region assumption, excluded traffic, source date, and sensitivity at higher volume. If no dated rate is supplied, report bytes and the formula with cost marked pending. Do not create traffic, billing, or infrastructure to obtain a number, and do not imply one provider's categories equal the other's."],
-        ["Frame the work as brownfield delivery", "Week 6 begins the team-of-2–3 regional banking/payments engagement and inherits the solo insurance system's Weeks 1–5 service, RAG, agent, Chroma, Neo4j, evaluation, and decision evidence. The new client domain does not erase those engineering constraints. The pipeline wraps inherited behavior rather than resetting it. Identify the payment-event seam, characterize current batch or request behavior, keep existing paths available during comparison, and deliver one reversible slice. The old Week 6 brownfield material remains useful here: comprehension before change, characterization tests around current behavior, incremental cutover, and a rollback window. The event path is accepted only when it preserves inherited decisions, follows ADR-P2-001's one team-primary cloud, and produces evidence against the banking/payments outcome."],
+        ["Frame the work as brownfield delivery", "Week 6 begins the team-of-2–3 Morrowfield Payment Control engagement and inherits the solo Juniper Vale Mutual insurance system's Weeks 1–5 service, RAG, agent, Chroma, Neo4j, evaluation, and decision evidence. The new client domain does not erase those engineering constraints. The pipeline wraps inherited behavior rather than resetting it. Identify the payment-event seam, characterize current batch or request behavior, keep existing paths available during comparison, and deliver one reversible slice. The old Week 6 brownfield material remains useful here: comprehension before change, characterization tests around current behavior, incremental cutover, and a rollback window. The event path is accepted only when it preserves inherited decisions, follows ADR-P2-001's one team-primary cloud, and produces evidence against the Morrowfield payments outcome."],
         ["Defend a fallback before it is needed", "The exact v3 source requires cross-cloud interop and measured egress, while the curriculum's delivery guardrail adds a single-cloud fallback when federation stalls. This repository authorizes no live infrastructure, so both remain architecture scenarios only. Define a trigger time, decision owner, single-cloud path, preserved event and identity contracts, evidence still required Friday, and criteria for revisiting the hop. A fallback is not failure or silent scope deletion; it protects schedule and client outcome while isolating an unresolved dependency. Never invent the missing client identity or networking fact: mark it for trainer confirmation."],
         ["Run two readouts from one evidence set", "The executive readout leads with client outcome, the throughput/lag result, measured bytes or dated cost, principal risk, fallback, and the decision requested. The technical session then defends partitioning, semantics, schema, backpressure, partial side effects, failure recovery, tracing, and runbook execution. Both use the same evidence and clearly label simulation. The old Week 6 milestone discipline supports this source-assigned role: plan first, use AI-assisted tests and review as support, require CI quality evidence, and finish on a reviewable delivery rather than an agent's claim. No merge, deployment, publication, or external message is part of the learner exercise."],
         ["Close with retrospective and feedback", "Retrospect on the delivery system, not on whether Kafka felt impressive. Ask which requirement changed the design, where lag or duplication surprised the team, which test or alert caught a failure, where AI assistance accelerated or obscured reasoning, which assumption needs trainer confirmation, and what to change before the IaC work that follows. Record the next-week scope commitment and confidence. Submit weekly feedback separately from technical scoring so learners can report pacing, accessibility, and ambiguity honestly. The final artifact is a pipeline decision package another team can inherit, including limitations and fallback, not a demo that only its authors can explain." ]
@@ -205,9 +313,34 @@
         ["Optional depth — trainer ambiguity register", "List unresolved source or environment facts with owner and decision date: cloud availability, identity issuer, connectivity, dated rates, workload volume, retention, and fallback trigger. Ambiguity is escalated to the trainer, not filled with plausible invention."]
       ],
       drill: { prompt: "Federated identity is not ready by the Friday decision point, but the single-cloud pipeline meets the client freshness SLO. What should the team defend?", options: ["Delay every delivery until the cross-cloud hop is live", "Ship the bounded single-cloud architecture evidence and preserve the hop as a dated addendum with trigger and owner", "Create long-lived keys so the cross-cloud demo can proceed"], answer: 1, feedback: "The source explicitly provides a schedule-protecting fallback. It preserves contracts and evidence without using unsafe credentials or pretending the dependency is solved." },
+      visualLede: "The defended pipeline below is the artifact under review — every readout claim should point at one of its seams.",
+      activities: [
+        { at: 1, type: "evidence", title: "Pick the readout evidence that proves stability",
+          intro: "The executive readout claims the pipeline recovered after the injected failure. Select the artifacts that actually support that claim.",
+          claim: "After recovery, the pipeline is stable and the backlog is draining.",
+          why: "Stability needs completion keeping pace with arrival and oldest-record age back inside the SLO, shown per partition; an average alone or an uninterpreted screenshot hides exactly the skew the readout must expose.",
+          artifacts: [
+            { id: "rates", label: "Arrival vs completion over the same interval", body: "arrival 240/min · completion 240/min (post-recovery)\noldest accepted record: 3.5 min (SLO: 10 min)", probative: true, why: "completion matches arrival and oldest age is back inside the freshness SLO — the backlog is draining" },
+            { id: "dist", label: "Per-partition lag and age distribution", body: "P0: lag 2 · age 10s\nP1: lag 3 · age 12s\nP2: lag 4 · age 14s", probative: true, why: "the distribution shows no hot partition hiding inside the healthy total" },
+            { id: "avg", label: "Cluster-wide average lag", body: "avg lag: 3.0", probative: false, why: "one stalled partition can disappear inside a healthy average — the lesson's own warning" },
+            { id: "shot", label: "Dashboard screenshot, no interpretation", body: "[image: six green panels]", probative: false, why: "a screenshot is not the readout; the learner must interpret what changed, why, and what follows" }
+          ] },
+        { at: 2, type: "params", title: "Measured egress without invented precision",
+          intro: "The Friday number is measured synthetic bytes times a dated rate. Change payload size and event count; watch what the worksheet may honestly claim.",
+          controls: [
+            { key: "payload", label: "Serialized payload", options: [{ label: "2 KB", value: "2" }, { label: "8 KB", value: "8" }] },
+            { key: "events", label: "Events crossing the boundary", options: [{ label: "10,000", value: "10000" }, { label: "100,000", value: "100000" }] }
+          ],
+          cases: [
+            { when: { payload: "2", events: "10000" }, out: { "measured bytes": "20 MB (2 KB × 10,000)", "cost line": "bytes × dated rate — pending until the trainer supplies a dated rate", "must be disclosed": "direction, zone/region, retry multiplier, excluded traffic" }, note: "Report the formula and assumptions; never a universal dollars-per-event figure." },
+            { when: { payload: "2", events: "100000" }, out: { "measured bytes": "200 MB", "cost line": "linear in events at this payload — still rate-pending", "must be disclosed": "sensitivity at higher volume" }, note: "Growth sensitivity belongs in the worksheet, not in an invented total." },
+            { when: { payload: "8", events: "10000" }, out: { "measured bytes": "80 MB", "cost line": "4× the 2 KB case — payload dominates", "must be disclosed": "what drove payload size (full document vs reference)" }, note: "Payload design is an egress decision: sending a reference instead of the document changes the number fourfold." },
+            { when: { payload: "8", events: "100000" }, out: { "measured bytes": "800 MB", "cost line": "rate-pending; AWS and Google categories must not be collapsed into one rate", "must be disclosed": "provider category differences, source dates" }, note: "If no dated rate is supplied, report bytes and the formula with cost marked pending — creating traffic or billing to get a number is not authorized." }
+          ] }
+      ],
       demoNote: "Require two registers: executive outcome first, then technical defense. Every number must show assumptions; every cloud statement must remain static and non-certification-aligned.",
-      goals: ["Defend the inherited banking/payments event pipeline from requirements, evidence, tradeoffs, and flip conditions.", "Interpret throughput, lag, and synthetic egress without hiding assumptions.", "Defend the Week 6 team-primary-cloud ADR without conflating it with personal AWS/GCP/Both views.", "Deliver brownfield framing, fallback reasoning, retrospective, and weekly feedback."],
-      deliverable: "Commit the Week 6 banking/payments decision package: accepted ADR-P2-001, architecture defense, throughput/lag report, measured-byte egress worksheet, brownfield cutover and fallback, two-audience readout, retrospective, and feedback confirmation.",
+      goals: ["Defend the inherited Morrowfield payment-event pipeline from requirements, evidence, tradeoffs, and flip conditions.", "Interpret throughput, lag, and synthetic egress without hiding assumptions.", "Defend the Week 6 team-primary-cloud ADR without conflating it with personal AWS/GCP/Both views.", "Deliver brownfield framing, fallback reasoning, retrospective, and weekly feedback."],
+      deliverable: "Commit the Week 6 Morrowfield Payment Control decision package: accepted ADR-P2-001, architecture defense, throughput/lag report, measured-byte egress worksheet, brownfield cutover and fallback, two-audience readout, retrospective, and feedback confirmation.",
       checks: [
         check("What makes an architecture defense persuasive?", "A trace from requirement to mechanism, evidence, residual risk, and flip condition.", "The defense explains why this design fits and when it would change.", ["A complete list of Kafka client methods used.", "A diagram containing every service logo.", "A benchmark showing Kafka has the highest throughput."], 1),
         check("How do you avoid hiding a hot partition?", "Report lag and age by partition alongside aggregate arrival and completion rates.", "Distributions expose skew that an average can conceal.", ["Increase the dashboard refresh interval.", "Show only the total topic offset.", "Exclude the partition during the failure window."], 3),

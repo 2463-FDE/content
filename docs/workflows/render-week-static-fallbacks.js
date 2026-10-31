@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* Deterministically refresh the no-JavaScript reading paths for shared-data
-   Week 6 and Week 7 routes. The inline Archify <desc> remains the visual's
+   Week 6, Week 7, and Week 8 routes. The inline Archify <desc> remains the visual's
    authored accessible alternative; this tool copies it into the static path. */
 "use strict";
 
@@ -26,6 +26,12 @@ const catalogs = [
   {
     ids: [1, 2, 3, 4, 5].map(day => `w07d${day}`),
     dir: "w07",
+    lessons: require(path.join(root, "assets/js/curriculum-lessons-w07-w08.js")),
+    renderer: require(path.join(root, "assets/js/platform-lesson.js")),
+  },
+  {
+    ids: [1, 2, 3, 4, 5].map(day => `w08d${day}`),
+    dir: "w08",
     lessons: require(path.join(root, "assets/js/curriculum-lessons-w07-w08.js")),
     renderer: require(path.join(root, "assets/js/platform-lesson.js")),
   },

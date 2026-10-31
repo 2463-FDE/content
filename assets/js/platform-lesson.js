@@ -12,6 +12,23 @@
     });
   }
   var ADR_LINK_LABEL = "Open the Week 6 team-primary-cloud ADR template";
+  function activityLib() {
+    if (typeof globalThis !== "undefined" && globalThis.FDEActivities) return globalThis.FDEActivities;
+    if (typeof module === "object" && module.exports) { try { return require("./lesson-activities.js"); } catch (error) { return null; } }
+    return null;
+  }
+  function activityFallbacks(lesson, index) {
+    var lib = activityLib();
+    if (!lib) return "";
+    return (lesson.activities || []).filter(function (def) { return (def.at == null ? 1 : def.at) === index; })
+      .map(function (def) { return lib.fallbackHtml(def); }).join("");
+  }
+  function activityBlocks(lesson, dayId, index) {
+    var lib = activityLib();
+    if (!lib) return "";
+    return (lesson.activities || []).filter(function (def) { return (def.at == null ? 1 : def.at) === index; })
+      .map(function (def, defIndex) { return lib.html(def, dayId + "-a" + index + defIndex); }).join("");
+  }
   function wordCount(text) {
     return (String(text || "").match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) || []).length;
   }
@@ -26,7 +43,13 @@
   function pacingFor(lesson) {
     var words = requiredWords(lesson);
     var readMinutes = Math.round(words / 150);
-    return { words: words, readMinutes: readMinutes, requiredMinutes: readMinutes + 3 + 6 + 5 };
+    var activityCount = (lesson.activities || []).length;
+    return {
+      words: words,
+      readMinutes: readMinutes,
+      interactions: 1 + activityCount,
+      requiredMinutes: readMinutes + 3 + 6 + 5 + 4 * activityCount
+    };
   }
   function route(id) {
     var match = /^w(07|08)d([1-5])$/.exec(id);
@@ -110,12 +133,12 @@
   function staticFallbackHtml(lesson, visualText) {
     var dayId = "w" + String(lesson.week).padStart(2, "0") + "d" + lesson.day;
     var pacing = pacingFor(lesson);
-    var practice = '<details><summary>Required practice: ' + esc(lesson.drill.prompt) + '</summary><ul>' + lesson.drill.options.map(function (option) { return '<li>' + esc(option) + '</li>'; }).join("") + '</ul><p><b>Defensible response:</b> ' + esc(lesson.drill.options[lesson.drill.answer]) + '</p><p>' + esc(lesson.drill.feedback) + '</p></details>';
-    var sections = lesson.sections.map(function (section, index) { return '<section><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + (index === 3 ? practice : '') + '</section>'; }).join("");
+    var practice = '<details data-activity-fallback="tradeoff"><summary>Required practice: ' + esc(lesson.drill.prompt) + '</summary><ul>' + lesson.drill.options.map(function (option) { return '<li>' + esc(option) + '</li>'; }).join("") + '</ul><p><b>Defensible response:</b> ' + esc(lesson.drill.options[lesson.drill.answer]) + '</p><p>' + esc(lesson.drill.feedback) + '</p></details>';
+    var sections = lesson.sections.map(function (section, index) { return '<section><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + (index === 3 ? practice : '') + activityFallbacks(lesson, index) + '</section>'; }).join("");
     var checks = lesson.checks.map(function (question, index) { return '<details><summary>' + (index + 1) + '. ' + esc(question.stem) + '</summary><p><b>Answer:</b> ' + esc(question.options[question.answer]) + '</p><p>' + esc(question.explain) + '</p></details>'; }).join("");
     var sources = lesson.sources.map(function (source) { return '<li><a href="' + esc(source.href) + '">' + esc(source.label) + '</a></li>'; }).join("");
     var boundary = lesson.week === 7 ? "Essential delivery-control boundary" : "Essential reliability-evidence boundary";
-    return '<noscript><style>#lesson-root{display:none}</style><main class="lesson2 nojs-lesson" data-curriculum-surface><article class="reading-col"><header class="lede"><h1>' + esc(lesson.title) + '</h1><div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + '</span><span><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div><p class="summary">' + esc(lesson.summary) + '</p>' + projectHtml(lesson) + '</header><section aria-labelledby="nojs-visual-' + dayId + '"><h2 id="nojs-visual-' + dayId + '">' + boundary + ' · text alternative</h2><p>' + esc(visualText || "The required diagram connects system evidence, control boundaries, failure behavior, and human ownership.") + '</p></section>' + sections + teamEvidenceHtml(lesson) + optionalHtml(lesson) + '<section><h2>Comprehension check</h2>' + checks + '</section><section class="reading-sources" data-core="optional" aria-label="Sources and evidence"><h2>Sources &amp; evidence trail</h2><ul>' + sources + '</ul></section><p><a href="../../index.html#curriculum">Return to the curriculum hub</a> · <a href="' + esc(route(dayId)) + '">' + esc(nextLabel(lesson)) + '</a></p></article></main></noscript>';
+    return '<noscript><style>#lesson-root{display:none}</style><main class="lesson2 nojs-lesson" data-curriculum-surface><article class="reading-col"><header class="lede"><h1>' + esc(lesson.title) + '</h1><div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + '</span><span><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · ' + pacing.interactions + ' interaction' + (pacing.interactions === 1 ? '' : 's') + ' · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div><p class="summary">' + esc(lesson.summary) + '</p>' + projectHtml(lesson) + '</header><section aria-labelledby="nojs-visual-' + dayId + '"><h2 id="nojs-visual-' + dayId + '">' + boundary + ' · text alternative</h2><p>' + esc(visualText || "The required diagram connects system evidence, control boundaries, failure behavior, and human ownership.") + '</p></section>' + sections + teamEvidenceHtml(lesson) + optionalHtml(lesson) + '<section><h2>Comprehension check</h2>' + checks + '</section><section class="reading-sources" data-core="optional" aria-label="Sources and evidence"><h2>Sources &amp; evidence trail</h2><ul>' + sources + '</ul></section><p><a href="../../index.html#curriculum">Return to the curriculum hub</a> · <a href="' + esc(route(dayId)) + '">' + esc(nextLabel(lesson)) + '</a></p></article></main></noscript>';
   }
   function render(doc, options) {
     var id = doc.body && doc.body.getAttribute("data-lesson");
@@ -123,8 +146,10 @@
     var lesson = lessons[id];
     var lessonRoot = doc.getElementById("lesson-root");
     if (!lessonRoot) return false;
+    var visualTemplate = doc.querySelector("template[data-archify-template]");
     var authoredVisual = doc.querySelector("[data-archify-visual]");
-    var visualHtml = authoredVisual ? authoredVisual.outerHTML : '<div class="lesson-load-error" role="alert">Essential system visual unavailable. Use the visible text alternative or notify the trainer.</div>';
+    var visualHtml = visualTemplate ? visualTemplate.innerHTML
+      : (authoredVisual ? authoredVisual.outerHTML : '<div class="lesson-load-error" role="alert">Essential system visual unavailable. Use the visible text alternative or notify the trainer.</div>');
     if (!lesson) {
       lessonRoot.innerHTML = '<section class="lesson-load-error" role="alert"><h1>Lesson unavailable</h1><p>This route has no transferred curriculum record.</p><a class="btn" href="../../index.html">Back to hub</a></section>';
       return false;
@@ -136,21 +161,23 @@
     doc.title = "W" + lesson.week + "·D" + lesson.day + " — " + lesson.title + " | 2463-FDE";
     setMeta(doc, "fde-day", dayId);
     setMeta(doc, "fde-concepts", lesson.concepts.join(","));
+    var visualTitleEarly = lesson.week === 7 ? "Essential delivery-control boundary" : "Essential reliability-evidence boundary";
+    var visualBlock = '<section class="lesson-visual-context" data-visual-role="context" aria-label="' + visualTitleEarly + '">' +
+      '<p class="visual-lede"><b>Supporting context · ' + visualTitleEarly.toLowerCase() + '.</b> ' + esc(lesson.visualLede || "Place the decisions above inside the day’s system boundary, then continue.") + '</p>' + visualHtml + '</section>';
     var sections = lesson.sections.map(function (section, index) {
       var practice = index === 3 ? interactionHtml(lesson, dayId, order) : "";
-      return '<section class="step" data-diagram="0" data-step="' + index + '"><div class="tag">Required decision ' + (index + 1) + '</div><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + practice + '</section>';
+      return '<section class="step" data-diagram="0" data-step="' + index + '"><div class="tag">Required decision ' + (index + 1) + '</div><h2>' + esc(section[0]) + '</h2><p>' + esc(section[1]) + '</p>' + practice + '</section>' +
+        activityBlocks(lesson, dayId, index) + (index === 2 ? visualBlock : "");
     }).join("");
     var sources = lesson.sources.map(function (source) {
       var external = /^https?:/.test(source.href) ? ' target="_blank" rel="noopener"' : "";
       return '<li><a href="' + esc(source.href) + '"' + external + '>' + esc(source.label) + '</a></li>';
     }).join("");
-    var visualTitle = lesson.week === 7 ? "Essential delivery-control boundary" : "Essential reliability-evidence boundary";
     lessonRoot.innerHTML = '<header class="kafka-page-head platform-page-head"><div class="lede"><h1>' + esc(lesson.title) + '</h1>' +
       '<div class="meta"><span><b>Week ' + lesson.week + '</b> · Day ' + lesson.day + (lesson.day === 5 ? ' · milestone' : '') + '</span><span>' + esc(lesson.phase) + '</span>' +
-      '<span class="core30-meta" title="Required reading is measured at 150 words per minute. Essential diagram dwell, one interaction, and the six-question check are included."><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · 1 interaction · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div>' +
+      '<span class="core30-meta" title="Required reading is measured at 150 words per minute. Essential diagram dwell, the required practices, and the six-question check are included."><b>Core 30</b> · ~' + pacing.readMinutes + ' min read · ' + pacing.interactions + ' interaction' + (pacing.interactions === 1 ? '' : 's') + ' · 6-Q check · ~' + pacing.requiredMinutes + ' min required</span></div>' +
       '<p class="summary">' + esc(lesson.summary) + '</p>' + projectHtml(lesson) + '<div class="ix-legend"></div></div></header>' +
-      '<section class="kafka-visual-breakout platform-visual-breakout" aria-label="' + visualTitle + '"><div class="stage-title">' + visualTitle + '</div>' + visualHtml + '</section>' +
-      '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav><article class="reading-col"><section class="capstone-context" aria-label="Project context"><b>Inherited team brownfield:</b> synthetic banking/payments evidence only. No client, learner, account, or provider fact is inferred.</section>' + sections + teamEvidenceHtml(lesson) + optionalHtml(lesson) +
+      '<div class="reading2col"><nav class="toc" aria-label="On this page"></nav><article class="reading-col"><section class="capstone-context" aria-label="Project context"><b>Inherited team brownfield:</b> Morrowfield Payment Control · synthetic payments evidence only. No client, learner, account, or provider fact is inferred.</section>' + sections + teamEvidenceHtml(lesson) + optionalHtml(lesson) +
       '<section class="reading-sources" data-core="optional" aria-label="Sources and evidence"><h2>Sources &amp; evidence trail</h2><p>Optional references outside the required path. Dated research records carry scope and currency notes.</p><ul>' + sources + '</ul></section></article>' +
       '<aside class="side kafka-side"><div class="side-cards"><button class="activity-card" type="button" data-modal="trainer-demo-modal"><div class="ac-k">Trainer cue</div><div class="ac-t">Facilitate the inert evidence exercise</div><div class="ac-meta">synthetic and review-only</div></button>' +
       '<button class="activity-card accent" type="button" data-modal="quiz-modal"><div class="ac-k">Comprehension check</div><div class="ac-t"><span class="quiz-count">6</span> questions on delivery judgement</div><div class="ac-meta">~5 min · practice</div></button></div>' +
@@ -165,7 +192,9 @@
     browserRoot.QUIZ = { id: dayId + "-check", title: "Check your understanding", questions: lesson.checks };
     browserRoot.FDE_NEXT = { label: nextLabel(lesson), href: next };
     mountInteraction(doc, lesson);
+    var lib = activityLib();
+    if (lib) lib.mount(doc);
     return true;
   }
-  return { esc: esc, wordCount: wordCount, requiredWords: requiredWords, pacingFor: pacingFor, route: route, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, projectHtml: projectHtml, teamEvidenceHtml: teamEvidenceHtml, staticFallbackHtml: staticFallbackHtml, render: render };
+  return { esc: esc, wordCount: wordCount, requiredWords: requiredWords, pacingFor: pacingFor, route: route, drillOrder: drillOrder, assessDrill: assessDrill, interactionHtml: interactionHtml, projectHtml: projectHtml, teamEvidenceHtml: teamEvidenceHtml, staticFallbackHtml: staticFallbackHtml, activityBlocks: activityBlocks, activityFallbacks: activityFallbacks, render: render };
 });

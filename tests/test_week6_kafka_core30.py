@@ -212,7 +212,7 @@ class Week6KafkaCore30Tests(unittest.TestCase):
         self.assertIn("text alternative", result.stdout)
         self.assertIn("Defensible response", result.stdout)
         self.assertIn("Comprehension check", result.stdout)
-        self.assertIn("Project 2 · team of 2–3 · regional banking/payments", result.stdout)
+        self.assertIn("Project 2 · Morrowfield Payment Control · team of 2–3 · fde-payments-service-platform", result.stdout)
         self.assertNotIn("accessible static export", result.stdout)
 
 
