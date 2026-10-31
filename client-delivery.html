@@ -117,25 +117,26 @@
   <section class="cd-concept" aria-labelledby="ltm-concept-h" data-curriculum-surface>
     <p class="cc-stage">Current ten-week cohort direction · local simulation delivered</p>
     <h2 id="ltm-concept-h">How the client-work arc runs</h2>
-    <p class="cc-lede">The healthcare and finance packets above are the proven pattern. For <span data-client-name>the current client</span>, the same
-    pattern becomes a two-project arc with one shared storyline: learners modernize a legacy system solo, then a team
-    inherits that system as a platform engagement. Domain choices remain trainer-owned and evidence-gated.</p>
+    <p class="cc-lede">The packets above are the two active engagements for <span data-client-name>the current client</span>:
+    one shared storyline in which each learner modernizes the Juniper Vale Mutual Loss Desk system solo, and a team of
+    2–3 then inherits that evidence as the Morrowfield Payment Control platform engagement. Domain facts stay grounded
+    in each project's verified baseline; every client, person, and record is fictional.</p>
     <a class="cc-launch" href="persona-communications.html">Open the local persona communications simulation</a>
 
     <div class="cc-grid">
       <div class="cc-proj">
         <div class="pj-k">Project 1 · Weeks 1–5 · solo</div>
         <h3>Legacy modernization</h3>
-        <p>Each learner works a brownfield system alone for a fictional US property &amp; casualty insurance
-        carrier — discovery, findings, and focused increments, in the same ask-per-week rhythm as the packets
-        above.</p>
+        <p>Each learner works the Juniper Vale Mutual Loss Desk brownfield alone — a fictional US property &amp;
+        casualty insurer's claims intake, policy evidence, and audit estate — discovery, findings, and focused
+        increments, in the ask-per-week rhythm of the Weeks 1–5 packets above.</p>
       </div>
       <div class="cc-proj">
         <div class="pj-k">Project 2 · Weeks 6–10 · team of 2–3</div>
         <h3>Platform engagement</h3>
-        <p>A fictional US regional banking / payments firm inherits the Project 1 system. Teams of 2–3 developers
-        carry it to delivery: platform work, handover, and a final showcase. A US utility is the cross-industry
-        alternative for this overlay, pending trainer confirmation.</p>
+        <p>Morrowfield Payment Control — a fictional US payments-services firm — inherits the Project 1 evidence.
+        Teams of 2–3 developers carry it to delivery across the Weeks 6–10 packets above: event flow, platform work,
+        reliability, hardening, and the final showcase and handoff.</p>
       </div>
     </div>
 
@@ -144,8 +145,8 @@
         <title id="ccf-title">Two-project arc with the Week 6 handover boundary</title>
         <desc id="ccf-desc">Project 1, worked solo in Weeks 1 to 5 as legacy modernization for a fictional US
         property and casualty insurer, crosses a handover boundary at Week 6 and is inherited by Project 2, a team
-        of two to three developers running a platform engagement for a fictional US regional banking and payments
-        firm through Week 10. Both projects sit on one environment band, where each learner chooses AWS or GCP at
+        of two to three developers running the Morrowfield Payment Control platform engagement, a fictional US
+        payments-services firm, through Week 10. Both projects sit on one environment band, where each learner chooses AWS or GCP at
         the start with a one-cloud focus expected, and one persona band: deterministic local chat with the client's
         technical lead, and an authenticated local simulated stakeholder inbox whose replies reveal after 15 to 30
         synthetic minutes.</desc>
@@ -157,7 +158,7 @@
           <rect x="54" y="66" width="340" height="112" rx="12" fill="var(--surface-2)" stroke="var(--ink-soft)" stroke-width="1.6"/>
           <text x="74" y="94" font-size="12" font-weight="700" letter-spacing="1" fill="var(--accent)">PROJECT 1 · WEEKS 1–5 · SOLO</text>
           <text x="74" y="120" font-size="16" font-weight="650" fill="var(--ink)">Legacy modernization</text>
-          <text x="74" y="143" font-size="12.5" fill="var(--ink-soft)">fictional US P&amp;C insurance carrier</text>
+          <text x="74" y="143" font-size="12.5" fill="var(--ink-soft)">Juniper Vale Mutual · fictional US P&amp;C insurer</text>
           <text x="74" y="161" font-size="12.5" fill="var(--ink-soft)">one learner · one brownfield</text>
         </g>
         <!-- project 2 -->
@@ -214,558 +215,321 @@
 
 <script>
 /* ============================================================================
-   Per-project, per-week client material. Faithful to projects/<p>/client-packets.md.
-   Learner-visible: ask (client message), handover[], dig[] (questions to dig into),
-                    stated (known problems), deliverable, quota.
-   Trainer-only:    hidden[] + facilitator (rendered inside .trainer-only blocks).
-   Handover artifacts carry concrete CLUES that point toward the seeded latent
-   problems WITHOUT naming them; the answer key stays in the trainer-only block.
+   Per-project, per-week client material for the two active brownfield
+   engagements: Juniper Vale Mutual Loss Desk (fde-pc-insurance-modernization,
+   solo Weeks 1-5) and Morrowfield Payment Control
+   (fde-payments-service-platform, teams of 2-3 Weeks 6-10). Scenario facts are
+   grounded in each project's verified baseline (policy/claim/evidence journey
+   with audit records; payment initiation/idempotency, outbox, balanced ledger,
+   reconciliation, exception handling). Every client, person, ticket, and
+   record is fictional; starters are trainer-provided local checkouts with no
+   public repository link.
+   Learner-visible: ask (client message), handover[], dig[] (questions to dig
+   into), stated (known problems), deliverable, quota.
+   Trainer-only:    hidden[] + facilitator (rendered inside .trainer-only
+   blocks). Handover artifacts carry concrete CLUES that point toward the
+   seeded teaching debt WITHOUT naming it; the answer key stays trainer-only.
    ========================================================================== */
 window.CLIENT = {
-  healthcare: {
-    label: "Healthcare",
-    short: "patient intake + records portal",
-    persona: "Dr. Maya Okonkwo, COO — Riverbend Community Health",
+  insurance: {
+    label: "Juniper Vale Mutual · Loss Desk",
+    short: "P&C claims intake + policy evidence (solo · Weeks 1–5)",
+    persona: "Nadia Ferreira, Claims Operations Director — Juniper Vale Mutual",
+    starter: "Trainer-provided local starter · project identity <code>fde-pc-insurance-modernization</code> · no public repository link; ask your trainer for the checkout.",
     weeks: {
       1: {
         title: "LLM Engineering for Production",
         tie: "Production-grade LLM clients — retries, timeouts, structured output, cost/latency, safe logging.",
-        ask: "Hi, and welcome to Riverbend! So glad to finally have an engineer who actually gets this AI stuff. Two quick wins to start: our front desk keeps saying the registration page 'spins' for ages, and honestly the board has been on me to do *something* with AI — could you stand up a little assistant that drafts a patient-friendly version of our intake instructions? I've zipped up the whole repo the last contractor left us; the logins are all in there so you can just run it. We're fully HIPAA compliant already, so don't worry about that side — just get something on the screen this week. Thanks!",
+        ask: "Welcome to Juniper Vale! Two quick wins to start: our Loss Desk adjusters say the FNOL intake screen 'hangs' at the worst moments, and the board wants us to 'do something with AI' — could you stand up a little assistant that drafts a claimant-friendly version of our first-notice-of-loss instructions? The last contractor left us the whole system; it runs locally, the trainer has your checkout. We already log everything for audit, so the data side is covered — just get something on a screen this week. Thanks!",
         handover: [
-          "The repo itself — <code>2463-FDE/riverbend-portal</code> (clone it and run). At the root: a tracked <code>.env</code> containing <code>DB_PASSWORD=</code> and <code>PAYER_API_KEY=</code>. The <code>.gitignore</code> lists <code>node_modules/</code> and <code>*.pyc</code> — but not <code>.env</code>.",
-          "Log file <code>logs/intake-service.log</code>, representative line: <code>INFO 09:14:02 POST /intake body={\"name\":\"Maria Gonzalez\",\"dob\":\"1971-03-02\",\"ssn\":\"412-55-9981\",\"insurance_id\":\"BCBS4471\"}</code> — one per POST.",
-          "Schema dump <code>db/schema.sql</code>: <code>patients(id, mrn, name, dob, ssn, address, notes, created_at)</code> — <code>ssn</code> and <code>notes</code> are plain <code>TEXT</code>; no tokenized or encrypted columns (ADR 0002 deliberately skips column-level encryption).",
-          "<code>README.md</code>, first line: \"All PHI is encrypted and the system is fully HIPAA compliant.\"",
-          "Front-desk Jira ticket RIV-088: \"Registration spins ~4–5s after Save before it confirms.\"",
-          "One-paragraph architecture note: a set of FastAPI services (intake, eligibility, records, scheduling, interop, ROI) behind a gateway → Postgres. No AI in the system yet — the board's 'AI assistant' is greenfield, which is exactly your week-1 build."
+          "The trainer-provided local checkout (modular monolith: policy, claims, evidence, audit modules over SQLite). At the root: a tracked <code>.env.sample</code> whose comment says \"copy real keys here — ops keeps the live file in the shared drive\".",
+          "Log file <code>logs/fnol-intake.log</code>, representative line: <code>INFO 09:14:02 POST /fnol body={\"claimant\":\"Maria Delgado\",\"policy_no\":\"JV-884471\",\"injury_notes\":\"lower back strain, prior surgery 2019\"}</code> — one per submission.",
+          "Schema excerpt <code>db/schema.sql</code>: <code>claims(id, claim_no, claimant_name, policy_no, injury_notes, status, created_at)</code> — <code>injury_notes</code> is plain <code>TEXT</code>; the audit table records status transitions but not reads.",
+          "<code>README.md</code>, first line: \"All claimant data is protected and the system is fully compliant.\"",
+          "Loss Desk ticket JV-088: \"FNOL screen spins 4–5s after Save before the claim number appears.\"",
+          "One-paragraph architecture note: one modular monolith (FNOL intake, coverage verification, evidence custody, claim decisions, audit) over SQLite. No AI anywhere yet — the board's 'assistant' is greenfield, which is exactly your week-1 build."
         ],
         dig: [
-          "What exact fields get written to <code>intake-service.log</code> on every request — and who can read that log file?",
-          "Does the README's \"PHI is encrypted\" claim match what you actually see in <code>schema.sql</code>?",
-          "If this repo (or its <code>.env</code>) leaked tomorrow, what would an attacker immediately hold?",
-          "Before building the AI assistant, what does a production LLM call need that a quick demo skips — timeouts, retries, cost limits, and what's safe to log?"
+          "What exact fields land in <code>fnol-intake.log</code> on every submission — and who can read that file?",
+          "Does the README's \"protected\" claim match what <code>schema.sql</code> actually shows for <code>injury_notes</code>?",
+          "If this checkout (or its live <code>.env</code>) leaked tomorrow, what would someone immediately hold about real claimants?",
+          "Before building the assistant, what does a production LLM call need that a quick demo skips — timeouts, retries, cost limits, and what is safe to log?"
         ],
         stated: [
-          "The registration page feels slow.",
+          "The FNOL intake screen feels slow at peak.",
           "The board wants an AI feature — nothing exists yet."
         ],
         hidden: [
-          "<b>Secrets in the repo (D9, #12)</b> — a single repo or log-aggregator leak is an instant ePHI compromise.",
-          "<b>PHI in plaintext logs (D1, #2)</b> — the logs that should be audit trails are an attack surface.",
-          "<b>'HIPAA compliant' is self-asserted, not architected (#1)</b> — TLS + plaintext-at-rest is not compliance."
+          "<b>Claimant PII in plaintext logs</b> — injury notes and policy numbers in an INFO log turn the audit story into an attack surface.",
+          "<b>'Compliant' is self-asserted, not architected</b> — a README sentence over a plain-TEXT injury column is not protection.",
+          "<b>Secrets discipline is folklore</b> — a 'shared drive' live .env is one copy-paste from a leak."
         ],
-        facilitator: "Steer with questions: 'What's in that log line?' 'Is the .env tracked?' 'Where is the encryption?' Why it matters: breach exposure, 164.308 risk-management failure, audit trail turned into attack surface.",
-        deliverable: "Production LLM client wrapper (timeout, retry w/ backoff, structured-output parsing, token/cost guard) + a PHI-safe logging policy (no request bodies; redaction helper) + a 1-page onboarding seam map + a debt-log entry naming D1/D9/D3 in business-risk terms. Not 'build the AI feature' — the safe client + the finding."
+        facilitator: "Steer with questions: 'What's in that log line?' 'Where is the live .env?' 'Which column holds the injury notes?' Why it matters: claimant-data exposure, audit trail turned into attack surface, and the week-1 LLM client must be built PII-safe from the first call.",
+        deliverable: "Production LLM client wrapper (timeout, retry w/ backoff, structured-output parsing, token/cost guard) + a claimant-data-safe logging policy (no request bodies; redaction helper) + a 1-page seam map of the monolith's modules + a debt-log entry naming the logging and secrets findings in business-risk terms. Not 'build the assistant' — the safe client + the finding."
       },
       2: {
         title: "RAG & Knowledge Retrieval",
         tie: "Retrieval pipelines, chunking/embeddings, and eval harnesses for retrieval quality.",
-        ask: "Our clinicians are constantly complaining that they have to click through a patient's entire history to find anything relevant. Could you build a retrieval helper that surfaces the most relevant past records the moment they open a chart? The last contractor left a little 'gold set' of example questions and expected answers you can test against — it all looked great when he demoed it. I've exported a chunk of our patients and encounters tables for you. Don't go too crazy on cost, our AI budget is basically a Claude Pro plan.",
+        ask: "Adjusters keep re-reading whole claim files to find one prior endorsement or injury record. Could you build a retrieval helper that surfaces the most relevant policy and claim history the moment a claim opens? The last contractor left a 'gold set' of example questions with expected answers — looked great in his demo. I exported part of our policies and claims tables for you. Budget heads-up: our AI allowance is basically one Pro plan.",
         handover: [
-          "Export <code>patients.csv</code> (patients-table dump). Three rows stand out: <code>1042 | Maria Gonzalez | 1971-03-02</code>, <code>1330 | Maria Gonzales | 1971-03-02</code>, <code>1588 | M. Gonzalez | 1971-02-03</code> — different patient IDs but the same SSN (<code>412-55-9981</code>) and address, all created via self-service intake.",
-          "Export <code>encounters.csv</code>: allergy and med rows are scattered across those three IDs — the penicillin allergy is recorded only under patient <code>1330</code>.",
-          "Contractor's <code>goldset.json</code>: query \"show me Maria Gonzalez's allergies\" → expected answer cites records from patient <code>1042</code> only.",
-          "Intake config <code>intake.yaml</code>: <code>self_service_intake: true</code>, <code>match_key: none</code> (no de-dup on name/DOB/SSN at create).",
-          "Clinician Jira ticket RIV-160 (Dr. Nguyen): \"Why does the allergy list look different depending on which chart I open for the same lady (Maria Gonzalez)? One chart shows penicillin, another shows none.\""
+          "Export <code>policyholders.csv</code>. Three rows stand out: <code>1042 | Maria Delgado | 1971-03-02</code>, <code>1330 | Maria Delgato | 1971-03-02</code>, <code>1588 | M. Delgado | 1971-02-03</code> — different policyholder IDs, same address and phone, all created through self-service FNOL.",
+          "Export <code>claims.csv</code>: endorsements and injury records are scattered across those three IDs — the prior-surgery record sits only under policyholder <code>1330</code>.",
+          "Contractor's <code>goldset.json</code>: query \"show Maria Delgado's prior injury history\" → expected answer cites records from <code>1042</code> only.",
+          "Intake config <code>fnol.yaml</code>: <code>self_service_fnol: true</code>, <code>match_key: none</code> (no de-dup on name/DOB at create).",
+          "Adjuster ticket JV-160: \"Why does the injury history differ depending on which file I open for the same claimant? One shows the 2019 surgery, another shows nothing.\""
         ],
         dig: [
-          "Scan the patient export — is each human really one patient ID, or could one person appear more than once?",
-          "Collect every allergy/med for \"Maria Gonzalez\" across the data — do you get the full list from any single patient ID?",
-          "The contractor's gold-set passes. Does passing it actually prove the clinician sees a complete record?",
-          "What in <code>intake.yaml</code> would let one person become three separate charts?"
+          "Scan the policyholder export — is each human really one ID, or can one claimant appear three times?",
+          "Collect every endorsement and injury record for \"Maria Delgado\" across the data — does any single ID hold the full history?",
+          "The contractor's gold set passes. Does passing it prove an adjuster sees a complete record?",
+          "What in <code>fnol.yaml</code> lets one person become three separate files?"
         ],
         stated: [
-          "Clinicians waste time hunting through patient history.",
-          "Retrieval 'looks fine' on the contractor's gold-set."
+          "Adjusters waste time hunting through claim history.",
+          "Retrieval 'looks fine' on the contractor's gold set."
         ],
         hidden: [
-          "<b>No duplicate-patient / MPI strategy (#3, D5)</b> — self-service intake with no match key silently forks one patient into N chart fragments.",
-          "Retrieval looks fine but is grounded on a <b>partial</b> record — no retrieval tuning fixes a fragmented source of truth."
+          "<b>No duplicate-claimant match strategy</b> — self-service FNOL with no match key silently forks one claimant into N file fragments.",
+          "Retrieval looks fine but is grounded on a <b>partial</b> record — no retrieval tuning fixes a fragmented source of truth; a missed prior-injury record changes a claim decision."
         ],
-        facilitator: "Get them to notice the duplicate human in the dump before talking retrieval quality. Why it matters: patient-safety risk (clinician acts on incomplete allergy/med list) + data integrity.",
+        facilitator: "Get them to notice the duplicate human in the dump before talking retrieval quality. Why it matters: claim-decision risk (adjuster acts on an incomplete injury/endorsement history) + data integrity.",
         quota: "Embedding a large record dump can burn Pro quota. Cap corpus size; embed once and cache — do not re-embed per run.",
-        deliverable: "A RAG retrieval eval harness (recall/precision over the gold-set) whose report surfaces the fragmentation (duplicate-rate metric, fragment-coverage gap) + a short ADR proposing an MPI/match-key approach."
+        deliverable: "A RAG retrieval eval harness (recall/precision over the gold set) whose report surfaces the fragmentation (duplicate-rate metric, fragment-coverage gap) + a short ADR proposing a claimant match-key approach."
       },
       3: {
         title: "Single-Agent Design + Memory",
         tie: "A single tool-using agent with conversation memory; tool-call design, failure handling.",
-        ask: "Front desk is miserable doing insurance eligibility checks — it's so much manual back-and-forth with the payer. Can you build them a little chat assistant that checks a patient's eligibility and keeps track of the visit context as they go? Heads up: eligibility 'gets slow' now and then, but it usually sorts itself out. Oh — one of the front-desk leads filed a ticket about a rough morning last week; I'll forward it, probably nothing.",
+        ask: "The Loss Desk hates coverage verification — it's manual back-and-forth against our legacy coverage service for every claim. Can you build a chat assistant that checks coverage for a claim and keeps the visit context as they go? Heads up: coverage 'gets slow' now and then, but it usually sorts itself out. One of the desk leads filed a ticket about a rough Tuesday; I'll forward it, probably nothing.",
         handover: [
-          "<code>eligibility-service/check.py</code>: <code>resp = requests.get(PAYER_URL, params=...)</code> — no <code>timeout=</code> argument, called inline in the request handler thread.",
-          "Support ticket RIV-141: \"Tue 9:00–9:20am the ENTIRE intake screen froze — front desk couldn't register any patient, not just eligibility.\"",
-          "Payer status page PDF: \"Degradation 9:02–9:21am Tuesday — 270/271 endpoint timeouts.\"",
-          "p95 latency chart for <code>/intake</code>: flat ~600ms all week, with a single 20-minute spike past 30s Tuesday morning.",
-          "Grep of eligibility-service: no <code>timeout</code>, no <code>circuit breaker</code>, no <code>cache</code>; the eligibility call sits directly on the intake request path."
+          "<code>coverage/check.py</code>: <code>resp = requests.get(COVERAGE_URL, params=...)</code> — no <code>timeout=</code> argument, called inline on the FNOL request path.",
+          "Support ticket JV-141: \"Tue 9:00–9:20am the ENTIRE FNOL screen froze — the desk couldn't register any claim, not just coverage checks.\"",
+          "Legacy-service status note: \"Degradation 9:02–9:21am Tuesday — coverage endpoint timeouts.\"",
+          "p95 latency chart for <code>/fnol</code>: flat ~600ms all week, one 20-minute spike past 30s Tuesday morning.",
+          "Grep of the coverage module: no <code>timeout</code>, no <code>circuit breaker</code>, no <code>cache</code>; the coverage call sits directly on the intake request path."
         ],
         dig: [
-          "Trace what thread the payer call runs on — what else is waiting behind it when the payer is slow?",
-          "Line up the frozen-screen ticket, the payer status PDF, and the latency spike — is it the same 20 minutes?",
-          "If the payer is down for 20 minutes, what's the smallest blast radius you'd accept — eligibility only, or all of intake?",
-          "What would let intake keep working through a payer outage (timeout, breaker, last-known-good cache)?"
+          "Trace which thread the coverage call runs on — what else waits behind it when the legacy service is slow?",
+          "Line up the frozen-screen ticket, the status note, and the latency spike — is it the same 20 minutes?",
+          "If coverage is down for 20 minutes, what is the smallest blast radius you'd accept — coverage only, or all of FNOL?",
+          "What would let FNOL keep working through a coverage outage (timeout, breaker, last-known-good cache)?"
         ],
         stated: [
-          "Front-desk eligibility checks are painful.",
-          "The portal 'freezes' / is slow sometimes."
+          "Coverage verification is painful and manual.",
+          "The intake screen 'freezes' sometimes."
         ],
         hidden: [
-          "<b>Synchronous external calls with no timeout/circuit breaker (D4, #7)</b> — a payer outage takes down intake itself, not just eligibility.",
-          "It's an availability cliff with no contingency posture (164.308 contingency), mislabeled 'slow sometimes.'"
+          "<b>Synchronous legacy call with no timeout on the intake path</b> — one slow dependency freezes all of FNOL, exactly as ticket JV-141 shows.",
+          "<b>The agent must not inherit the same failure</b> — a tool-using agent that calls coverage inline reproduces the outage with a chat UI in front of it."
         ],
-        facilitator: "Connect the support ticket to the payer outage window to the synchronous call — let them draw the line. Why it matters: clinic can't register patients during any payer blip; revenue + access risk.",
-        deliverable: "A single-agent eligibility assistant (one check_eligibility tool + visit-scoped memory) built on a non-blocking, timeout-bounded, circuit-breaker-guarded eligibility call + an ADR: sync→async + graceful degradation (cache last-known eligibility, let intake proceed)."
+        facilitator: "Have them connect the three artifacts into one 20-minute story before designing the agent. Why it matters: availability of claim registration during dependency failure; tool-call design (deadline, retry class, fallback) is the real lesson.",
+        deliverable: "A single tool-using agent design with conversation memory whose coverage tool carries an explicit deadline, bounded retries, failure classification, and a degraded answer path — plus a characterization note for the JV-141 incident (trigger, masking condition, symptom)."
       },
       4: {
-        title: "Multi-Agent + Knowledge Graphs",
-        tie: "Multiple coordinated agents + a knowledge graph over entities/relationships.",
-        ask: "Patients keep calling to ask how to see their own labs and visit summaries — right now it's all scattered across services. Can you build something that assembles a patient's full picture in one view? The portal already has a records endpoint you can build on. Make it feel fast, some of the record pages are a bit sluggish today. I'll send the network capture our QA person grabbed off the current portal.",
+        title: "Multi-Agent Systems & Architecture Defense",
+        tie: "Supervisor/swarm patterns, handoffs, budgets, approval gates, and defense of why each agent exists.",
+        ask: "The modernization board saw a demo from another vendor with 'a whole team of AI agents' and now asks why our claims triage doesn't work that way. Before anyone buys anything: would a multi-agent design actually help our triage flow — intake summary, coverage verification, evidence request drafting? Give me a defensible answer, not a fashion statement. If agents are worth it, show me where; if not, tell me what we'd do instead.",
         handover: [
-          "API spec: <code>GET /patients/{id}/records</code> — auth required, but no check that the caller's token matches <code>{id}</code>; <code>{id}</code> is a sequential integer.",
-          "QA capture <code>portal.har</code>: a logged-in patient (own id 1042) requests <code>/patients/1042/records</code> → 200, then requests <code>/patients/1043/records</code> → 200, returning another patient's labs.",
-          "Query log for one patient-view assembly: <code>SELECT * FROM records WHERE encounter_id = ?</code> runs 37 times (one per encounter), plus a full-table scan on records search.",
-          "Session config <code>auth.yaml</code>: <code>SESSION_TIMEOUT: never</code> — tokens issued at login don't expire.",
-          "Page-load metric: assembled patient view p95 = 3.8s, almost all DB time."
+          "Triage flow note: FNOL intake summary → coverage verification → evidence request draft → adjuster decision. Volumes: ~400 claims/day, peaks after storms.",
+          "Vendor slide (forwarded): \"9 cooperating agents resolve claims end-to-end\" — no budget, latency, or failure figures anywhere.",
+          "Current cost sheet: single-model drafting assistant averages $0.04/claim; board ceiling for AI spend is $0.10/claim.",
+          "Incident memo JV-203: during the March storm surge, two parallel batch jobs both updated claim statuses and left 61 claims in conflicting states for a day.",
+          "Audit requirement note: every status-changing action must be attributable to one owner in the audit table."
         ],
         dig: [
-          "In the HAR, change the patient ID in the URL — does the server stop you, or hand over the chart?",
-          "How are patient IDs generated — could you guess the next valid one?",
-          "Count the queries behind one patient view — does it hold up for a real chart with 50+ encounters?",
-          "When a clinician walks away from a shared workstation, when does their session actually end?"
+          "Which triage steps are genuinely independent (parallel reads) and which mutate claim state (writes)?",
+          "What does JV-203 say about parallel writers in this estate — and what rule would have prevented it?",
+          "Where does the $0.10/claim ceiling bite if every handoff round-trips through a supervisor?",
+          "What evidence would convince the board an agent earns its place — and what is the honest single-agent alternative?"
         ],
         stated: [
-          "Patients want their labs + visit summaries in one place.",
-          "Some record pages are sluggish."
+          "The board is excited about 'AI agent teams'.",
+          "Nobody has defined what multi-agent would improve."
         ],
         hidden: [
-          "<b>IDOR on record reads (D11, #9)</b> — guessable IDs + missing ownership checks let any authenticated user pull any chart.",
-          "<b>N+1 / no automatic logoff (D8/D10)</b> — and the 'assemble the full picture' feature amplifies the IDOR if shipped naively."
+          "<b>Parallel writers already burned this client once (JV-203)</b> — any multi-agent design must keep claim-state writes single-threaded with one accountable owner.",
+          "<b>The vendor slide has no budget or failure story</b> — the defensible answer prices the fan-out and names the rollback, or recommends the single agent."
         ],
-        facilitator: "Hand them the HAR and let them try the next sequential ID themselves. Why it matters: mass PHI exposure + minimum-necessary violation.",
-        deliverable: "A knowledge-graph schema (patient→encounter→provider→record) + a small multi-agent retrieval prototype that assembles the patient view with an ownership/authorization check at the graph boundary + an IDOR finding writeup (repro from the HAR) and an N+1 note. Keep the KG to a seeded sample; the security finding is the headline."
+        facilitator: "Push for the budget sheet before any architecture drawing. Why it matters: the defense is 'requirement → mechanism → evidence → flip condition', and the honest answer may be one well-tooled agent.",
+        deliverable: "An architecture-defense memo: triage-step dependency map (reads vs writes), a budget/critical-path estimate for 1-vs-N agents against the $0.10 ceiling, the single-threaded-write rule traced to JV-203, an approval gate before any state change, and the recommendation with its flip condition."
       },
       5: {
         title: "Neo4j Knowledge Graphs & Context Engineering",
-        tie: "Modeling the client domain in Neo4j; graph-grounded retrieval; evidence-backed decisions and action surfaces.",
-        ask: "When a scheduling incident lands, reviewers hunt through tickets, booking code, logs, schema notes, and policy docs to understand what happened. Build a small GraphRAG evidence service over this handover so a reviewer can ask why a slot was double-booked, see the connected evidence, and know which remediation decision is locked or still deferred. Keep it local and synthetic.",
+        tie: "Property-graph modeling of case/policy citations, governed import, GraphRAG retrieval choice.",
+        ask: "When a claim decision gets disputed, our people spend hours reconstructing WHY: which policy version applied, which rule was cited, who decided, in what order. Can you model that so the next dispute takes minutes? We care less about fancy search and more about being able to defend a decision with its actual evidence chain. The contractor's export and our decision log are attached.",
         handover: [
-          "<code>appointments.csv</code>: two synthetic rows with <code>slot_id=88231</code>, both <code>status=confirmed</code>, created ~400ms apart for different patient IDs.",
-          "Jira-style ticket RIV-175 calls the incident a calendar glitch; treat that wording as a claim to test, not graph truth.",
-          "Booking handler <code>scheduling-service/book.py</code>: <code>if not slot_taken(slot_id): insert_appointment(...)</code> — read-check-then-insert, no transaction, no <code>UNIQUE</code> on <code>slot_id</code>.",
-          "Synthetic server trace: two near-simultaneous <code>POST /appointments</code> requests for slot 88231 both returned 201.",
-          "Frontend trace: the booking request carries no idempotency key or request-id header.",
-          "DDL excerpt: <code>slot_id INTEGER</code> with no uniqueness rule; provenance and effective-time fields are absent from the proposed graph model."
+          "Decision log export <code>decisions.csv</code>: <code>claim_no, policy_no, policy_version, rule_id, decided_by, decided_at, outcome</code> — 14 months of synthetic history.",
+          "Dispute file JV-D-31: claimant disputes a denial; the packet cites \"policy P-4\" with no version, and two adjacent decisions cite rule R-9 under different policy versions.",
+          "Contractor note: \"we normalized rule citations into a <code>notes</code> TEXT column — parse at your own risk.\"",
+          "Policy register: policy P-4 has five versions; version 3 and 4 differ exactly on the disputed exclusion clause.",
+          "Audit requirement: a decision must be reconstructable — inputs, rule version, decider, timestamp — without asking the person who made it."
         ],
         dig: [
-          "Which entities and relationships connect incident, request, appointment, slot, code path, schema rule, and remediation decision?",
-          "Which source supports each edge, and how will stale or conflicting claims remain visible?",
-          "Which question needs vector candidates, a bounded graph traversal, or both?",
-          "Which identity/constraint decisions can be locked now, and which must be deferred with an owner and flip condition?"
+          "Which question does the graph have to answer first: 'what cites what', or 'which version was current when'?",
+          "Can a citation parsed out of a TEXT column carry the provenance a dispute needs — source, observed_at?",
+          "What uniqueness constraint protects claim and policy identity before any MERGE runs?",
+          "Which retriever fits the dispute question — similarity, similarity-plus-path, or a generated query — and what review does each need?"
         ],
         stated: [
-          "Give reviewers one GraphRAG path through scheduling-incident evidence.",
-          "Show the active remediation decision without presenting the ticket's UI diagnosis as fact."
+          "Dispute reconstruction takes hours.",
+          "Citation data exists but lives in free text."
         ],
         hidden: [
-          "<b>No idempotency + no slot-concurrency control (D5, #8)</b> — the evidence points to duplicate successful writes and a race, not merely a calendar rendering issue.",
-          "A graph can expose the path and decision history; the transactional database/application must enforce booking correctness."
+          "<b>Version-blind citations are the real defect</b> — P-4 without a version cannot defend a denial whose clause changed between v3 and v4.",
+          "<b>The graph is a decision surface, not a search toy</b> — CITES relationships must carry provenance (source, observed_at) or the dispute answer is still hearsay."
         ],
-        facilitator: "Make them defend the graph from the decision question backward. Challenge any edge without a source, any generated query without a bound, and any confident answer without a trace. Preserve the reframe as evidence, not as a spec-week headline.",
-        deliverable: "A Neo4j domain-model slice + synthetic import plan + ADR lock/defer register + GraphRAG retrieval design/service stub over the incident packet; grounding fixtures for supported, stale, conflicting, and no-evidence questions; executive readout + simulated technical-team trace. Repository-local only — no merge, deploy, provision, publish, or external send."
-      },
-      6: {
-        title: "Kafka & Event-Driven AI Pipelines",
-        tie: "Turn the inherited HL7 ingestion seam into a replayable, observable Kafka → agent → Chroma/Neo4j pipeline without hiding the parser's existing data-loss defect.",
-        ask: "The hospital feed is growing and multiple teams need its updates. I need one event path that can enrich records for the AI workflow and update search and the patient graph without the portal waiting on all of it. Show me it can recover from a worker failure, and tell me what falls behind before a clinician does.",
-        handover: [
-          "Synthetic <code>adt_sample.hl7</code> fixtures and the inherited parser characterization tests; AL1/RXA remain the known brownfield defect, not a reason to use real PHI.",
-          "A proposed <code>clinical-record.changed</code> envelope with event ID, patient-scoped synthetic key, schema version, source timestamp, and trace headers.",
-          "The existing local agent, Chroma, and Neo4j seams from Weeks 2–5; neither store shares a transaction with Kafka or the model workflow.",
-          "A static workload card: arrival/completion rates, partition skew, deterministic model latency/token estimates, and serialized byte counts.",
-          "A broker-failure/rebalance scenario, lag SLO, DLQ fixture, and blank egress formula. No cloud account, endpoint, credentials, provisioning, paid model, or real patient data."
-        ],
-        dig: [
-          "Which events must stay ordered together, and what key creates that boundary without exposing PHI?",
-          "If Chroma succeeds and Neo4j fails, what state lets replay finish only the missing side effect?",
-          "Which lag and age evidence warns that clinical enrichment is stale, and who follows the runbook?",
-          "When does continuous streaming beat a bounded batch for this workload, and what cost or failure condition flips the answer?"
-        ],
-        stated: [
-          "Multiple services need the same feed updates without blocking the portal.",
-          "The client wants recovery and freshness evidence, not a happy-path demo."
-        ],
-        hidden: [
-          "<b>At-least-once delivery meets non-transactional AI/vector/graph side effects</b> — event identity, partial-progress state, and idempotent writes are required.",
-          "<b>Average lag can hide one hot patient-key partition</b> — report partition lag plus oldest-event age and arrival/completion rates."
-        ],
-        facilitator: "Preserve brownfield characterization, but keep Kafka as the learning arc. Run only local/static synthetic drills; make learners defend ordering, replay, backpressure, side effects, lag, and fallback.",
-        deliverable: "A local/static Kafka pipeline package: event/schema and partition decision, agent/Chroma/Neo4j side-effect state machine, retry/DLQ path, broker-failure worksheet, lag alert, OTel header map, runbook, throughput/lag report, synthetic egress formula, and two-audience readout."
-      },
-      7: {
-        title: "Terraform + Ansible & AI CI/CD",
-        tie: "Turn the inherited Kafka/agent/graph platform into a reviewable infrastructure and configuration package with human-controlled delivery gates.",
-        ask: "The team can explain the pipeline, but nobody can reproduce the environment or show me what would change before release. Give us one reviewed infrastructure plan, one configuration contract, and a pipeline that stops unsafe changes. Keep this as evidence only; do not touch an account.",
-        handover: [
-          "The Week 6 event/agent/Chroma/Neo4j architecture, synthetic workload, runbook, prior client-system idempotency gap, and one team-primary-cloud ADR template.",
-          "An inert Terraform root/module sample with AWS and GCP provider seams, illustrative state/backend rows, and a saved synthetic plan transcript.",
-          "A synthetic Ansible inventory, role tree, playbook diff, and first/second/drift run expectations; no hosts, credentials, or provider access.",
-          "A CI gate worksheet covering deterministic tests, security/policy, drift, AI evaluation, human approval, rollback, and evidence identity."
-        ],
-        dig: [
-          "Which objects belong in Terraform, which configuration belongs in Ansible, and who owns the handoff?",
-          "Which plan action could replace or destroy durable clinical data, and what evidence would stop it?",
-          "How does the AI reviewer help without gaining apply, merge, or approval authority?",
-          "What makes the Project 2 environment reproducible while preserving one primary-cloud decision?"
-        ],
-        stated: ["Wants reproducible infrastructure and configuration evidence.", "Wants unsafe delivery to stop before change authority."],
-        hidden: [
-          "<b>State and plan artifacts can expose sensitive values</b> — access, retention, locking, and review are part of the design.",
-          "<b>A green plan or AI summary is not approval</b> — exact plan identity, human authority, rollback, and rebuild evidence remain separate controls."
-        ],
-        facilitator: "Use only inert configuration, synthetic plan/inventory evidence, and static gate outcomes. Require learners to distinguish provision, configure, validate, approve, recover, and prove. Preserve the primary-cloud ADR and AWS/GCP seams without implementing the picker.",
-        deliverable: "A Project 2 infrastructure delivery package: primary-cloud ADR, provider/module/state design, annotated synthetic Terraform plan, Ansible inventory/role/idempotence evidence, CI quality/security/drift/eval gates, human approval boundary, rollback/rebuild tabletop, and two-audience readout. No init, plan command, apply, destroy, host connection, deploy, or account action."
-      },
-      8: {
-        title: "AI Observability, SRE & Reliability Guardrails",
-        tie: "Instrument and operate the inherited patient-intake and AI-summary path with correlated OTel signals, SLOs, evaluations, guardrails, incidents, and runbooks.",
-        ask: "The portal still feels flaky and the summary feature can fail even when it returns 200. Show me one evidence path from patient impact through traces, metrics, logs, quality checks, and a runbook decision so my team knows before a patient does.",
-        handover: [
-          "Synthetic intake/Kafka/agent/model/tool traces with no PHI payload, plus correlated metrics and structured logs.",
-          "A labeled summary fixture set covering grounded, unsupported, incomplete, refused, and degraded outcomes; historical judge evidence stays dated and non-guaranteeing.",
-          "A blank SLO/error-budget policy for latency and grounded outcome quality, plus synthetic token/cost dimensions.",
-          "An incident card linking retrieval-version change, queue age, model retries, guardrail outcome, alert, and runbook branches."
-        ],
-        dig: [
-          "Can one trace correlate intake, Kafka, agent, retrieval, model, tool, and guardrail work without exporting PHI?",
-          "What exactly is a good summary event, who labels it, and what happens when its error budget is spent?",
-          "Which signal distinguishes provider latency from retrieval degradation or one hot event partition?",
-          "When should the operator retry, open a circuit, degrade, roll back, or escalate?"
-        ],
-        stated: ["Wants visibility before patient impact is reported.", "Wants reliability evidence for an AI summary, not a model assurance."],
-        hidden: [
-          "<b>HTTP success can still be an implicit reliability failure</b> — unsupported or incomplete clinical content needs a reviewed quality signal.",
-          "<b>Telemetry can become a second PHI store</b> — payload-free defaults, classification, access, retention, and deletion are part of observability."
-        ],
-        facilitator: "Carry forward the strongest former Week 7 observability work into Week 8. Keep Week 9 security/hardening separate. Use synthetic payload-free evidence and make the learner choose from SLO, evaluation, guardrail, budget, and incident consequences.",
-        deliverable: "A reliability evidence package for one patient-intake/summary path: OTel trace/metric/log contract, model/agent/tool/Kafka correlation, dashboard and alert spec, latency/quality SLO and error-budget policy, evaluation/guardrail signals, incident timeline, runbook branch, rollback/degraded-mode evidence, cost/latency/reliability tradeoff, and two-audience readout."
-      },
-      9: {
-        title: "AI Security, Governance &amp; System Hardening",
-        tie: "Apply preserved security/governance research and Week 8 reliability evidence to the inherited healthcare system: threat model, least privilege, data governance, audit, remediation, and readout.",
-        ask: "The board wants automatic visit summaries for every patient. Before rollout, show me exactly what leaves the PHI boundary, how untrusted content could move it, what power the AI path has, what you changed, and how my team can verify the control.",
-        handover: [
-          "The complete Weeks 1–8 system and reliability package; the current summary path still contains a synthetic full encounter record {name, dob, mrn, notes} and no assumed BAA.",
-          "A synthetic 'de-identified' export that removes only name while retaining ZIP, dates, MRN, and device ID, plus the preserved Safe-Harbor research.",
-          "A provider-neutral prevent/contain/detect/recover matrix and safe prompt-injection/red-team fixtures. AWS/GCP certification and product cells remain pending.",
-          "Local tests only; no PHI, credentials, production target, provider call, external send, or deployment."
-        ],
-        dig: [
-          "Which fields leave the PHI boundary and under what verified agreement, retention, access, and deletion terms?",
-          "Where can untrusted content meet private data, tool privilege, memory, telemetry, or an external sink?",
-          "Which Safe-Harbor identifiers survive the synthetic export, and what unit/negative tests prove the redactor boundary?",
-          "Can another engineer reproduce the finding, least-privilege denial, remediation, residual risk, and governance gate?"
-        ],
-        stated: ["Wants a defensible security and governance position before wider rollout.", "Wants evidence the client team can operate after handoff."],
-        hidden: [
-          "<b>PHI sent without a verified covered agreement and tested minimization is an unresolved governance boundary</b> — a risk list or vendor label is not evidence.",
-          "<b>Instructions and data can share context</b> — output filters do not replace least privilege, sink controls, bounded memory, safe telemetry, and human approval."
-        ],
-        facilitator: "Start from the delivered system and preserved security sources. Run one threat path, one PHI/data-flow decision, one least-privilege change, one safe peer red-team, and one executive/technical readout. Keep provider and certification claims in their owned evidence lane.",
-        deliverable: "A reproducible healthcare security/governance package: system and PHI data-flow boundary, threat path, Safe-Harbor/BAA/vendor-evidence gate, control map, one remediated least-privilege or sink control with positive and negative tests, local red-team evidence, residual-risk disposition, and two-audience readout."
-      },
-10: {
-        title: "Production Rollout, Showcase &amp; Client Handoff",
-        tie: "Turn the engagement into a reversible release decision, operating package, executive showcase, technical defense, and knowledge transfer.",
-        ask: "Show me the outcome and the evidence, then leave Riverbend a release and handoff package another engineer can run. Be explicit about what is simulated and what remains pending.",
-        handover: [
-          "The frozen candidate, full regression evidence, Week 9 audit disposition, decision index, and open-risk register.",
-          "A reversible rollout plan with entry, pause, success, rollback, and ownership conditions — planning and local rehearsal only.",
-          "A two-cloud placement memo schema. Provider-specific facts and certification objectives remain pending the verified AWS/GCP lane."
-        ],
-        dig: [
-          "Which observable condition pauses or reverses the rollout, and has the recovery path been rehearsed locally?",
-          "Can a new operator find the candidate, smoke test, runbook, owner, and decision history without asking the author?",
-          "Which representative interaction and essential diagram prove the client outcome?",
-          "Which workload-placement assumptions are evidence, which are unknown, and what would flip the recommendation?"
-        ],
-        stated: ["Wants an executive-ready proof of value.", "Wants a technically defensible package the client team can operate."],
-        hidden: [
-          "<b>A showcase is not a handoff</b> — the receiving operator must run the path.",
-          "<b>A provider conclusion with pending evidence is not defensible</b> — method, assumptions, and flip conditions can be shown without inventing facts."
-        ],
-        facilitator: "Hold the freeze, rehearse the executive and technical cuts, include a safe planned failure, and require explicit residual risks. Do not imply deployment, infrastructure, publication, or external sends occurred.",
-        deliverable: "A frozen local demo candidate; cutover/rollback rehearsal; README, runbook, ADR and evidence indexes; owner and risk registers; workload-placement memo with visible evidence gaps; client showcase script; and knowledge-transfer record."
-      },
-}
+        facilitator: "Anchor on dispute JV-D-31: have them walk the reconstruction by hand first, then model what was missing. Why it matters: the Week 5 lessons' Case–CITES–Policy model is exactly this client's audit need.",
+        deliverable: "A property-graph model (Case, Policy with versions, Rule, CITES with provenance) + a governed import plan (constraint before MERGE, validation cases) + a retriever recommendation for the dispute question with its review obligations — closing the solo engagement with the Week 6 handover package."
+      }
+    }
   },
-
-  finance: {
-    label: "Finance",
-    short: "origination · KYC · decisioning · disclosures · payments · servicing",
-    persona: "Dana, VP of Lending Ops — Meridian Lending Co.",
+  payments: {
+    label: "Morrowfield Payment Control",
+    short: "payments service platform (team of 2–3 · Weeks 6–10)",
+    persona: "Priya Natarajan, VP Payment Operations — Morrowfield Payment Control",
+    starter: "Trainer-provided local starter · project identity <code>fde-payments-service-platform</code> · no public repository link; ask your trainer for the checkout.",
     weeks: {
-      1: {
-        title: "LLM Engineering for Production",
-        tie: "Production-grade LLM clients — retries, timeouts, structured output, cost/latency, safe logging.",
-        ask: "Hey, welcome aboard — excited to have you! To get going: give the loan application form a little polish, and the board's been hammering me about 'AI,' so spin up a small assistant that can summarize an application for a loan officer. Nothing fancy, just show momentum this week. The vendor who built the platform went under, so it's a bit of a black box, but the repo has everything including the keys so you can just run it. We process payments fine today, so don't worry about that part.",
-        handover: [
-          "The repo itself — <code>2463-FDE/meridian-lending</code>. Bureau creds are hardcoded in <code>services/decision-service/app/config.py</code> (where the credit pull now runs): <code>EXPERIAN_KEY = \"EXAMPLE-LEAKED-KEY-rotate-me\"</code> and <code>CORE_BANKING_API_KEY = \"cb_live_…\"</code> — with a stale duplicate copy still in <code>services/origination-service/app/config.py</code>, and all of them re-committed in a tracked root <code>.env</code> (which also carries the card-processor key).",
-          "<code>logs/payment-service.log</code> line: <code>INFO charge req={\"pan\":\"4111111111111111\",\"cvv\":\"123\",\"ssn\":\"412-55-9981\",\"amount\":250.00}</code>.",
-          "<code>services/servicing-service/app/balance.py</code>: <code>new_balance = current - float(amount)</code> — money is stored and computed as <code>float</code>.",
-          "DB schema <code>db/init/001_schema.sql</code>: <code>payments(id, loan_id, pan, cvv, amount, method, created_at)</code> — full PAN and CVV columns present.",
-          "<code>README.md</code> banner: \"Cardholder data is encrypted and we are PCI-DSS compliant. Every credit decision is audited.\"",
-          "One-paragraph architecture note: a set of FastAPI services (origination/intake, KYC, decision, disclosure, payment, servicing) behind a gateway → Postgres + Redis. The LOS (origination) boards funded loans to the LSS (servicing) across a thin direct-DB seam. No AI in the system yet — the board's 'AI assistant' is greenfield, which is exactly your week-1 build."
-        ],
-        dig: [
-          "Read one line of <code>payment-service.log</code> — which cardholder fields are sitting in plaintext, and is storing any of them ever allowed?",
-          "Where do the bureau credentials live, and what happens the moment this repo leaks?",
-          "Run <code>0.1 + 0.2</code> in Python — now picture that error compounding across a loan balance and an APR.",
-          "Does the README's \"PCI compliant\" claim survive a look at the <code>payments</code> schema?"
-        ],
-        stated: [
-          "Polish the application form.",
-          "Board wants 'AI' — stand up a loan-summary assistant."
-        ],
-        hidden: [
-          "<b>PII/PAN/CVV in logs (D5, #7)</b> — storing CVV (Sensitive Authentication Data) is a flat PCI prohibition; PAN+SSN in plaintext is a breach already in prod.",
-          "<b>Secrets in repo (D13)</b> and <b>float money math (D1)</b> — a latent TILA/reconciliation bomb.",
-          "<b>\"PCI compliant\" is self-asserted, not architected (#7)</b> — the README claim survives only until you read one log line or the <code>payments</code> schema; nothing in the seven-service estate actually enforces it."
-        ],
-        facilitator: "All are spotted on first read. Steer with questions: 'What's a CVV doing in a log?' 'What happens to that float over a thousand payments?' 'Who actually enforces the PCI claim?' Why it matters: PCI failure + breach exposure today.",
-        deliverable: "A production LLM client wrapper (timeout, retry, structured output, cost guard) with PCI/PII-redacting logging (never log PAN/CVV/SSN) + a LOS↔LSS seam map + a debt-log entry naming D5/D13/D1 in business-risk terms. Build the safe client + the finding, not the AI feature."
-      },
-      2: {
-        title: "RAG & Knowledge Retrieval",
-        tie: "Retrieval pipelines, chunking/embeddings, eval harnesses for retrieval quality + corpus hygiene.",
-        ask: "Our loan officers keep pinging compliance with the same underwriting-policy questions. Could you build a helper that answers from our lending-policy docs and our past decisions? I dumped the policy folder plus a big 'knowledge base' of past applications so it has plenty of context. One officer tried asking it 'why was app #6012 denied?' and it came back empty, which was weird. Keep the cost low — we're on basically a Pro plan.",
-        handover: [
-          "<code>policies/</code>: <code>underwriting_guidelines.md</code>, <code>fee_schedule.md</code> — clean policy docs.",
-          "<code>kb_dump/applications.jsonl</code>: past applications including raw <code>ssn</code>, <code>pan</code>, <code>dob</code> fields — unredacted, in the same corpus you'd embed.",
-          "Query trace: \"why was application #6012 denied?\" → 0 retrieved documents.",
-          "<code>decisions</code> table: <code>decisions(app_id, outcome)</code> — outcome only; no reason, no model drivers, no timestamp.",
-          "An officer's note: \"We approve/deny in the tool, but I can never find *why* later.\""
-        ],
-        dig: [
-          "What sensitive fields are inside the 'knowledge base' you're about to embed into a vector store?",
-          "Why does \"why was #6012 denied?\" return nothing — is the answer not retrievable, or was it never recorded?",
-          "If a regulator asked for the reason behind one specific denial, could you produce it from this data?",
-          "What belongs in a retrieval corpus, and what must be redacted or kept out entirely?"
-        ],
-        stated: [
-          "Loan officers repeat the same policy questions.",
-          "Wants a helper over policy docs + past decisions."
-        ],
-        hidden: [
-          "<b>The decision history isn't retrievable because it isn't recorded (D4, #1)</b> — you can't answer 'why denied?' today (fair-lending exposure, full reveal W3).",
-          "<b>The RAG corpus itself leaks PII/PAN (#7)</b> — raw applications in an embedding store is a fresh breach surface."
-        ],
-        facilitator: "Flag that Priya (Compliance) is forming on the horizon. Let the empty 'why denied?' result expose the missing decision record. Why it matters: fair-lending exposure + a new breach surface.",
-        quota: "Embed only a sampled policy subset; cache embeddings; never re-embed per run. Do redaction checks offline (regex/validator), not via LLM calls.",
-        deliverable: "A RAG retrieval eval harness over the policy corpus whose report surfaces (a) the missing decision-record gap and (b) PII/PAN in the corpus (a redaction check on ingest) + an ADR on corpus hygiene + a retrievable decision-record requirement."
-      },
-      3: {
-        title: "Single-Agent Design + Memory",
-        tie: "A single tool-using agent with memory; tool-call design + failure handling.",
-        ask: "Big news — we licensed a new AI credit-scoring model and it's noticeably more accurate. I want you to wrap it in an assistant that decisions an application and tells the officer the result, clean and simple. I attached some sample outputs. It does slow down when a lot of apps come in at once, but accuracy is what matters. Move fast on this one, the board's watching.",
-        handover: [
-          "<code>services/decision-service/app/decision.py</code>: credit pull → bureau call → model run are a synchronous chain on the request thread (origination calls it inline over HTTP, so the block propagates back to the applicant); load-test note: \"timeouts at >20 concurrent apps.\"",
-          "Sample model output: <code>{score: 612, decision: 'deny', adverse_action_reason: 'purchasing history'}</code> — the same generic string recurs across many denials.",
-          "No decision record is persisted: nothing stores the inputs, the model's actual top features, or a timestamp.",
-          "A denied applicant's adverse-action letter draft: reason = \"purchasing history\" (a nearest-checkbox, not the real driver).",
-          "Reg B reference note: the adverse-action notice must state the *specific, accurate* principal reason(s); 12 CFR 1002.9 (the obligation CFPB Circular 2023-03 restated before it was withdrawn 2025-05-12) — no AI exemption."
-        ],
-        dig: [
-          "Read several denials — are the adverse-action reasons specific to each applicant, or the same generic string?",
-          "Does \"purchasing history\" reflect what the model actually weighed? Where would you even check?",
-          "If a denied applicant disputes the reason, what record proves why Meridian denied them?",
-          "Which matters more here for compliance — that the model is accurate, or that the reason is correct and provable?"
-        ],
-        stated: [
-          "Newly licensed AI scorer is 'more accurate.'",
-          "Wants an assistant that decisions an app and reports the result."
-        ],
-        hidden: [
-          "<b>The model gives generic adverse-action reasons → ECOA violation even though 'the model works' (#2)</b> — CFPB allows no AI exemption.",
-          "<b>No immutable decision audit trail (#1, D4)</b> — Meridian can't defend any denial."
-        ],
-        facilitator: "<b>Pull Compliance Officer Priya into the room.</b> A wrong/generic reason is a fair-lending violation; without an audit trail there's no defense. Sync→async is secondary here.",
-        deliverable: "A single-agent decisioning assistant (score tool + decision memory) that persists an append-only decision-event record (inputs, model outputs, reason codes) + an ADR: map model features → specific, accurate adverse-action reasons + a sync→async note."
-      },
-      4: {
-        title: "Multi-Agent + Knowledge Graphs",
-        tie: "Coordinated multi-agent workflow + a knowledge graph over entities/relationships.",
-        ask: "Once an app is approved, generating the offer and the disclosure documents is still totally manual. Can you automate it — produce the offer and the TILA disclosures right after approval? I attached the disclosure service and a worked example. The numbers look basically right to me. The fee and APR rules are scattered around the code a bit, but it works.",
-        handover: [
-          "<code>services/disclosure-service/app/apr.py</code>: APR and finance charge are computed with <code>float</code>.",
-          "Worked example, straight from <code>apr.py</code>'s own docstring (principal 18000, 7.99%, 48mo): float APR = <code>7.142%</code>, correct <code>Decimal</code> APR = <code>7.157%</code> — a gap large enough to exceed the Reg Z APR tolerance.",
-          "The origination-fee % is hardcoded in three files in the disclosure service and has drifted by copy-paste: <code>apr.py</code> <code>0.025</code>, <code>fees.py</code> <code>0.030</code>, <code>offer.py</code> <code>0.03</code>.",
-          "Data model: no clean link <code>application→decision→offer→disclosure</code> (provenance gaps).",
-          "TILA note: APR/finance-charge *tolerances* mean a small rounding error can be a legal violation, not a cosmetic nit."
-        ],
-        dig: [
-          "Recompute one loan's APR with <code>Decimal</code> vs the service's <code>float</code> — does the difference cross the TILA tolerance?",
-          "The fee/APR rules live in three files — are the numbers identical in all three?",
-          "Which value is shipped to the borrower — the rounded float or the exact one — and does that have legal weight?",
-          "How would you link a disclosure back to the exact decision and inputs that produced it?"
-        ],
-        stated: [
-          "Auto-generate the offer + disclosure docs on approval.",
-          "Client thinks the numbers 'look basically right.'"
-        ],
-        hidden: [
-          "<b>Float rounding silently breaches TILA APR/finance-charge tolerance (#3, D1)</b> — every affected loan ships a legally inaccurate disclosure.",
-          "<b>Hardcoded, divergent fee logic (D6)</b> — tolerances make this a compliance defect, not a cosmetic rounding nit."
-        ],
-        facilitator: "Walk the float-vs-Decimal worked example until they see the disclosed APR cross the tolerance line. Why it matters: legally inaccurate disclosures at scale.",
-        deliverable: "A knowledge-graph schema (borrower→application→decision→offer→disclosure) + a multi-agent disclosure-assembly prototype that pulls from the KG + a TILA-tolerance finding (the float-vs-Decimal example) + an ADR: Decimal/minor-units + externalized rule config + TILA test vectors. Full rules engine → roadmap."
-      },
-      5: {
-        title: "Neo4j Knowledge Graphs & Context Engineering",
-        tie: "Modeling payment evidence in Neo4j; graph-grounded retrieval; bounded context for a high-consequence client decision.",
-        ask: "Support, engineering, and risk teams cannot reconstruct a duplicate-charge incident without opening tickets, request logs, service code, schema notes, and control guidance separately. Build a small local GraphRAG evidence service that connects one synthetic payment incident to its requests, records, code path, data-handling finding, and remediation decisions—with sources and honest gaps.",
-        handover: [
-          "Three synthetic support tickets say \"I was charged twice\"; a retried POST maps to two <code>payments</code> rows for one intended charge.",
-          "Synthetic trace: the first <code>POST /payments</code> took 2.4s; a retry landed 410ms later and both inserted.",
-          "<code>services/payment-service/app/payments.py</code> stores a full card number and logs a security-code-shaped field; use redacted synthetic placeholders only.",
-          "The payment request has no idempotency key; the service captures, then calls servicing, so a retry crosses two service boundaries.",
-          "DDL excerpt has no token reference model and no uniqueness rule on the charge reference; applicability and remediation ownership are not yet recorded."
-        ],
-        dig: [
-          "Which stable identities connect intended payment, request attempts, captures, servicing entries, tickets, code paths, and control evidence?",
-          "Which sensitive fields must never enter graph properties, model context, traces, or the readout?",
-          "Where does semantic retrieval find the ticket/control passage, and which explicit path reconstructs the duplicate charge?",
-          "Which remediation and data-handling decisions are locked, and which remain owned evidence gaps?"
-        ],
-        stated: [
-          "Give reviewers one traceable context path through the duplicate-charge incident.",
-          "Support card and ACH questions without putting sensitive authentication data into the knowledge graph."
-        ],
-        hidden: [
-          "<b>No idempotency on payment POST (D2, #4)</b> — the synthetic evidence shows a money-correctness and trust risk across service boundaries.",
-          "<b>Sensitive-data scope expansion (#7)</b> — storage/logging behavior requires an owned control decision; the lesson must use redacted synthetic data and must not improvise a compliance conclusion."
-        ],
-        facilitator: "Push on identity, provenance, sensitive-data minimization, and abstention. The old problem reframe and acceptance cases survive as graph decisions and grounding fixtures, not as a spec-driven week.",
-        deliverable: "A Neo4j domain-model slice + synthetic/redacted import contract + ADR lock/defer register + bounded GraphRAG retrieval design/service stub; evaluation cases for duplicate-charge reconstruction, sensitive-data exclusion, conflicting evidence, and abstention; executive readout + simulated technical-team trace. Repository-local only — no merge, deploy, provision, publish, or external send."
-      },
       6: {
         title: "Kafka & Event-Driven AI Pipelines",
-        tie: "Industrialize the inherited payment and decision seams as a replayable event pipeline while protecting money side effects from duplicate delivery.",
-        ask: "Payments, decisions, disclosures, and servicing all need the same account changes, but the request path is brittle. Give us an event pipeline that can feed the AI exception workflow and update search and the account graph without double-applying money. Show me its lag, recovery, and cross-cloud cost assumptions before we commit.",
+        tie: "Event streams vs queues/batch, partitions and keys, delivery semantics, retry/DLQ, managed-Kafka economics.",
+        ask: "Welcome aboard — you're inheriting the solo engagement's evidence and our payments estate. Today three different teams re-poll the payments database for the same facts: ledger posting, reconciliation, and the new ops dashboard. We want one event flow they can all read, with replay when something goes wrong. One hard rule from finance: a payment's events must never be processed out of order against each other. Show me a first design, and record your team's one primary cloud — I keep hearing three different answers.",
         handover: [
-          "Synthetic payment and decision fixtures plus the Week 5 idempotency contract; no PAN, CVV, SSN, credential, real borrower, or real provider call.",
-          "A proposed <code>account-activity.recorded</code> envelope with event ID, tokenized account key, schema version, source timestamp, amount in minor units, and trace headers.",
-          "Inherited local agent, Chroma, Neo4j, and servicing seams; Kafka transactions cannot atomically include every store or money side effect.",
-          "A static workload card with rates, partition skew, deterministic token estimates, retention, retry/DLQ fixtures, and serialized byte counts.",
-          "A broker-failure/rebalance drill and blank managed-Kafka/egress worksheet. No cloud account, IAM, billing, provisioning, deployment, or paid model."
+          "Platform note: services for payment initiation, reservation, ledger posting, reconciliation, and exception handling — independently runnable, SQLite-backed eventing fixture (explicitly labeled: not Kafka).",
+          "Ledger excerpt for one incident: <code>post pay-2201 +120.00 entry=ea41</code> and <code>post pay-2201 +120.00 entry=eb07</code> — the same payment posted twice after a retry.",
+          "Initiation code excerpt: retry fires 410ms after a slow response; the request carries no idempotency key.",
+          "Reconciliation report R-77: clearing file total disagrees with ledger total by exactly one duplicated posting.",
+          "Finance rule memo: per-payment event order is contractual; cross-payment global order is not required.",
+          "ADR template <code>ADR-P2-001</code>: one team-primary cloud, personal AWS/GCP/Both reading views stay independent."
         ],
         dig: [
-          "Which key preserves order for one account without creating a single hot global partition?",
-          "Where is duplicate delivery stopped before a balance or fee is applied twice?",
-          "How do lag, oldest-event age, completion rate, and reconciliation evidence distinguish backlog from money loss?",
-          "Which managed-Kafka, streaming-versus-batch, and cross-cloud assumptions require trainer confirmation?"
+          "Which property gives per-payment ordering without serializing the whole topic — and what key does that imply?",
+          "What turns the 410ms retry from a duplicate posting into a non-event — producer config, consumer design, or the side-effect boundary?",
+          "Three reader teams: one consumer group or three? What does each choice do to replay?",
+          "What belongs in the managed-Kafka comparison besides a price table — and which numbers must stay 'pending dated rate'?"
         ],
         stated: [
-          "Several systems need the same account events without extending the synchronous request path.",
-          "The client wants measurable recovery and cost assumptions before any infrastructure decision."
+          "Three teams re-poll the same database.",
+          "Finance demands per-payment ordering and replay."
         ],
         hidden: [
-          "<b>At-least-once delivery can replay a money-affecting event</b> — stable event identity and a downstream idempotency/ledger boundary are mandatory.",
-          "<b>One healthy topic average can hide a hot account partition</b> — preserve per-partition and oldest-event evidence."
+          "<b>The duplicate posting is an idempotency gap at the side effect</b> — at-least-once delivery is coming, and the ledger must absorb duplicates by stable payment identity, not hope.",
+          "<b>Partition-key choice is the ordering contract</b> — keying by payment ID satisfies finance; anything else silently breaks it under parallelism."
         ],
-        facilitator: "Keep the Week 5 money-correctness contract as inherited truth, not a replacement topic. All work is local/static and synthetic; ask learners to defend semantics, side effects, lag, egress, fallback, and readout evidence.",
-        deliverable: "A local/static Kafka pipeline package: event/schema and partition decision, duplicate-safe side-effect state, retry/DLQ path, broker-failure worksheet, lag/reconciliation alert, OTel header map, runbook, throughput/lag report, synthetic egress formula, fallback, and two-audience readout."
+        facilitator: "Make the team state the business consequence before naming a delivery semantic. The duplicate ledger rows are the week's anchor evidence — they justify idempotent posting before anyone tunes brokers.",
+        deliverable: "Commit ADR-P2-001 plus the Week 6 event-flow design: topic/key/partition reasoning traced to the finance ordering rule, consumer-group layout for the three readers, retry/DLQ contract for the poison path, and the duplicate-posting evidence wired into an idempotency plan."
       },
       7: {
         title: "Terraform + Ansible & AI CI/CD",
-        tie: "Turn the inherited Kafka/agent/graph platform into a reviewable infrastructure and configuration package with human-controlled delivery gates.",
-        ask: "The team can explain the pipeline, but nobody can reproduce the environment or show me what would change before release. Give us one reviewed infrastructure plan, one configuration contract, and a pipeline that stops unsafe changes. Keep this as evidence only; do not touch an account.",
+        tie: "IaC judgement, state protection, plan review, idempotent configuration, human-controlled delivery gates.",
+        ask: "Our platform 'environments' are three hand-built servers nobody dares touch — the person who built staging left, and prod differs from staging in ways we discover during incidents. Before we grow this estate, give me infrastructure the team can review, rebuild, and roll back on paper. And since everyone is excited about AI code review: fine, but a human signs every change to payment infrastructure. Non-negotiable.",
         handover: [
-          "The Week 6 payment-event/agent/Chroma/Neo4j architecture, synthetic workload, runbook, prior client-system idempotency gap, and one team-primary-cloud ADR template.",
-          "An inert Terraform root/module sample with AWS and GCP provider seams, illustrative state/backend rows, and a saved synthetic plan transcript.",
-          "A synthetic Ansible inventory, role tree, playbook diff, and first/second/drift run expectations; no hosts, credentials, or provider access.",
-          "A CI gate worksheet covering deterministic tests, security/policy, drift, AI evaluation, human approval, rollback, and evidence identity."
+          "Environment inventory: three long-lived VMs (dev/staging/prod), hand-configured; a wiki page titled \"how staging was built (incomplete)\".",
+          "Incident memo MP-312: a prod incident traced to a config value staging never had; fix was applied by SSH and never recorded.",
+          "A contractor's Terraform fragment: one root module, one state file, credentials inline as variables with defaults.",
+          "Ansible attempt: a playbook whose shell task appends the same config line every run — 'it works, run it once only'.",
+          "Change-control note: payment-infrastructure changes require a named human approver; the audit team reads the trail quarterly."
         ],
         dig: [
-          "Which objects belong in Terraform, which configuration belongs in Ansible, and who owns the handoff?",
-          "Which plan action could replace or destroy durable financial data, and what evidence would stop it?",
-          "How does the AI reviewer help without gaining apply, merge, or approval authority?",
-          "What makes the Project 2 environment reproducible while preserving one primary-cloud decision?"
+          "What does the MP-312 incident say about drift — and what evidence would have caught it before prod?",
+          "What in the contractor's fragment belongs in review findings: state placement, credentials, module shape?",
+          "Why does the append-every-run playbook fail the second-run test, and what makes a task actually idempotent?",
+          "Where does AI review help the plan-review gate — and which authority must it never hold?"
         ],
-        stated: ["Wants reproducible infrastructure and configuration evidence.", "Wants unsafe delivery to stop before change authority."],
+        stated: [
+          "Environments are hand-built and divergent.",
+          "Leadership wants AI-assisted delivery, audit wants human control."
+        ],
         hidden: [
-          "<b>State and plan artifacts can expose sensitive values</b> — access, retention, locking, and review are part of the design.",
-          "<b>A green plan or AI summary is not approval</b> — exact plan identity, human authority, rollback, and rebuild evidence remain separate controls."
+          "<b>State and secrets in the fragment are the first findings</b> — inline credentials and a casually-placed state file are production data in disguise.",
+          "<b>The playbook's 'run it once only' is the idempotence lesson</b> — convergence must be proven by the unchanged second run, not promised."
         ],
-        facilitator: "Use only inert configuration, synthetic plan/inventory evidence, and static gate outcomes. Require learners to distinguish provision, configure, validate, approve, recover, and prove. Preserve the primary-cloud ADR and AWS/GCP seams without implementing the picker.",
-        deliverable: "A Project 2 infrastructure delivery package for the payment and decision platform: primary-cloud ADR, provider/module/state design, annotated synthetic Terraform plan, Ansible inventory/role/idempotence evidence, CI quality/security/drift/eval gates, human approval boundary, rollback/rebuild tabletop, and two-audience readout. No init, plan command, apply, destroy, host connection, deploy, or account action."
+        facilitator: "Use MP-312 to motivate drift triage as evidence, not blame. The gate design must show where a human approves against an exact plan identity — an AI summary never substitutes.",
+        deliverable: "The Week 7 delivery package: reviewed plan transcript with consequence annotations, state/secrets design, idempotence evidence (first/second/drift runs), promotion gate contract with named human approval bound to plan identity, and the rebuild tabletop record. XY reframe, live: the ask was 'make servers safe to touch'; the deliverable shows the reviewable system that replaces touching servers."
       },
       8: {
         title: "AI Observability, SRE & Reliability Guardrails",
-        tie: "Operate the inherited payment, settlement, event, and AI-decision path with correlated OTel evidence, correctness SLOs, guardrails, incidents, and runbooks.",
-        ask: "Payments and settlement still produce month-end noise, and the AI decision path can be wrong while every API says success. Give me one evidence path that catches latency, duplicate money effects, reconciliation breaks, reason-quality failures, and cost before finance or an applicant finds them.",
+        tie: "Client-centered signals, SLOs and error budgets, OTel correlation, drift evidence, graceful degradation.",
+        ask: "Last month our payment-advise assistant was 'green' all week while finance kept finding stale advice. Uptime dashboards tell me nothing I can act on. Define what we actually promise — freshness, correctness, cost — and wire the evidence so that when something breaks, someone can act before finance notices. Keep client payloads out of whatever you record; our auditors read telemetry configs now.",
         handover: [
-          "Synthetic payment/Kafka/agent/model/tool traces with tokenized identities, plus correlated metrics and structured logs without PAN, CVV, SSN, or borrower payload.",
-          "A deterministic ledger-versus-settlement fixture and labeled decision-reason examples; use deterministic checks before any semantic judge.",
-          "A blank latency/correctness SLO and error-budget policy, synthetic token/cost dimensions, and one team-primary-cloud environment map.",
-          "An incident card linking a retrieval/model version, duplicate event attempt, reconciliation break, guardrail/evaluation result, alert, and runbook branch."
+          "Dashboard screenshot week 41: all panels green; finance incident log: four stale-advice reports the same week.",
+          "Current telemetry config: HTTP status counts only; no trace propagation through the event flow; logs include full payment payloads at DEBUG.",
+          "SLO draft from a previous attempt: \"99.99% uptime\" — no freshness, quality, or cost dimension.",
+          "Cost report: token spend doubled in March while request volume was flat; nobody noticed for three weeks.",
+          "Audit note: telemetry must be payload-free by default; any capture of payment content needs a recorded review."
         ],
         dig: [
-          "Can one trace correlate payment capture, Kafka, servicing, model, tool, and reconciliation without exposing regulated payload?",
-          "Which deterministic correctness SLI proves ledger and settlement tie, and which labeled quality SLI tests reasons?",
-          "How do per-partition age, retries, tool calls, evaluation failures, and cost per accepted decision change the diagnosis?",
-          "When should the operator stop release, queue work, degrade, roll back, forward-repair, or escalate?"
+          "What did 'green' measure during week 41 — and what signal would have caught stale advice?",
+          "Which SLO dimensions does the payment-advise path actually need: freshness, grounded correctness, cost per accepted outcome?",
+          "Where must trace context travel so one bad advice is reconstructable across HTTP, events, agent, and store?",
+          "What leaves the telemetry boundary today that the audit note forbids?"
         ],
-        stated: ["Wants visibility before finance or customers report a break.", "Wants reliability evidence for AI decisions and money movement."],
+        stated: [
+          "Dashboards are green while users find failures.",
+          "Cost drifted unnoticed for weeks."
+        ],
         hidden: [
-          "<b>HTTP success can hide money-correctness and reason-quality failures</b> — deterministic reconciliation and versioned evaluation are separate reliability signals.",
-          "<b>Observability can widen regulated-data exposure</b> — safe correlation IDs and payload-free defaults are required."
+          "<b>The payload-at-DEBUG logs violate the audit rule today</b> — payload-free defaults plus a governed capture path is the first fix.",
+          "<b>'99.99% uptime' is the wrong promise</b> — the client consequence lives in freshness/groundedness/cost, each needing its own SLI, budget, and owner (artifact SRE-08-01)."
         ],
-        facilitator: "Carry forward former Week 7 tracing, evaluation, SLO, cost, and guardrail conclusions into Week 8. Keep Week 9 security/hardening separate. Prefer deterministic reconciliation and use semantic judges only where expert-labeled meaning requires them.",
-        deliverable: "SRE-08-01 through SRE-08-05: an owned reliability evidence package for one payment/decision path. Each artifact names a measurable acceptance rule and independent replay: OTel trace/metric/log contract, model/agent/tool/Kafka/reconciliation correlation, dashboard and alert spec, latency/correctness/quality SLO and error-budget policy, evaluation/guardrail signals, incident timeline, runbook branch, rollback/degraded-mode evidence, cost/latency/reliability tradeoff, and two-audience readout."
+        facilitator: "Contrast week 41's green dashboard with the finance log until the team proposes consequence-led signals. The SRE-08-01 register (signal, SLO, budget action, owner) is the acceptance artifact.",
+        deliverable: "The Week 8 reliability package: SRE-08-01 signal/SLO register for the payment-advise path, error-budget policy with named actions, OTel correlation contract (trace context through event headers, payload-free spans), drift register, and the incident-timeline rehearsal from the synthetic stale-advice case."
       },
       9: {
-        title: "AI Security, Governance &amp; System Hardening",
-        tie: "Apply preserved security/governance research and Week 8 reliability evidence to the inherited financial-services system: threat model, least privilege, fair-lending governance, audit, remediation, and readout.",
-        ask: "The board wants the AI scorer across more products. Before rollout, show me whether applicant content can influence the decision, what data or tools the path can reach, whether every reason is specific and reproducible, what you changed, and how compliance can verify it.",
+        title: "AI Security, Governance & System Hardening",
+        tie: "Threat modeling the delivered system, least privilege across agents/tools, obligations mapped to evidence, audit + red team.",
+        ask: "Before any wider rollout, our risk committee wants proof, not posture. Threat-model what you actually built, show me least privilege on every tool the assistant can touch, and map our obligations to evidence a reviewer can reconstruct. Then audit it like someone who wants to find problems — with permission and synthetic data only — and bring me the remediation record, not a trophy screenshot.",
         handover: [
-          "The complete Weeks 1–8 system and reliability package; synthetic decisions still expose a generic adverse-action-reason gap and incomplete model/version evidence.",
-          "A synthetic applicant corpus with untrusted free text/uploads, tokenized identities, deterministic reconciliation fixtures, and labeled reason-quality examples.",
-          "A prevent/contain/detect/recover matrix, safe prompt-injection fixtures, and dated AWS/GCP evidence for federation, Bedrock Guardrails versus Model Armor normalization, and personal certification-path selection.",
-          "Local tests only; no applicant data, credentials, production target, provider call, external send, decision, or deployment."
+          "Capability inventory: the advise assistant reads uploaded merchant documents, queries payment records, and renders links in its replies.",
+          "Tool config: one service token with read+update on every merchant account; no caller propagation.",
+          "Governance row from the last review: \"human review: enabled ✓\" — no trigger, reviewer, timeout, or fallback recorded.",
+          "Red-team note from a peer team: an injected instruction inside an uploaded document made a sandbox assistant echo another merchant's reservation data.",
+          "Risk-committee requirement: every control claim needs evidence a reviewer can replay; accepted residual risks need an owner, authority, and revisit date (artifacts SEC-09-01, GOV-09-03)."
         ],
         dig: [
-          "Can applicant-controlled content alter retrieval, model judgement, a tool call, reason code, or an external sink?",
-          "Which application or downstream boundary enforces least privilege independently of model judgement?",
-          "Can each synthetic denial map to a specific tested reason, model/version record, and governance owner without claiming a legal conclusion?",
-          "Can another engineer reproduce the exploit, denial, remediation, residual risk, and wider-rollout gate?"
+          "Which three capabilities combine into the high-impact injection path — and which sink gate removes it?",
+          "What does least privilege mean for the one-token tool: caller propagation, per-operation scope, provable denial?",
+          "What turns the 'human review enabled' row into an operating control a reviewer can verify?",
+          "What makes the peer red-team exercise delivery work — scope, safe fixtures, retest — instead of a screenshot?"
         ],
-        stated: ["Wants a defensible security, governance, and reason-evidence position before wider rollout.", "Wants controls compliance and operations can verify after handoff."],
+        stated: [
+          "Risk committee blocks rollout pending evidence.",
+          "A peer demo showed a working injection path."
+        ],
         hidden: [
-          "<b>Generic or irreproducible reasons make wider rollout indefensible</b> — model marketing is not governance evidence.",
-          "<b>Applicant content plus private data, privilege, and an external sink creates a high-consequence path</b> — filters do not replace deterministic mediation and least privilege."
+          "<b>The adverse combination is already assembled</b> — untrusted documents + broad-privilege tool + external sink is the exact threat-path record SEC-09-01 must capture, with the denial retest as evidence.",
+          "<b>The governance gap is an evidence gap</b> — GOV-09-03 rows need trigger, authority, timing, failure path, and reconstruction-capable audit trails; a checkbox is a slogan."
         ],
-        facilitator: "Start from the delivered system and preserved security sources. Run one threat path, one reason-governance decision, one least-privilege change, one safe peer red-team, one selected-provider trust-boundary review, and one executive/technical readout. Avoid legal conclusions. Keep personal cloud/certification choice separate from the team's Week 6 primary-cloud ADR.",
-        deliverable: "SEC-09-01 through SEC-09-05 plus GOV-09-03: a reproducible finance security/governance package. Each artifact names an accountable role, measurable acceptance rule, and independent replay: system/data boundary, threat path, tested reason-code/model-evidence gate, federation/control ADR, one remediated least-privilege or sink control, normalized guardrail comparison, local red-team evidence, residual-risk disposition, certification study gap, and two-audience readout."
+        facilitator: "Have the team walk the injection path end to end on synthetic fixtures before writing controls. Disposition discipline: fixed / accepted (owner + date) / deferred — an unowned item blocks closure.",
+        deliverable: "The Week 9 audit package: SEC-09-01 threat-path record with denial retest evidence, least-privilege redesign of the tool boundary with logged denials, GOV-09-03 obligation-to-evidence map, the permissioned red-team record with remediation + retest, and the disposition table for the committee readout."
       },
-10: {
-        title: "Production Rollout, Showcase &amp; Client Handoff",
-        tie: "Turn the engagement into a reversible release decision, operating package, executive showcase, technical defense, and knowledge transfer.",
-        ask: "Show me the outcome and the evidence, then leave Meridian a release and handoff package another engineer can run. Be explicit about what is simulated and what remains pending.",
+      10: {
+        title: "Production Rollout, Showcase & Client Handoff",
+        tie: "Reversible rollout, release rehearsal, rollback verification, handoff package, two-audience showcase.",
+        ask: "Final stretch. I need a rollout plan my operations team can reverse at 2am without calling you, a rehearsal that proves the candidate we ship is the candidate we tested, and a handoff my engineers own by Friday. The showcase gets both my executives and your peers — same truth in both rooms. And if anyone puts 'migration egress is free' on a slide again, I will personally ask the follow-up question.",
         handover: [
-          "The frozen candidate, full regression evidence, Week 9 audit disposition, decision index, and open-risk register.",
-          "A reversible rollout plan with entry, pause, success, rollback, and ownership conditions — planning and local rehearsal only.",
-          "A two-cloud placement memo with dated public meter evidence, explicit BigQuery, Cloud Run, Agent Search, Vector Search, managed Kafka, graph, model, guardrail, observability and egress rows, plus visible client-specific unknowns."
+          "Rollout draft from ops: steps and owners listed; no rollback trigger, no previous-version identity, no data-compatibility note.",
+          "Release-rehearsal log: regression report run at 10:12 against candidate a41f…; conflict resolution merged 11:40 moved the candidate to c90e…; nobody reran.",
+          "Rollback sentence in the runbook: \"If needed, redeploy the previous version.\"",
+          "Handoff shelf: three runbooks (one author-dependent: 'ask Dev K about the replay step'), environment notes, no verification signals listed (artifact REL-10-01 expected).",
+          "Showcase slide draft: \"Migration egress: $0 (vendor waiver)\" — eligibility, approval, termination, and data volume unchecked (artifact HANDOFF-10-05 closes the engagement)."
         ],
         dig: [
-          "Which observable condition pauses or reverses the rollout, and has the recovery path been rehearsed locally?",
-          "Can a new operator find the candidate, smoke test, runbook, owner, and decision history without asking the author?",
-          "Which representative interaction and essential diagram prove the client outcome?",
-          "Which workload-placement assumptions are evidence, which are unknown, and what would flip the recommendation?"
+          "What observable condition, threshold, authority, and tested reversal would make the rollout actually reversible?",
+          "Which evidence in the rehearsal log is stale — and what must rerun against c90e… before sign-off?",
+          "What does rollback readiness require that the runbook sentence lacks: version identity, data compatibility, drill evidence?",
+          "Which placement claims survive a hostile question — dated conditional terms, or the $0 slide?"
         ],
-        stated: ["Wants an executive-ready proof of value.", "Wants a technically defensible package the client team can operate."],
-        hidden: ["<b>A showcase is not a handoff</b> — the receiving operator must run the path.", "<b>Dated public provider facts are not client facts</b> — volume, region, contract, discount, waiver eligibility, confidence, and flip conditions remain visible."],
-        facilitator: "Hold the freeze, rehearse the executive and technical cuts, include a safe planned failure, and require explicit residual risks. Defend dated provider inputs without implying a predetermined winner. Do not imply deployment, infrastructure, publication, or external sends occurred.",
-        deliverable: "REL-10-01/02/04, OPS-10-03, and HANDOFF-10-05: a frozen local demo candidate; cutover/rollback rehearsal; README, runbook, ADR and evidence indexes; owner and risk registers; workload-placement and conditional-exit-cost defense with visible client unknowns; client showcase script; and independently executed knowledge-transfer record."
-      },
-}
+        stated: [
+          "Ops wants 2am-reversible releases.",
+          "The showcase must serve executives and engineers from one evidence set."
+        ],
+        hidden: [
+          "<b>Evidence currency is the rehearsal lesson</b> — the 10:12 report describes a candidate that no longer exists; affected checks rerun or the packet is fiction (REL-10-01).",
+          "<b>The $0 egress slide is a credibility bomb</b> — show dated conditional terms, the measured-byte formula, and the unverified-for-this-client marker instead (HANDOFF-10-05)."
+        ],
+        facilitator: "Run the failure drill before the showcase rehearsal so the rollback evidence is real. Freeze discipline: non-blocking polish defers with a recorded owner; the demo build is the rehearsed build.",
+        deliverable: "The Week 10 closure: REL-10-01 rollout/rollback record (trigger, authority, pinned prior version, data-compat statement, drill log with recovery verification), the candidate-current rehearsal evidence, the operable handoff package another engineer can run, and HANDOFF-10-05 — the two-audience showcase with the placement defense's assumptions visible."
+      }
+    }
   }
 };
 
@@ -774,10 +538,22 @@ window.CLIENT = {
   const weeksEl  = document.getElementById("weeks");
   const panel    = document.getElementById("panel");
   const PROJ_KEYS = Object.keys(window.CLIENT);
-  const REPOS = { healthcare: "https://github.com/2463-FDE/riverbend-portal", finance: "https://github.com/2463-FDE/meridian-lending" };
+  const LEGACY_PROJECT_PARAMS = { healthcare: "insurance", riverbend: "insurance", finance: "payments", meridian: "payments" };
 
   let state = { proj: PROJ_KEYS[0], week: 1 };
-  (function () { const q = new URLSearchParams(location.search); const w = Number(q.get("w")); if (w >= 1 && w <= 10) state.week = w; const p = q.get("p"); if (p && PROJ_KEYS.includes(p)) state.proj = p; })();
+  (function () {
+    const q = new URLSearchParams(location.search);
+    const w = Number(q.get("w"));
+    if (w >= 1 && w <= 10) state.week = w;
+    let p = q.get("p");
+    if (p && LEGACY_PROJECT_PARAMS[p]) p = LEGACY_PROJECT_PARAMS[p]; // old deep links stay usable
+    if (p && PROJ_KEYS.includes(p)) state.proj = p;
+    // Each engagement owns its week range; follow the week when the selected
+    // project has no packet for it.
+    if (!window.CLIENT[state.proj].weeks[state.week]) {
+      state.proj = PROJ_KEYS.find(key => window.CLIENT[key].weeks[state.week]) || state.proj;
+    }
+  })();
 
   // ---- project tabs ----
   PROJ_KEYS.forEach(key => {
@@ -818,7 +594,11 @@ window.CLIENT = {
     weeksEl.querySelectorAll(".cd-week").forEach(b =>
       b.classList.toggle("on", Number(b.dataset.week) === state.week));
 
-    const proj = window.CLIENT[state.proj];
+    let proj = window.CLIENT[state.proj];
+    if (!proj.weeks[state.week]) {
+      const owner = PROJ_KEYS.find(key => window.CLIENT[key].weeks[state.week]);
+      if (owner) { state.proj = owner; proj = window.CLIENT[owner]; }
+    }
     const wk = proj.weeks[state.week];
     if (!wk) { panel.innerHTML = `<p>No material for this week yet.</p>`; return; }
 
@@ -826,8 +606,8 @@ window.CLIENT = {
       `<div class="cd-eyebrow">${proj.label} · ${proj.short} · Week ${state.week}</div>` +
       `<h2>${wk.title}</h2>` +
       `<p class="cd-tie">Curriculum tie-in: ${wk.tie}</p>` +
-      `<a class="cd-comms" href="persona-communications.html?project=${state.proj === "healthcare" ? "riverbend" : "meridian"}">Practice this project's persona communications</a>` +
-      (REPOS[state.proj] ? `<a class="cd-repo" href="${REPOS[state.proj]}" target="_blank" rel="noopener">📦 Open the codebase — ${REPOS[state.proj].replace("https://github.com/", "")}</a>` : "");
+      `<a class="cd-comms" href="persona-communications.html?project=${state.proj === "insurance" ? "juniper-vale" : "morrowfield"}">Practice this project's persona communications</a>` +
+      (proj.starter ? `<div class="cd-repo">${proj.starter}</div>` : "");
 
     // Client message (everyone)
     html +=
