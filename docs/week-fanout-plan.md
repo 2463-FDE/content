@@ -203,8 +203,8 @@ not conflict with Core 30:
 |--------|--------|-----------------|
 | Reading rate | **150 wpm** | Core-30 label calculation |
 | Required reading / day | **≤1,800 words**; `round(words / 150)` minutes | required-path content and visible Core-30 label |
-| Scrolly steps / reading | **7-9** `.step` sections | W1 pages (d1 = 9 steps) |
-| Diagram binding | every `.step` carries `data-diagram`/`data-step`; one live `#diagram` | shared `diagram.js` + `scrolly.js` |
+| Lesson sections / reading | count and order vary by objective; orient first, teach to the objective, practice with visible feedback | learner-first guidance in `DESIGN.md` |
+| Supporting diagram | contextual and optional; include one only where relationships benefit from it, and keep shared hooks working when used | shared `diagram.js` + `scrolly.js` |
 | Interactive | required interaction is included in the Core-30 total; deferred extras may remain `.ix-future` placeholders | Core-30 label and template v2 |
 | Comprehension check | practice (not graded), with the actual question count in the Core-30 label | `quiz.js` modal |
 | Deep dive | optional depth in `details.deep[data-core="optional"]` | `modals.js` |
@@ -252,7 +252,7 @@ Phase 1 — RESEARCH        45→35 day-agents in parallel (W2-8 = 35 reading-da
 
 Phase 2 — AUTHOR (parallel, each gated on its own research)
    2a readings:   1 agent/day → weeks/wWW/dN.html
-        └─ GATE B (reading metrics + citation) + GATE C (design/diagram) repass loops
+        └─ GATE B (reading metrics + citation) + GATE C (design / learner flow) repass loops
    2b questions:  1 agent/concept → ≥4 STRUCTURED question objects per concept
         (returned, not written inline — avoids parallel edits to the single
         backend file); proposes new concept-ids for the CONCEPTS taxonomy
