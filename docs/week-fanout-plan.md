@@ -203,8 +203,8 @@ not conflict with Core 30:
 |--------|--------|-----------------|
 | Reading rate | **150 wpm** | Core-30 label calculation |
 | Required reading / day | **≤1,800 words**; `round(words / 150)` minutes | required-path content and visible Core-30 label |
-| Scrolly steps / reading | **7-9** `.step` sections | W1 pages (d1 = 9 steps) |
-| Diagram binding | every `.step` carries `data-diagram`/`data-step`; one live `#diagram` | shared `diagram.js` + `scrolly.js` |
+| Lesson sections / reading | count and order vary by objective; orient first, teach to the objective, practice with visible feedback | learner-first guidance in `DESIGN.md` |
+| Supporting diagram | contextual and optional; include one only where relationships benefit from it, and keep shared hooks working when used | shared `diagram.js` + `scrolly.js` |
 | Interactive | required interaction is included in the Core-30 total; deferred extras may remain `.ix-future` placeholders | Core-30 label and template v2 |
 | Comprehension check | practice (not graded), with the actual question count in the Core-30 label | `quiz.js` modal |
 | Deep dive | optional depth in `details.deep[data-core="optional"]` | `modals.js` |
@@ -223,8 +223,8 @@ do the work; the organizer terminal only tracks status.
 - **Deploy gate:** auto-deploy (git push + wrangler) ONLY if the run finishes with
   zero flagged items; if anything hit the 3-pass flag, stop before deploy for
   human review.
-- **Day structure:** single reading page per day by default, but authors MAY split
-  a dense day into a/b parts (like W1's d2a/d2b) where the topic warrants it.
+- **Day structure:** exactly one singular-topic reading page per day in every week
+  (Week 1 consolidated its former a/b parts; see `tests/test_week1_launch_readiness.py`).
 - **Question volume:** per-concept, not per-day (see Interview question bank model).
 
 ### Interview question bank model
@@ -252,7 +252,7 @@ Phase 1 — RESEARCH        45→35 day-agents in parallel (W2-8 = 35 reading-da
 
 Phase 2 — AUTHOR (parallel, each gated on its own research)
    2a readings:   1 agent/day → weeks/wWW/dN.html
-        └─ GATE B (reading metrics + citation) + GATE C (design/diagram) repass loops
+        └─ GATE B (reading metrics + citation) + GATE C (design / learner flow) repass loops
    2b questions:  1 agent/concept → ≥4 STRUCTURED question objects per concept
         (returned, not written inline — avoids parallel edits to the single
         backend file); proposes new concept-ids for the CONCEPTS taxonomy
@@ -295,8 +295,8 @@ attempted — it does not stall the rest of the fan-out.
 | Gate | Critic | Checks | On fail |
 |------|--------|--------|---------|
 | **A** | Research | every claim has a 200 source URL; library version stamped + current (no deprecated APIs, e.g. LangChain pre-1.0); web-research actually run; pull saved to second-brain | repass: re-research the gap |
-| **B** | Core-30 metrics + citation | complete required experience fits within 30 minutes; required path ≤1,800 words with reading minutes computed as `round(words / 150)`; visible label reports actual reading, interaction, and check counts; optional depth uses `details.deep[data-core="optional"]` and is excluded from the required-path budget; 7-9 steps; **exactly one code popup** (code-cta + `.code-modal` + codeviewer.js loaded; Bedrock code, or on an AWS/GCP provider page one `pre.cv-raw[data-cloud]` tab per provider; no `openai`/`gpt` in the snippet; code HTML-escaped); on a provider page every rule holds **per selected provider**; every claim traces to the research artifact (no invented facts); Sources block present, all URLs 200 | repass: trim/expand, re-cite |
-| **C** | Design / live-diagram | pull W1 readings as the reference design set; scrolly steps each bound to a *meaningful* diagram step (diagram drives the concept, not decoration); consistent components/classes; comparable interaction density; **browser screenshot-diff vs a W1 exemplar** for layout/hierarchy/AI-slop | repass: rework diagram/layout to match exemplar |
+| **B** | Core-30 metrics + citation | complete required experience fits within 30 minutes; required path ≤1,800 words with reading minutes computed as `round(words / 150)`; visible label reports actual reading, interaction, and check counts; optional depth uses `details.deep[data-core="optional"]` and is excluded from the required-path budget; structure establishes orientation, objective-grounded teaching, and practice with visible feedback without requiring one section count or order; diagrams are contextual support where they improve comprehension; **exactly one code popup** (code-cta + `.code-modal` + codeviewer.js loaded; Bedrock code, or on an AWS/GCP provider page one `pre.cv-raw[data-cloud]` tab per provider; no `openai`/`gpt` in the snippet; code HTML-escaped); on a provider page every rule holds **per selected provider**; every claim traces to the research artifact (no invented facts); Sources block present, all URLs 200 | repass: trim/expand, re-cite |
+| **C** | Design / learner flow | use W1 readings as compatibility evidence, not a universal layout; establish clear orientation, objective-grounded teaching, and practice with visible feedback; use a meaningful contextual diagram only where relationships benefit from one; preserve shared components/contracts while allowing legitimate per-objective variation; browser-check hierarchy, interaction feedback, accessibility, and narrow layouts against the intended learner job | repass: rework learner flow or supporting visual |
 | **D** | Question | **≥4 questions per technical concept-id** (feeds WEAK_TARGET=4 without repeats); tagged to correct concept-ids; grounded in research (no deprecated-API questions); difficulty spread; new concept-ids added to backend CONCEPTS taxonomy | repass: author more / re-tag |
 | **E** | Integration | `?day=wWWdN` scopes right; cards uniform; progress backfills; all new links 200 | fix wiring (serial) |
 

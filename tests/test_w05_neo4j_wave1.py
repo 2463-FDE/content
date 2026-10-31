@@ -59,6 +59,9 @@ def optional(element: Element) -> bool:
         element.tag in EXCLUDED_TAGS
         or bool(classes(element) & EXCLUDED_CLASSES)
         or element.attrs.get("data-core") == "optional"
+        # Required practices (and their static fallbacks) are budgeted as
+        # interaction minutes, not reading words.
+        or "data-core-interaction" in element.attrs
     )
 
 
@@ -146,7 +149,7 @@ load(Object.entries(routes), 0);
             )
             result = subprocess.run(
                 [
-                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                     "--no-default-browser-check", "--allow-file-access-from-files",
                     f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=7000",
                     "--dump-dom", harness.as_uri(),
@@ -184,9 +187,12 @@ load(Object.entries(routes), 0);
                 self.assertIsNotNone(advertised)
                 self.assertIsNotNone(total)
                 self.assertEqual(round(words / WPM), int(advertised.group(1)))
-                self.assertEqual(round(words / WPM) + 3 + 6 + 5, int(total.group(1)))
+                # 2026-10-30 correction: the decision lab plus two shipped
+                # lesson activities (4 min each) are required practice.
+                self.assertEqual(round(words / WPM) + 3 + 6 + 5 + 8, int(total.group(1)))
+                self.assertLessEqual(int(total.group(1)), 30)
                 self.assertIn("3 min diagram", meta)
-                self.assertIn("1 interaction", meta)
+                self.assertIn("3 interactions", meta)
                 self.assertIn("6-Q check", meta)
                 self.assertLessEqual(int(total.group(1)), 30)
 
@@ -389,7 +395,7 @@ load(Object.keys(pages), 0);
             )
             result = subprocess.run(
                 [
-                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                     "--no-default-browser-check", "--allow-file-access-from-files",
                     f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=9000",
                     "--dump-dom", harness.as_uri(),
@@ -416,7 +422,7 @@ load(Object.keys(pages), 0);
             route = urlparse(rendered_day["href"])
             self.assertTrue(route.path.endswith(f"/weeks/w05/w05d{day}.html"), route.path)
             self.assertEqual(parse_qs(route.query).get("batch"), ["2567"])
-        self.assertIn("Week 5 solo insurance Neo4j/context engineering", rendered["trainer"]["text"])
+        self.assertIn("Week 5 solo Juniper Vale Mutual insurance Neo4j/context engineering", rendered["trainer"]["text"])
         trainer_route = urlparse(rendered["trainer"]["href"])
         self.assertTrue(trainer_route.path.endswith("/weeks/w05/w05d1.html"))
         self.assertEqual(parse_qs(trainer_route.query).get("batch"), ["2567"])
@@ -461,7 +467,7 @@ load(Object.entries(pages), 0);
             )
             result = subprocess.run(
                 [
-                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                     "--no-default-browser-check", "--allow-file-access-from-files",
                     f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=5000",
                     "--dump-dom", harness.as_uri(),
@@ -483,7 +489,7 @@ load(Object.entries(pages), 0);
             self.skipTest("Chrome/Chromium is unavailable")
         route = ROOT / "weeks/w05/w05d3.html"
         base_args = [
-            chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+            chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
             "--no-default-browser-check", "--allow-file-access-from-files",
             "--window-size=390,844", "--virtual-time-budget=2500", "--dump-dom",
         ]
@@ -514,7 +520,7 @@ load(Object.entries(pages), 0);
             pdf = Path(tmp) / "w05d3.pdf"
             printed = subprocess.run(
                 [
-                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                     "--no-default-browser-check", "--allow-file-access-from-files",
                     f"--user-data-dir={Path(tmp) / 'profile'}",
                     f"--print-to-pdf={pdf}", "--no-pdf-header-footer", route.as_uri(),
@@ -590,7 +596,7 @@ run(0);
             )
             result = subprocess.run(
                 [
-                    chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                     "--no-default-browser-check", "--allow-file-access-from-files",
                     "--force-prefers-reduced-motion", f"--user-data-dir={Path(tmp) / 'profile'}",
                     "--window-size=1500,1000", "--virtual-time-budget=12000", "--dump-dom",

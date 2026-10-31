@@ -42,8 +42,8 @@ test('curriculum navigation carries batch context without dropping route state',
     'https://example.test/content/index.html?batch=2567#curriculum',
   );
   assert.equal(
-    api.contextualizeHref('d2a.html?cloud=gcp#exercise', '2567', 'https://example.test/content/weeks/w01/d1.html'),
-    'https://example.test/content/weeks/w01/d2a.html?cloud=gcp&batch=2567#exercise',
+    api.contextualizeHref('d2.html?cloud=gcp#exercise', '2567', 'https://example.test/content/weeks/w01/d1.html'),
+    'https://example.test/content/weeks/w01/d2.html?cloud=gcp&batch=2567#exercise',
   );
   assert.equal(
     api.contextualizeHref('https://outside.test/lesson', '2567', 'https://example.test/content/index.html'),
@@ -53,7 +53,7 @@ test('curriculum navigation carries batch context without dropping route state',
 
 test('Week 1 history, reload, and unsupported deep links resolve without cohort leakage', () => {
   const storage = memoryStorage({ fde_batch_context: '2567' });
-  const location = { href: 'https://example.test/content/weeks/w01/d3b.html?batch=9001&cloud=aws#exercise' };
+  const location = { href: 'https://example.test/content/weeks/w01/d3.html?batch=9001&cloud=aws#exercise' };
   const context = api.create(config, storage, location);
 
   assert.equal(context.read(), '9001');
@@ -61,7 +61,7 @@ test('Week 1 history, reload, and unsupported deep links resolve without cohort 
   assert.equal(context.write(context.read()).persisted, true);
   assert.equal(storage.getItem('fde_batch_context'), '9001');
 
-  location.href = 'https://example.test/content/weeks/w01/d3b.html?batch=2567&cloud=aws#exercise';
+  location.href = 'https://example.test/content/weeks/w01/d3.html?batch=2567&cloud=aws#exercise';
   assert.equal(context.read(), '2567');
   assert.equal(api.modelFor(config, context.read()).id, 'ltm-2567');
 
@@ -72,7 +72,7 @@ test('Week 1 history, reload, and unsupported deep links resolve without cohort 
   assert.equal(api.modelFor(config, reloaded.read()).id, 'ltm-2567');
 
   // Simulated back navigation restores the unsupported URL and never inherits 2567.
-  location.href = 'https://example.test/content/weeks/w01/d3b.html?batch=9001&cloud=aws#exercise';
+  location.href = 'https://example.test/content/weeks/w01/d3.html?batch=9001&cloud=aws#exercise';
   assert.equal(reloaded.read(), '9001');
   assert.equal(api.modelFor(config, reloaded.read()), null);
 });

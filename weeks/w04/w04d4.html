@@ -26,6 +26,7 @@
   <div class="topbar-right">
     <span class="progressbar"><i></i></span></div>
 </div>
+<nav class="lesson-crumbs" aria-label="You are here" data-day-position="19 of 50"><div class="crumb-path"><a class="crumb-hub" href="../../index.html#curriculum">Curriculum hub</a><span class="crumb-sep" aria-hidden="true">▸</span><span class="crumb-week">Week 4 · Multi-Agent Systems &amp; Architecture Defense</span><span class="crumb-sep" aria-hidden="true">▸</span><span class="crumb-day" aria-current="page">Day 4 · Operating multi-agent systems</span></div><div class="crumb-meta"><span class="crumb-pos">Day 19 of 50</span><span class="crumb-project">Juniper Vale Mutual · Loss Desk · solo · Weeks 1–5</span><span class="crumb-steps"><a class="crumb-step" rel="prev" href="w04d3.html">◂ Day 3</a><a class="crumb-step crumb-next" rel="next" href="w04d5.html">Day 5 ▸</a></span></div></nav>
 
 <main class="lesson2">
   <div class="reading2col">
@@ -37,8 +38,8 @@
         <h1>Operating Multi-Agent Systems: Cost, Control &amp; Traceability</h1>
         <div class="meta">
           <span><b>Week 4</b> · Day 4</span><span>Multi-Agent Orchestration</span>
-          <span class="core30-meta" data-cloud="aws"><b>Core 30</b> · AWS · ~4 min read · 2 interactions · 5-Q check</span>
-          <span class="core30-meta" data-cloud="gcp"><b>Core 30</b> · GCP · ~4 min read · 2 interactions · 5-Q check</span>
+          <span class="core30-meta" data-cloud="aws"><b>Core 30</b> · AWS · ~4 min read · 4 interactions · 5-Q check</span>
+          <span class="core30-meta" data-cloud="gcp"><b>Core 30</b> · GCP · ~4 min read · 4 interactions · 5-Q check</span>
         </div>
         <p class="summary">A multi-agent diagram is easy; an operating envelope is the engineering. Today you bound parallel work, token and latency cost, approval authority, trace correlation, and the model-provider seam. The result is a reviewable operating sheet for the same solo insurance brownfield—no cloud call or deployment.</p>
         <aside class="callout mindset project-progress" aria-label="Solo insurance project progress"><b>Project 1 · solo insurance brownfield</b><span>Advance: add <code>docs/agent-operations.md</code> with budgets, write ownership, approval gates, trace fields, and labeled assumptions. Use only synthetic records.</span></aside>
@@ -51,8 +52,16 @@
       <section class="step" data-diagram="0" data-step="1"><div class="tag">Parallelism</div><h2>Fan out only independent work</h2><p>Parallel workers reduce elapsed time only when their inputs are ready and their writes do not collide. Give each worker a typed brief, read-only inputs, an output schema, and a deadline. The coordinator joins results in a deterministic order. Dependent work stays sequential; shared mutation stays with one named owner.</p><div class="core-practice" data-core-interaction><fieldset><legend>Predict before revealing: which work can run in parallel?</legend><label><input type="radio" name="w04d4-parallel"> Two analysts independently classify separate synthetic claim notes</label><label><input type="radio" name="w04d4-parallel"> Two agents both edit the same claim-decision record</label></fieldset><details><summary>Check the boundary</summary><p>The independent, read-only classifications may fan out. Two writers to one decision record create an ownership conflict; route proposals to one commit owner.</p></details></div></section>
 
       <section class="step" data-diagram="0" data-step="2"><div class="tag">Cost and latency</div><h2>Track the critical path and the total burn</h2><p>For each span, record agent, model, input/output tokens, cache status, attempts, duration, and outcome. Total token use is the sum across every call; wall time follows the longest dependent path, not that sum. Caching may reduce repeated-prefix processing, but it is provider-specific and measurable—not an invariant you carry across a swap. A dashboard should show both totals and the slowest path.</p></section>
+<div class="lesson-activity-host" data-activity="params" data-activity-id="w04d4-params">
+<script type="application/json">{"type":"params","title":"Budget the fan-out before you build it","intro":"Choose a fan-out width and whether the work is truly independent; compare the critical path and the burn.","controls":[{"key":"width","label":"Parallel subagents","options":[{"label":"1 (sequential)","value":"1"},{"label":"4","value":"4"}]},{"key":"coupling","label":"Work shape","options":[{"label":"Independent reads","value":"indep"},{"label":"Coupled (shared doc edits)","value":"coupled"}]}],"cases":[{"when":{"width":"1","coupling":"indep"},"out":{"critical path":"sum of all four tasks","total burn":"baseline tokens","verdict":"slow but cheap and simple"},"note":"Sequential is the honest default when latency is acceptable."},{"when":{"width":"4","coupling":"indep"},"out":{"critical path":"longest single task","total burn":"~4× task tokens + orchestration overhead","verdict":"pay tokens to buy wall-clock — a real trade"},"note":"Fan out only independent work: this is the case that earns it."},{"when":{"width":"1","coupling":"coupled"},"out":{"critical path":"sum of tasks","total burn":"baseline","verdict":"correct by construction"},"note":"Single-threaded writes make coupled work boring — which is the point."},{"when":{"width":"4","coupling":"coupled"},"out":{"critical path":"longest task + conflict resolution","total burn":"4× tokens + rework from collisions","verdict":"worst of both — parallel writers on shared state"},"note":"The budget sheet catches this before the burn does."}]}</script>
+<details class="activity-fallback" data-core-interaction data-activity-fallback="params"><summary>Required practice · Budget the fan-out before you build it · static path</summary><p>Choose a fan-out width and whether the work is truly independent; compare the critical path and the burn.</p><ul><li><b>width: 1, coupling: indep</b> — critical path → sum of all four tasks; total burn → baseline tokens; verdict → slow but cheap and simple. Sequential is the honest default when latency is acceptable.</li><li><b>width: 4, coupling: indep</b> — critical path → longest single task; total burn → ~4× task tokens + orchestration overhead; verdict → pay tokens to buy wall-clock — a real trade. Fan out only independent work: this is the case that earns it.</li><li><b>width: 1, coupling: coupled</b> — critical path → sum of tasks; total burn → baseline; verdict → correct by construction. Single-threaded writes make coupled work boring — which is the point.</li><li><b>width: 4, coupling: coupled</b> — critical path → longest task + conflict resolution; total burn → 4× tokens + rework from collisions; verdict → worst of both — parallel writers on shared state. The budget sheet catches this before the burn does.</li></ul></details>
+</div>
 
       <section class="step" data-diagram="0" data-step="3"><div class="tag">Human authority</div><h2>Put approval before the side effect</h2><p>Classify tools as read, propose, or commit. Reads can run inside their bounded scope. Proposals produce an artifact. A commit that changes a claim decision, sends a message, or writes a system of record requires the named human gate and one write owner. Persist the proposed action, evidence reference, approver decision, and reason before execution; retries must not duplicate the side effect.</p></section>
+<div class="lesson-activity-host" data-activity="order" data-activity-id="w04d4-order">
+<script type="application/json">{"type":"order","title":"Operate the fan-out safely","intro":"Arrange the multi-agent operation so cost, approval, and tracing hold.","why":"Budget precedes structure, fan-out covers only independent reads, results merge before any side effect, the approval gate sits before the write, and one trace ID crosses every handoff.","items":[{"id":"budget","label":"Set the token/latency budget and the agent-count ceiling","why":"start with a budget, not an agent count"},{"id":"fan","label":"Fan independent read-only work out to subagents","why":"parallelism is for independent work; writers stay single-threaded"},{"id":"merge","label":"Merge results and track the critical path","why":"the slowest branch owns your latency; the meter owns your spend"},{"id":"gate","label":"Hold the approval gate","why":"approval comes before the side effect — never after"},{"id":"write","label":"Apply the single-threaded write with one trace ID","why":"one trace ID crosses every handoff so the operation is reconstructable"}],"correct":["budget","fan","merge","gate","write"]}</script>
+<details class="activity-fallback" data-core-interaction data-activity-fallback="order"><summary>Required practice · Operate the fan-out safely · static path</summary><p>Arrange the multi-agent operation so cost, approval, and tracing hold.</p><ol><li><b>Set the token/latency budget and the agent-count ceiling</b> — start with a budget, not an agent count</li><li><b>Fan independent read-only work out to subagents</b> — parallelism is for independent work; writers stay single-threaded</li><li><b>Merge results and track the critical path</b> — the slowest branch owns your latency; the meter owns your spend</li><li><b>Hold the approval gate</b> — approval comes before the side effect — never after</li><li><b>Apply the single-threaded write with one trace ID</b> — one trace ID crosses every handoff so the operation is reconstructable</li></ol><p>Budget precedes structure, fan-out covers only independent reads, results merge before any side effect, the approval gate sits before the write, and one trace ID crosses every handoff.</p></details>
+</div>
 
       <section class="step" data-diagram="0" data-step="4"><div class="tag">Correlation</div><h2>One trace ID crosses every handoff</h2><p>Carry a trace ID through coordinator, worker, model, and tool spans. Add an agent name, handoff ID, parent span, attempt, and policy decision as attributes; put large prompts or sensitive content behind controlled references, not into ordinary logs. Structured logs answer what happened; the trace answers in what order and under whose decision. A failure must resolve to a specific span and owner.</p></section>
 
@@ -162,12 +171,6 @@
         <strong>unique identifiers with uniqueness constraints</strong>, so the same real-world entity cannot sneak in
         twice as two nodes — duplicates silently split your graph's connectivity, and every downstream traversal pays
         for it.</p>
-        <div class="ix-future">
-          <div class="k">Interactive — future goal</div>
-          <p>Planned: a schema-builder panel — paste three sentences describing a client domain, highlight the nouns and
-          verbs, and watch them assemble into a labeled property-graph schema you can then test against sample use-case
-          questions. Needs backend standup.</p>
-        </div>
       </section>
 
       <section class="legacy-step" data-diagram="0" data-step="3">
@@ -249,12 +252,6 @@
         retrieval modes: semantic "find me things like this" <em>and</em> structural "now walk the connections." That
         combination is the hinge the next section swings on.</p>
         </details>
-        <div class="ix-future">
-          <div class="k">Interactive — future goal</div>
-          <p>Planned: a live Cypher console against a small seeded movie graph — create a vector index with a filterable
-          tenant property, run Cypher 25 <code>MATCH … SEARCH</code> with an in-search filter, and inspect the returned
-          nodes and similarity scores. Needs backend standup.</p>
-        </div>
       </section>
 
       <section class="legacy-step" data-diagram="0" data-step="6">
@@ -307,12 +304,6 @@
         relationships are specific and directed. Every hour you spent on schema design in section three was retrieval
         engineering in disguise. <strong>Schema quality determines retrieval quality.</strong> That is the sentence to
         carry out of today.</p>
-        <div class="ix-future">
-          <div class="k">Interactive — future goal</div>
-          <p>Planned: a Text2Cypher playground — type a natural-language question, see the LLM-generated Cypher and the
-          executed results side by side, then vandalize the schema (rename <code>ACTED_IN</code> to
-          <code>RELATED_TO</code>) and watch the generated query degrade. Needs backend standup.</p>
-        </div>
       </section>
 
       <section class="legacy-step extra" data-diagram="0" data-step="7">
@@ -563,6 +554,7 @@ window.QUIZ = {id:"w04-d4",title:"Operating-envelope check",questions:[{type:"sc
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20261014-c1"></script>
+<script src="../../assets/js/lesson-activities.js?v=20261030-lx2"></script>
 <script src="../../assets/js/interactive.js?v=20261030-a11y"></script>
 <script src="../../assets/js/glossary.js?v=20261014-c1"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>

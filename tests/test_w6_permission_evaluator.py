@@ -193,7 +193,7 @@ class Week6PermissionEvaluatorTests(unittest.TestCase):
         for filename in PAGES:
             with self.subTest(page=filename):
                 result = subprocess.run(
-                    [CHROME, "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
+                    [CHROME, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
                      "--allow-file-access-from-files", "--virtual-time-budget=3000", "--dump-dom",
                      (ROOT / "weeks" / "w06" / filename).as_uri()],
                     text=True, capture_output=True, timeout=40,
@@ -344,7 +344,7 @@ BROWSER_TEST_SCRIPT = textwrap.dedent(r"""
 const {spawn}=require('child_process'),fs=require('fs'),os=require('os'),path=require('path'),{pathToFileURL}=require('url');
 const [chrome,root]=process.argv.slice(1);
 const profile=fs.mkdtempSync(path.join(os.tmpdir(),'w6-perm-'));
-const proc=spawn(chrome,['--headless=new','--remote-debugging-port=0',`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--disable-gpu','--allow-file-access-from-files','about:blank'],{stdio:['ignore','ignore','pipe']});
+const proc=spawn(chrome,['--headless=new','--disable-background-networking','--no-pings','--disable-quic','--proxy-server=http://127.0.0.1:9','--host-resolver-rules=MAP * ~NOTFOUND','--remote-debugging-port=0',`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--disable-gpu','--allow-file-access-from-files','about:blank'],{stdio:['ignore','ignore','pipe']});
 const cleanup=()=>{try{proc.kill('SIGKILL')}catch(e){}try{fs.rmSync(profile,{recursive:true,force:true})}catch(e){}};
 const wsUrl=new Promise((resolve,reject)=>{let buf='';proc.stderr.on('data',d=>{buf+=d;const m=buf.match(/DevTools listening on (ws:\S+)/);if(m)resolve(m[1])});proc.on('exit',()=>reject(new Error('chrome exited: '+buf)));setTimeout(()=>reject(new Error('chrome start timeout')),30000)});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));

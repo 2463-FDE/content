@@ -20,8 +20,8 @@
     return [{ label: "Dated Week " + week + " Day " + day + " research record", href: "../../docs/research/w" + String(week).padStart(2, "0") + "/w" + String(week).padStart(2, "0") + "d" + day + ".md" }].concat(sources || []);
   }
   var project = Object.freeze({
-    label: "Project 2 · team of 2–3 · regional banking/payments",
-    context: "Continue the banking/payments system inherited at the Week 6 handover. ADR-P2-001 already records one team-primary cloud for shared implementation work. Each member's personal AWS, GCP, or Both reading view remains independent and may show the other provider as comparison depth.",
+    label: "Project 2 · Morrowfield Payment Control · team of 2–3 · fde-payments-service-platform",
+    context: "Continue the Morrowfield Payment Control payments system inherited at the Week 6 handover. ADR-P2-001 already records one team-primary cloud for shared implementation work. Each member's personal AWS, GCP, or Both reading view remains independent and may show the other provider as comparison depth.",
     adrHref: "../../docs/templates/team-primary-cloud-adr.md"
   });
   var src = {
@@ -51,7 +51,7 @@
       week: 7, day: 1, phase: "Production AI Systems", title: "Terraform foundations and plan discipline",
       project: project,
       concepts: ["iac-judgement", "terraform-providers-resources", "terraform-state", "terraform-plan", "terraform-lifecycle"],
-      summary: "Begin the infrastructure-as-code workstream over the inherited banking/payments system. Apply the Week 6 team-primary-cloud ADR, decide what belongs in declarative infrastructure, protect state, and treat a plan as review evidence rather than permission to change anything.",
+      summary: "Begin the infrastructure-as-code workstream over the inherited Morrowfield Payment Control system. Apply the Week 6 team-primary-cloud ADR, decide what belongs in declarative infrastructure, protect state, and treat a plan as review evidence rather than permission to change anything.",
       sections: [
         ["Choose IaC before choosing syntax", "Infrastructure as code is valuable when an environment must be reviewable, repeatable, versioned, and recoverable. It is not automatically the right tool for every one-off action. Start with the client outcome and ownership: which infrastructure objects must exist, which team owns their lifecycle, what evidence must survive, and how will a reviewer detect unintended deletion or replacement? Declarative configuration states a desired result; imperative automation states steps. Terraform is strongest for modeled infrastructure objects. Ansible is strongest for reviewed configuration steps on known targets. The boundary prevents a provisioner script from becoming an invisible second control plane."],
         ["Read provider, resource, and data boundaries", "A provider plugin exposes resource types and data sources. A resource block asks Terraform to manage an object's lifecycle; a data source reads information without taking ownership of that object's lifecycle. Provider requirements, versions, aliases, and authentication assumptions belong in review. Variables describe inputs and outputs expose selected results, but neither is a safe place to smuggle secrets into logs. In the inert exercise, learners inspect an AWS and Google provider shape only to compare responsibility and hierarchy. They use no account, credential, endpoint, provider download, or API call."],
@@ -59,10 +59,34 @@
         ["Make the plan the review surface", "A plan is a proposed change set. Read every action symbol, resource address, provider, replacement reason, unknown value, dependency and output. Ask what is being created, updated, replaced, forgotten or destroyed; then connect each action to cost, security, availability and client consequence. A saved plan can separate review from a later authorized apply, but plan files may contain sensitive data and need artifact controls. This lesson produces only an illustrative plan transcript. It never runs Terraform and never treats a green plan as approval."],
         ["Model lifecycle and teardown before build", "Lifecycle thinking begins before creation. Name import and adoption, replacement triggers, dependency ordering, deletion protection, data retention, state migration and ownership handoff. A destroy command is still an apply-mode operation, not cleanup magic. The learner writes a teardown and recovery checklist but executes nothing. The checklist includes preconditions, excluded durable data, approval authority, expected plan evidence, stop conditions, post-change verification, and state backup handling. This keeps a temporary exercise from teaching irreversible habits."],
         ["Keep configuration management separate", "Terraform provisioners exist, but first-party guidance treats them as a last resort because Terraform cannot model arbitrary commands as resources. Host and application configuration deserves its own inventory, idempotence, change and rollback evidence. This week therefore follows provision then configure: Terraform models infrastructure boundaries; Ansible configures approved targets. The split is judgement, not dogma. If a managed image or service removes configuration work, record that simplification rather than forcing Ansible into the diagram."],
-        ["Apply the Week 6 Project 2 infrastructure ADR", "Project 2's banking/payments team inherits the RAG, agent, graph, Kafka, evaluation, and decision artifacts handed over in Week 6, including the prior client-system idempotency gap rather than relabeling it as a Week 5 issue. Validate the existing ADR-P2-001 against the infrastructure scope and retain explicit AWS/GCP comparison seams. If new evidence challenges it, supersede the decision with a recorded flip condition; do not silently create a second primary. The ADR names state and configuration boundaries, cost and identity unknowns, and the fact that no infrastructure is authorized here." ]
+        ["Apply the Week 6 Project 2 infrastructure ADR", "Project 2's Morrowfield Payment Control team inherits the RAG, agent, graph, Kafka, evaluation, and decision artifacts handed over in Week 6, including the prior client-system idempotency gap rather than relabeling it as a Week 5 issue. Validate the existing ADR-P2-001 against the infrastructure scope and retain explicit AWS/GCP comparison seams. If new evidence challenges it, supersede the decision with a recorded flip condition; do not silently create a second primary. The ADR names state and configuration boundaries, cost and identity unknowns, and the fact that no infrastructure is authorized here." ]
       ],
       optional: [["Optional depth — inert HCL reading", "Review a trainer-supplied configuration fragment and annotate provider requirements, resources, data sources, variables, outputs and state-sensitive values. Do not initialize providers or run commands."]],
       drill: { prompt: "A reviewed plan proposes replacing a database because one immutable argument changed. What should happen next?", options: ["Approve because the plan completed successfully", "Stop and connect the replacement to data, downtime, rollback, and authorization evidence", "Move the resource into a data source so Terraform stops managing it"], answer: 1, feedback: "A successful plan only exposes the proposal. Replacement consequence and authority still require human review." },
+      visualLede: "The delivery-control boundary below shows where state, plan review, and the blocked apply seam sit.",
+      activities: [
+        { "at": 3, "type": "evidence", "title": "What justifies stopping before apply?",
+          "intro": "A reviewed plan proposes replacing the payment database because one immutable argument changed. Select the artifacts that actually justify stopping.",
+          "claim": "This plan proposes a destructive replacement that needs consequence review before any apply.",
+          "why": "Only the plan's own action lines expose the replacement and the data consequence; a clean validate and a fluent summary say nothing about what would be destroyed.",
+          "artifacts": [
+            { "id": "action", "label": "Plan action line", "body": "-/+ resource \"aws_db_instance\" \"ledger\" (forces replacement)\n      engine_version: \"14.9\" -> \"16.2\"", "probative": true, "why": "forces replacement means destroy-and-recreate — the data, downtime, and rollback questions start here" },
+            { "id": "summary", "label": "Plan summary", "body": "Plan: 1 to add, 0 to change, 1 to destroy.", "probative": true, "why": "the destroy count confirms the replacement is a real proposed deletion, not an in-place update" },
+            { "id": "validate", "label": "terraform validate", "body": "Success! The configuration is valid.", "probative": false, "why": "validate checks syntax and internal consistency — it cannot see consequence" },
+            { "id": "ai", "label": "AI review note", "body": "Summary: routine engine upgrade, low risk.", "probative": false, "why": "a fluent summary that omits the replacement is exactly why humans own completeness" }
+          ] },
+        { "at": 4, "type": "order", "title": "Order the lifecycle-safe change workflow",
+          "intro": "Arrange the Day 1 change discipline so a reviewer could follow it.",
+          "why": "Contracts precede plans, plans precede consequence review, and apply authority lives in a separately controlled context with verification after.",
+          "items": [
+            { "id": "contract", "label": "Record the desired objects, owners, and state/access design", "why": "without the contract there is nothing to review a plan against" },
+            { "id": "plan", "label": "Produce the plan and read every action symbol and address", "why": "the plan is the review surface — a proposed change set, not permission" },
+            { "id": "consequence", "label": "Connect replacements to data, downtime, rollback, and authority", "why": "a successful plan only exposes the proposal; consequence review is human work" },
+            { "id": "apply", "label": "A separately authorized context applies the reviewed plan identity", "why": "apply is blocked in this exercise — approval belongs to the exact plan artifact" },
+            { "id": "verify", "label": "Verify post-change health and back up state", "why": "lifecycle thinking ends with evidence, not with the apply exit code" }
+          ],
+          "correct": ["contract", "plan", "consequence", "apply", "verify"] }
+      ],
       goals: ["Choose IaC from lifecycle and ownership needs.", "Explain provider, resource, data, state, plan and lifecycle boundaries.", "Apply and, only with new evidence, supersede the Week 6 team-primary-cloud ADR without provisioning."],
       deliverable: "Commit an annotated plan transcript, state/access design, teardown/recovery checklist, and validation note for the inherited Week 6 ADR-P2-001.",
       checks: [
@@ -92,6 +116,33 @@
       ],
       optional: [["Optional depth — plan annotation matrix", "Classify each illustrative plan action by owner, consequence, evidence needed, rollback path and approval role. Keep generated reviewer notes in a separate column from human disposition."]],
       drill: { prompt: "An AI reviewer says a 300-line plan is low risk, but its summary does not mention two replacements. What is the defensible response?", options: ["Approve because the model evaluated the whole file", "Ask the model for a shorter summary", "Reject the summary as approval evidence and review the replacement actions directly"], answer: 2, feedback: "AI can propose review leads. Human reviewers own completeness and consequence." },
+      visualLede: "Keep the module/state boundaries below in view: drift and review questions attach to specific owned seams.",
+      activities: [
+        { "at": 3, "type": "fault", "title": "Triage the drift finding",
+          "intro": "A refresh-only plan shows one security-group rule that configuration never declared. Probe the evidence, then name what the drift actually is.",
+          "symptom": "Refresh-only plan: ingress rule 10.8.0.0/16 → port 5432 exists remotely but not in configuration.",
+          "probes": [
+            { "id": "refresh", "label": "Refresh-only output", "result": "one added ingress rule; no other differences — isolated change, not mass drift" },
+            { "id": "changelog", "label": "Incident channel log", "result": "on-call added a temporary DB access rule at 02:14 during the payment-posting incident" },
+            { "id": "owner", "label": "Ownership map", "result": "platform team owns security groups; incident remediation requires config backport within 48h" }
+          ],
+          "suspects": [
+            { "id": "unauthorized", "label": "Unauthorized manual edit", "why": "the incident log shows authorized emergency work — blame is the wrong frame and erases evidence" },
+            { "id": "emergency", "label": "Emergency incident work awaiting config backport", "why": "classified, owned drift: preserve the incident evidence and decide whether configuration or the remote object changes" },
+            { "id": "default", "label": "Provider default value", "why": "providers do not invent ingress rules; defaults explain attribute drift, not new rules" }
+          ],
+          "culprit": "emergency" },
+        { "at": 4, "type": "evidence", "title": "Is the AI summary approval evidence?",
+          "intro": "An AI reviewer calls a 300-line plan low risk. Select the artifacts that support the defensible conclusion.",
+          "claim": "The AI summary is insufficient as approval evidence for this plan.",
+          "why": "The omitted replacements are in the plan itself; the summary's fluency and a passing format check cannot stand in for reading the destructive actions.",
+          "artifacts": [
+            { "id": "grep", "label": "Plan actions (grep 'replace')", "body": "-/+ aws_msk_cluster.events (forces replacement)\n-/+ aws_elasticache_cluster.sessions (forces replacement)", "probative": true, "why": "two replacements exist that the summary never mentioned — completeness failed" },
+            { "id": "sumtext", "label": "AI summary text", "body": "Routine tagging and sizing updates. Low risk.", "probative": true, "why": "comparing the summary against the plan shows exactly what it omitted — that comparison is the evidence" },
+            { "id": "fmt", "label": "terraform fmt check", "body": "All files formatted.", "probative": false, "why": "formatting says nothing about consequence" },
+            { "id": "conf", "label": "Model confidence statement", "body": "I am highly confident in this assessment.", "probative": false, "why": "stated confidence is not evidence; verification against the artifact is" }
+          ] }
+      ],
       goals: ["Design honest module and environment boundaries.", "Explain state-sensitive data and drift review.", "Use AI plan review without transferring approval authority."],
       deliverable: "Commit a module map, environment/state decision, synthetic drift triage, and AI-assisted plan-review record with human dispositions.",
       checks: [
@@ -121,6 +172,34 @@
       ],
       optional: [["Optional depth — check-mode caveat", "Review which trainer-supplied tasks support check mode and where diff output could reveal sensitive template values. Prediction is evidence with limits, not a guarantee."]],
       drill: { prompt: "A playbook uses a shell task to append the same line on every run. What is the first correction?", options: ["Run it only during deployment windows", "Use a state-aware module or explicit guard and test the second run", "Move the command into a handler"], answer: 1, feedback: "Idempotence requires the task to inspect and converge state, then prove repeated runs do not duplicate change." },
+      visualLede: "The configuration seam below is where inventory scope, reviewed playbooks, and the Terraform handoff meet.",
+      activities: [
+        { "at": 2, "type": "params", "title": "Prove idempotence across runs",
+          "intro": "Compare a shell-append task against a state-aware module across first run, unchanged second run, and drift repair.",
+          "controls": [
+            { "key": "task", "label": "Task implementation", "options": [ { "label": "shell: echo line >> config", "value": "shell" }, { "label": "state-aware module (lineinfile-style)", "value": "module" } ] },
+            { "key": "run", "label": "Run", "options": [ { "label": "First run", "value": "first" }, { "label": "Second run (nothing changed)", "value": "second" }, { "label": "After manual drift", "value": "drift" } ] }
+          ],
+          "cases": [
+            { "when": { "task": "shell", "run": "first" }, "out": { "reported": "changed", "file state": "line present once", "verdict": "looks right — by luck" }, "note": "A raw command runs unconditionally; nothing inspected the current state." },
+            { "when": { "task": "shell", "run": "second" }, "out": { "reported": "changed", "file state": "line present twice", "verdict": "broken — duplicated change" }, "note": "The second run should report no unnecessary change; this one duplicated the line." },
+            { "when": { "task": "shell", "run": "drift" }, "out": { "reported": "changed", "file state": "drifted line + appended line", "verdict": "blind — never saw the drift" }, "note": "It appends regardless of the real condition; convergence never happened." },
+            { "when": { "task": "module", "run": "first" }, "out": { "reported": "changed", "file state": "line present once", "verdict": "correct convergence" }, "note": "The module inspected state, found the line missing, and converged." },
+            { "when": { "task": "module", "run": "second" }, "out": { "reported": "ok (no change)", "file state": "line present once", "verdict": "idempotent — the evidence" }, "note": "No unnecessary change under unchanged conditions: this is what the second run must prove." },
+            { "when": { "task": "module", "run": "drift" }, "out": { "reported": "changed", "file state": "drift repaired", "verdict": "correct — changed is right when drift exists" }, "note": "A changed result can be correct; zero change can be wrong when the task never inspected the real condition." }
+          ] },
+        { "at": 6, "type": "order", "title": "Sequence the environment promotion",
+          "intro": "Arrange the promotion chain the estimate must cover.",
+          "why": "Review precedes approval, approval precedes any run, verification precedes evidence — and the rollback rehearsal happens before you need it.",
+          "items": [
+            { "id": "planrev", "label": "Plan review and human approval", "why": "promotion starts from a reviewed proposed change, not from a calendar slot" },
+            { "id": "inventory", "label": "Inventory refresh and configuration check against scope", "why": "the same play against the wrong group is a different operation" },
+            { "id": "firstrun", "label": "First configuration run on the approved targets", "why": "the change itself — bounded by the reviewed contract" },
+            { "id": "verify", "label": "Verification: health evidence plus unchanged second run", "why": "repeated convergence is the idempotence evidence the estimate promised" },
+            { "id": "rollback", "label": "Rollback rehearsal and evidence package", "why": "a handler is not rollback; restoration needs its own tested path and artifacts" }
+          ],
+          "correct": ["planrev", "inventory", "firstrun", "verify", "rollback"] }
+      ],
       goals: ["Define safe inventory and playbook scope.", "Prove idempotence through repeated and drifted cases.", "Design the Terraform-to-Ansible handoff and promotion estimate."],
       deliverable: "Commit synthetic inventory, role/playbook review, first/second/drift run expectations, handler/rollback note, and promotion estimate.",
       checks: [
@@ -150,6 +229,35 @@
       ],
       optional: [["Optional depth — inert workflow excerpt", "Inspect a non-executable YAML fragment with read-only permissions, synthetic fixtures, plan artifact, environment approval, and an explicitly blocked apply job. Identify every authority transition."]],
       drill: { prompt: "All tests pass, but the saved plan identity changed after approval. What should the pipeline do?", options: ["Apply because the configuration commit is unchanged", "Ask the AI reviewer whether the difference matters", "Invalidate approval and require review of the new plan"], answer: 2, feedback: "Approval belongs to the reviewed plan identity. A changed artifact is a new proposed operation." },
+      visualLede: "The gate chain below is the pipeline that can say no — each seam marks who or what owns the refusal.",
+      activities: [
+        { "at": 1, "type": "order", "title": "Order the delivery gates",
+          "intro": "Arrange the Day 4 pipeline so cheap, reproducible checks screen work before expensive judgement, and authority arrives last.",
+          "why": "Deterministic checks are faster and more reproducible than model judgement; plans are generated after validation and protected; approval binds to the exact artifact; apply stays in a separately controlled context.",
+          "items": [
+            { "id": "determ", "label": "Deterministic validation: format, schema, unit tests, policy", "why": "fast reproducible checks run first — they reduce cost and ambiguity before semantic evaluation" },
+            { "id": "security", "label": "Security scanning with redacted findings", "why": "secret scanning must redact matched values in learner-visible output" },
+            { "id": "plan", "label": "Plan generation and protected artifact storage", "why": "plan comes after validation and may contain sensitive proposed values" },
+            { "id": "aieval", "label": "AI evaluation on pinned, versioned fixtures with independent floors", "why": "an aggregate score can hide a safety regression; critical metrics get their own floors" },
+            { "id": "approve", "label": "Human approval bound to the plan identity", "why": "a changed artifact is a new proposed operation — approval does not transfer" },
+            { "id": "apply", "label": "Apply boundary — blocked in this environment", "why": "apply belongs to a separately controlled context, never to an AI agent or unreviewed PR" }
+          ],
+          "correct": ["determ", "security", "plan", "aieval", "approve", "apply"] },
+        { "at": 4, "type": "fault", "title": "Find the authority leak",
+          "intro": "A deployment secret was readable from a job triggered by an untrusted fork PR. Probe the workflow, then name the failing boundary.",
+          "symptom": "A fork PR's job log shows an environment variable from the deployment environment.",
+          "probes": [
+            { "id": "perms", "label": "Workflow permissions block", "result": "permissions: write-all · event: pull_request_target · secrets passed to all jobs" },
+            { "id": "envrev", "label": "Environment protection", "result": "deployment environment has no required reviewers" },
+            { "id": "fixtures", "label": "Evaluation fixtures", "result": "pinned at v14; unchanged for 3 weeks" }
+          ],
+          "suspects": [
+            { "id": "identity", "label": "CI identity and permission boundary", "why": "untrusted pull-request code must not receive deployment secrets; least-privilege permissions and environment reviewers are the control that failed" },
+            { "id": "reviewer", "label": "The AI plan reviewer", "why": "the AI reviewer proposes findings; it neither granted nor could grant secret access" },
+            { "id": "fixturesS", "label": "Stale evaluation fixtures", "why": "fixtures gate quality, not credential exposure" }
+          ],
+          "culprit": "identity" }
+      ],
       goals: ["Order deterministic, security, drift and AI-evaluation gates.", "Constrain CI identity and AI assistance.", "Tie approval, rollback, and evidence to immutable artifacts."],
       deliverable: "Commit an inert CI/CD workflow model, gate contract, synthetic results, approval boundary, and rollback/evidence checklist.",
       checks: [
@@ -169,7 +277,7 @@
       concepts: ["project2-infrastructure", "multi-provider-root", "teardown-rebuild", "environment-promotion", "iac-readout"],
       summary: "Close Week 7 by defending how Project 2 would be provisioned, configured, promoted, rolled back, and rebuilt. Preserve one team-primary-cloud ADR and explicit bi-cloud seams while delivering only static, synthetic evidence.",
       sections: [
-        ["Inherit instead of restarting", "The regional banking/payments Project 2 team industrializes the system accepted at the Week 6 handover: service contracts, evaluation harness, graph and vector data boundaries, Kafka payment-event contract, ADRs and decision history. The infrastructure package cites those identities rather than drawing a generic platform. Team ownership divides into application/eventing, platform and reliability or security lanes, but one integrator owns the evidence chain. Any missing inherited fact becomes a dated assumption, not a convenient new architecture."],
+        ["Inherit instead of restarting", "The Morrowfield Payment Control Project 2 team industrializes the system accepted at the Week 6 handover: service contracts, evaluation harness, graph and vector data boundaries, Kafka payment-event contract, ADRs and decision history. The infrastructure package cites those identities rather than drawing a generic platform. Team ownership divides into application/eventing, platform and reliability or security lanes, but one integrator owns the evidence chain. Any missing inherited fact becomes a dated assumption, not a convenient new architecture."],
         ["Defend the primary-cloud ADR", "Each team defends the one primary cloud recorded during the Week 6 handover. ADR-P2-001 states workload, data boundary, identity model, state backend design, provider/module layout, cost unknowns, lock-in surface and flip conditions. The source also includes AWS serving and GCP ingestion in one multi-provider root. Treat that as a reviewed architecture alternative with explicit provider aliases and provider-native child modules—not a reason to split the team's primary architecture or overwrite a member's personal AWS/GCP/Both reading view."],
         ["Join provisioning and configuration evidence", "The proposed Terraform plan identifies objects and relationships. The proposed Ansible run identifies target groups, configuration changes, handler effects and unchanged second-run evidence. Link them through a narrow non-secret handoff rather than copying state. Show which version of each artifact belongs together and how an operator verifies the environment after both stages. A green configuration summary cannot excuse an unexpected infrastructure replacement; each layer keeps its own review."],
         ["Rehearse teardown and rebuild on paper", "The source calls for a teardown and rebuild drill. Here the team performs a deterministic tabletop: inventory durable data and exclusions, freeze change, capture state and configuration identities, predict the destroy plan, stop before execution, sequence a hypothetical rebuild, restore or reattach data, run health and evaluation checks, and compare evidence. The exercise records every command as inert pseudocode and labels all cloud actions prohibited. Its value is discovering hidden manual steps, not proving an estate was rebuilt."],
@@ -179,6 +287,30 @@
       ],
       optional: [["Optional depth — two-provider topology review", "Trace provider aliases, root-to-child passing, separate state and identity assumptions, and the exact facts that prevent one cloud's resource model from being hidden behind the other."]],
       drill: { prompt: "The cross-cloud identity design is unresolved on Friday. What preserves the delivery honestly?", options: ["Use long-lived example keys and rotate them after the demo", "Claim both providers are supported because the modules validate", "Ship the static primary-cloud package and record the cross-cloud seam as a dated blocked addendum"], answer: 2, feedback: "A bounded fallback preserves schedule and evidence without inventing identity or provisioning anything." },
+      visualLede: "The full Project 2 delivery boundary below is the artifact the readout defends.",
+      activities: [
+        { "at": 3, "type": "order", "title": "Run the teardown/rebuild tabletop",
+          "intro": "Arrange the Day 5 tabletop so hidden manual steps surface before anything would ever be destroyed.",
+          "why": "Durable data is inventoried before anything is frozen, identities are captured before prediction, and the drill's value is the discovered dependency list — not a destroyed estate.",
+          "items": [
+            { "id": "datainv", "label": "Inventory durable data and explicit exclusions", "why": "what must survive is decided before any destroy is even predicted" },
+            { "id": "freeze", "label": "Freeze change; capture state and configuration identities", "why": "rebuild evidence needs exact artifact versions that belong together" },
+            { "id": "predict", "label": "Predict the destroy plan — and stop before execution", "why": "every command stays inert pseudocode; cloud actions are prohibited" },
+            { "id": "rebuild", "label": "Sequence the hypothetical rebuild and data reattachment", "why": "ordering exposes the hidden manual steps the drill exists to find" },
+            { "id": "checks", "label": "Run health and evaluation checks; compare evidence", "why": "a rebuild claim is only as good as the comparison evidence" }
+          ],
+          "correct": ["datainv", "freeze", "predict", "rebuild", "checks"] },
+        { "at": 5, "type": "evidence", "title": "What belongs in the Friday readout?",
+          "intro": "Select the artifacts that make the executive and technical readouts defensible.",
+          "claim": "The infrastructure package is ready for a two-audience readout.",
+          "why": "Both rooms get the same truth: a defended ADR with flip conditions and an honestly marked unresolved seam. Validation success and module parity claims are not delivery evidence.",
+          "artifacts": [
+            { "id": "adr", "label": "ADR-P2-001 with flip conditions", "body": "primary: team cloud · flip: sustained egress > threshold or identity federation blocked past date X", "probative": true, "why": "the defense is a chain from requirement to mechanism to flip condition" },
+            { "id": "addendum", "label": "Dated blocked addendum for cross-cloud identity", "body": "cross-cloud seam: BLOCKED pending trainer-confirmed identity facts · owner + revisit date recorded", "probative": true, "why": "an honestly marked unresolved seam preserves schedule without inventing configuration" },
+            { "id": "validate", "label": "terraform validate success", "body": "Success! The configuration is valid.", "probative": false, "why": "syntax validity is not readiness evidence" },
+            { "id": "parity", "label": "Claim: both providers supported", "body": "modules validate against aws and google providers", "probative": false, "why": "validating modules is not support; pretending both clouds are one abstraction erases the decision" }
+          ] }
+      ],
       goals: ["Defend inherited Project 2 infrastructure and one primary-cloud ADR.", "Join plan, configuration, promotion, rollback, and rebuild evidence.", "Hand an observable ownership map into Week 8."],
       deliverable: "Commit the Project 2 IaC/configuration package: ADR, module/provider map, illustrative plan, Ansible evidence, promotion gates, rebuild tabletop, rollback, and two-audience readout.",
       checks: [
@@ -207,6 +339,27 @@
       ],
       optional: [["Optional depth — preserved reviewed history", "The previous observability research, including corrected dates and attribution for historical judge studies, remains in docs/research/w08/archive-observability-v1/. It is evidence context, not a current-model guarantee."]],
       drill: { prompt: "Latency is healthy, but grounded-answer quality is below its agreed SLO and the budget is exhausted. What should the team do?", options: ["Keep releasing because infrastructure signals are green", "Follow the agreed error-budget action for the quality SLO", "Average latency and quality into one passing score"], answer: 1, feedback: "A quality SLO is an operating promise. Healthy latency cannot average away a spent quality budget." },
+      visualLede: "The evidence path below carries every signal this day defines — from model, agent, tool, and Kafka work into one reliability decision.",
+      activities: [
+        { "at": 3, "type": "params", "title": "Negotiate the SLO, then read its budget",
+          "intro": "Pick a target for the grounded-answer SLO over a 28-day window and compare what each choice actually promises.",
+          "controls": [ { "key": "target", "label": "SLO target", "options": [ { "label": "99%", "value": "99" }, { "label": "99.9%", "value": "999" }, { "label": "100%", "value": "100" } ] } ],
+          "cases": [
+            { "when": { "target": "99" }, "out": { "28-day error budget": "~6.7 hours of bad events", "operating room": "real room for change and experiments", "consequence": "needs an agreed budget action when consumed" }, "note": "A target chosen from user need and failure response — not from today's convenient average." },
+            { "when": { "target": "999" }, "out": { "28-day error budget": "~40 minutes of bad events", "operating room": "tight; slow rollouts, strong review", "consequence": "every incident consumes a visible slice" }, "note": "Higher targets trade delivery speed for stability; product, engineering, and on-call must agree on the response." },
+            { "when": { "target": "100" }, "out": { "28-day error budget": "zero", "operating room": "none — permanent emergency", "consequence": "prevents useful change or institutionalizes breach" }, "note": "A 100% objective usually prevents useful change or creates permanent emergency — the lesson's own warning." }
+          ] },
+        { "at": 2, "type": "evidence", "title": "Is this quality SLI defensible?",
+          "intro": "The team proposes 'grounded-answer rate' as a quality SLI. Select the artifacts that make it measurable rather than a guess.",
+          "claim": "Grounded-answer rate is a defensible quality SLI for this path.",
+          "why": "A quality SLI needs a valid-event denominator and a testable good-event rule — the versioned query set and the denominator rule provide exactly that; self-ratings and vendor charts do not.",
+          "artifacts": [
+            { "id": "fixtures", "label": "Versioned query set with labeled evidence", "body": "queries v7 · 142 cases · each with expected relevant passages · review date recorded", "probative": true, "why": "a reviewable evaluation contract: the good-event rule is testable against labeled evidence" },
+            { "id": "denom", "label": "Valid-event denominator rule", "body": "denominator = answered requests with eligible retrieval scope; exclusions listed", "probative": true, "why": "a proportion of good events needs an explicit denominator or the number is unanchored" },
+            { "id": "selfconf", "label": "Model self-confidence scores", "body": "avg self-rating: 8.9/10", "probative": false, "why": "model confidence does not define correctness" },
+            { "id": "vendor", "label": "Vendor dashboard 'quality' metric", "body": "quality index: 94", "probative": false, "why": "an unreviewable definition cannot be an operating promise" }
+          ] }
+      ],
       goals: ["Define AI service signals from client outcome.", "Write a measurable SLI/SLO and error-budget action.", "Defend cost, latency, quality, and privacy tradeoffs."],
       deliverable: "Commit a signal dictionary, one negotiated SLO, error-budget policy, cost guard, and ownership map for a Project 2 path.",
       checks: [
@@ -235,6 +388,27 @@
       ],
       optional: [["Optional depth — payload capture decision", "Write a separate review for any proposal to record messages or retrieved content: purpose, minimization, consent or authority, access, retention, deletion, residency, redaction test and incident path."]],
       drill: { prompt: "A team exports traces to two backends through one Collector, but one backend drops evaluation-policy version. Is the setup portable?", options: ["Yes, because both accept OTLP", "No; transport works, but semantic and query portability are incomplete", "Yes, if trace IDs match"], answer: 1, feedback: "OTLP transport is only one layer. Field, retention, query, alert, and evaluation behavior must be tested." },
+      visualLede: "The telemetry route below — boundaries, Collector, exports — is where every decision in this lesson physically lives.",
+      activities: [
+        { "at": 1, "type": "trace", "title": "Follow one operation through the telemetry pipeline",
+          "intro": "Step a single payment-path operation across signals and watch where portability survives — and where it quietly breaks.",
+          "steps": [
+            { "label": "Service span opens at the boundary", "state": [ ["trace", "root span: payments.advise (service.version v41)"], ["metrics", "request counter +1"], ["logs", "none yet"] ], "note": "Stable service name, environment, and version ride on all three signals." },
+            { "label": "Model span records the inference", "state": [ ["trace", "+ model span: duration 2.1s · tokens in/out recorded"], ["metrics", "token histograms updated"], ["logs", "none — no payload is captured by default"] ], "note": "GenAI conventions are Development status: the schema version is pinned and recorded." },
+            { "label": "Collector processes the batch", "state": [ ["pipeline", "batch → redact → export ×2"], ["dropped", "high-cardinality debug attribute removed"], ["residency", "export stays in-boundary"] ], "note": "Every processor is a data-handling decision: sampling can hide rare incidents, enrichment adds cardinality." },
+            { "label": "Backend A ingests the full record", "state": [ ["fields kept", "all, incl. evaluation-policy version"], ["query", "can alert on policy version change"] ], "note": "This backend preserves the semantic fields the incident review needs." },
+            { "label": "Backend B drops a semantic field", "state": [ ["fields kept", "all EXCEPT evaluation-policy version"], ["query", "cannot distinguish policy-driven refusals"], ["portability", "transport ✓ · semantics ✗"] ], "note": "OTLP transport worked everywhere — and portability still failed. That is the drill's answer, observed." }
+          ] },
+        { "at": 3, "type": "tradeoff", "title": "Decide the payload-capture policy",
+          "intro": "The team wants faster debugging. Choose the span-content policy for the payments path.",
+          "prompt": "What do spans capture by default?",
+          "dims": [ "Debuggability", "Privacy & retention", "Residency & cost" ],
+          "options": [
+            { "label": "Capture prompts, outputs, and retrieved content in spans", "outcome": { "Debuggability": "highest — everything inline", "Privacy & retention": "trace store becomes a second sensitive data store", "Residency & cost": "payload export can cross residency boundaries; ingestion cost grows" }, "defensible": false, "why": "a useful trace answers what happened and where without copying client payloads into telemetry" },
+            { "label": "Metadata-only by default; governed, reviewed path for any payload capture", "outcome": { "Debuggability": "strong — identifiers, versions, durations, links", "Privacy & retention": "default-safe; payload capture needs purpose, authority, retention, deletion", "Residency & cost": "bounded; export decisions stay reviewable" }, "defensible": true, "why": "correlation does not require payload capture; the separate review (purpose, minimization, access, retention) is the honest route" },
+            { "label": "Sample 100% of everything to one backend", "outcome": { "Debuggability": "high until retention limits hit", "Privacy & retention": "unreviewed copies of everything", "Residency & cost": "highest cost; single-backend lock-in deepens" }, "defensible": false, "why": "sampling, enrichment, and export are data-handling decisions — maximalism is not a policy" }
+          ] }
+      ],
       goals: ["Assign traces, metrics, and logs distinct jobs.", "Model GenAI and agent work with pinned conventions and private defaults.", "Design drift and backend-portability evidence."],
       deliverable: "Commit an OTel signal map, Collector pipeline design, GenAI span/metric contract, drift register, and backend portability matrix.",
       checks: [
@@ -263,6 +437,35 @@
       ],
       optional: [["Optional depth — correlation cardinality", "Classify candidate attributes by usefulness and cardinality. Keep unbounded user text and unique payload values out of metric labels; use trace search or governed logs for high-cardinality investigation."]],
       drill: { prompt: "A Kafka consumer retries one event three times after the producer span ended. Which correlation is most honest?", options: ["Reuse the producer span as parent for every retry and hide attempts", "Create visible consumer attempts linked by trace context and stable event identity", "Use the Kafka offset as the trace ID"], answer: 1, feedback: "Asynchronous attempts stay visible while trace context and event identity preserve causality." },
+      visualLede: "The correlation chain below is the map for the bad-answer investigation: HTTP, Kafka, agent, retrieval, model, guardrail, logs.",
+      activities: [
+        { "at": 6, "type": "fault", "title": "Trace the bad answer to its cause",
+          "intro": "A user saw a degraded fallback. HTTP says 200. Probe the spans and logs, then name the causal boundary.",
+          "symptom": "Groundedness failed on a fluent answer; the user received the degraded fallback; provider latency is healthy.",
+          "probes": [
+            { "id": "retrieval", "label": "Retrieval span", "result": "collection policy-docs@v9 (was v8 this morning) · results for required policy passage: 0" },
+            { "id": "model", "label": "Model span", "result": "normal duration · fluent completion · no provider error" },
+            { "id": "guard", "label": "Guardrail event", "result": "groundedness policy v3: FAIL → degrade action (per policy)" },
+            { "id": "deploy", "label": "Change log", "result": "retrieval index version bumped v8 → v9 at 09:12, before the first failure" }
+          ],
+          "suspects": [
+            { "id": "modelS", "label": "Model generation", "why": "'the model hallucinated' omits the system cause: it answered fluently from missing evidence" },
+            { "id": "retrievalS", "label": "Retrieval after the index version change", "why": "the required policy passage stopped being returned at v9 — the causal span, confirmed by the change log; prevention and detection belong here" },
+            { "id": "guardS", "label": "Guardrail policy", "why": "the guardrail worked: it caught the unsupported answer and routed to the degraded path" },
+            { "id": "kafkaS", "label": "Kafka duplicate context", "why": "no duplicate-delivery evidence appears in any probe" }
+          ],
+          "culprit": "retrievalS" },
+        { "at": 5, "type": "evidence", "title": "Which alert is actionable?",
+          "intro": "Select the alert designs that let a human act before user impact becomes unacceptable.",
+          "claim": "These alerts are actionable operating signals.",
+          "why": "An actionable alert carries consequence, segment, budget state, a representative trace link, and a runbook owner — and telemetry failure alerts separately so silence is never mistaken for health.",
+          "artifacts": [
+            { "id": "good", "label": "Freshness SLO page", "body": "oldest accepted doc 12m > SLO 10m · segment: payment advisories · budget: 40% left · trace: <link> · runbook: reliability owner", "probative": true, "why": "consequence, segment, budget, evidence, and owner — a human can act on this" },
+            { "id": "telem", "label": "Telemetry-failure ticket", "body": "collector export errors 3% over 15m · separate channel from service alerts", "probative": true, "why": "alerting on telemetry failure separately keeps silence from masquerading as health" },
+            { "id": "refusal", "label": "Page on every guardrail refusal", "body": "page when refusals > 0", "probative": false, "why": "policy-correct refusal can be reliability success; page on unexpected rate or segment behavior instead" },
+            { "id": "lagzero", "label": "Any nonzero lag for one scrape", "body": "page when lag > 0", "probative": false, "why": "no consequence, no duration, no owner — noise that trains people to ignore pages" }
+          ] }
+      ],
       goals: ["Correlate HTTP, Kafka, agent, model, tool, and log evidence.", "Design consequence-led dashboards and actionable alerts.", "Explain a bad answer as a reproducible causal chain."],
       deliverable: "Commit a correlation contract, structured-log schema, dashboard/alert specification, and synthetic bad-answer root-cause record.",
       checks: [
@@ -291,6 +494,33 @@
       ],
       optional: [["Optional depth — historical judge corrections", "Read archive-observability-v1/w07d2.md for the full 2023 study attribution, position/verbosity/self-preference discussion, and PR12 corrections. Reuse the conclusions; do not restamp historical results as current product performance."]],
       drill: { prompt: "A guardrail reduces unsupported answers but doubles false refusals for one client segment. What is the correct response?", options: ["Average both metrics and ship if the total score passes", "Disable the guardrail for that segment without review", "Expose both outcomes, investigate the segment, and use the approved degrade/escalate path"], answer: 2, feedback: "Separate harm and false-block metrics. Authority and evidence decide policy changes." },
+      visualLede: "The control chain below — evals, guardrails, retries, circuit, degraded path — is what today's drills exercise.",
+      activities: [
+        { "at": 3, "type": "params", "title": "Bound the retry, or amplify the outage",
+          "intro": "Pick a failure class and a retry policy; compare what reaches the dependency and the user.",
+          "controls": [
+            { "key": "failure", "label": "Failure class", "options": [ { "label": "Transient timeout", "value": "transient" }, { "label": "Overload (429)", "value": "overload" }, { "label": "Permanent input failure", "value": "permanent" } ] },
+            { "key": "policy", "label": "Retry policy", "options": [ { "label": "Unbounded immediate retries", "value": "unbounded" }, { "label": "Bounded backoff + circuit breaker", "value": "bounded" } ] }
+          ],
+          "cases": [
+            { "when": { "failure": "transient", "policy": "unbounded" }, "out": { "dependency load": "spiky bursts", "user outcome": "usually recovers", "hidden cost": "attempt count invisible if not tracked" }, "note": "It works until the day the failure is not transient — the policy was never the reason it worked." },
+            { "when": { "failure": "transient", "policy": "bounded" }, "out": { "dependency load": "controlled", "user outcome": "recovers within deadline", "hidden cost": "attempts visible in logical-operation latency" }, "note": "Deadline, attempt limit, backoff, and retryable categories: the Day 4 contract." },
+            { "when": { "failure": "overload", "policy": "unbounded" }, "out": { "dependency load": "amplified — retry storm", "user outcome": "worse for everyone", "hidden cost": "saturation plus cost surge" }, "note": "Retries amplify overload when unbounded; this is how one failure becomes an outage." },
+            { "when": { "failure": "overload", "policy": "bounded" }, "out": { "dependency load": "circuit opens; calls stop", "user outcome": "controlled fallback via degraded path", "hidden cost": "half-open probes track recovery" }, "note": "The circuit contains availability failure — it does not validate model output." },
+            { "when": { "failure": "permanent", "policy": "unbounded" }, "out": { "dependency load": "pointless repeated work", "user outcome": "stuck behind a poison input", "hidden cost": "budget burned on a failure retries cannot fix" }, "note": "Permanent failures need classification and quarantine, not persistence." },
+            { "when": { "failure": "permanent", "policy": "bounded" }, "out": { "dependency load": "one classified failure", "user outcome": "explicit refusal or review path", "hidden cost": "none — the failure is evidence now" }, "note": "Classification is the first retry decision: transient and permanent failures must not share a policy." }
+          ] },
+        { "at": 4, "type": "evidence", "title": "Judge the guardrail with the right signals",
+          "intro": "The new guardrail changed two outcomes at once. Select the evidence the reliability decision needs.",
+          "claim": "The guardrail decision needs segment-level signals, not one blended score.",
+          "why": "Harm reduction and false blocks are separate metrics with separate owners; averaging them into one passing score hides exactly the tradeoff the decision is about.",
+          "artifacts": [
+            { "id": "harm", "label": "Unsupported-answer rate, overall", "body": "unsupported answers: 4.1% → 0.9% after policy v3", "probative": true, "why": "the guardrail's benefit, measured on its own axis" },
+            { "id": "segment", "label": "False-refusal rate by segment", "body": "claims-adjuster segment: false refusals 2% → 4.2% (doubled)", "probative": true, "why": "the harm to one client-critical segment — the signal that triggers the approved degrade/escalate path" },
+            { "id": "avg", "label": "Blended quality score", "body": "combined score: 93 (passing)", "probative": false, "why": "one aggregate can hide a safety regression — critical metrics need independent floors" },
+            { "id": "praise", "label": "Provider release notes", "body": "guardrails now stronger than ever", "probative": false, "why": "marketing is not measurement" }
+          ] }
+      ],
       goals: ["Join offline and online evaluation evidence.", "Observe guardrails, retries, circuits, and degraded modes.", "Make reliability decisions from separate signals and human authority."],
       deliverable: "Commit an evaluation loop, guardrail signal contract, retry/circuit/degradation design, deterministic failure drill, and decision record.",
       checks: [
@@ -319,6 +549,32 @@
       ],
       optional: [["Optional depth — blameless learning review", "Record contributing conditions, detection and response gaps, successful defenses, corrective actions, owners and verification. Avoid both individual blame and vague 'process failed' language."]],
       drill: { prompt: "After a retrieval-version change, groundedness fails while provider latency stays healthy. The previous index is compatible. What is the best first mitigation?", options: ["Increase model retries", "Roll back the index pointer under the runbook and verify groundedness plus freshness", "Disable groundedness alerts until the new index warms"], answer: 1, feedback: "The evidence points to retrieval, and the compatible pointer rollback has defined verification." },
+      visualLede: "Keep the full reliability boundary below in sight during the incident: it is the map the timeline and runbook walk.",
+      activities: [
+        { "at": 1, "type": "order", "title": "Run the incident in order",
+          "intro": "Arrange the Week 8 incident response so evidence leads and authority stays visible.",
+          "why": "Declaration precedes debugging, the timeline separates fact from inference, the runbook branch follows evidence, and the readout carries decisions — not charts.",
+          "items": [
+            { "id": "declare", "label": "Declare: user consequence, scope, severity, owner, breached SLO", "why": "an incident begins with consequence and ownership, not with a favorite query" },
+            { "id": "timeline", "label": "Build one timeline from correlated signals, facts apart from inference", "why": "missing telemetry is part of the timeline; gaps are never filled with plausible stories" },
+            { "id": "branch", "label": "Choose the runbook branch the evidence supports", "why": "branches exist for backlog, retrieval regression, provider saturation, policy shift, telemetry outage" },
+            { "id": "decide", "label": "Decide rollback, degrade, or forward repair — with verification", "why": "'revert the commit' is not a strategy; compatibility and verification define the choice" },
+            { "id": "readout", "label": "Two-audience readout with budget impact and follow-up owner", "why": "the client receives evidence for a reliability decision, not a wall of charts" }
+          ],
+          "correct": ["declare", "timeline", "branch", "decide", "readout"] },
+        { "at": 3, "type": "params", "title": "Burn rate chooses the urgency",
+          "intro": "Pair the budget burn rate with traffic volume and pick the response the policy prescribes.",
+          "controls": [
+            { "key": "burn", "label": "Burn rate", "options": [ { "label": "Fast (≈14× budget rate)", "value": "fast" }, { "label": "Slow (≈1× budget rate)", "value": "slow" } ] },
+            { "key": "traffic", "label": "Traffic", "options": [ { "label": "Normal volume", "value": "normal" }, { "label": "Very low volume", "value": "low" } ] }
+          ],
+          "cases": [
+            { "when": { "burn": "fast", "traffic": "normal" }, "out": { "response": "page — active incident response", "reasoning": "budget exhausts in hours, users are affected now", "caveat": "pair with consequence before acting" }, "note": "Fast exhaustion at real volume is what multiwindow page rules exist for." },
+            { "when": { "burn": "fast", "traffic": "low" }, "out": { "response": "verify counts before paging", "reasoning": "one failure can dominate a tiny denominator", "caveat": "pair ratios with raw counts and user consequence" }, "note": "Low traffic can make burn rate scream while almost nobody is affected — counts decide." },
+            { "when": { "burn": "slow", "traffic": "normal" }, "out": { "response": "ticket — trend investigation", "reasoning": "budget consumption is real but not urgent", "caveat": "cost and quality budgets may burn independently" }, "note": "Slow consumption suits scheduled work, not a 03:00 page." },
+            { "when": { "burn": "slow", "traffic": "low" }, "out": { "response": "ticket with widened window", "reasoning": "neither speed nor volume justifies interruption", "caveat": "watch for the segment an average hides" }, "note": "The exercise teaches which action follows from policy — not one universal threshold." }
+          ] }
+      ],
       goals: ["Reconstruct an AI incident from correlated evidence.", "Use a runbook and error-budget policy to choose action.", "Defend rollback/degradation and reliability decisions to two audiences."],
       deliverable: "Commit the Week 8 reliability package: incident timeline, representative signal set, SLO/budget state, runbook branch, rollback/degrade evidence, residual risks, and two-audience readout.",
       checks: [
@@ -334,7 +590,7 @@
   };
 
   var teamEvidence = {
-    w08d1: ["SRE-08-01 signal and SLO register", "Reliability owner", "The inherited synthetic banking/payments path has latency, correctness or quality, cost, population, window, threshold, budget action, and service owner.", "A teammate recomputes the synthetic SLI and reaches the recorded budget action."],
+    w08d1: ["SRE-08-01 signal and SLO register", "Reliability owner", "The inherited synthetic Morrowfield payments path has latency, correctness or quality, cost, population, window, threshold, budget action, and service owner.", "A teammate recomputes the synthetic SLI and reaches the recorded budget action."],
     w08d2: ["SRE-08-02 telemetry and drift contract", "Telemetry owner", "Trace, metric, log, evaluation, drift, privacy, version, retention, and backend-portability rows each name evidence and owner.", "A reviewer reconstructs one operation without prompt, payment, credential, or client payload."],
     w08d3: ["SRE-08-03 correlation and alert record", "Incident evidence owner", "HTTP, Kafka, agent, retrieval, model, tool, guardrail, and safe business correlation produce one causal chain and owned alert.", "A teammate traces the synthetic bad answer from symptom to changed retrieval evidence."],
     w08d4: ["SRE-08-04 reliability-control ADR", "Reliability control owner", "Retry, circuit, guardrail, evaluation, degrade, and recovery rules name trigger, expected signal, stop condition, owner, and rollback.", "A peer runs one synthetic failure through the selected control and verifies the user outcome."],

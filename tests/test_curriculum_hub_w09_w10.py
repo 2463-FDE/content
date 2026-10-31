@@ -171,7 +171,7 @@ class CurriculumHubTransferTests(unittest.TestCase):
             result = subprocess.run(
                 [
                     chrome,
-                    "--headless=new",
+                    "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND",
                     "--disable-gpu",
                     "--no-first-run",
                     "--no-default-browser-check",
@@ -198,7 +198,7 @@ class CurriculumHubTransferTests(unittest.TestCase):
             hub_result = subprocess.run(
                 [
                     chrome,
-                    "--headless=new",
+                    "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND",
                     "--disable-gpu",
                     "--no-first-run",
                     "--no-default-browser-check",
@@ -299,7 +299,7 @@ document.body.appendChild(frame);
             result = subprocess.run(
                 [
                     chrome,
-                    "--headless=new",
+                    "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND",
                     "--disable-gpu",
                     "--no-first-run",
                     "--no-default-browser-check",
@@ -407,7 +407,7 @@ document.body.appendChild(frame);
             result = subprocess.run(
                 [
                     chrome,
-                    "--headless=new",
+                    "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND",
                     "--disable-gpu",
                     "--no-first-run",
                     "--no-default-browser-check",
@@ -481,7 +481,7 @@ run(0);
             result = subprocess.run(
                 [
                     chrome,
-                    "--headless=new",
+                    "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND",
                     "--disable-gpu",
                     "--no-first-run",
                     "--no-default-browser-check",
@@ -523,7 +523,7 @@ run(0);
             result = subprocess.run(
                 [
                     chrome,
-                    "--headless=new",
+                    "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND",
                     "--disable-gpu",
                     "--no-first-run",
                     "--no-default-browser-check",
@@ -582,7 +582,7 @@ measure(0);
             result = subprocess.run(
                 [
                     chrome,
-                    "--headless=new",
+                    "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND",
                     "--disable-gpu",
                     "--no-first-run",
                     "--no-default-browser-check",

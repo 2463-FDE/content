@@ -113,7 +113,7 @@ class Weeks57ProductionWaveTest(unittest.TestCase):
                     self.assertLessEqual(lesson["p"]["requiredMinutes"], 30)
                     self.assertEqual(
                         lesson["project"]["label"],
-                        "Project 2 · team of 2–3 · regional banking/payments",
+                        "Project 2 · Morrowfield Payment Control · team of 2–3 · fde-payments-service-platform",
                     )
                     self.assertIn("ADR-P2-001", lesson["project"]["context"])
                     self.assertIn("personal AWS, GCP, or Both", lesson["project"]["context"])
@@ -196,9 +196,9 @@ load(Object.entries(pages),0);
             self.assertNotIn("team of 2–3", rendered[key]["project"])
         for key in ("w6start", "w6close", "w7start", "w7close"):
             self.assertIn("team of 2–3", rendered[key]["project"])
-            self.assertIn("regional banking/payments", rendered[key]["project"])
+            self.assertIn("Morrowfield Payment Control", rendered[key]["project"])
             self.assertIn("docs/templates/team-primary-cloud-adr.md", rendered[key]["adr"])
-        self.assertIn("Form the Project 2 banking/payments team", rendered["w6start"]["text"])
+        self.assertIn("Form the Morrowfield Payment Control team", rendered["w6start"]["text"])
         self.assertIn("Apply the Week 6 Project 2 infrastructure ADR", rendered["w7start"]["text"])
 
         hub_text = rendered["hub"]["text"]
@@ -210,8 +210,8 @@ load(Object.entries(pages),0);
         self.assertEqual(positions, sorted(positions))
         self.assertIn("Team handover + Kafka foundations", hub_text)
         trainer_text = rendered["trainer"]["text"]
-        self.assertIn("Week 5 solo insurance", trainer_text)
-        self.assertIn("Week 6 banking/payments team handover + Kafka", trainer_text)
+        self.assertIn("Week 5 solo Juniper Vale Mutual insurance", trainer_text)
+        self.assertIn("Week 6 Morrowfield payments team handover + Kafka", trainer_text)
         self.assertIn("Week 7 Terraform + Ansible", trainer_text)
         trainer_links = dict(rendered["trainer"]["links"])
         self.assertIn("Demo team handover + Kafka", trainer_links)

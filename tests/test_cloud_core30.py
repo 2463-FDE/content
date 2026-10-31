@@ -36,8 +36,12 @@ class CloudCore30(unittest.TestCase):
                     count = re.search(r"· (\d+) interactions? ·", label)
                     self.assertIsNotNone(count, label)
                     self.assertEqual(int(count.group(1)), m["interactions"])
+                    # The 2026-10-30 learning-experience correction adds up to
+                    # two substantive activities per day beside the base
+                    # practice(s); depth >=2 per route is enforced by
+                    # test_learning_experience.py.
                     self.assertGreaterEqual(m["interactions"], 1)
-                    self.assertLessEqual(m["interactions"], 2)
+                    self.assertLessEqual(m["interactions"], 4)
                     self.assertEqual(m["stray_widgets"], [], "live widgets on the required path must be the declared interaction")
                     check = re.search(r"· (\d+)-Q check", label)
                     self.assertIsNotNone(check, label)

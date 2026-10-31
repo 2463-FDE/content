@@ -57,7 +57,7 @@ load(Object.entries(pages), 0);
             encoding="utf-8",
         )
         result = subprocess.run(
-            [chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+            [chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
              "--no-default-browser-check", "--allow-file-access-from-files",
              f"--user-data-dir={Path(tmp) / 'profile'}", f"--virtual-time-budget={budget}",
              "--dump-dom", harness.as_uri()],
@@ -244,7 +244,7 @@ class PlatformCore30Test(unittest.TestCase):
                 self.assertFalse(page["unavailable"])
                 lesson = self.lessons[day_id]
                 self.assertIn("Core 30", page["meta"])
-                self.assertIn("1 interaction", page["meta"])
+                self.assertIn(f"{lesson['_pacing']['interactions']} interactions", page["meta"])
                 self.assertIn("6-Q check", page["meta"])
                 self.assertIn(f"~{lesson['_pacing']['requiredMinutes']} min required", page["meta"])
                 self.assertEqual(page["drills"], 1)
@@ -310,7 +310,7 @@ class PlatformCore30Test(unittest.TestCase):
         for route, mode, flags in cases:
             with self.subTest(route=route.stem, mode=mode), tempfile.TemporaryDirectory() as profile:
                 result = subprocess.run(
-                    [chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                    [chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                      "--no-default-browser-check", f"--user-data-dir={profile}",
                      "--allow-file-access-from-files", "--virtual-time-budget=2000",
                      *flags, "--dump-dom", route.as_uri()],
@@ -328,7 +328,7 @@ class PlatformCore30Test(unittest.TestCase):
         with tempfile.TemporaryDirectory() as profile:
             route = ROOT / "weeks/w08/w08d5.html"
             result = subprocess.run(
-                [chrome, "--headless=new", "--disable-gpu", "--disable-javascript",
+                [chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--disable-javascript",
                  "--no-first-run", "--no-default-browser-check", f"--user-data-dir={profile}",
                  "--allow-file-access-from-files", "--dump-dom", route.as_uri()],
                 text=True, capture_output=True, timeout=40,
@@ -379,7 +379,7 @@ load(Object.entries(pages), 0);
                 encoding="utf-8",
             )
             result = subprocess.run(
-                [chrome, "--headless=new", "--disable-gpu", "--no-first-run",
+                [chrome, "--headless=new", "--disable-background-networking", "--no-pings", "--disable-quic", "--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-gpu", "--no-first-run",
                  "--no-default-browser-check", "--allow-file-access-from-files",
                  f"--user-data-dir={Path(tmp) / 'profile'}", "--virtual-time-budget=9000",
                  "--dump-dom", harness.as_uri()],
@@ -395,8 +395,13 @@ load(Object.entries(pages), 0);
             self.assertIn("AI Observability", rendered[surface]["text"], surface)
         self.assertNotIn("Week 7 Observability, SRE & Guardrails", rendered["hub"]["text"])
         self.assertNotIn("Week 8 Security, Governance & Responsible AI", rendered["hub"]["text"])
-        self.assertIn("Safe-Harbor", rendered["client9h"]["text"])
-        self.assertIn("adverse-action-reason gap", rendered["client9f"]["text"])
+        # Old healthcare/finance deep links must land honestly on the active
+        # Week 9 engagement (Morrowfield owns Weeks 6-10) with its governance
+        # evidence anchors, not on a retired client case.
+        for legacy in ("client9h", "client9f"):
+            self.assertIn("Morrowfield Payment Control", rendered[legacy]["text"], legacy)
+            self.assertIn("GOV-09-03", rendered[legacy]["text"], legacy)
+            self.assertIn("SEC-09-01", rendered[legacy]["text"], legacy)
         self.assertIn("Security, Governance & Responsible AI", rendered["alt9"]["text"])
         self.assertIn("Week 8 made the inherited system operable", rendered["week9"]["text"])
         links = [urlparse(link).path for link in rendered["week9"]["links"]]

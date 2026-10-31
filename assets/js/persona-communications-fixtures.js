@@ -1,7 +1,7 @@
-/* Local synthetic Riverbend/Meridian communication fixtures.
+/* Local synthetic Juniper Vale / Morrowfield communication fixtures.
    This is the sole scenario-truth source for both chat and simulated email.
-   Facts are learner-visible adaptations of current client-delivery packets; the
-   unresolved historical stakeholder positions are intentionally not activated. */
+   Facts are learner-visible adaptations of the current client-delivery packets
+   for the two active brownfield engagements; no other client case is active. */
 (function (root, factory) {
   var fixtures = factory();
   if (typeof module === "object" && module.exports) module.exports = fixtures;
@@ -25,139 +25,139 @@
   }
 
   var scenarios = {
-    riverbend: freezeScenario({
-      id: "riverbend",
-      projectLabel: "Riverbend Community Health",
-      projectPhase: "Legacy modernization · healthcare",
-      technicalLeadLabel: "Riverbend IT lead",
-      stakeholderLabel: "Riverbend operations sponsor",
-      intro: "Practice communicating about patient-intake reliability, evidence, privacy boundaries, and a safe handoff.",
+    "juniper-vale": freezeScenario({
+      id: "juniper-vale",
+      projectLabel: "Juniper Vale Mutual · Loss Desk",
+      projectPhase: "Legacy modernization · P&C insurance · solo · Weeks 1–5",
+      technicalLeadLabel: "Juniper Vale claims-platform lead",
+      stakeholderLabel: "Juniper Vale claims operations sponsor",
+      intro: "Practice communicating about claimant-data boundaries, intake availability, defensible agent decisions, and dispute evidence.",
       facts: {
+        logging: {
+          label: "Claimant-data boundary",
+          source: "client-delivery.html · Juniper Vale Week 1",
+          text: "Every FNOL submission writes the claimant's name, policy number, and injury notes into a plain INFO log, while the README simply asserts the system is compliant.",
+          businessOutcome: "keep claimant identity and injury details out of logs, prompts, and shared drives",
+          safeStep: "redact request bodies, log event metadata only, and prove the redaction with a synthetic claim"
+        },
+        fragmentation: {
+          label: "Fragmented claimant history",
+          source: "client-delivery.html · Juniper Vale Week 2",
+          text: "One claimant exists as three policyholder IDs created by self-service FNOL with no match key, so the prior-surgery record appears in only one of her files.",
+          businessOutcome: "give adjusters one complete claimant history before trusting any retrieval answer",
+          safeStep: "measure duplicate rate and fragment coverage in the eval harness, then propose a claimant match key"
+        },
         availability: {
           label: "Intake availability",
-          source: "client-delivery.html · Riverbend Week 3",
-          text: "A synchronous payer eligibility call without a timeout froze the entire intake screen for about 20 minutes.",
-          businessOutcome: "keep patient registration available when a dependency slows down",
-          safeStep: "time-bound the dependency, preserve an intake fallback, and show the failure path with synthetic evidence"
+          source: "client-delivery.html · Juniper Vale Week 3",
+          text: "A synchronous coverage call with no timeout sat on the intake request path, so one slow legacy dependency froze the whole FNOL screen for twenty minutes in ticket JV-141.",
+          businessOutcome: "keep claim registration available while the legacy coverage service degrades",
+          safeStep: "give the coverage tool an explicit deadline, bounded retries, and a degraded answer path"
         },
-        scheduling: {
-          label: "Scheduling correctness",
-          source: "client-delivery.html · Riverbend Week 5",
-          text: "Two near-simultaneous synthetic requests both confirmed slot 88231; the path has no idempotency key, transaction, or uniqueness rule.",
-          businessOutcome: "prevent a slot from being confirmed twice",
-          safeStep: "pair an idempotency contract with a transactional or database-enforced uniqueness boundary"
+        defense: {
+          label: "Agent-architecture defense",
+          source: "client-delivery.html · Juniper Vale Week 4",
+          text: "The board saw a nine-agent vendor demo with no budget or failure story, while incident JV-203 shows parallel writers already left 61 claims in conflicting states once.",
+          businessOutcome: "give the board a defensible agent decision priced against the ten-cents-per-claim ceiling",
+          safeStep: "map reads versus writes, keep claim-state writes single-threaded with one owner, and record the flip condition"
         },
-        privacy: {
-          label: "Patient-data boundary",
-          source: "client-delivery.html · Riverbend Week 9",
-          text: "The synthetic summary path includes name, date of birth, medical-record number, and notes, and no vendor agreement is assumed.",
-          businessOutcome: "show exactly what could leave the patient-data boundary before any wider rollout",
-          safeStep: "draw the data flow, minimize the payload, test the scrub, and keep the work local"
-        },
-        reliability: {
-          label: "Summary reliability",
-          source: "client-delivery.html · Riverbend Week 8",
-          text: "A successful HTTP response can still contain an unsupported, incomplete, refused, or degraded summary, so quality evidence is separate from uptime.",
-          businessOutcome: "detect an unsafe or degraded summary before staff rely on it",
-          safeStep: "use labeled synthetic outcomes, payload-free telemetry, and an explicit degrade-or-refuse branch"
-        },
-        handoff: {
-          label: "Handoff boundary",
-          source: "client-delivery.html · Riverbend Week 10",
-          text: "Release work is planning and local rehearsal only; a defensible handoff needs rollback conditions, runbooks, owners, and explicit pending items.",
-          businessOutcome: "leave Riverbend with an operable package rather than a one-time showcase",
-          safeStep: "rehearse the runbook locally and name every owner, open risk, and rollback trigger"
+        disputes: {
+          label: "Dispute evidence chain",
+          source: "client-delivery.html · Juniper Vale Week 5",
+          text: "Dispute JV-D-31 cites policy P-4 without a version although the disputed exclusion clause changed between versions 3 and 4, and citations live in a free-text column.",
+          businessOutcome: "reconstruct any disputed claim decision in minutes with its exact policy version and decider",
+          safeStep: "model Case–CITES–Policy with provenance on every citation and a uniqueness constraint before any import"
         }
       },
-      factOrder: ["availability", "scheduling", "privacy", "reliability", "handoff"],
+      factOrder: ["logging", "fragmentation", "availability", "defense", "disputes"],
       topicRules: [
-        { factId: "availability", words: ["intake", "payer", "timeout", "freeze", "latency", "available", "availability"] },
-        { factId: "scheduling", words: ["schedule", "slot", "booking", "double-book", "idempotency", "transaction", "unique"] },
-        { factId: "privacy", words: ["phi", "patient", "privacy", "vendor", "data", "scrub", "agreement"] },
-        { factId: "reliability", words: ["summary", "grounded", "unsupported", "quality", "guardrail", "telemetry", "slo"] },
-        { factId: "handoff", words: ["handoff", "release", "demo", "rollback", "runbook", "owner", "operate"] }
+        { factId: "logging", words: ["log", "pii", "redact", "privacy", "claimant", "injury", "secret", "compliant"] },
+        { factId: "fragmentation", words: ["duplicate", "retrieval", "rag", "history", "fragment", "match", "gold", "embedding"] },
+        { factId: "availability", words: ["timeout", "freeze", "coverage", "intake", "availability", "outage", "latency"] },
+        { factId: "defense", words: ["agent", "multi-agent", "budget", "board", "vendor", "parallel", "triage", "supervisor"] },
+        { factId: "disputes", words: ["dispute", "graph", "version", "citation", "audit", "neo4j", "provenance"] }
       ],
       chatPrompts: [
-        "Can we promise the intake path will never fail again?",
-        "What is the smallest safe scope if the sponsor wants a demo this week?",
-        "I disagree that a dashboard is enough. How should I push back?"
+        "Can we promise the intake screen will never freeze again?",
+        "What is the smallest safe scope if the board wants an agent demo this week?",
+        "I disagree that the README's compliance sentence is enough. How should I push back?"
       ],
       seedThread: {
-        id: "riverbend-seed",
+        id: "juniper-vale-seed",
         subject: "What I need from the next update",
         status: "replied",
         messages: [
-          { from: "stakeholder", at: FIXTURE_EPOCH - 3600000, text: "Please frame the next update around what changes for front-desk staff and what remains simulated." },
+          { from: "stakeholder", at: FIXTURE_EPOCH - 3600000, text: "Please frame the next update around what changes for Loss Desk adjusters and what remains simulated." },
           { from: "learner", at: FIXTURE_EPOCH - 3300000, text: "I will separate the local evidence from any rollout claim and name the next decision." },
           { from: "stakeholder", at: FIXTURE_EPOCH - 2400000, text: "That works. Include the owner and the condition that would pause or reverse the plan." }
         ]
       }
     }),
 
-    meridian: freezeScenario({
-      id: "meridian",
-      projectLabel: "Meridian Lending Co.",
-      projectPhase: "Platform engagement · lending and payments",
-      technicalLeadLabel: "Meridian platform engineering lead",
-      stakeholderLabel: "Meridian lending operations sponsor",
-      intro: "Practice communicating about money correctness, decision evidence, regulated-data boundaries, and an operable handoff.",
+    morrowfield: freezeScenario({
+      id: "morrowfield",
+      projectLabel: "Morrowfield Payment Control",
+      projectPhase: "Platform engagement · payments services · team of 2–3 · Weeks 6–10",
+      technicalLeadLabel: "Morrowfield payments-platform lead",
+      stakeholderLabel: "Morrowfield payment operations sponsor",
+      intro: "Practice communicating about event ordering and money correctness, reviewable infrastructure, actionable telemetry, governance evidence, and a reversible handoff.",
       facts: {
-        payments: {
-          label: "Payment correctness",
-          source: "client-delivery.html · Meridian Week 5",
-          text: "A slow synthetic payment request was retried 410 milliseconds later and both attempts inserted because the request has no idempotency key.",
-          businessOutcome: "stop one intended payment from being applied twice",
-          safeStep: "use a stable payment identity and enforce duplicate safety before any money-affecting side effect"
+        ordering: {
+          label: "Payment ordering and idempotency",
+          source: "client-delivery.html · Morrowfield Week 6",
+          text: "Three teams re-poll the payments database for the same facts, and the hard rule from finance is that one payment's events must never be processed out of order or posted twice.",
+          businessOutcome: "keep one payment's events ordered and applied exactly once across every consumer",
+          safeStep: "key the event stream by payment identity and pair replay with an idempotent apply plus a DLQ contract"
         },
-        decisions: {
-          label: "Decision evidence",
-          source: "client-delivery.html · Meridian Week 3",
-          text: "Synthetic denials reuse a generic “purchasing history” reason, while the decision record omits model drivers, version, and timestamp.",
-          businessOutcome: "make each synthetic denial specific, reproducible, and reviewable",
-          safeStep: "persist versioned decision evidence and test reason mapping before discussing wider use"
+        drift: {
+          label: "Reviewable infrastructure",
+          source: "client-delivery.html · Morrowfield Week 7",
+          text: "Incident MP-312 traced a prod failure to a config value staging never had, the fix was applied by SSH and never recorded, and the inherited playbook appends the same line every run.",
+          businessOutcome: "make payment infrastructure the team can review, rebuild, and roll back on paper",
+          safeStep: "prove idempotence with first, second, and drift runs and bind the named human approval to the exact plan identity"
         },
-        data: {
-          label: "Regulated-data boundary",
-          source: "client-delivery.html · Meridian Weeks 1 and 5",
-          text: "The inherited fixtures show card and identity fields in logs and storage; this simulation uses redacted synthetic placeholders only.",
-          businessOutcome: "keep regulated payload out of logs, traces, graph properties, and model context",
-          safeStep: "define tokenized identities and payload-free observability before connecting the evidence path"
+        observability: {
+          label: "Actionable telemetry",
+          source: "client-delivery.html · Morrowfield Week 8",
+          text: "The dashboards stayed green for a week in which finance logged four stale-advice incidents, and the auditors now read telemetry configs, so client payloads must stay out of whatever is recorded.",
+          businessOutcome: "surface freshness, correctness, and cost breaches before finance or a merchant notices",
+          safeStep: "define consequence-led signals with payload-free telemetry and an owner for every error-budget action"
         },
-        reconciliation: {
-          label: "Reconciliation evidence",
-          source: "client-delivery.html · Meridian Week 8",
-          text: "HTTP success does not prove ledger and settlement agree, and reason quality is a separate signal from money correctness.",
-          businessOutcome: "detect a reconciliation break or reason-quality failure before finance or an applicant does",
-          safeStep: "pair deterministic ledger-versus-settlement checks with versioned labeled reason tests"
+        security: {
+          label: "Governance evidence",
+          source: "client-delivery.html · Morrowfield Week 9",
+          text: "An injected instruction inside an uploaded document made a sandbox assistant echo another merchant's reservation data, while the one service token holds read-and-update on every merchant account.",
+          businessOutcome: "turn every control claim into evidence a reviewer can replay",
+          safeStep: "gate the external sink, scope the tool per operation with caller propagation, and retest the denial on synthetic fixtures"
         },
         handoff: {
-          label: "Handoff boundary",
-          source: "client-delivery.html · Meridian Week 10",
-          text: "Release work is planning and local rehearsal only; the receiving team needs rollback conditions, runbooks, owners, and explicit pending evidence.",
-          businessOutcome: "leave Meridian with an operable package rather than a board-only demonstration",
-          safeStep: "run the package locally from the README and record open risks, owners, and flip conditions"
+          label: "Reversible handoff",
+          source: "client-delivery.html · Morrowfield Week 10",
+          text: "The rehearsal report describes a candidate that no longer exists after a later merge, and the runbook's rollback plan is one sentence with no prior-version identity or drill evidence.",
+          businessOutcome: "hand operations a release they can reverse at two in the morning without calling us",
+          safeStep: "pin the prior version, rerun affected checks against the shipped candidate, and drill the rollback with recovery verification"
         }
       },
-      factOrder: ["payments", "decisions", "data", "reconciliation", "handoff"],
+      factOrder: ["ordering", "drift", "observability", "security", "handoff"],
       topicRules: [
-        { factId: "payments", words: ["payment", "duplicate", "charge", "retry", "idempotency", "money", "balance"] },
-        { factId: "decisions", words: ["decision", "denial", "reason", "model", "scorer", "applicant", "audit"] },
-        { factId: "data", words: ["pan", "cvv", "ssn", "privacy", "data", "token", "log", "trace"] },
-        { factId: "reconciliation", words: ["reconcile", "settlement", "ledger", "quality", "slo", "alert", "correctness"] },
-        { factId: "handoff", words: ["handoff", "release", "demo", "rollback", "runbook", "owner", "operate"] }
+        { factId: "ordering", words: ["kafka", "event", "order", "partition", "duplicate", "replay", "idempotency", "payment", "ledger", "reconciliation"] },
+        { factId: "drift", words: ["terraform", "ansible", "drift", "plan", "state", "apply", "infrastructure", "rebuild"] },
+        { factId: "observability", words: ["dashboard", "slo", "telemetry", "alert", "freshness", "observability", "signal", "stale"] },
+        { factId: "security", words: ["injection", "privilege", "token", "governance", "threat", "red-team", "obligation", "evidence"] },
+        { factId: "handoff", words: ["handoff", "rollback", "rehearsal", "runbook", "showcase", "release", "owner", "rollout"] }
       ],
       chatPrompts: [
-        "The sponsor wants the scorer across more products. How do I respond?",
+        "The sponsor wants the advise assistant on more merchant products. How do I respond?",
         "Can we call the payment work done if every API returns 200?",
         "Help me negotiate a smaller milestone without sounding obstructive."
       ],
       seedThread: {
-        id: "meridian-seed",
+        id: "morrowfield-seed",
         subject: "Keep the update outcome-focused",
         status: "replied",
         messages: [
-          { from: "stakeholder", at: FIXTURE_EPOCH - 3600000, text: "For the next update, tell me what finance or an applicant would notice, not only which services changed." },
-          { from: "learner", at: FIXTURE_EPOCH - 3300000, text: "I will tie each control to a money-correctness or decision-evidence outcome and state what remains pending." },
+          { from: "stakeholder", at: FIXTURE_EPOCH - 3600000, text: "For the next update, tell me what finance or a merchant would notice, not only which services changed." },
+          { from: "learner", at: FIXTURE_EPOCH - 3300000, text: "I will tie each control to a money-correctness or evidence outcome and state what remains pending." },
           { from: "stakeholder", at: FIXTURE_EPOCH - 2400000, text: "Good. Include the evidence that would stop a wider rollout and who owns the next decision." }
         ]
       }
@@ -167,7 +167,7 @@
   Object.freeze(scenarios);
 
   return Object.freeze({
-    version: 1,
+    version: 2,
     fixtureEpoch: FIXTURE_EPOCH,
     minReplyMinutes: MIN_REPLY_MINUTES,
     maxReplyMinutes: MAX_REPLY_MINUTES,

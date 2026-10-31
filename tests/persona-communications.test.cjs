@@ -204,10 +204,10 @@ function projectThread(state, projectId, fields, now, id) {
   return thread;
 }
 
-for (const projectId of ["riverbend", "meridian"]) {
+for (const projectId of ["juniper-vale", "morrowfield"]) {
   test(`${projectId} chat and email use one fixture-owned truth`, () => {
     const scenario = fixtures.scenarios[projectId];
-    const prompt = projectId === "riverbend"
+    const prompt = projectId === "juniper-vale"
       ? "Can we promise the intake path will never fail again?"
       : "Can we call the payment path done if the API returns 200?";
     const chat = comms.generateChatReply(projectId, prompt);
@@ -221,16 +221,17 @@ for (const projectId of ["riverbend", "meridian"]) {
     assert.match(chat.text, new RegExp(scenario.facts[chat.factId].businessOutcome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.match(email.text, new RegExp(scenario.facts[email.factId].businessOutcome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.equal(chat.role, scenario.technicalLeadLabel);
-    assert.ok(!/\b[A-Z][a-z]+ [A-Z][a-z]+\b/.test(scenario.technicalLeadLabel), "technical lead remains a functional label");
+    assert.match(scenario.technicalLeadLabel, /lead$/, "technical lead remains a functional label");
+    assert.ok(!/(Nadia|Ferreira|Priya|Natarajan)/.test(scenario.technicalLeadLabel), "technical lead is not a named person");
   });
 }
 
 test("chat replies are deterministic and cover clarification, negotiation, and justified pushback", () => {
-  const clarification = comms.generateChatReply("riverbend", "What evidence should I show about the summary?");
-  const negotiation = comms.generateChatReply("riverbend", "Help me negotiate a smaller scope instead.");
-  const pushback = comms.generateChatReply("riverbend", "Promise this will never fail and ship today.");
+  const clarification = comms.generateChatReply("juniper-vale", "What evidence should I show about the dispute chain?");
+  const negotiation = comms.generateChatReply("juniper-vale", "Help me negotiate a smaller scope instead.");
+  const pushback = comms.generateChatReply("juniper-vale", "Promise this will never fail and ship today.");
 
-  assert.deepEqual(clarification, comms.generateChatReply("riverbend", "What evidence should I show about the summary?"));
+  assert.deepEqual(clarification, comms.generateChatReply("juniper-vale", "What evidence should I show about the dispute chain?"));
   assert.equal(clarification.intent, "clarify");
   assert.equal(negotiation.intent, "negotiate");
   assert.equal(pushback.intent, "pushback");
@@ -239,20 +240,20 @@ test("chat replies are deterministic and cover clarification, negotiation, and j
 });
 
 test("built-in pushback and overclaim suggestions route to pushback without broad done/enough matching", () => {
-  const riverbendPrompt = fixtures.scenarios.riverbend.chatPrompts[2];
-  const meridianPrompt = fixtures.scenarios.meridian.chatPrompts[1];
-  assert.equal(comms.generateChatReply("riverbend", riverbendPrompt).intent, "pushback");
-  assert.equal(comms.generateChatReply("meridian", meridianPrompt).intent, "pushback");
-  assert.match(comms.generateChatReply("meridian", meridianPrompt).text, /push back on that commitment/);
+  const insurancePrompt = fixtures.scenarios["juniper-vale"].chatPrompts[2];
+  const paymentsPrompt = fixtures.scenarios.morrowfield.chatPrompts[1];
+  assert.equal(comms.generateChatReply("juniper-vale", insurancePrompt).intent, "pushback");
+  assert.equal(comms.generateChatReply("morrowfield", paymentsPrompt).intent, "pushback");
+  assert.match(comms.generateChatReply("morrowfield", paymentsPrompt).text, /push back on that commitment/);
 
-  assert.equal(comms.generateChatReply("meridian", "What does done look like for reconciliation?").intent, "clarify");
-  assert.equal(comms.generateChatReply("riverbend", "Is the privacy evidence enough for the sponsor?").intent, "clarify");
+  assert.equal(comms.generateChatReply("morrowfield", "What does done look like for reconciliation?").intent, "clarify");
+  assert.equal(comms.generateChatReply("juniper-vale", "Is the privacy evidence enough for the sponsor?").intent, "clarify");
 });
 
 test("email delay is deterministic, inclusive of 15–30 minutes, and reveals only at deliverAt", () => {
   const state = comms.initialState();
   const sentAt = fixtures.fixtureEpoch;
-  const thread = projectThread(state, "meridian", {
+  const thread = projectThread(state, "morrowfield", {
     subject: "Payment evidence",
     body: "Can we agree a smaller milestone with a reconciliation check?"
   }, sentAt, "boundary-thread");
@@ -274,7 +275,7 @@ test("email delay is deterministic, inclusive of 15–30 minutes, and reveals on
 test("injected clock accelerates delayed replies without real waiting", () => {
   const state = comms.initialState();
   const clock = comms.createInjectedClock(fixtures.fixtureEpoch);
-  const thread = projectThread(state, "riverbend", {
+  const thread = projectThread(state, "juniper-vale", {
     subject: "Intake scope",
     body: "I propose a smaller milestone because the intake fallback needs evidence."
   }, clock.now(), "clock-thread");
@@ -293,14 +294,14 @@ test("local persistence uses an opaque identity hash and reset removes only simu
   const storage = new MemoryStorage({ fde_results: "keep", fde_progress_REAL: "keep" });
   const store = comms.createStore(storage, identity);
   const state = store.load();
-  state.selectedProject = "meridian";
+  state.selectedProject = "morrowfield";
   assert.equal(store.save(state), true);
 
-  assert.match(store.key, /^fde_local_synthetic_persona_v1:local-/);
+  assert.match(store.key, /^fde_local_synthetic_persona_v2:local-/);
   assert.ok(!store.key.includes(identity.code));
-  assert.equal(store.load().selectedProject, "meridian");
+  assert.equal(store.load().selectedProject, "morrowfield");
   const reset = store.reset();
-  assert.equal(reset.selectedProject, "riverbend");
+  assert.equal(reset.selectedProject, "juniper-vale");
   assert.equal(storage.getItem("fde_results"), "keep");
   assert.equal(storage.getItem("fde_progress_REAL"), "keep");
   assert.equal(storage.getItem(store.key), null);
@@ -323,8 +324,8 @@ test("includesWord matches whole words only", () => {
   assert.equal(comms.includesWord("never log the pan", "pan"), true);
   assert.equal(comms.includesWord("duplicate payments", "payment"), true);
   assert.equal(comms.includesWord("avoid a double-book", "double-book"), true);
-  assert.equal(comms.selectFact("meridian", "Our company wants to expand the dashboard panel").id === "data", false);
-  assert.equal(comms.selectFact("riverbend", "Explain the delivery philosophy for this quarter").id === "privacy", false);
+  assert.equal(comms.selectFact("morrowfield", "Our company wants to expand the dashboard panel").id, "observability");
+  assert.equal(comms.selectFact("juniper-vale", "Explain the delivery philosophy for this quarter").id === "logging", false);
 });
 
 test("learner-authored markup is rendered as text, never executable HTML", () => {
@@ -387,12 +388,12 @@ test("channel and project tabs follow the keyboard tab pattern through init()", 
   projects[0].dispatch("keydown", { key: "ArrowLeft" });
   assert.equal(page.doc.activeElement, projects[1]);
   assert.deepEqual(projects.map((tab) => tab.getAttribute("aria-selected")), ["false", "true"]);
-  assert.equal(page.$("pc-project-title").textContent, fixtures.scenarios.meridian.projectLabel);
-  assert.equal(page.$("pc-lead-label").textContent, fixtures.scenarios.meridian.technicalLeadLabel);
-  assert.equal(page.$("pc-compose-to").value, fixtures.scenarios.meridian.stakeholderLabel);
+  assert.equal(page.$("pc-project-title").textContent, fixtures.scenarios.morrowfield.projectLabel);
+  assert.equal(page.$("pc-lead-label").textContent, fixtures.scenarios.morrowfield.technicalLeadLabel);
+  assert.equal(page.$("pc-compose-to").value, fixtures.scenarios.morrowfield.stakeholderLabel);
 });
 
-for (const projectId of ["riverbend", "meridian"]) {
+for (const projectId of ["juniper-vale", "morrowfield"]) {
   test(`${projectId} UI chat replies render as text and announce only the latest reply`, () => {
     const page = mountPage({ query: `?simClock=accelerated&project=${projectId}` });
     const scenario = fixtures.scenarios[projectId];
@@ -424,7 +425,7 @@ test("UI compose moves a thread through sent, awaiting, and replied at deliverAt
   page.doc.querySelectorAll("[data-channel-tab]")[1].click();
   withNetworkBlocked(page, () => sendEmail(page, "Rollout boundary", "Can we agree a smaller scope because the intake evidence is pending?"));
 
-  const thread = page.app.state.projects.riverbend.threads.at(-1);
+  const thread = page.app.state.projects["juniper-vale"].threads.at(-1);
   const delayMinutes = (thread.deliverAt - thread.sentAt) / 60000;
   assert.ok(delayMinutes >= 15 && delayMinutes <= 30);
   assert.equal(threadBadge(page).textContent, "Sent");
@@ -445,8 +446,8 @@ test("UI compose moves a thread through sent, awaiting, and replied at deliverAt
   assert.equal(threadBadge(page).textContent, "Replied");
   assert.equal(thread.messages.length, 2);
   assert.equal(thread.messages[1].from, "stakeholder");
-  assert.match(page.$("pc-thread-view").textContent, new RegExp(fixtures.scenarios.riverbend.stakeholderLabel));
-  assert.equal(page.$("pc-inbox-announcer").textContent, `${fixtures.scenarios.riverbend.stakeholderLabel} replied to “Rollout boundary”.`);
+  assert.match(page.$("pc-thread-view").textContent, new RegExp(fixtures.scenarios["juniper-vale"].stakeholderLabel));
+  assert.equal(page.$("pc-inbox-announcer").textContent, `${fixtures.scenarios["juniper-vale"].stakeholderLabel} replied to “Rollout boundary”.`);
   assert.equal(page.$("pc-thread-view").hasAttribute("aria-live"), false);
   assert.deepEqual(page.network, []);
   assert.deepEqual(page.intervals, [], "accelerated mode has no real-time polling");
@@ -462,7 +463,7 @@ test("selecting an inbox thread keeps keyboard focus on the selected row", () =>
   seed.click();
   const rows = threadRows(page);
   const selected = rows.find((row) => row.getAttribute("aria-pressed") === "true");
-  assert.equal(selected.getAttribute("data-thread-id"), "riverbend-seed");
+  assert.equal(selected.getAttribute("data-thread-id"), "juniper-vale-seed");
   assert.equal(page.doc.activeElement, selected);
   assert.ok(page.doc.activeElement.isConnected());
 });
@@ -476,7 +477,7 @@ test("coaching through the UI is formative and writes nothing to grading, progre
   });
   const before = new Map(storage.values);
   const page = mountPage({ storage });
-  sendChat(page, "Thanks. What evidence shows the risk? I propose a narrower scope because patient impact matters.");
+  sendChat(page, "Thanks. What evidence shows the risk? I propose a narrower scope because claimant impact matters.");
   sendEmail(page, "Next review", "The owner will review the included scope next week.");
 
   const writesBeforeCoaching = storage.writes().length;
@@ -487,7 +488,7 @@ test("coaching through the UI is formative and writes nothing to grading, progre
   assert.deepEqual(items.map((item) => item.children[0].textContent), ["Clarity", "Question quality", "Persuasion", "Respectful pushback", "Expectation-setting", "Rapport"]);
   assert.match(page.$("pc-coaching-status").textContent, /Formative only/);
   assert.ok(storage.writes().every(([, key]) => key === page.app.store.key));
-  assert.ok(page.app.store.key.startsWith("fde_local_synthetic_persona_v1:"));
+  assert.ok(page.app.store.key.startsWith("fde_local_synthetic_persona_v2:"));
   for (const [key, value] of before) assert.equal(storage.getItem(key), value);
   assert.deepEqual(page.network, []);
 });
@@ -519,7 +520,7 @@ test("accelerated clock state is isolated from system-clock state", () => {
   assert.equal(system.$("pc-clock-tools").hidden, true);
   assert.notEqual(system.app.store.key, accelerated.app.store.key);
   assert.ok(accelerated.app.store.key.startsWith(system.app.store.key));
-  assert.ok(!system.app.state.projects.riverbend.threads.some((thread) => thread.subject === "Accelerated only"));
+  assert.ok(!system.app.state.projects["juniper-vale"].threads.some((thread) => thread.subject === "Accelerated only"));
 
   system.$("pc-reset").click();
   assert.ok(storage.getItem(accelerated.app.store.key), "system reset leaves accelerated state alone");
@@ -530,4 +531,26 @@ test("system clock mode polls locally for due replies without network access", (
   assert.equal(page.app.clock.mode, "system");
   assert.deepEqual(page.intervals, [30000]);
   assert.deepEqual(page.network, []);
+});
+
+test("retired-scenario v1 state stays stored untouched, is disclosed, and old deep links map to active engagements", () => {
+  const seam = `${LEARNER.code}|${LEARNER.role}`;
+  const legacyKey = `fde_local_synthetic_persona_v1:local-${comms.hashText(seam)}:accelerated`;
+  const legacyValue = JSON.stringify({ version: 1, selectedProject: "retired", projects: {} });
+  const storage = new SpyStorage({ fde_identity: JSON.stringify(LEARNER), [legacyKey]: legacyValue });
+  const page = mountPage({ storage, query: "?simClock=accelerated&project=riverbend" });
+
+  assert.equal(page.app.state.selectedProject, "juniper-vale", "legacy riverbend deep link opens the insurance engagement");
+  assert.notEqual(page.app.store.key, legacyKey);
+  const note = page.$("pc-legacy-note");
+  assert.equal(note.hidden, false);
+  assert.match(note.textContent, /remains stored in this browser, untouched/);
+
+  sendChat(page, "How should I frame the next claimant update?");
+  page.$("pc-reset").click();
+  assert.equal(storage.getItem(legacyKey), legacyValue, "v1 practice history is never deleted or rewritten");
+
+  const fresh = mountPage({ query: "?simClock=accelerated&project=meridian" });
+  assert.equal(fresh.app.state.selectedProject, "morrowfield", "legacy meridian deep link opens the payments engagement");
+  assert.equal(fresh.$("pc-legacy-note").hidden, true, "no notice without stored legacy state");
 });

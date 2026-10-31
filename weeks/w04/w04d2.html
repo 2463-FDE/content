@@ -84,6 +84,7 @@
   <div class="topbar-right">
     <span class="progressbar"><i></i></span></div>
 </div>
+<nav class="lesson-crumbs" aria-label="You are here" data-day-position="17 of 50"><div class="crumb-path"><a class="crumb-hub" href="../../index.html#curriculum">Curriculum hub</a><span class="crumb-sep" aria-hidden="true">▸</span><span class="crumb-week">Week 4 · Multi-Agent Systems &amp; Architecture Defense</span><span class="crumb-sep" aria-hidden="true">▸</span><span class="crumb-day" aria-current="page">Day 2 · LangGraph state &amp; persistence</span></div><div class="crumb-meta"><span class="crumb-pos">Day 17 of 50</span><span class="crumb-project">Juniper Vale Mutual · Loss Desk · solo · Weeks 1–5</span><span class="crumb-steps"><a class="crumb-step" rel="prev" href="w04d1.html">◂ Day 1</a><a class="crumb-step crumb-next" rel="next" href="w04d3.html">Day 3 ▸</a></span></div></nav>
 
 <main class="lesson2">
   <div class="reading2col">
@@ -96,7 +97,7 @@
         <div class="meta">
           <span><b>Week 4</b> · Day 2</span>
           <span>Foundation AI Engineering</span>
-          <span class="core30-meta"><b>Core 30</b> · ~10 min read · 1 interaction · 6-Q check</span>
+          <span class="core30-meta"><b>Core 30</b> · ~10 min read · 3 interactions · 6-Q check</span>
         </div>
         <p class="summary">Yesterday you built your first LangGraph. Today you make it <strong>survivable</strong>. A real
         agent run at a client crosses process restarts, waits hours for a human approval, and occasionally crashes halfway
@@ -157,6 +158,10 @@
         it."</strong> Compiling validates the structure — and, crucially for today, it is where you plug in the
         checkpointer.</p>
       </section>
+<div class="lesson-activity-host" data-activity="fault" data-activity-id="w04d2-fault">
+<script type="application/json">{"type":"fault","title":"Why did the resume double-append?","intro":"After an approval resume, the thread shows the refund note twice. Probe the durable-agent machinery, then name the design flaw.","symptom":"The resumed run appended the same message twice; the checkpoint history looks healthy.","probes":[{"id":"reducer","label":"State reducer","result":"messages: append reducer (add_messages) — not idempotent for repeated inserts without stable IDs"},{"id":"node","label":"Node source","result":"the node appends the note and calls an external logger BEFORE interrupt()"},{"id":"ckpt","label":"Checkpoint log","result":"checkpoint saved at interrupt · resume re-entered the node at its top, as documented"}],"suspects":[{"id":"ckptS","label":"The checkpointer","why":"checkpoints behaved exactly as designed: a save file at the interrupt, re-entry from the node top"},{"id":"design","label":"Side effects before interrupt in a re-run node","why":"resume re-runs the node from the top, so work placed before interrupt() executes twice; make pre-interrupt work idempotent or move it after the approval"},{"id":"approval","label":"The approval gate","why":"the human approved once; the duplication happened inside the node's re-execution"}],"culprit":"design"}</script>
+<details class="activity-fallback" data-core-interaction data-activity-fallback="fault"><summary>Required practice · Why did the resume double-append? · static path</summary><p>After an approval resume, the thread shows the refund note twice. Probe the durable-agent machinery, then name the design flaw.</p><p><b>Symptom:</b> The resumed run appended the same message twice; the checkpoint history looks healthy.</p><ul><li><b>State reducer:</b> messages: append reducer (add_messages) — not idempotent for repeated inserts without stable IDs</li><li><b>Node source:</b> the node appends the note and calls an external logger BEFORE interrupt()</li><li><b>Checkpoint log:</b> checkpoint saved at interrupt · resume re-entered the node at its top, as documented</li></ul><p><b>Failing boundary:</b> Side effects before interrupt in a re-run node. resume re-runs the node from the top, so work placed before interrupt() executes twice; make pre-interrupt work idempotent or move it after the approval</p></details>
+</div>
 
       <section class="step" data-diagram="0" data-step="2">
         <div class="tag">Persistence</div>
@@ -184,6 +189,10 @@
           <p><strong>Interactive practice:</strong> JavaScript is required to step through the synthetic crash and resume state machine.</p>
         </div>
       </section>
+<div class="lesson-activity-host" data-activity="order" data-activity-id="w04d2-order">
+<script type="application/json">{"type":"order","title":"Pause, approve, resume — in order","intro":"Arrange the approval-gate flow so the checkpoint machinery works for you.","why":"The checkpoint is saved at the interrupt; the approval happens outside the graph; resume re-enters the node from the top; the reducer lands the update; replay and fork read the history afterwards.","items":[{"id":"run","label":"The node runs until interrupt() raises the approval payload","why":"pausing is just a checkpoint: the save file is written here"},{"id":"approve","label":"A human approves or rejects outside the graph","why":"the graph is parked state while the decision happens elsewhere"},{"id":"resume","label":"Command(resume=…) re-enters the node from the top","why":"re-execution from the top is the documented contract — design the node for it"},{"id":"reduce","label":"The reducer lands the resulting update","why":"reducers decide how updates land; they are the write discipline"},{"id":"replay","label":"Replay or fork the thread from its checkpoint history","why":"history is a data structure: time travel is a read, not a stunt"}],"correct":["run","approve","resume","reduce","replay"]}</script>
+<details class="activity-fallback" data-core-interaction data-activity-fallback="order"><summary>Required practice · Pause, approve, resume — in order · static path</summary><p>Arrange the approval-gate flow so the checkpoint machinery works for you.</p><ol><li><b>The node runs until interrupt() raises the approval payload</b> — pausing is just a checkpoint: the save file is written here</li><li><b>A human approves or rejects outside the graph</b> — the graph is parked state while the decision happens elsewhere</li><li><b>Command(resume=…) re-enters the node from the top</b> — re-execution from the top is the documented contract — design the node for it</li><li><b>The reducer lands the resulting update</b> — reducers decide how updates land; they are the write discipline</li><li><b>Replay or fork the thread from its checkpoint history</b> — history is a data structure: time travel is a read, not a stunt</li></ol><p>The checkpoint is saved at the interrupt; the approval happens outside the graph; resume re-enters the node from the top; the reducer lands the update; replay and fork read the history afterwards.</p></details>
+</div>
 
       <section class="step" data-diagram="0" data-step="3">
         <div class="tag">Backends</div>
@@ -258,10 +267,6 @@
         thread with empty state, and a support ticket asking why the agent "forgot" the approval. One contract note —
         the resume form is the <em>only</em> command pattern meant to be passed as input when you invoke or stream a
         graph; the rest live inside nodes.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: an approval-gate console — the
-        refund agent hits <code>interrupt()</code> and its payload appears as a real approve/reject card; click approve and
-        watch <code>Command(resume=True)</code> re-enter the node, or reject and watch the conditional edge route to a
-        revision loop. Needs backend standup.</p></div>
       </section>
 
       <section class="step" data-diagram="0" data-step="6">
@@ -313,10 +318,6 @@
         threads (latency and storage — prune), keep <code>thread_id</code> under 255 characters (a Postgres column limit),
         and subgraphs checkpoint under their <em>own namespace</em>, so a parent graph doesn't immediately see child state
         updates. Small print now; incident reports later.</p>
-        <div class="ix-future"><div class="k">Interactive — future goal</div><p>Planned: a time-travel explorer — scrub
-        through a real thread's checkpoint history on a timeline, pick a <code>checkpoint_id</code> to replay (and watch
-        the re-executed LLM step come back <em>different</em>), then <code>update_state</code> a fork and see both
-        branches side by side. Needs backend standup.</p></div>
 
         <div class="callout mindset">
           <div class="k">FDE mindset</div>
@@ -591,6 +592,7 @@ window.QUIZ = {
 <script src="../../assets/js/scrolly.js"></script>
 <script src="../../assets/js/modals.js?v=20260924-w3"></script>
 <script src="../../assets/js/quiz.js?v=20260630-3"></script>
+<script src="../../assets/js/lesson-activities.js?v=20261030-lx2"></script>
 <script src="../../assets/js/interactive.js?v=20261030-a11y"></script>
 <script src="../../assets/js/glossary.js?v=20260730-g4"></script>
 <script src="../../assets/js/usage-notice.js?v=20260805-u1"></script>

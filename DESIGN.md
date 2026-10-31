@@ -138,7 +138,7 @@ A paper-and-ink neutral field with one orange signal split by role, plus a small
 
 ## Layout
 
-The hub is a sticky 52px topbar (three zones: brand+home, page nav, viewer context) over a two-column board: the calendar main column and a 236px sticky rail. The calendar is a CSS grid of `188px + 5×minmax(0,1fr)`; `minmax(0,…)` is load-bearing so nowrap chips can never blow the grid out of its column. Reading pages run a three-column grid (108px TOC · ≤860px prose · ≥520px sticky diagram) that sheds the TOC at 1180px and stacks fully at 980px, diagram first. Rhythm is tight-groups/generous-separation; the first week's phase rule crests a 1280×860 viewport. At ≤1080px the rail rides above the schedule as a strip, at ≤620px resources collapse to a two-up grid, and at ≤700px the topbar wraps with the page nav on its own row. All content must survive 320px with no horizontal overflow.
+The hub is a sticky 52px topbar (three zones: brand+home, page nav, viewer context) over a two-column board: the calendar main column and a 236px sticky rail. The calendar is a CSS grid of `188px + 5×minmax(0,1fr)`; `minmax(0,…)` is load-bearing so nowrap chips can never blow the grid out of its column. Reading pages prioritize learner orientation, objective-grounded teaching, and practice with visible feedback. Diagrams support the concept where spatial or system relationships improve comprehension; they are contextual evidence, not the page's mandatory lead or organizing spine. Existing routes may use the three-column TOC/prose/stage grid, while section order, interaction form, and responsive stacking may vary by objective as long as source truth, Core 30, progress/deep links, static fallback, and accessibility remain intact. Rhythm is tight-groups/generous-separation; the first week's phase rule crests a 1280×860 viewport. At ≤1080px the rail rides above the schedule as a strip, at ≤620px resources collapse to a two-up grid, and at ≤700px the topbar wraps with the page nav on its own row. All content must survive 320px with no horizontal overflow.
 
 ## Elevation & Depth
 
@@ -201,4 +201,4 @@ The ten-week calendar: week anchor cells with phase rule + label + "Ask about th
 - **Don't** put white text on Signal Orange (#e8590c) or use it for small text on light grounds; those are Orange Fill's and Orange Ink's jobs.
 - **Don't** add a shadow to a resting bordered panel, a kicker/eyebrow above a heading, or an emoji in shared chrome.
 - **Don't** introduce a fourth radius, a new uppercase label voice, or a second control height inside one surface.
-- **Don't** restructure week-page HTML for visual change; the token layer is the propagation path.
+- **Don't** restructure week-page HTML for token-only restyling. **Do** improve lesson structure when the objective benefits from a clearer orientation, teaching, or practice flow, while preserving source truth, Core 30, progress/deep-link compatibility, static fallback, and accessibility.

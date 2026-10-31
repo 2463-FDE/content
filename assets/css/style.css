@@ -93,6 +93,119 @@ body {
 .progressbar { height: 3px; background: var(--line); border-radius: 2px; flex: 0 0 160px; overflow: hidden; }
 .progressbar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s ease; }
 
+/* ---------- lesson crumbs — static program -> week -> day orientation ----------
+   Generated into every lesson route by docs/workflows/build-lesson-crumbs.js
+   from assets/js/curriculum-map.js; works without JavaScript. */
+.lesson-crumbs {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: 4px 18px; padding: 9px 22px; font-size: 13.5px;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.crumb-path { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; color: var(--ink-soft); }
+.crumb-hub { color: var(--accent-ink); font-weight: 650; text-decoration: none; }
+.crumb-hub:hover { text-decoration: underline; text-underline-offset: 3px; }
+.crumb-sep { color: var(--dim); }
+.crumb-week { color: var(--ink-soft); }
+.crumb-day { color: var(--ink); font-weight: 650; }
+.crumb-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.crumb-pos, .crumb-project {
+  font-size: var(--label-size); letter-spacing: var(--label-track); text-transform: uppercase;
+  font-weight: 700; color: var(--dim); min-width: 0;
+}
+.crumb-project { color: var(--accent-ink); background: var(--accent-soft); border-radius: var(--r-ctl); padding: 3px 9px; }
+.crumb-steps { display: flex; gap: 8px; }
+.crumb-steps .crumb-step {
+  color: var(--ink); font-weight: 650; font-size: 13px; text-decoration: none;
+  border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 4px 10px;
+  background: var(--surface);
+}
+.crumb-steps .crumb-step:hover { border-color: var(--accent); color: var(--accent-ink); }
+@media (max-width: 700px) {
+  .lesson-crumbs { padding: 8px 12px; }
+  .crumb-week { display: none; }
+  .crumb-path > .crumb-sep:first-of-type { display: none; }
+}
+@media print { .crumb-steps { display: none; } }
+
+/* ---------- lesson activities — shared substantive-practice library ----------
+   Rendered by assets/js/lesson-activities.js; committed no-JS fallbacks use
+   .activity-fallback. Tokens only; dark theme follows the token layer. */
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
+.lesson-activity {
+  margin: 22px 0; padding: 16px 18px; border: 1px solid var(--line);
+  border-left: 1px solid var(--accent); border-radius: var(--r-panel); background: var(--surface);
+}
+.lesson-activity .activity-title { margin: 6px 0 2px; font-size: 18px; letter-spacing: -.01em; }
+.lesson-activity .activity-intro { margin: 4px 0 10px; color: var(--ink-soft); font-size: 15.5px; }
+.activity-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.activity-status { min-height: 1.2em; margin: 10px 0 0; font-size: 15px; font-weight: 600; color: var(--warn-ink); }
+.activity-status.is-correct { color: var(--good-ink); }
+.lesson-activity fieldset { border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 10px 14px; margin: 0; }
+.lesson-activity legend { font-weight: 650; font-size: 15px; padding: 0 6px; }
+.lesson-activity label { display: block; margin: 7px 0; font-size: 15.5px; }
+.lesson-activity pre {
+  margin: 6px 0 2px; padding: 10px 12px; font-family: var(--mono); font-size: 13px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+}
+/* trace */
+.trace-state { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.trace-state th, .trace-state td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.trace-state th { font-family: var(--mono); font-size: 13px; font-weight: 600; width: 38%; }
+.trace-state tr.is-changed td { background: var(--accent-soft); }
+.trace-delta {
+  font-size: var(--label-size); letter-spacing: var(--label-track); text-transform: uppercase;
+  font-weight: 700; color: var(--accent-ink); margin-left: 8px;
+}
+.trace-note { margin: 10px 0 0; font-size: 15px; color: var(--ink-soft); }
+.trace-pos { font-variant-numeric: tabular-nums; font-size: 13.5px; color: var(--dim); }
+/* params */
+.params-controls { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.params-control { font-weight: 650; font-size: 14.5px; }
+.params-control select {
+  display: block; margin-top: 4px; min-height: 36px; font: inherit; font-size: 15px;
+  border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface); color: var(--ink); padding: 4px 8px;
+}
+.params-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px; margin-top: 12px; }
+.params-out { border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 10px 14px; background: var(--surface-2); min-width: 0; }
+.params-out h4 { margin: 0 0 6px; font-size: var(--label-size); letter-spacing: var(--label-track); text-transform: uppercase; color: var(--dim); }
+.params-out dl { margin: 0; font-size: 14.5px; }
+.params-out dt { font-weight: 650; }
+.params-out dd { margin: 0 0 6px; font-variant-numeric: tabular-nums; }
+.params-out .params-note { margin: 6px 0 0; font-size: 14px; color: var(--ink-soft); }
+/* evidence */
+.evidence-item { cursor: pointer; }
+.evidence-label { font-weight: 650; }
+/* order */
+.order-list { margin: 0; padding: 0 0 0 22px; }
+.order-item { margin: 6px 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface-2); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.order-label { font-size: 15px; min-width: 0; }
+.order-controls { display: flex; gap: 6px; flex: 0 0 auto; }
+/* fault */
+.fault-symptom { font-size: 15.5px; }
+.fault-probe { margin: 8px 0; }
+.fault-suspects { margin-top: 12px; }
+/* tradeoff */
+.tradeoff-consequences { margin-top: 12px; overflow-x: auto; }
+.tradeoff-consequences table { border-collapse: collapse; font-size: 14px; min-width: 420px; }
+.tradeoff-consequences th, .tradeoff-consequences td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+.tradeoff-consequences tr.is-defensible th, .tradeoff-consequences tr.is-defensible td { background: var(--good-soft); }
+/* shared buttons (reuses .ix-btn where pages define it; standalone fallback here) */
+.lesson-activity .ix-btn {
+  font: inherit; font-size: 14px; font-weight: 650; min-height: 36px; padding: 6px 14px;
+  border-radius: var(--r-ctl); border: 1px solid var(--accent-fill); background: var(--accent-fill); color: #fff; cursor: pointer;
+}
+.lesson-activity .ix-btn:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
+.lesson-activity .ix-btn.secondary { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.lesson-activity .ix-btn.secondary:hover { border-color: var(--accent); color: var(--accent-ink); }
+.lesson-activity .ix-btn:disabled { background: var(--disabled-fill); border-color: var(--disabled-fill); color: var(--ink); cursor: default; opacity: .75; }
+.activity-fallback > summary { font-weight: 650; }
+/* contextual Archify placement — supporting panel inside the article flow */
+.lesson-visual-context { margin: 22px 0; }
+.lesson-visual-context > figure { margin: 0; }
+.lesson-visual-context .visual-lede { margin: 0 0 8px; color: var(--ink-soft); font-size: 15px; }
+@media (max-width: 480px) { .order-item { flex-wrap: wrap; } }
+
 /* ---------- reading layout ---------- */
 .wrap { max-width: 1300px; margin: 0 auto; padding: 0 20px; }
 .lede { max-width: var(--maxprose); margin: 38px auto 10px; }

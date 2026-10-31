@@ -1,8 +1,16 @@
-"""Week 1 authoritative-source, Core-30, fallback, and launch-surface contract."""
+"""Week 1 authoritative-source, Core-30, fallback, and launch-surface contract.
+
+Week 1 uses the same singular-topic hierarchy as every later week: one route
+per program day (d1–d5). The former two-part days (d2a/d2b, d3a/d3b, d4a/d4b)
+remain on disk only as moved-lesson alias stubs that forward old deep links to
+the consolidated route.
+"""
 
 from __future__ import annotations
 
+import json
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -11,11 +19,34 @@ import core30
 
 ROOT = core30.ROOT
 WEEK1 = tuple(ROOT / "weeks" / "w01" / name for name in (
-    "d1.html", "d2a.html", "d2b.html", "d3a.html",
-    "d3b.html", "d4a.html", "d4b.html", "d5.html",
+    "d1.html", "d2.html", "d3.html", "d4.html", "d5.html",
 ))
-PROVIDER_ROUTES = {"d2b.html", "d4b.html"}
+PROVIDER_ROUTES = {"d2.html", "d4.html"}
+# Alias stub → consolidated target it must forward to.
+ALIAS_STUBS = {
+    "d2a.html": "d2.html", "d2b.html": "d2.html",
+    "d3a.html": "d3.html", "d3b.html": "d3.html",
+    "d4a.html": "d4.html", "d4b.html": "d4.html",
+}
 EXPECTED_SOURCE_COUNTS = {"MON": 7, "TUE": 9, "WED": 8, "THU": 9, "FRI": 7}
+# Per-route required interactions and comprehension-check questions on the
+# selected-provider path (None = no provider blocks on the route).
+EXPECTED_SHAPE = {
+    "d1.html": {"interactions": 1, "questions": 6},
+    "d2.html": {"interactions": 2, "questions": 9},
+    "d3.html": {"interactions": 2, "questions": 6},
+    "d4.html": {"interactions": 3, "questions": 7},
+    "d5.html": {"interactions": 1, "questions": 6},
+}
+
+
+def node_json(script: str):
+    result = subprocess.run(["node", "-e", script], cwd=ROOT, capture_output=True, text=True, check=True)
+    return json.loads(result.stdout)
+
+
+# Advertised check minutes by question count (matches the authored labels).
+CHECK_MINUTES = {6: 5, 7: 5, 9: 6}
 
 
 def elements(root: core30.Element, *, tag: str | None = None, cls: str | None = None):
@@ -34,12 +65,61 @@ class Week1LaunchReadinessTests(unittest.TestCase):
         self.assertIn("0 unexplained omissions", record)
         self.assertIn("No batch number appears", record)
 
-    def test_all_eight_routes_meet_complete_core30_contract(self) -> None:
-        measured = []
+    def test_week1_is_singular_topic_like_every_later_week(self) -> None:
+        """One route per day, no multi-part presentation anywhere in the map."""
+        shape = node_json(
+            "const map = require('./assets/js/curriculum-map.js');"
+            "const week1 = map.weeks.find((week) => week.w === 1);"
+            "console.log(JSON.stringify({"
+            " partDays: map.weeks.flatMap((week) => week.days.filter((day) => 'parts' in day).map((day) => week.w + ':' + day.t)),"
+            " hrefs: week1.days.map((day) => day.href)"
+            "}));"
+        )
+        self.assertEqual(shape["partDays"], [], "the multi-part day format is retired")
+        self.assertEqual(shape["hrefs"], [
+            "weeks/w01/d1.html", "weeks/w01/d2.html", "weeks/w01/d3.html",
+            "weeks/w01/d4.html", "weeks/w01/d5.html",
+        ])
+        hub = (ROOT / "index.html").read_text(encoding="utf-8")
+        for stub in ALIAS_STUBS:
+            self.assertNotIn(f"w01/{stub}", hub, "the hub launchpad lists only day routes")
+
+    def test_old_part_deep_links_forward_to_the_consolidated_route(self) -> None:
+        for stub, target in ALIAS_STUBS.items():
+            path = ROOT / "weeks" / "w01" / stub
+            with self.subTest(stub=stub):
+                html = path.read_text(encoding="utf-8")
+                self.assertIn(f'http-equiv="refresh" content="0; url={target}"', html)
+                self.assertIn(f'<link rel="canonical" href="{target}"', html)
+                self.assertIn(f'<a href="{target}"', html)
+                self.assertIn("index.html#curriculum", html, "a no-refresh return path exists")
+                self.assertIn("lesson moved", html.lower())
+
+    def test_old_part_deep_links_keep_query_and_hash(self) -> None:
+        """With JavaScript, the stub forwards batch/cloud query and anchor so
+        an old deep link opens the same view on the consolidated route."""
+        for stub, target in ALIAS_STUBS.items():
+            html = (ROOT / "weeks" / "w01" / stub).read_text(encoding="utf-8")
+            scripts = re.findall(r"<script>([\s\S]*?)</script>", html)
+            with self.subTest(stub=stub):
+                self.assertEqual(len(scripts), 1)
+                forwarded = node_json(
+                    "const vm = require('node:vm');"
+                    "const calls = [];"
+                    "const location = { search: '?batch=2567&cloud=aws', hash: '#retry',"
+                    " replace: (url) => calls.push(url) };"
+                    f"vm.runInNewContext({json.dumps(scripts[0])}, {{ location }});"
+                    "console.log(JSON.stringify(calls));"
+                )
+                self.assertEqual(forwarded, [f"{target}?batch=2567&cloud=aws#retry"])
+
+    def test_all_five_routes_meet_complete_core30_contract(self) -> None:
+        totals = []
         for page in WEEK1:
             root = core30.parse(page)
             article = core30.reading_article(root)
             selections = core30.SELECTIONS if page.name in PROVIDER_ROUTES else (None,)
+            shape = EXPECTED_SHAPE[page.name]
             for selection in selections:
                 with self.subTest(route=page.name, cloud=selection):
                     words = core30.required_words(article, selection)
@@ -50,29 +130,28 @@ class Week1LaunchReadinessTests(unittest.TestCase):
                                   if node.classes() & live_mounts and "data-core-interaction" not in node.attrs]
                     clouds = core30.quiz_clouds(root)
                     questions = sum(cloud in (None, selection) for cloud in clouds)
-                    expected_interactions = 2 if selection else 1
-                    expected_questions = 7 if selection else 6
                     label = core30.label_for(article, selection or "aws")
                     read_minutes = round(words / core30.WPM)
-                    total_minutes = read_minutes + 3 + (4 * expected_interactions) + 5
+                    total_minutes = (read_minutes + 3 + 4 * shape["interactions"]
+                                     + CHECK_MINUTES[shape["questions"]])
 
                     self.assertGreaterEqual(words, 700)
                     self.assertLessEqual(words, core30.WORD_BUDGET)
-                    self.assertEqual(len(interactions), expected_interactions)
+                    self.assertEqual(len(interactions), shape["interactions"])
                     self.assertEqual(undeclared, [], "every live required widget must be counted")
-                    self.assertEqual(questions, expected_questions)
+                    self.assertEqual(questions, shape["questions"])
                     self.assertTrue(all(node.attrs.get("data-interaction-kind") for node in interactions))
                     self.assertIn(f"~{read_minutes} min read", label)
-                    self.assertIn(f"{expected_interactions} interaction", label)
-                    self.assertIn(f"{expected_questions}-Q check", label)
+                    self.assertIn(f"{shape['interactions']} interaction", label)
+                    self.assertIn(f"{shape['questions']}-Q check", label)
                     self.assertIn(f"~{total_minutes} min required", label)
                     self.assertLessEqual(total_minutes, 30)
                     label_nodes = [node for node in core30.labels(article)
                                    if node.attrs.get("data-cloud") in (selection, None)]
                     self.assertEqual(label_nodes[0].attrs.get("data-core-words"), str(words))
-                    measured.append(total_minutes)
-        self.assertEqual(len(measured), 10)
-        self.assertEqual((min(measured), max(measured)), (19, 22))
+                    totals.append(total_minutes)
+        self.assertEqual(len(totals), 7)
+        self.assertEqual((min(totals), max(totals)), (21, 29))
 
     def test_long_form_depth_is_progressive_disclosure_not_deleted(self) -> None:
         for page in WEEK1:
@@ -92,7 +171,7 @@ class Week1LaunchReadinessTests(unittest.TestCase):
                 self.assertTrue(all("outside Core 30" in summary for summary in summaries))
 
     def test_each_route_exposes_source_anchor_static_diagram_fallback_and_navigation(self) -> None:
-        day_anchors = ("MON", "TUE", "TUE", "WED", "WED", "THU", "THU", "FRI")
+        day_anchors = ("MON", "TUE", "WED", "THU", "FRI")
         for page, day in zip(WEEK1, day_anchors):
             root = core30.parse(page)
             anchors = [node for node in root.find_all(attr="data-source-anchor")]
@@ -108,6 +187,21 @@ class Week1LaunchReadinessTests(unittest.TestCase):
                 self.assertEqual(len(next_links), 1)
                 self.assertEqual(len(elements(root, tag="a", cls="skip-link")), 1)
 
+    def test_day_routes_chain_like_later_weeks(self) -> None:
+        """The learner path d1→d2→d3→d4→d5 uses the shared crumb/nav grammar."""
+        hrefs = [page.name for page in WEEK1]
+        for index, page in enumerate(WEEK1):
+            html = page.read_text(encoding="utf-8")
+            with self.subTest(route=page.name):
+                if index > 0:
+                    self.assertIn(f'rel="prev" href="{hrefs[index - 1]}"', html)
+                if index < len(WEEK1) - 1:
+                    self.assertIn(f'rel="next" href="{hrefs[index + 1]}"', html)
+                else:
+                    self.assertIn('rel="next" href="../w02/w02d1.html"', html)
+                for stub in ALIAS_STUBS:
+                    self.assertNotIn(f'href="{stub}"', html, "day routes never navigate to a retired part page")
+
     def test_hub_and_trainer_have_honest_static_recovery_paths(self) -> None:
         hub = core30.parse(ROOT / "index.html")
         trainer = core30.parse(ROOT / "trainer.html")
@@ -117,7 +211,8 @@ class Week1LaunchReadinessTests(unittest.TestCase):
                         if "weeks/w01/" in node.attrs.get("href", "")]
 
         self.assertIn("Next batch: number not provided", hub_text)
-        self.assertIn("Week 1 static launchpad", hub_text)
+        # The static launchpad now covers the full program (all ten weeks).
+        self.assertIn("Full program static launchpad", hub_text)
         self.assertTrue(all("batch=2567" in href for href in static_links if "?" in href))
         self.assertIn("JavaScript is required for the private trainer dashboard", trainer_text)
         self.assertIn("authorization cannot be verified", trainer_text)
@@ -126,15 +221,20 @@ class Week1LaunchReadinessTests(unittest.TestCase):
 
     def test_week1_service_order_and_cloud_choices_are_preserved(self) -> None:
         hub = (ROOT / "index.html").read_text(encoding="utf-8")
-        d2b = core30.text_of(core30.parse(ROOT / "weeks/w01/d2b.html"))
+        d2 = core30.text_of(core30.parse(ROOT / "weeks/w01/d2.html"))
         d5 = core30.text_of(core30.parse(ROOT / "weeks/w01/d5.html"))
-        self.assertLess(d2b.index("model access and inference profiles"), d2b.index("Converse/streaming"))
-        self.assertLess(d2b.index("Converse/streaming"), d2b.index("quotas and cross-region inference"))
-        self.assertLess(d2b.index("provisioned versus on-demand"), d2b.index("bounded retry/backoff"))
+        self.assertLess(d2.index("model access and inference profiles"), d2.index("Converse/streaming"))
+        self.assertLess(d2.index("Converse/streaming"), d2.index("quotas and cross-region inference"))
+        self.assertLess(d2.index("provisioned versus on-demand"), d2.index("bounded retry/backoff"))
         self.assertIn("Amazon Bedrock", d5)
         self.assertIn("Gemini/Model Garden", d5)
         self.assertNotIn("Terraform", "\n".join(core30.text_of(core30.parse(page)) for page in WEEK1))
-        self.assertIn("Production LLM Engineering on Bedrock & Claude Code", hub)
+        # Week titles live in the shared curriculum map consumed by the hub.
+        self.assertIn(
+            "Production LLM Engineering on Bedrock & Claude Code",
+            (ROOT / "assets/js/curriculum-map.js").read_text(encoding="utf-8"),
+        )
+        self.assertIn("Production LLM Engineering on Bedrock &amp; Claude Code", hub)
 
 
 if __name__ == "__main__":

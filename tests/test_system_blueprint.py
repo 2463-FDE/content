@@ -18,6 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / "system-blueprint.html"
 INDEX = ROOT / "index.html"
+CURRICULUM_MAP = ROOT / "assets" / "js" / "curriculum-map.js"
 PROVENANCE = ROOT / "docs" / "research" / "system-blueprint" / "archify-provenance.json"
 
 FIGURE_RE = re.compile(
@@ -30,7 +31,7 @@ FORBIDDEN_RE = re.compile(
     rb"url\s*\(\s*[\"']?(?:https?:|//|data:)",
     re.IGNORECASE,
 )
-INDEX_TITLE_RE = re.compile(r'\{ w:(\d+), phase:"[a-z]+", title:"([^"]+)"')
+INDEX_TITLE_RE = re.compile(r'\{ w: ?(\d+), phase: ?"[a-z]+", title: ?"([^"]+)"')
 
 # One stable keyword per week. Each must appear BOTH in the hub's window.WEEKS
 # title for that week AND inside this page's matching week entry; a merged
@@ -337,6 +338,9 @@ class SystemBlueprintPageContractTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.page_text = PAGE.read_text(encoding="utf-8")
         cls.index_text = INDEX.read_text(encoding="utf-8")
+        # window.WEEKS moved to the shared curriculum map (consumed by the hub
+        # and the lesson-crumbs generator); the keyword coupling follows it.
+        cls.map_text = CURRICULUM_MAP.read_text(encoding="utf-8")
         cls.parser = PageParser()
         cls.parser.feed(cls.page_text)
 
@@ -363,7 +367,7 @@ class SystemBlueprintPageContractTest(unittest.TestCase):
             self.assertIn(f'href="#sb-w{week:02d}"', self.page_text)
 
     def test_week_theme_currency_against_hub(self) -> None:
-        titles = {int(num): title for num, title in INDEX_TITLE_RE.findall(self.index_text)}
+        titles = {int(num): title for num, title in INDEX_TITLE_RE.findall(self.map_text)}
         self.assertEqual(sorted(titles), list(range(1, 11)))
         for week, keyword in WEEK_KEYWORDS.items():
             self.assertIn(
