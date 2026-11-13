@@ -14,6 +14,8 @@ The exact LTIM FDE v3 curriculum authority, eight-page inventory, measurable 396
 index.html              trainer-facing ten-week curriculum hub
 trainer.html            cohort/report dashboard + curriculum launch routes
 persona-communications.html local synthetic Juniper Vale/Morrowfield chat, inbox, and coaching
+market-brief.html       weekly AI Market Brief: archive link + how to query it
+brief-pipeline/          brief data, search index, query script, model prompt (see its README)
 weeks/                   daily reading pages (scrollytelling + diagram + quiz)
 atlas/                   FDE Mindset Atlas
 assets/

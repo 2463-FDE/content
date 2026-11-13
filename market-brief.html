@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Market Brief | 2463-FDE</title>
+<meta name="description" content="A weekly, sourced roundup of AI developer tools, FDE practice and AI compliance news, with a searchable archive for trainees and models.">
+<link rel="stylesheet" href="assets/css/style.css?v=20261030-a11y">
+<link rel="stylesheet" href="assets/css/cloud-path.css?v=20261014-c2">
+<script src="assets/js/theme.js"></script>
+<style>
+  .brief-cta { display: inline-block; margin: 4px 0 2px; padding: 11px 20px; border-radius: 8px;
+    background: var(--accent-fill); color: #fff; font-weight: 650; text-decoration: none; }
+  .brief-cta:hover { background: var(--accent-ink); }
+  .brief-cta:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .cert-sec pre { margin: 8px 0 12px; padding: 10px 12px; font-family: var(--mono); font-size: 13px;
+    line-height: 1.5; background: var(--code-bg); color: var(--ink); border-radius: 8px; overflow-x: auto; }
+  .cert-sec pre code { background: none; padding: 0; font-size: inherit; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="brand"><a href="index.html"><b>2463</b>·FDE</a></span>
+    <a class="topnav" href="index.html">Home</a>
+  </div>
+  <nav class="topbar-center" aria-label="Site">
+    <a class="topnav" href="atlas/">FDE Mindset Atlas</a>
+    <a class="topnav" href="client-delivery.html">Client Delivery</a>
+    <a class="topnav" href="delivery-track.html">Delivery Track</a>
+    <a class="topnav" href="gauntlet.html">AI Interview</a>
+  </nav>
+  <div class="topbar-right"></div>
+</div>
+
+<main class="cert-wrap" id="main">
+  <header class="cert-hero">
+    <div class="cert-kicker">Weekly · new issue every Monday</div>
+    <h1>AI Market Brief</h1>
+    <p>A short, sourced roundup of what changed last week in <strong>AI developer tools and models</strong>,
+    <strong>forward deployed engineering practice and the FDE market</strong>, and <strong>AI compliance and
+    governance</strong>. Every item links to its source and ends with a "For the curriculum" line saying what it means
+    for your work in this program.</p>
+  </header>
+
+  <section class="cert-sec" aria-labelledby="read-title">
+    <h2 id="read-title">Read the briefs</h2>
+    <p class="cert-lede">The archive lists every issue, newest first. Each week is its own page, so links you share
+    keep pointing at the issue you read.</p>
+    <p><a class="brief-cta" href="https://claude.ai/artifact/4EcvLu1qwmpmFY7Lm9hquQ" target="_blank" rel="noopener">Open the brief archive</a></p>
+    <p class="cert-note">Each issue covers only news and releases from the week before it. Every item carries a
+    badge (Act now, Plan, FYI or Background) so you can see at a glance which ones need your attention first.</p>
+  </section>
+
+  <section class="cert-sec" aria-labelledby="ask-title">
+    <h2 id="ask-title">Ask a model about the briefs</h2>
+    <p class="cert-lede">Every issue is also stored as data in this repository, so a model can answer your questions
+    from the newest sourced items instead of from its own, possibly outdated, training data.</p>
+    <ol class="cert-points">
+      <li><strong>Search the archive.</strong> From a clone of this repository, run the query script with your question.
+      It needs only Python 3, no packages and no API key.
+<pre><code>python3 brief-pipeline/scripts/query.py "What compliance deadlines should a hiring-screening demo plan for?" --k 3</code></pre></li>
+      <li><strong>Give the model the rules.</strong> Use
+      <a href="brief-pipeline/prompts/answer-from-briefs.md">answer-from-briefs.md</a> as the system prompt. Paste the
+      script's output under <code>RETRIEVED CONTEXT</code>, then your question.</li>
+      <li><strong>Read the flags.</strong> The model cites items as [1], [2]. It says so when an item needs a recheck, comes
+      only from a secondary source, has a deadline that has passed, or was replaced by a later week. When nothing
+      matches, it says the archive doesn't cover the question yet rather than guessing.</li>
+    </ol>
+    <p class="cert-note">Useful filters: <code>--section dev|practice|compliance</code>, <code>--since 2026-11-01</code>,
+    <code>--tag mcp</code>, and <code>--format json</code> for your own agent.</p>
+  </section>
+
+  <section class="cert-sec" aria-labelledby="agent-title">
+    <h2 id="agent-title">Use it from your own agent</h2>
+    <ul class="cert-points">
+      <li><strong>One static file.</strong> The search index is served with this site at
+      <a href="brief-pipeline/data/index.json"><code>brief-pipeline/data/index.json</code></a>. It carries
+      precomputed keyword statistics, so a browser page or an agent tool can rank items without a server.</li>
+      <li><strong>A fixed shape.</strong> Each weekly file follows
+      <a href="brief-pipeline/schema/brief-item.schema.json">the brief item schema</a>: section, badge, dates,
+      primary or secondary sources, tags, and a topic key that links a story across weeks.</li>
+      <li><strong>Freshness is part of the answer.</strong> Compliance items read more than 30 days ago, tool items more
+      than 60 and practice items more than 90 are flagged for a recheck against the source.</li>
+    </ul>
+    <p class="cert-note">How it works and how to add a week: <a href="brief-pipeline/README.md">brief-pipeline/README.md</a>.</p>
+  </section>
+
+  <p class="cert-foot">Compliance items are training material, not legal advice. Vendor benchmark numbers are the
+  vendor's own unless an item says otherwise.</p>
+</main>
+
+<footer class="foot">2463-FDE · Forward Deployed Engineer Program · AI Market Brief</footer>
+
+<script src="assets/js/roster.js?v=20260706"></script>
+<script src="assets/js/auth.js"></script>
+</body>
+</html>

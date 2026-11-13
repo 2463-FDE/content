@@ -1,0 +1,263 @@
+{
+  "week": "2026-W46",
+  "covers": { "from": "2026-11-06", "to": "2026-11-13" },
+  "published_page": "https://claude.ai/artifact/Agj9F4P6UQNFS7MG4J719n",
+  "is_sample": true,
+  "items": [
+    {
+      "id": "2026-w46-dev-01",
+      "week": "2026-W46",
+      "section": "dev",
+      "badge": "act_now",
+      "published": "2026-11-09",
+      "source_org": "Anthropic",
+      "sources": [
+        { "url": "https://www.anthropic.com/claude-fable-and-mythos-5-2", "title": "Introducing Claude Fable 5.2 and Claude Mythos 5.2", "kind": "primary" }
+      ],
+      "headline": "Claude Fable 5.2 becomes the new top tier, with Mythos 5.2 for vetted security and life-science teams",
+      "summary": "Anthropic released Claude Fable 5.2 (API id claude-fable-5-2) on all major clouds at $8 per million input tokens and $40 per million output tokens, or $16 and $80 in fast mode. Mythos 5.2 is the same underlying model with lighter cyber and biology restrictions, available only through Anthropic's verification programs. Anthropic still recommends starting most work on its current Opus model and moving up to Fable or down to Sonnet or Haiku as needed.",
+      "curriculum_note": "Teach model tiering as a cost decision: run the same agent task on two tiers and have students justify the escalation with the price difference.",
+      "details": [
+        "Anthropic reports SWE v2 at 69.9% for Fable 5.2 against 62.3% for its current Opus model. These are the vendor's own numbers.",
+        "The post describes Fable 5.2 building a prototype operating system over eight days with more than 1,000 subagents.",
+        "Preserved thinking now applies to every API account, so integrations that handle thinking blocks should be checked."
+      ],
+      "tags": ["anthropic", "claude", "model-release", "pricing", "model-tiering"],
+      "topic_key": "anthropic-claude-fable-5-2",
+      "retrieved_at": "2026-11-13"
+    },
+    {
+      "id": "2026-w46-dev-02",
+      "week": "2026-W46",
+      "section": "dev",
+      "badge": "act_now",
+      "published": "2026-11-10",
+      "date_note": "Image deprecation posted Nov 10; cyber preview removal posted Nov 5.",
+      "key_dates": [
+        { "date": "2027-02-01", "label": "gpt-5.5-cyber-preview removed" },
+        { "date": "2027-02-10", "label": "gpt-image-2 and gpt-image-2-2026-04-21 shut down" }
+      ],
+      "source_org": "OpenAI",
+      "sources": [
+        { "url": "https://developers.openai.com/api/docs/deprecations", "title": "OpenAI API deprecations", "kind": "primary" }
+      ],
+      "headline": "OpenAI sets February shutdowns for gpt-image-2 and the cyber preview model",
+      "summary": "gpt-image-2 and gpt-image-2-2026-04-21 shut down on Feb 10, 2027, with gpt-image-2.6-sunburst or gpt-image-2.6-flare as replacements. gpt-5.5-cyber-preview is removed on Feb 1, 2027.",
+      "curriculum_note": "Find any lab or demo that calls gpt-image-2 and migrate it before Feb 10. Use this as the live example in the lesson on watching vendor deprecation pages.",
+      "details": [
+        "The image deprecation was posted Nov 10; the cyber preview removal was posted Nov 5.",
+        "For the cyber model, OpenAI's guidance is to move to the most capable cyber model available to your account."
+      ],
+      "tags": ["openai", "deprecation", "image-models", "migration"],
+      "topic_key": "openai-feb-2027-deprecations",
+      "retrieved_at": "2026-11-13"
+    },
+    {
+      "id": "2026-w46-dev-03",
+      "week": "2026-W46",
+      "section": "dev",
+      "badge": "plan",
+      "published": "2026-11-11",
+      "key_dates": [
+        { "date": "2027-03-30", "label": "Next MCP specification release (2027-03-30)" }
+      ],
+      "source_org": "Model Context Protocol",
+      "sources": [
+        { "url": "https://blog.modelcontextprotocol.io/posts/mcp-release-cycle/", "title": "MCP release cycle post", "kind": "primary" }
+      ],
+      "headline": "MCP moves to two specification releases a year",
+      "summary": "Spec versions now ship on a six-month schedule, generally the last Tuesday of March and September. The next release is planned for March 30, 2027 as version 2027-03-30. The maintainers say existing clients and servers need no changes because of this announcement.",
+      "curriculum_note": "Pin MCP labs to the spec version the SDKs target today, and put a lab refresh on the calendar for April 2027.",
+      "details": [
+        "Planning for each release starts eight months ahead, with proposal deadlines and SDK beta dates published in advance.",
+        "The change affects how releases are prepared, not MCP messages or version negotiation."
+      ],
+      "tags": ["mcp", "specification", "release-cycle", "agents"],
+      "topic_key": "mcp-release-cycle",
+      "retrieved_at": "2026-11-13"
+    },
+    {
+      "id": "2026-w46-dev-04",
+      "week": "2026-W46",
+      "section": "dev",
+      "badge": "plan",
+      "published": null,
+      "date_note": "Current release on the updates page, read Nov 13, 2026; the page gives no release date.",
+      "source_org": "VS Code 1.145",
+      "sources": [
+        { "url": "https://code.visualstudio.com/updates", "title": "VS Code updates", "kind": "primary" }
+      ],
+      "headline": "VS Code runs Claude, Copilot and Codex agents side by side, and enterprises can lock down MCP servers",
+      "summary": "A preview setting lets nested chat sessions use different agent harnesses next to each other, each with its own model and permission level. For servers VS Code starts, the enterprise allowedMcpServers list now takes precedence over registry-only access, and an empty list blocks every server.",
+      "curriculum_note": "Add an exercise where students write an enterprise MCP allowlist using server URL and command rules, then confirm an unlisted server is blocked.",
+      "details": [
+        "The setting is chat.agentHost.multipleChatProviders.enabled.",
+        "VS Code recommends serverUrl and serverCommand rules over serverName, which matches a label the server's author chooses.",
+        "Several tools were removed from Local agent sessions, and the Copilot harness stays the default for new sessions."
+      ],
+      "tags": ["vscode", "mcp", "enterprise", "allowlist", "agent-security", "ide"],
+      "topic_key": "vscode-agent-hosts-mcp-allowlist",
+      "retrieved_at": "2026-11-13"
+    },
+    {
+      "id": "2026-w46-practice-01",
+      "week": "2026-W46",
+      "section": "practice",
+      "badge": "plan",
+      "published": "2026-10-28",
+      "source_org": "Microsoft",
+      "sources": [
+        { "url": "https://commandline.microsoft.com/thinking-about-the-evolution-of-forward-deployed-engineers-over-the-last-24-months/", "title": "The evolution of forward-deployed engineering", "kind": "primary" }
+      ],
+      "headline": "Microsoft's FDE lead says the unit of deployment is now a pod, and the goal is handoff",
+      "summary": "Kevin Shatzkamer, CVP of Forward Deployed Engineering, writes that the role has widened from embedded engineering to end-to-end delivery, done by small multidisciplinary pods rather than a lone expert. Projects should leave the customer able to run the system, not dependent on the FDE team.",
+      "curriculum_note": "Run the capstone as a pod with named roles, and grade the handoff package (runbook, architecture notes, named customer owner) alongside the demo.",
+      "details": [
+        "Skills named as mattering now: multi-agent systems, tool use through MCP, evaluations, observability, identity and security, state management, cost and latency, CI/CD, and AI-assisted development.",
+        "\"The common denominator remains hands-on engineering embedded close to the customer's real work.\""
+      ],
+      "tags": ["fde", "microsoft", "pods", "handoff", "skills", "capstone"],
+      "topic_key": "fde-role-definition-microsoft",
+      "retrieved_at": "2026-11-13"
+    },
+    {
+      "id": "2026-w46-practice-02",
+      "week": "2026-W46",
+      "section": "practice",
+      "badge": "background",
+      "published": "2026-06-30",
+      "source_org": "AWS",
+      "sources": [
+        { "url": "https://aws.amazon.com/blogs/apn/introducing-forward-deployed-engineering-for-partners-winning-the-future-of-enterprise-ai/", "title": "Forward Deployed Engineering for Partners", "kind": "primary" }
+      ],
+      "headline": "AWS partner FDE teams must clear a technical bar and own a reusable delivery harness",
+      "summary": "AWS's partner-led FDE program asks consulting partners to field AWS-credentialed teams that pass an AWS-defined technical bar before meeting customers. Each partner builds and owns a delivery harness: domain ontologies, evaluation frameworks, MCP servers, agent operations tooling, and a record of architecture decisions.",
+      "curriculum_note": "Use the harness list as the cohort's definition of deployable: each team ships evals, an MCP server and an ops runbook, not only an agent.",
+      "details": [
+        "AWS describes the bar as a production-engineering standard, not a certification checkbox.",
+        "The program extends AWS's $1 billion FDE investment announced the same day, where payment is tied to business results rather than billable hours."
+      ],
+      "tags": ["fde", "aws", "partners", "evals", "mcp", "delivery-harness"],
+      "topic_key": "fde-aws-partner-program",
+      "retrieved_at": "2026-11-13"
+    },
+    {
+      "id": "2026-w46-compliance-01",
+      "week": "2026-W46",
+      "section": "compliance",
+      "badge": "act_now",
+      "published": null,
+      "date_note": "Amending regulation in force Jul 27, 2026; watermarking due Dec 2, 2026.",
+      "key_dates": [
+        { "date": "2026-12-02", "label": "EU AI Act watermarking due for generative AI systems placed on the market before Aug 2, 2026" },
+        { "date": "2027-12-02", "label": "EU AI Act high-risk duties for Annex III systems" },
+        { "date": "2028-08-02", "label": "EU AI Act high-risk duties for Annex I systems" }
+      ],
+      "source_org": "EU AI Act",
+      "sources": [
+        { "url": "https://www.whitecase.com/insight-alert/eu-ai-omnibus-enters-force-amending-ai-act", "title": "White & Case: EU AI Omnibus enters into force", "kind": "secondary" },
+        { "url": "https://digital-strategy.ec.europa.eu/en/news/commission-publishes-code-practice-marking-and-labelling-ai-generated-content", "title": "European Commission: Code of Practice on marking and labelling AI-generated content", "kind": "primary" }
+      ],
+      "headline": "EU watermarking grace period ends Dec 2, 2026",
+      "summary": "Under the AI Act amendments in Regulation (EU) 2026/1744, generative AI systems placed on the market before Aug 2, 2026 must meet the watermarking obligation by Dec 2, 2026. Newer systems have had to comply since Aug 2, and the other transparency duties in Article 50 also apply from that date. The Commission's voluntary Code of Practice on marking and labelling AI-generated content is the practical guide.",
+      "curriculum_note": "Any demo app a cohort ships to EU users should mark generated content, label deepfakes, and tell users when they are talking to a chatbot.",
+      "details": [
+        "The amending regulation entered into force July 27, 2026. It moved Annex III high-risk duties to Dec 2, 2027 and Annex I duties to Aug 2, 2028.",
+        "The AI literacy duty was softened: providers and deployers must take measures to support a sufficient level of AI literacy among staff."
+      ],
+      "tags": ["eu-ai-act", "watermarking", "transparency", "article-50", "generative-ai", "deadline"],
+      "topic_key": "eu-ai-act-watermarking",
+      "retrieved_at": "2026-11-13"
+    },
+    {
+      "id": "2026-w46-compliance-02",
+      "week": "2026-W46",
+      "section": "compliance",
+      "badge": "plan",
+      "published": "2026-11-02",
+      "source_org": "NIST",
+      "sources": [
+        { "url": "https://csrc.nist.gov/pubs/ir/8621/final", "title": "NIST IR 8621", "kind": "primary" }
+      ],
+      "headline": "NIST names the gaps in incident response for AI agents",
+      "summary": "NIST IR 8621 reports on a workshop of more than 400 experts. It finds that traditional monitoring can miss prompt injection, shifts in model behavior and unauthorized agent actions. Priorities include reasoning-layer telemetry, governance of non-human identities, and containment scoped to what an agent is allowed to do.",
+      "curriculum_note": "Add an agent incident drill: students trace a prompt-injection incident through tool logs, then revoke the agent's credentials without taking down the whole app.",
+      "details": [
+        "Planned follow-ups include an update to SP 800-61 for AI-related incidents and a NIST AI Consortium task group on agent monitoring and containment.",
+        "For procurement, NIST notes vendors often hold key records, so contracts should cover audit rights, incident notification and evidence."
+      ],
+      "tags": ["nist", "incident-response", "ai-agents", "prompt-injection", "agent-security", "non-human-identity"],
+      "topic_key": "nist-ir-8621-agent-incident-response",
+      "retrieved_at": "2026-11-13"
+    },
+    {
+      "id": "2026-w46-compliance-03",
+      "week": "2026-W46",
+      "section": "compliance",
+      "badge": "plan",
+      "published": "2026-05-14",
+      "date_note": "Signed May 14, 2026; effective Jan 1, 2027.",
+      "key_dates": [
+        { "date": "2027-01-01", "label": "Colorado SB 26-189 takes effect" }
+      ],
+      "source_org": "Colorado",
+      "sources": [
+        { "url": "https://meshlaw.ai/en/blog/us-state-ai-laws-2026-guide-en", "title": "MeshLaw: US state AI laws in 2026 (Sep 22, 2026)", "kind": "secondary" }
+      ],
+      "headline": "Colorado's rewritten AI law takes effect Jan 1, 2027",
+      "summary": "SB 26-189 repeals and replaces the 2024 Colorado AI Act, which never took effect. Developers and deployers of automated decision tools that materially influence consequential decisions owe notice before use, a plain-language explanation of an adverse decision within 30 days, and a path to human reconsideration and data correction.",
+      "curriculum_note": "In hiring and HR tool scenarios, add notice, explanation and human-review steps to the FDE requirements checklist.",
+      "details": [
+        "Signed May 14, 2026. The state Attorney General enforces it alone, with a 60-day cure period.",
+        "Developers must give deployers documentation about the tool."
+      ],
+      "tags": ["colorado", "state-law", "automated-decisions", "hiring", "notice", "human-review", "deadline"],
+      "topic_key": "colorado-sb-26-189",
+      "retrieved_at": "2026-11-13"
+    },
+    {
+      "id": "2026-w46-compliance-04",
+      "week": "2026-W46",
+      "section": "compliance",
+      "badge": "fyi",
+      "published": "2026-10-07",
+      "source_org": "Spain (AEPD)",
+      "sources": [
+        { "url": "https://www.gibsondunn.com/gibson-dunn-europe-data-protection-november-2026/", "title": "Gibson Dunn: Europe data protection update", "kind": "secondary" }
+      ],
+      "headline": "Spain requires employers to explain algorithmic decisions to workers in writing",
+      "summary": "Spain's data protection authority issued guidance on Royal Decree 723/2026, which requires employers to inform workers in writing about algorithmic decision-making systems. GDPR duties still apply alongside it, and the note warns about tools that screen and rank job candidates.",
+      "curriculum_note": "A useful case study for any cohort building candidate screening or ranking: the same tool carries different notice duties in Colorado and Spain.",
+      "details": [
+        "Read through Gibson Dunn's October data protection roundup; the regulator's own note was not opened for this sample."
+      ],
+      "tags": ["spain", "aepd", "gdpr", "employment", "automated-decisions", "hiring"],
+      "topic_key": "spain-rd-723-2026-algorithmic-transparency",
+      "retrieved_at": "2026-11-13"
+    },
+    {
+      "id": "2026-w46-compliance-05",
+      "week": "2026-W46",
+      "section": "compliance",
+      "badge": "background",
+      "published": "2026-07-27",
+      "date_note": "Guidance published Jul 27, 2026; reporting duties live since Sep 11, 2026.",
+      "key_dates": [
+        { "date": "2027-12-11", "label": "EU Cyber Resilience Act main obligations apply" }
+      ],
+      "source_org": "EU Cyber Resilience Act",
+      "sources": [
+        { "url": "https://digital-strategy.ec.europa.eu/en/library/commission-publishes-new-guidance-support-timely-cyber-resilience-act-implementation", "title": "European Commission: Cyber Resilience Act guidance", "kind": "primary" }
+      ],
+      "headline": "Cyber Resilience Act reporting duties are already live",
+      "summary": "Manufacturers of products with digital elements sold in the EU have had reporting obligations since Sep 11, 2026. The main obligations apply from Dec 11, 2027. The Commission's non-binding guidance covers scope, substantial modification, support periods, reporting and risk assessment, with 67 worked examples.",
+      "curriculum_note": "When an FDE ships software to an EU customer, include vulnerability reporting and a stated support period in the release checklist.",
+      "details": [
+        "The guidance also addresses remote data processing and free and open source software."
+      ],
+      "tags": ["eu", "cyber-resilience-act", "vulnerability-reporting", "support-period", "deadline"],
+      "topic_key": "eu-cyber-resilience-act",
+      "retrieved_at": "2026-11-13"
+    }
+  ]
+}
