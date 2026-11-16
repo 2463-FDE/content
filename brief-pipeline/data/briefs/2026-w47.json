@@ -1,0 +1,479 @@
+{
+  "week": "2026-W47",
+  "covers": {
+    "from": "2026-11-09",
+    "to": "2026-11-15"
+  },
+  "published_page": "https://claude.ai/artifact/2TMhmJQjavgWBmcxCTbrXB",
+  "items": [
+    {
+      "id": "2026-w47-dev-01",
+      "week": "2026-W47",
+      "section": "dev",
+      "badge": "act_now",
+      "published": "2026-11-13",
+      "key_dates": [
+        {
+          "date": "2026-12-14",
+          "label": "Six models removed from all GitHub Copilot experiences"
+        }
+      ],
+      "source_org": "GitHub",
+      "sources": [
+        {
+          "url": "https://github.blog/changelog/2026-11-13-upcoming-deprecation-of-selected-github-copilot-models-in-december",
+          "title": "GitHub Changelog: Upcoming deprecation of selected GitHub Copilot models in December",
+          "kind": "primary"
+        }
+      ],
+      "headline": "GitHub Copilot retires six models on Dec 14, including Claude Fable 5 and Gemini 3.8 Flash",
+      "summary": "GitHub will remove Claude Fable 5, Claude Haiku 4.5, Gemini 3.8 Flash, Gemini 4 Argon, Grok 4.6 and Kimi K3 from every Copilot experience on Dec 14, 2026. Suggested replacements are Fable 5.2, Haiku 5.5, Gemini 4 Hydrogen, Gemini 4 Carbon and Grok 4.7; Kimi K3's replacement is still to be announced.",
+      "curriculum_note": "Check every Copilot lab, setup guide and screenshot that names one of these models and switch it to the replacement before cohorts hit Dec 14.",
+      "details": [
+        "For Copilot Business and Enterprise, replacement models are enabled automatically unless an admin turned off the global default or disabled the model; in that case admins must enable them in the model policies.",
+        "Claude Haiku 4.5 stays available to individual subscribers on annual plans.",
+        "No action is needed to remove the retired models; they disappear on the date."
+      ],
+      "tags": [
+        "github-copilot",
+        "deprecation",
+        "model-migration"
+      ],
+      "topic_key": "github-copilot-model-deprecations",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-dev-02",
+      "week": "2026-W47",
+      "section": "dev",
+      "badge": "act_now",
+      "published": "2026-11-10",
+      "key_dates": [
+        {
+          "date": "2026-11-30",
+          "label": "Gemini 4 Carbon introductory API price ends; price doubles"
+        }
+      ],
+      "source_org": "Google",
+      "sources": [
+        {
+          "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-carbon-now-available/",
+          "title": "Google: Gemini 4 Carbon is now available",
+          "kind": "primary"
+        },
+        {
+          "url": "https://github.blog/changelog/2026-11-10-gemini-4-carbon-in-github-copilot",
+          "title": "GitHub Changelog: Gemini 4 Carbon in GitHub Copilot",
+          "kind": "primary"
+        }
+      ],
+      "headline": "Gemini 4 Carbon opens to paying developers, and its API price doubles after Nov 30",
+      "summary": "Google's strongest model, Gemini 4 Carbon (gemini-4-carbon), is now available through Google AI Studio and Gemini for business at an introductory $2 per million input tokens and $10 per million output tokens. After Nov 30, 2026 it costs $4 and $20. Google still recommends Gemini 4 Argon for most software engineering work and positions Carbon for harder, long-horizon and security tasks.",
+      "curriculum_note": "If any lab or cost exercise uses Carbon, budget at the post-Nov 30 price, and use Carbon versus Hydrogen as the live example of picking a tier per task.",
+      "details": [
+        "Also rolling out to Google AI Ultra subscribers in the Gemini app, AI Mode in Search and Google Antigravity; a cyber variant is available through Google's Fairwind Program.",
+        "Google reports a 0.8% per-attempt breach rate in simulated attacks for Carbon versus 3.1% for Argon, and 92% versus 70% on an agentic honesty benchmark. These are the vendor's own numbers.",
+        "GitHub made Gemini 4 Carbon generally available in Copilot the same day for Pro+, Max, Business and Enterprise plans."
+      ],
+      "tags": [
+        "google",
+        "gemini",
+        "pricing",
+        "model-release"
+      ],
+      "topic_key": "gemini-4-carbon",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-dev-03",
+      "week": "2026-W47",
+      "section": "dev",
+      "badge": "plan",
+      "published": "2026-11-12",
+      "source_org": "Google",
+      "sources": [
+        {
+          "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/",
+          "title": "Google: Introducing Gemini 4 Hydrogen",
+          "kind": "primary"
+        },
+        {
+          "url": "https://github.blog/changelog/2026-11-13-gemini-4-hydrogen-in-github-copilot",
+          "title": "GitHub Changelog: Gemini 4 Hydrogen in GitHub Copilot",
+          "kind": "primary"
+        }
+      ],
+      "headline": "Gemini 4 Hydrogen becomes Google's fast, cheap agent model at $1.50 and $7.50 per million tokens",
+      "summary": "Gemini 4 Hydrogen (gemini-4-hydrogen) is the fast tier of Gemini 4, with a 1M-token context window and a flat price of $1.50 per million input tokens and $7.50 per million output tokens. Google says it finishes tasks about 2.5 times faster than Gemini 3.8 Flash and adds a new xhigh thinking level. It is in the Gemini API, AI Studio, Antigravity, the Gemini app and Search.",
+      "curriculum_note": "Add Hydrogen to the model-tiering lesson as the default for high-volume agent steps, with Carbon kept for the hard planning steps.",
+      "details": [
+        "Google reports 57% on Terminal-Bench 4.1 versus 18.2% for Gemini 3.8 Flash, and more than five times fewer fabricated claims. Vendor numbers.",
+        "Antigravity's orchestrator can switch between Carbon and Hydrogen within one session; Google reports near-Carbon results with 24% less quota used.",
+        "Thinking levels: low, medium, high (default) and the new xhigh. The post does not mention Vertex AI or any retirement dates.",
+        "GitHub made Hydrogen generally available in Copilot on Nov 13."
+      ],
+      "tags": [
+        "google",
+        "gemini",
+        "model-release",
+        "agents",
+        "pricing"
+      ],
+      "topic_key": "gemini-4-hydrogen",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-dev-04",
+      "week": "2026-W47",
+      "section": "dev",
+      "badge": "plan",
+      "published": "2026-11-13",
+      "source_org": "Anthropic and OpenAI",
+      "sources": [
+        {
+          "url": "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md",
+          "title": "Anthropic: Claude Code CHANGELOG",
+          "kind": "primary"
+        },
+        {
+          "url": "https://learn.chatgpt.com/docs/changelog",
+          "title": "OpenAI: ChatGPT and Codex changelog",
+          "kind": "primary"
+        },
+        {
+          "url": "https://www.gradually.ai/en/changelogs/claude-code/",
+          "title": "gradually.ai: Claude Code changelog with release dates",
+          "kind": "secondary"
+        }
+      ],
+      "headline": "Claude Code and Codex tighten agent defaults: sandboxed commands prompt again, untrusted folders lose MCP",
+      "summary": "Claude Code 2.1.325 makes sandboxed Bash commands follow the normal permission prompts by default; teams that want the old no-prompt behavior must set sandbox.autoAllowBashIfSandboxed to true. Codex CLI 0.169.0 keeps project configuration and MCP servers disabled when codex exec runs in an untrusted directory, with --trust to save trust explicitly.",
+      "curriculum_note": "Update agent setup guides so students see the new prompts, and teach why a coding agent should not load a repo's own config or MCP servers before the folder is trusted.",
+      "details": [
+        "Claude Code 2.1.321 also fixed MCP OAuth requests that could send refresh tokens to another host after a redirect.",
+        "Claude Code 2.1.323 added Code Mode, an experimental opt-in where Claude writes JavaScript to call its tools, and an engines version range in plugin.json.",
+        "Codex CLI 0.168.0 and 0.169.0 (both Nov 13) also let teams add custom model providers and gateways from the terminal.",
+        "Claude Code's changelog gives no dates; the Nov 9 to 13 release dates come from a third-party changelog mirror."
+      ],
+      "tags": [
+        "claude-code",
+        "codex",
+        "coding-agents",
+        "permissions",
+        "mcp",
+        "security"
+      ],
+      "topic_key": "coding-agent-permission-defaults",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-dev-05",
+      "week": "2026-W47",
+      "section": "dev",
+      "badge": "plan",
+      "published": "2026-11-11",
+      "source_org": "Google",
+      "sources": [
+        {
+          "url": "https://blog.google/innovation-and-ai/technology/developers-tools/gemini-decisions-api/",
+          "title": "Google: Gemini Decisions API",
+          "kind": "primary"
+        }
+      ],
+      "headline": "Google's Gemini Decisions API scores fixed choices in one pass for routing, tool selection and policy checks",
+      "summary": "Gemini Decision 1 (gemini-decision-1) answers closed-set questions, such as yes or no, multiple choice or rubric scores, with probabilities and a confidence score instead of generated text. It costs $0.10 per million input tokens with free output, handles up to 1,000 questions per request, and Google reports 150 to 250 ms latency.",
+      "curriculum_note": "Use it as a worked example of a model router: send low-confidence decisions to a larger model or a human, and log the confidence score.",
+      "details": [
+        "Input can be text, images, audio, video and PDFs up to 256K tokens; shared input is billed once per request.",
+        "Google says Gemini Notebook uses it for model routing and Search uses it as a safety layer for MCP tools.",
+        "Available in the Gemini API and AI Studio; Google Cloud support is listed as coming soon. Integrations with LangChain, LiteLLM, Pydantic AI, Vercel and others are rolling out."
+      ],
+      "tags": [
+        "google",
+        "gemini",
+        "model-routing",
+        "agents",
+        "evaluation"
+      ],
+      "topic_key": "gemini-decisions-api",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-dev-06",
+      "week": "2026-W47",
+      "section": "dev",
+      "badge": "plan",
+      "published": "2026-11-12",
+      "source_org": "Anthropic",
+      "sources": [
+        {
+          "url": "https://claude.com/resources/articles/self-hosted-claude-managed-agents",
+          "title": "Claude: Operate Claude Managed Agents inside your security perimeter",
+          "kind": "primary"
+        },
+        {
+          "url": "https://platform.claude.com/docs/en/release-notes/overview",
+          "title": "Claude Platform release notes",
+          "kind": "primary"
+        }
+      ],
+      "headline": "Claude Managed Agents can now run entirely inside a customer's own infrastructure",
+      "summary": "Anthropic opened a private beta of self-hosted Claude Managed Agents: the customer runs the harness, sandboxes, credentials and session history in its own cloud or on-premise, and picks where model requests go (Anthropic, Bedrock, Google's Agent Platform, Microsoft Foundry or its own gateway). Access is through the Anthropic account team.",
+      "curriculum_note": "A good case for the deployment-architecture module: compare hosted, sandbox-only self-hosted and fully self-hosted agents on data location, credentials and audit.",
+      "details": [
+        "Credentials sit in a proxy outside the sandbox and can live in the customer's own secrets manager; each environment can be limited to an allowlist of hosts.",
+        "Every session is recorded and can be exported over OpenTelemetry; session history is stored in the customer's database.",
+        "Earlier, only the sandboxes could be self-hosted; the agent loop stayed with Anthropic."
+      ],
+      "tags": [
+        "anthropic",
+        "managed-agents",
+        "self-hosting",
+        "enterprise-deployment",
+        "security"
+      ],
+      "topic_key": "claude-managed-agents-self-hosted",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-dev-07",
+      "week": "2026-W47",
+      "section": "dev",
+      "badge": "fyi",
+      "published": "2026-11-10",
+      "source_org": "Model Context Protocol",
+      "sources": [
+        {
+          "url": "https://blog.modelcontextprotocol.io/posts/exploring-file-uploads-and-downloads-in-mcp/",
+          "title": "MCP blog: Exploring File Uploads and Downloads in MCP",
+          "kind": "primary"
+        }
+      ],
+      "headline": "MCP drafts an extension for moving files between clients and tools without passing them through the model",
+      "summary": "The experimental io.modelcontextprotocol/files extension lets a server mark a tool argument as a file. The client sends metadata first, uploads the bytes directly over HTTPS if the server accepts, then repeats the call; downloads come back as targets the client fetches and verifies.",
+      "curriculum_note": "Worth a demo in the MCP module once a reference implementation ships; for now, teach its credential rules as a pattern for safe file handling.",
+      "details": [
+        "Each upload or download target says whether MCP credentials are omitted or included; clients must refuse redirects and targets that set their own Authorization header.",
+        "There is a draft spec but no reference implementation yet; the maintainers aim to stabilize it before the end of 2026. Servers and clients can ignore it.",
+        "Written by the lead maintainer with a Google co-author."
+      ],
+      "tags": [
+        "mcp",
+        "protocol",
+        "file-handling",
+        "security"
+      ],
+      "topic_key": "mcp-file-uploads-extension",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-dev-08",
+      "week": "2026-W47",
+      "section": "dev",
+      "badge": "fyi",
+      "published": "2026-11-09",
+      "source_org": "Meta",
+      "sources": [
+        {
+          "url": "https://dev.meta.ai/models/muse-ember",
+          "title": "Meta: Muse Ember model page",
+          "kind": "primary"
+        },
+        {
+          "url": "https://madrobot.blog/2026/11/09/meta-muse-ember-small-model-ai-agents/",
+          "title": "Mad Robot: Meta's Muse Ember (news report, Nov 9)",
+          "kind": "secondary"
+        }
+      ],
+      "headline": "Meta releases Muse Ember, a small 1M-context model priced for high-volume agent steps",
+      "summary": "Muse Ember (muse-ember-1.0) is Meta's smallest multimodal reasoning model, priced at $0.10 per million input tokens and $0.50 per million output tokens up to 200K context. Meta pitches it for tool calls, coding subtasks, routing and extraction, paired with larger Muse models for planning.",
+      "curriculum_note": "Another option for the cheap-executor role in multi-model agent labs; compare it on cost with Hydrogen and Haiku.",
+      "details": [
+        "Available through Meta's Model API, OpenRouter and Google Cloud Marketplace.",
+        "Meta's own benchmark table shows it ahead of Claude Haiku 5.5 and GPT-6 Luna on most listed tests but behind Haiku 5.5 on FrontierCode 2.0.",
+        "Meta's model page gives no release date; Nov 9 comes from news coverage."
+      ],
+      "tags": [
+        "meta",
+        "model-release",
+        "small-models",
+        "agents",
+        "pricing"
+      ],
+      "topic_key": "meta-muse-ember",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-practice-01",
+      "week": "2026-W47",
+      "section": "practice",
+      "badge": "plan",
+      "published": "2026-11-10",
+      "source_org": "Cognizant",
+      "sources": [
+        {
+          "url": "https://finviz.com/news/419787/cognizant-dedicates-more-than-25000-professionals-to-claude-delivery-introduces-managed-services-model-to-run-claude-at-the-core-of-enterprise-operations",
+          "title": "Cognizant press release (PR Newswire, via Finviz)",
+          "kind": "primary"
+        }
+      ],
+      "headline": "Cognizant puts more than 25,000 people into a Claude delivery group and will run Claude systems for clients",
+      "summary": "Cognizant formed a Claude Frontier Capability Group of more than 25,000 people and launched a managed-services model in which it runs Claude-powered systems in production for clients. It reports more than 44,000 staff trained or certified on Claude.",
+      "curriculum_note": "Shows where FDE work is heading: from build-and-hand-off to build-and-run. Add operating a deployed agent (monitoring, cost, incident response) to the capstone.",
+      "details": [
+        "The release names new roles, Frontier Certified Engineers and Frontier Business Operators, credentialed by model companies; it does not use the term forward deployed engineer.",
+        "Cognizant says it holds more than 26,000 Claude certifications.",
+        "Pitched to clients as more predictable AI spend with enterprise security and governance controls."
+      ],
+      "tags": [
+        "fde-market",
+        "systems-integrators",
+        "certification",
+        "managed-services"
+      ],
+      "topic_key": "cognizant-claude-delivery",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-practice-02",
+      "week": "2026-W47",
+      "section": "practice",
+      "badge": "plan",
+      "published": "2026-11-11",
+      "source_org": "United Airlines",
+      "sources": [
+        {
+          "url": "https://united.mediaroom.com/news-releases?item=125496",
+          "title": "United: United Restricts Access for Third-Party AI Agents",
+          "kind": "primary"
+        }
+      ],
+      "headline": "United Airlines restricts third-party AI agents from booking and managing reservations",
+      "summary": "United is restricting unauthorized third-party personal AI agents on its own platforms and indirectly through travel agencies and aggregators, and is updating its booking, ticketing and distribution policies. It cites credential sharing, unintended purchases or account changes, and FAA and DOT rules that need a human, such as check-in.",
+      "curriculum_note": "Use this in agent design reviews: an agent that acts on a third-party site needs that site's permission, its own identity and a human step where rules require one, not the user's shared password.",
+      "details": [
+        "United says banks and retailers have taken similar steps and encourages others to follow.",
+        "The release gives no effective date or technical detail on how the restriction is enforced."
+      ],
+      "tags": [
+        "enterprise-adoption",
+        "agent-access",
+        "identity",
+        "agent-safety"
+      ],
+      "topic_key": "third-party-ai-agent-access",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-practice-03",
+      "week": "2026-W47",
+      "section": "practice",
+      "badge": "fyi",
+      "published": "2026-11-10",
+      "source_org": "Anthropic",
+      "sources": [
+        {
+          "url": "https://claude.com/resources/articles/interactive-connectors-full-tool",
+          "title": "Claude: Your apps can now open in Claude, and Claude can work in them",
+          "kind": "primary"
+        },
+        {
+          "url": "https://claude.com/resources/articles/sheets-whiteboards-data",
+          "title": "Claude: Introducing Claude Whiteboards, Claude Sheets, and Claude Data",
+          "kind": "primary"
+        }
+      ],
+      "headline": "Claude adds interactive connectors built on MCP Apps, plus Sheets, Whiteboards and Data",
+      "summary": "Interactive connectors open a live view of a tool such as Asana, Canva, Dropbox or monday.com inside Claude, where Claude can make changes the user approves. They run on MCP Apps, an open MCP extension, so the same app can work in other AI clients. Claude Sheets, Whiteboards and Data launched the same day.",
+      "curriculum_note": "Add an MCP Apps example to the MCP module, since customers will now expect a tool's own interface inside the assistant, not only text tool calls.",
+      "details": [
+        "Developer support for building interactive connectors is in public preview.",
+        "Rolling out on web and desktop on all plans; admins restrict a connector's tools the same way as before."
+      ],
+      "tags": [
+        "anthropic",
+        "mcp",
+        "mcp-apps",
+        "enterprise-adoption"
+      ],
+      "topic_key": "claude-interactive-connectors-mcp-apps",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-compliance-01",
+      "week": "2026-W47",
+      "section": "compliance",
+      "badge": "plan",
+      "published": "2026-11-10",
+      "key_dates": [
+        {
+          "date": "2027-01-01",
+          "label": "Large frontier AI developers must register through New York's RAISE Portal"
+        }
+      ],
+      "source_org": "New York State",
+      "sources": [
+        {
+          "url": "https://www.governor.ny.gov/news/governor-hochul-declares-ny-will-lead-nation-ai-science-and-safety-launches-new-research",
+          "title": "Governor of New York: launch of RAISE Portal and research center",
+          "kind": "primary"
+        },
+        {
+          "url": "https://techcrunch.com/2026/11/10/openai-anthropic-face-new-oversight-as-new-yorks-ai-safety-law-takes-effect/",
+          "title": "TechCrunch: New York's AI safety law takes effect",
+          "kind": "secondary"
+        }
+      ],
+      "headline": "New York opens RAISE Act registration; large frontier developers must register by Jan 1, 2027",
+      "summary": "New York's DIGIT office opened the RAISE Portal, where large frontier AI developers must register by Jan 1, 2027. Frontier developers must report critical safety incidents within 72 hours and publish model transparency reports, and large developers must publish safety frameworks starting in January. The state also launched a research center at SUNY Binghamton to test advanced AI systems.",
+      "curriculum_note": "Few trainees will build frontier models, but their customers will ask about vendors' incident reporting; add RAISE to the vendor due-diligence checklist next to California's SB 53.",
+      "details": [
+        "The Department of Financial Services leads implementation through the DIGIT office.",
+        "TechCrunch reports penalties of up to $1 million per violation and $3 million for later ones; the governor's release does not mention penalties."
+      ],
+      "tags": [
+        "us-state-law",
+        "new-york",
+        "frontier-ai",
+        "incident-reporting"
+      ],
+      "topic_key": "ny-raise-act",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "2026-w47-compliance-02",
+      "week": "2026-W47",
+      "section": "compliance",
+      "badge": "plan",
+      "published": "2026-11-12",
+      "source_org": "European Commission",
+      "sources": [
+        {
+          "url": "https://op.europa.eu/en/publication-detail/-/publication/caabe0cd-de39-11f1-ba80-01aa75ed71a1/language-en",
+          "title": "EU Publications Office: C/2026/6005, Article 50 guidelines",
+          "kind": "primary"
+        },
+        {
+          "url": "https://casrai.org/news/eu-ai-act-article50-transparency-guidelines-2026",
+          "title": "CASRAI: Article 50 guidelines published (news summary)",
+          "kind": "secondary"
+        }
+      ],
+      "headline": "EU publishes its Article 50 transparency guidelines in the Official Journal",
+      "summary": "The Commission's guidelines on the AI Act's Article 50 transparency duties appeared as Communication C/2026/6005, dated Nov 12, 2026. They cover telling people they are talking to an AI system, machine-readable marking of AI-generated content, and labeling deepfakes. The guidelines are not binding but are the reference regulators will use.",
+      "curriculum_note": "Cite C/2026/6005 as the reference in the EU transparency lesson, in place of the draft guidelines from May.",
+      "details": [
+        "Article 50 duties have applied since Aug 2, 2026; the Commission had posted the guidelines on its own site in July.",
+        "The Publications Office record lists the document and date; its full text was not read for this brief."
+      ],
+      "tags": [
+        "eu-ai-act",
+        "transparency",
+        "content-marking",
+        "chatbot-disclosure"
+      ],
+      "topic_key": "eu-ai-act-article-50-transparency",
+      "retrieved_at": "2026-11-16"
+    }
+  ]
+}
