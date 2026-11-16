@@ -381,7 +381,8 @@
           <li><a href="https://openai.github.io/openai-agents-python/handoffs/" target="_blank" rel="noopener">OpenAI Agents SDK — Handoffs</a> — how a handoff to "Refund Agent" surfaces to the model as the <code>transfer_to_refund_agent</code> tool.</li>
           <li><a href="https://github.com/crewAIInc/crewAI/blob/main/README.md" target="_blank" rel="noopener">crewAI — README</a> — Crews (autonomous, role-based) vs Flows (event-driven, deterministic), and "the true power of CrewAI emerges when combining Crews and Flows."</li>
           <li><a href="https://docs.crewai.com/en/concepts/flows" target="_blank" rel="noopener">CrewAI — Flows</a> — <code>@start()</code>/<code>@listen()</code> methods, <code>or_</code>/<code>and_</code> operators, router branching, and unstructured vs Pydantic state.</li>
-          <li><a href="https://pypi.org/project/crewai/" target="_blank" rel="noopener">crewai — PyPI</a> — version 1.15.1 (2026-06-27), "built entirely from scratch — completely independent of LangChain," Python <code>&gt;=3.10,&lt;3.14</code>.</li>
+          <li><a href="https://pypi.org/project/langgraph/" target="_blank" rel="noopener">langgraph — PyPI</a> — current patch 1.2.22 (2026-11-14, accessed 2026-11-16 UTC) on the 1.2 line; Python <code>&gt;=3.10</code>.</li>
+          <li><a href="https://pypi.org/project/crewai/" target="_blank" rel="noopener">crewai — PyPI</a> — June snapshot 1.15.1 (2026-06-27); current stable 1.15.41 (2026-11-12, accessed 2026-11-16 UTC); "built entirely from scratch — completely independent of LangChain," Python <code>&gt;=3.10,&lt;3.14</code>.</li>
           <li><a href="https://learn.microsoft.com/en-us/agent-framework/overview/" target="_blank" rel="noopener">Microsoft Agent Framework — Overview</a> — the successor to both AutoGen and Semantic Kernel, the Agents vs graph-based Workflows split, and "if you can write a function to handle the task, do that instead of using an AI agent."</li>
           <li><a href="https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen/" target="_blank" rel="noopener">Microsoft — AutoGen to Agent Framework migration guide</a> — confirms AutoGen is now a legacy/migration source, not the recommended target for new work.</li>
           <li><a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/agentic-ai-frameworks/strands-agents.html" target="_blank" rel="noopener">AWS — Strands Agents (AWS Prescriptive Guidance)</a> — open-source SDK initially released by AWS, model-first design, Swarm / Graph / Workflow patterns, native MCP support (accessed 2026-10-14).</li>
@@ -440,11 +441,11 @@
     LangChain as a pre-1.0 "chains" library. Both are wrong now. Memorize the corrections below and you'll never seed a
     client conversation from stale memory.</p>
     <div class="model-answer show">
-      <div class="ma-k">The 2026 version board (verified 2026-07)</div>
+      <div class="ma-k">The 2026 version board (verified 2026-07; LangGraph and CrewAI patches rechecked 2026-11-16 UTC)</div>
       <ul class="deliv-list">
-        <li><b>LangChain 1.0 + LangGraph 1.0</b> — both GA <b>2025-10-22</b>; <code>create_agent</code> loop + middleware + standard content blocks, layered on the LangGraph durable runtime.</li>
+        <li><b>LangChain 1.0 + LangGraph 1.0</b> — both GA <b>2025-10-22</b>; <code>create_agent</code> loop + middleware + standard content blocks, layered on the LangGraph durable runtime. LangGraph has since moved to the 1.2 line: current patch <b>1.2.22</b> (2026-11-14).</li>
         <li><b>OpenAI Agents SDK</b> — the production successor to the experimental <b>Swarm</b>; primitives = agents / handoffs / guardrails / sessions / tracing; multi-provider via LiteLLM &amp; Any-LLM.</li>
-        <li><b>CrewAI 1.15.1</b> — released <b>2026-06-27</b>; standalone (independent of LangChain); dual model of autonomous Crews + deterministic Flows; Python <code>&gt;=3.10,&lt;3.14</code>.</li>
+        <li><b>CrewAI 1.15</b> — current stable patch <b>1.15.41</b> (2026-11-12); 1.15.1 (2026-06-27) was this lesson's June snapshot; standalone (independent of LangChain); dual model of autonomous Crews + deterministic Flows; Python <code>&gt;=3.10,&lt;3.14</code>.</li>
         <li><b>Microsoft Agent Framework 1.0</b> — GA <b>2026-04-03</b>; the <b>merge</b> of AutoGen + Semantic Kernel; Agents + graph-based Workflows; AutoGen is now legacy/migration-only.</li>
       </ul>
     </div>
@@ -559,8 +560,8 @@ window.DIAGRAM = {
       detail:"A handoff is a tool exposed to the LLM: delegating to 'Refund Agent' surfaces as a tool named transfer_to_refund_agent. Routing/delegation is just the model choosing a tool — no separate router." },
 
     // framework 3
-    { id:"crew", step:4, x:14, y:258, w:228, h:88, label:"CrewAI 1.15.1  (standalone)\nCrews: autonomous, role-based\nFlows: @start/@listen, deterministic",
-      detail:"Independent of LangChain, 'built from scratch' (PyPI 1.15.1, 2026-06-27). Crews = role/goal/backstory autonomy; Flows = event-driven @start()/@listen() with routers + Pydantic state. 'True power emerges when combining Crews and Flows.'" },
+    { id:"crew", step:4, x:14, y:258, w:228, h:88, label:"CrewAI 1.15  (standalone)\nCrews: autonomous, role-based\nFlows: @start/@listen, deterministic",
+      detail:"Independent of LangChain, 'built from scratch' (PyPI June snapshot 1.15.1; current patch 1.15.41, 2026-11-12). Crews = role/goal/backstory autonomy; Flows = event-driven @start()/@listen() with routers + Pydantic state. 'True power emerges when combining Crews and Flows.'" },
 
     // framework 4
     { id:"ms", step:5, x:14, y:362, w:472, h:60, label:"Microsoft Agent Framework 1.0  (GA 2026-04-03)  =  AutoGen ⊕ Semantic Kernel\nAgents (LLM+tools+MCP)  ·  graph Workflows (type-safe, checkpointed, HITL)",
