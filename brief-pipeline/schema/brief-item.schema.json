@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://2463-fde.github.io/content/brief-pipeline/schema/brief-item.schema.json",
+  "title": "AI Market Brief: weekly file",
+  "description": "One file per weekly brief (data/briefs/<year>-w<NN>.json). Each item is one sourced news entry that a model can retrieve and cite.",
+  "type": "object",
+  "required": ["week", "covers", "published_page", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "week": { "type": "string", "pattern": "^[0-9]{4}-W[0-9]{2}$", "description": "ISO week of the issue, e.g. 2026-W46." },
+    "covers": {
+      "type": "object",
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "type": "string", "format": "date" },
+        "to": { "type": "string", "format": "date" }
+      }
+    },
+    "published_page": { "type": "string", "format": "uri", "description": "Link to the HTML issue on claude.ai." },
+    "is_sample": { "type": "boolean", "default": false },
+    "items": { "type": "array", "items": { "$ref": "#/$defs/item" } }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "required": ["id", "week", "section", "badge", "source_org", "sources", "headline", "summary", "curriculum_note", "tags", "topic_key", "retrieved_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[0-9]{4}-w[0-9]{2}-(dev|practice|compliance)-[0-9]{2}$", "description": "Stable id: <year>-w<NN>-<section>-<NN>." },
+        "week": { "type": "string", "pattern": "^[0-9]{4}-W[0-9]{2}$" },
+        "section": { "enum": ["dev", "practice", "compliance"], "description": "dev = developer tools and models; practice = FDE practice and market; compliance = compliance and governance." },
+        "badge": { "enum": ["act_now", "plan", "fyi", "background"] },
+        "published": { "type": ["string", "null"], "format": "date", "description": "Date the source published the news. Null when the source gives none." },
+        "date_note": { "type": "string", "description": "Plain words for a date the field above can't hold, e.g. 'Posted Nov 5 and Nov 10'." },
+        "key_dates": {
+          "type": "array",
+          "description": "Deadlines or effective dates the item announces.",
+          "items": {
+            "type": "object",
+            "required": ["date", "label"],
+            "properties": {
+              "date": { "type": "string", "format": "date" },
+              "label": { "type": "string" }
+            }
+          }
+        },
+        "source_org": { "type": "string", "description": "Who the news is about or from, e.g. Anthropic, NIST, EU AI Act." },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["url", "title", "kind"],
+            "properties": {
+              "url": { "type": "string", "format": "uri" },
+              "title": { "type": "string" },
+              "kind": { "enum": ["primary", "secondary"], "description": "primary = vendor, regulator or standards body page; secondary = law firm, press or other summary." }
+            }
+          }
+        },
+        "headline": { "type": "string" },
+        "summary": { "type": "string" },
+        "curriculum_note": { "type": "string", "description": "The 'For the curriculum' line." },
+        "details": { "type": "array", "items": { "type": "string" } },
+        "tags": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9-]+$" } },
+        "topic_key": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "Stable key for the ongoing story. A later item with the same key supersedes earlier ones." },
+        "retrieved_at": { "type": "string", "format": "date", "description": "Day the source page was read." }
+      }
+    }
+  }
+}
