@@ -19,12 +19,13 @@ class Week1CurrencyTests(unittest.TestCase):
         for stale in (
             "GPT-5.5", "Opus 4.8", "Sonnet 4.6", "Gemini 3.5 Flash",
             "claude-sonnet-4-6-v1", "claude-haiku-4-5-20251001",
+            "Fable 5.1", "claude-haiku-4.5",
         ):
             self.assertNotIn(stale, contract)
         for current in (
-            "Fable 5.1", "Opus 5.5", "Sonnet 5.5", "Haiku 5.5",
+            "Fable 5.2", "Opus 5.5", "Sonnet 5.5", "Haiku 5.5",
             "GPT-6 Astra", "GPT-6.1 Sol", "GPT-6.1 Terra", "GPT-6 Luna",
-            "Gemini 3.8 Flash",
+            "Gemini 4 Argon", "Gemini 3.8 Flash",
         ):
             self.assertIn(current, contract)
 
@@ -37,7 +38,7 @@ class Week1CurrencyTests(unittest.TestCase):
             for row in tables[0].find_all("tr")
         }
         for row in (
-            "Anthropic Fable 5.1 $10 $50 current",
+            "Anthropic Fable 5.2 $8 $40 current",
             "Anthropic Opus 5.5 $4 $20 current",
             "Anthropic Sonnet 5.5 $2 $10 current",
             "Anthropic Haiku 5.5 from $0.10 from $0.50 current",
@@ -45,6 +46,7 @@ class Week1CurrencyTests(unittest.TestCase):
             "OpenAI GPT-6.1 Sol $2 $10 standard",
             "OpenAI GPT-6.1 Terra $1 $5 standard",
             "OpenAI GPT-6 Luna $0.10 $0.50 standard",
+            "Google Gemini 4 Argon $2 $10 through 2026-11-30; $4 / $20 from 2026-12-01",
             "Google Gemini 3.8 Flash $0.75 $3.75 through 2026-12-31",
         ):
             self.assertIn(row, rendered_rows)
