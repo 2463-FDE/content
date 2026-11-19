@@ -38,8 +38,8 @@
         <div class="meta">
           <span><b>Week 1</b> · Day 2</span>
           <span>Choosing a model, then calling it reliably</span>
-          <span class="core30-meta" data-cloud="aws" data-core-words="1792" title="Required path: measured reading, essential diagrams, two objective-aligned interactions with feedback, and the selected-provider check. Optional details and the other provider are outside the cap."><b>Core 30</b> · AWS · ~12 min read · 2 interactions · 9-Q check · ~29 min required</span>
-          <span class="core30-meta" data-cloud="gcp" data-core-words="1696" title="Required path: measured reading, essential diagrams, two objective-aligned interactions with feedback, and the selected-provider check. Optional details and the other provider are outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 9-Q check · ~28 min required</span>
+          <span class="core30-meta" data-cloud="aws" data-core-words="1796" title="Required path: measured reading, essential diagrams, two objective-aligned interactions with feedback, and the selected-provider check. Optional details and the other provider are outside the cap."><b>Core 30</b> · AWS · ~12 min read · 2 interactions · 9-Q check · ~29 min required</span>
+          <span class="core30-meta" data-cloud="gcp" data-core-words="1700" title="Required path: measured reading, essential diagrams, two objective-aligned interactions with feedback, and the selected-provider check. Optional details and the other provider are outside the cap."><b>Core 30</b> · GCP · ~11 min read · 2 interactions · 9-Q check · ~28 min required</span>
         </div>
         <p class="summary">Today is the first decision every Forward Deployed Engineer makes on an engagement — <strong>which foundation
         model do you build on, and how do you defend that choice to a client?</strong> — and the discipline that makes the
@@ -68,7 +68,7 @@
         <p>The landscape verified <span class="nowrap">2026-10-27</span> still has four broad options. <strong>Anthropic's
         Claude</strong> family currently spans Fable, Opus, Sonnet, and Haiku tiers. <strong>OpenAI's GPT</strong> family
         currently spans GPT-6 Astra, GPT-6.1 Sol/Terra, and GPT-6 Luna. <strong>Google's Gemini</strong> family includes
-        Gemini 3.8 Flash. And the <strong>open-weight / self-hosted</strong> world — Llama, Mistral, DeepSeek, Qwen — lets
+        Gemini 4 Argon and Gemini 3.8 Flash. And the <strong>open-weight / self-hosted</strong> world — Llama, Mistral, DeepSeek, Qwen — lets
         you run inference on hardware you control. <span class="src">[sources: first-party Anthropic, OpenAI, and Google
         model/pricing pages, accessed 2026-10-27]</span> Those names will move again; that is exactly why you learn the
         <em>axes</em>, not the names.</p>
@@ -125,12 +125,13 @@
               <tr><th scope="row">OpenAI</th><td>GPT-6.1 Sol</td><td>$2</td><td>$10</td><td>standard</td></tr>
               <tr><th scope="row">OpenAI</th><td>GPT-6.1 Terra</td><td>$1</td><td>$5</td><td>standard</td></tr>
               <tr><th scope="row">OpenAI</th><td>GPT-6 Luna</td><td>$0.10</td><td>$0.50</td><td>standard</td></tr>
+              <tr><th scope="row">Google</th><td>Gemini 4 Argon</td><td>$2</td><td>$10</td><td>through 2026-11-30; $4 / $20 from 2026-12-01</td></tr>
               <tr><th scope="row">Google</th><td>Gemini 3.8 Flash</td><td>$0.75</td><td>$3.75</td><td>through 2026-12-31</td></tr>
             </tbody>
           </table>
         </div>
         <p><span class="src">[sources: Anthropic Models overview; OpenAI Models and Pricing; Google Gemini API pricing;
-        accessed 2026-10-27]</span> Prices, service modes, and promotions drift; re-check before making a client estimate.
+        accessed 2026-10-27; Google rows rechecked 2026-11-19]</span> Prices, service modes, and promotions drift; re-check before making a client estimate.
         The durable shape is tiering: the cheapest suitable model can be far below the flagship.</p>
         <p>That asymmetry drives design. A feature that reads a lot and answers briefly (classify, extract, label) is
         dominated by <em>input</em> cost — a cheap-input, big-context model wins. A feature that generates long output
